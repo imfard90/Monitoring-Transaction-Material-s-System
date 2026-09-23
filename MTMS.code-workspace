@@ -1,0 +1,17 @@
+{
+  "folders": [
+    {
+      "name": "Monitoring Transaction Material's System (MTMS)",
+      "path": "."
+    },
+    {
+      "name": "ECC-main",
+      "path": "../../../Movies/ECC-main"
+    },
+    {
+      "name": "gresikV2",
+      "path": "../gresikV2"
+    }
+  ],
+  "settings": {}
+}

@@ -1,0 +1,9 @@
+.mobile-header-menu {
+    height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+}
+.mobile-header-menu.active {
+    min-height: 70px;
+    overflow: visible;
+}

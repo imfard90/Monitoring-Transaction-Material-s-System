@@ -1,0 +1,461 @@
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import { Plus, Send, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import type React from 'react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import CardBox from '@/app/components/shared/CardBox';
+import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
+import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import {
+    createOutSap,
+    getBranches,
+    getMaterialsInWarehouse,
+    getTechnicians,
+    getWarehouses,
+    updateOutSapStatusToIntech,
+} from '../_actions/out-sap-actions';
+
+export default function OutSapForm() {
+    const router = useRouter();
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        nik_teknisi: '',
+        name_sa: '',
+        warehouse_id: '',
+        id_reservasi: '',
+        sap_number: '',
+        request_id: '',
+    });
+
+    const [items, setItems] = useState<any[]>([]);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+    const { data: techData } = useQuery({
+        queryKey: ['technicians', formData.name_sa],
+        queryFn: () => getTechnicians(formData.name_sa),
+        enabled: !!formData.name_sa,
+    });
+
+    const { data: whData } = useQuery({
+        queryKey: ['warehouses'],
+        queryFn: getWarehouses,
+    });
+
+    const { data: matData } = useQuery({
+        queryKey: ['materials', formData.warehouse_id],
+        queryFn: () => getMaterialsInWarehouse(parseInt(formData.warehouse_id)),
+        enabled: !!formData.warehouse_id,
+    });
+
+    const { data: branchData } = useQuery({
+        queryKey: ['branches'],
+        queryFn: getBranches,
+    });
+
+    const technicians = techData?.data || [];
+    const warehouses = whData?.data || [];
+    const materials = matData?.data || [];
+    const branches = branchData?.data || [];
+
+    const handleAddItem = () => {
+        setItems([...items, { designator_id: '', qty_req: 1 }]);
+    };
+
+    const handleRemoveItem = (index: number) => {
+        setItems(items.filter((_, i) => i !== index));
+    };
+
+    const handleItemChange = (index: number, field: string, value: any) => {
+        const newItems = [...items];
+        newItems[index] = { ...newItems[index], [field]: value };
+        setItems(newItems);
+    };
+
+    const handleSelectTechnician = (nik: string) => {
+        const tech = technicians.find((t: any) => t.nik === nik);
+        setFormData({
+            ...formData,
+            nik_teknisi: nik,
+            name_sa: tech?.branch_id ? `Branch ${tech.branch_id}` : '',
+        });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (
+            !formData.nik_teknisi ||
+            !formData.warehouse_id ||
+            !formData.id_reservasi.trim() ||
+            !formData.sap_number.trim() ||
+            items.length === 0
+        ) {
+            toast.error('Please fill all required fields and add at least one material.');
+            return;
+        }
+
+        for (const item of items) {
+            if (!item.designator_id || item.qty_req <= 0) {
+                toast.error('Invalid item data. Please select material and valid quantity.');
+                return;
+            }
+        }
+
+        setIsConfirmModalOpen(true);
+    };
+
+    const handleConfirmSubmit = async () => {
+        setLoading(true);
+        const payload = {
+            ...formData,
+            warehouse_id: parseInt(formData.warehouse_id),
+            items: items.map((i) => ({
+                designator_id: parseInt(i.designator_id),
+                qty_req: parseInt(i.qty_req),
+            })),
+        };
+
+        const res = await createOutSap(payload);
+
+        if (res.success && res.header_id) {
+            toast.success('Out SAP created and status set to Intech. Stock reduced successfully!');
+            // Reset form
+            setFormData({
+                nik_teknisi: '',
+                name_sa: '',
+                warehouse_id: '',
+                id_reservasi: '',
+                sap_number: '',
+                request_id: '',
+            });
+            setItems([]);
+            setIsConfirmModalOpen(false);
+            router.push('/apps/out-material'); // redirect to list table that already exists
+        } else {
+            toast.error(res.error || 'Failed to create Out SAP');
+        }
+
+        setLoading(false);
+        setIsConfirmModalOpen(false);
+    };
+
+    const selectedTech = technicians?.find((t: any) => t.nik === formData.nik_teknisi);
+    const selectedWh = warehouses?.find((w: any) => w.id.toString() === formData.warehouse_id);
+
+    return (
+        <CardBox className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
+                <div>
+                    <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
+                        Form Out SAP (Pengeluaran Material)
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label>Request ID</Label>
+                            <Input
+                                value={formData.request_id}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, request_id: e.target.value })
+                                }
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Technician *</Label>
+                            <SearchableSelect
+                                options={technicians.map((t: any) => ({
+                                    value: t.nik,
+                                    label: `${t.name} (${t.nik})`,
+                                }))}
+                                value={formData.nik_teknisi}
+                                onValueChange={handleSelectTechnician}
+                                placeholder="Select Technician"
+                                disabled={!formData.name_sa}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Area (SA)</Label>
+                            <SearchableSelect
+                                options={branches.map((b: any) => ({
+                                    value: b.service_area,
+                                    label: b.service_area,
+                                }))}
+                                value={formData.name_sa}
+                                onValueChange={(v) => {
+                                    setFormData({ ...formData, name_sa: v, nik_teknisi: '' });
+                                }}
+                                placeholder="Select Area"
+                                disabled={!formData.request_id}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>From Warehouse *</Label>
+                            <SearchableSelect
+                                options={warehouses.map((w: any) => ({
+                                    value: w.id.toString(),
+                                    label: w.name,
+                                }))}
+                                value={formData.warehouse_id}
+                                onValueChange={(v) => setFormData({ ...formData, warehouse_id: v })}
+                                placeholder="Select Warehouse"
+                                disabled={!formData.nik_teknisi}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Reservasi ID *</Label>
+                            <Input
+                                value={formData.id_reservasi}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, id_reservasi: e.target.value })
+                                }
+                                disabled={!formData.warehouse_id}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>SAP Number *</Label>
+                            <Input
+                                value={formData.sap_number}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, sap_number: e.target.value })
+                                }
+                                disabled={!formData.warehouse_id}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Items Section */}
+                <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-base font-semibold">Material Items</h3>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAddItem}
+                            className="gap-2"
+                            disabled={
+                                !formData.warehouse_id ||
+                                !formData.id_reservasi.trim() ||
+                                !formData.sap_number.trim()
+                            }
+                        >
+                            <Plus size={16} /> Add Item
+                        </Button>
+                    </div>
+
+                    {items.length === 0 ? (
+                        <div className="text-center p-8 border border-dashed rounded-md text-gray-500 bg-gray-50/50">
+                            No items added. Click Add Item to start adding materials.
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {items.map((item, index) => (
+                                <div
+                                    key={index}
+                                    className="flex flex-col sm:flex-row sm:items-end gap-3 p-4 border rounded-md bg-gray-50/50"
+                                >
+                                    <div className="flex-1 space-y-2">
+                                        <Label className="text-xs">Material *</Label>
+                                        <SearchableSelect
+                                            options={materials.map((m: any) => ({
+                                                value: m.id.toString(),
+                                                label: `${m.code} - ${m.description} (Stock: ${m.qty})`,
+                                            }))}
+                                            value={item.designator_id}
+                                            onValueChange={(v) =>
+                                                handleItemChange(index, 'designator_id', v)
+                                            }
+                                            placeholder="Select Material"
+                                        />
+                                    </div>
+
+                                    <div className="w-full sm:w-32 space-y-2">
+                                        <Label className="text-xs">Qty *</Label>
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            placeholder="0"
+                                            value={
+                                                item.qty_req === 0 || item.qty_req === ''
+                                                    ? ''
+                                                    : item.qty_req
+                                            }
+                                            onChange={(e) => {
+                                                let val: string | number =
+                                                    e.target.value === ''
+                                                        ? ''
+                                                        : parseInt(e.target.value);
+
+                                                const selectedMat = materials.find(
+                                                    (m: any) =>
+                                                        m.id.toString() === item.designator_id
+                                                );
+
+                                                if (
+                                                    typeof val === 'number' &&
+                                                    selectedMat &&
+                                                    val > selectedMat.qty
+                                                ) {
+                                                    val = selectedMat.qty;
+                                                    toast.error(
+                                                        `Maximum quantity is ${selectedMat.qty}`
+                                                    );
+                                                }
+
+                                                handleItemChange(index, 'qty_req', val);
+                                            }}
+                                        />
+                                    </div>
+
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleRemoveItem(index)}
+                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2 sm:mt-0"
+                                    >
+                                        <Trash2 size={16} />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="pt-6 border-t flex justify-end gap-3">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                            setFormData({
+                                nik_teknisi: '',
+                                name_sa: '',
+                                warehouse_id: '',
+                                id_reservasi: '',
+                                sap_number: '',
+                                request_id: '',
+                            });
+                            setItems([]);
+                        }}
+                        disabled={loading}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={loading || items.length === 0}
+                        className="gap-2"
+                    >
+                        <Send size={16} />
+                        {loading ? 'Processing...' : 'Review & Submit'}
+                    </Button>
+                </div>
+            </form>
+
+            <ConfirmDialog
+                isOpen={isConfirmModalOpen}
+                onOpenChange={setIsConfirmModalOpen}
+                title="Konfirmasi SAP Out"
+                description="Pastikan material dan teknisi sudah benar. Transaksi ini akan langsung memotong stok gudang."
+                onConfirm={handleConfirmSubmit}
+                loading={loading}
+            >
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
+                        <div>
+                            <span className="text-gray-500 block mb-1">Teknisi:</span>
+                            <span className="font-medium">
+                                {selectedTech?.name} ({selectedTech?.nik})
+                            </span>
+                        </div>
+                        <div>
+                            <span className="text-gray-500 block mb-1">Service Area:</span>
+                            <span className="font-medium">{formData.name_sa || '-'}</span>
+                        </div>
+                        <div>
+                            <span className="text-gray-500 block mb-1">Gudang Asal:</span>
+                            <span className="font-medium">{selectedWh?.name || '-'}</span>
+                        </div>
+                        <div>
+                            <span className="text-gray-500 block mb-1">No. SAP:</span>
+                            <span className="font-medium">{formData.sap_number || '-'}</span>
+                        </div>
+                        {formData.id_reservasi && (
+                            <div>
+                                <span className="text-gray-500 block mb-1">ID Reservasi:</span>
+                                <span className="font-medium">{formData.id_reservasi}</span>
+                            </div>
+                        )}
+                        {formData.request_id && (
+                            <div>
+                                <span className="text-gray-500 block mb-1">Request ID:</span>
+                                <span className="font-medium">{formData.request_id}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div>
+                        <h4 className="text-sm font-semibold mb-2">Daftar Material:</h4>
+                        <div className="border rounded-md max-h-[300px] overflow-y-auto">
+                            <Table>
+                                <TableHeader className="bg-muted/50">
+                                    <TableRow>
+                                        <TableHead className="w-[40px] text-center">No</TableHead>
+                                        <TableHead>Material</TableHead>
+                                        <TableHead className="text-center">Qty</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {items.map((item, idx) => {
+                                        const mat = materials?.find(
+                                            (m: any) => m.id.toString() === item.designator_id
+                                        );
+                                        return (
+                                            <TableRow key={idx}>
+                                                <TableCell className="text-center">
+                                                    {idx + 1}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {mat?.code} - {mat?.description}
+                                                </TableCell>
+                                                <TableCell className="text-center font-bold text-blue-600">
+                                                    {item.qty_req}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+                </div>
+            </ConfirmDialog>
+        </CardBox>
+    );
+}

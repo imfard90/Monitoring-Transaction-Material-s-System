@@ -1,0 +1,193 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true,
+    "defaultBranch": "main"
+  },
+
+  "files": {
+    "ignoreUnknown": true
+  },
+
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 4,
+    "lineWidth": 100,
+    "lineEnding": "lf",
+    "bracketSpacing": true,
+    "trailingNewline": true
+  },
+
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+
+      "correctness": {
+        "noUnusedVariables": "warn",
+        "noUnusedImports": "warn",
+        "useExhaustiveDependencies": "warn",
+        "noConstantCondition": "error",
+        "noUnsafeFinally": "error"
+      },
+
+      "suspicious": {
+        "noExplicitAny": "warn",
+        "noConsole": {
+          "level": "warn",
+          "options": {
+            "allow": ["warn", "error"]
+          }
+        },
+        "noDoubleEquals": "error",
+        "noArrayIndexKey": "warn",
+        "noDuplicateObjectKeys": "error"
+      },
+
+      "style": {
+        "useConst": "error",
+        "useTemplate": "error",
+        "noNegationElse": "warn",
+        "useDefaultParameterLast": "error",
+        "noParameterAssign": "warn"
+      },
+
+      "complexity": {
+        "noBannedTypes": "error",
+        "noUselessFragments": "warn",
+        "useOptionalChain": "warn",
+        "noForEach": "off"
+      },
+
+      "security": {
+        "noDangerouslySetInnerHtml": "warn"
+      },
+
+      "performance": {
+        "noDelete": "warn"
+      },
+
+      "a11y": {
+        "useAltText": "warn",
+        "useButtonType": "warn",
+        "noAutofocus": "warn",
+        "useValidAnchor": "warn"
+      }
+    }
+  },
+
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSameLine": false
+    },
+    "globals": ["React", "JSX"],
+    "jsxRuntime": "transparent"
+  },
+
+  "json": {
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": true
+    },
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 2,
+      "trailingCommas": "none"
+    }
+  },
+
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    },
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 4
+    },
+    "linter": {
+      "enabled": true
+    }
+  },
+
+  "overrides": [
+    {
+      "includes": ["**/src/lib/**/*.ts", "**/src/lib/**/*.tsx"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    },
+
+    {
+      "includes": ["**/*.config.ts", "**/*.config.mjs", "**/tailwind.config.*"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+
+    {
+      "includes": ["**/src/components/tailgrids/core/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "recommended": false
+          }
+        }
+      }
+    },
+
+    {
+      "includes": ["**/src/hooks/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "useIterableCallbackReturn": "off",
+            "noExplicitAny": "off"
+          },
+          "correctness": {
+            "useExhaustiveDependencies": "off"
+          }
+        }
+      }
+    },
+
+    {
+      "includes": ["**/src/services/api/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off",
+            "noConsole": "error"
+          }
+        }
+      }
+    }
+  ]
+}
