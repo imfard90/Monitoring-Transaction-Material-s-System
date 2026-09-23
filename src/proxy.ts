@@ -19,13 +19,15 @@ export async function proxy(request: NextRequest) {
     
     let sessionData = null;
     try {
+        const fetchHeaders = new Headers(request.headers);
+        
         const res = await fetch(`${baseUrl}/api/auth/get-session`, {
-            headers: {
-                cookie: request.headers.get('cookie') || '',
-            },
+            headers: fetchHeaders,
         });
         if (res.ok) {
             sessionData = await res.json();
+        } else {
+            console.error("Session fetch rejected with status:", res.status);
         }
     } catch (e) {
         console.error("Middleware fetch session error:", e);
