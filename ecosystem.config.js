@@ -4,7 +4,7 @@ module.exports = {
       name: 'mtms-app',           // Nama aplikasi di dalam PM2
       script: 'pnpm',
       args: 'start',
-      instances: max,               // Jumlah instance (bisa diubah ke 'max' untuk memanfaatkan semua core CPU)
+      instances: 1,               // Jumlah instance (bisa diubah ke 'max' untuk memanfaatkan semua core CPU)
       exec_mode: 'cluster',          // Mode eksekusi ('fork' atau 'cluster')
       autorestart: true,          // Restart otomatis jika aplikasi crash
       watch: false,               // Jangan watch perubahan file di production
@@ -14,7 +14,7 @@ module.exports = {
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 5000,               // Port yang akan digunakan oleh aplikasi Next.js
+        PORT: 8000,               // Port yang akan digunakan oleh aplikasi Next.js
       }
     }
   ]

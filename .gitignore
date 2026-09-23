@@ -71,6 +71,7 @@ next-env.d.ts
 .prompt/
 .agents/
 AGENTS.md
+bispro.md
 
 # --------------------------------------------------
 # Deployment
