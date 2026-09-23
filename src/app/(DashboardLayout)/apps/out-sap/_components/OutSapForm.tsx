@@ -93,11 +93,9 @@ export default function OutSapForm() {
     };
 
     const handleSelectTechnician = (nik: string) => {
-        const tech = technicians.find((t: any) => t.nik === nik);
         setFormData({
             ...formData,
             nik_teknisi: nik,
-            name_sa: tech?.branch_id ? `Branch ${tech.branch_id}` : '',
         });
     };
 

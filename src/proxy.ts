@@ -13,21 +13,19 @@ export async function proxy(request: NextRequest) {
     // Bypass SSL Error (ERR_SSL_WRONG_VERSION_NUMBER) di Edge Runtime
     // Menggunakan fetch manual ke alamat loopback HTTP server lokal
     const port = process.env.PORT || 8000;
-    const baseUrl = process.env.NODE_ENV === 'production' 
-        ? `http://127.0.0.1:${port}` 
+    const baseUrl = process.env.NODE_ENV === 'production'
+        ? `http://127.0.0.1:${port}`
         : request.nextUrl.origin;
-    
+
     let sessionData = null;
     try {
-        const fetchHeaders = new Headers(request.headers);
-        
         const res = await fetch(`${baseUrl}/api/auth/get-session`, {
-            headers: fetchHeaders,
+            headers: {
+                cookie: request.headers.get('cookie') || '',
+            },
         });
         if (res.ok) {
             sessionData = await res.json();
-        } else {
-            console.error("Session fetch rejected with status:", res.status);
         }
     } catch (e) {
         console.error("Middleware fetch session error:", e);
