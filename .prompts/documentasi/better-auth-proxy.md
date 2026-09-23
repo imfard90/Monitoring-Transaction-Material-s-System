@@ -24,11 +24,11 @@ Karena ia menggunakan `baseURL` yang berawalan `https://`, fetch ini memicu penc
 Bila Nginx melakukan proxy dari HTTPS ke HTTP (port 8000), request dari dalam Node.js (`fetch`) seringkali keliru mengarah langsung ke port HTTP, tapi dengan protokol HTTPS. Hal ini akan menyebabkan Node.js *crash* dengan error:
 `ERR_SSL_WRONG_VERSION_NUMBER`
 
-### Solusi Terbaik untuk Middleware
-Alih-alih memanggil `auth.api.getSession()` di middleware, lakukan fetch langsung menggunakan URL HTTP lokal (loopback address), sehingga request tersebut mem-bypass lapisan Nginx HTTPS, dan berkomunikasi langsung secara *plaintext* (HTTP) antara middleware dan server:
+### Solusi Terbaik untuk Proxy (Pengganti Middleware di Next.js 16)
+Alih-alih memanggil `auth.api.getSession()` di `proxy.ts`, lakukan fetch langsung menggunakan URL HTTP lokal (loopback address), sehingga request tersebut mem-bypass lapisan Nginx HTTPS, dan berkomunikasi langsung secara *plaintext* (HTTP) antara proxy dan server:
 
 ```typescript
-// Di dalam middleware.ts
+// Di dalam proxy.ts
 const port = process.env.PORT || 8000;
 const baseUrl = process.env.NODE_ENV === 'production' 
     ? `http://127.0.0.1:${port}` 
