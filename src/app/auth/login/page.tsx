@@ -57,7 +57,7 @@ const LoginForm = () => {
             }
 
             toast.success('Berhasil masuk');
-            router.push('/');
+            window.location.href = '/';
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Email atau password salah';
             setError(message);

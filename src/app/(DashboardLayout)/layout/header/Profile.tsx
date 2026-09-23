@@ -66,7 +66,7 @@ const Profile = () => {
                             className="w-full rounded-md"
                             onClick={async () => {
                                 await authClient.signOut();
-                                router.push('/auth/login');
+                                window.location.href = '/auth/login';
                             }}
                         >
                             Logout
