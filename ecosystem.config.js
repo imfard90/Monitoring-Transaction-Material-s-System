@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'mtms-app',           // Nama aplikasi di dalam PM2
-      script: 'pnpm',
+      script: 'node_modules/next/dist/bin/next',
       args: 'start',
       instances: 1,               // Jumlah instance (bisa diubah ke 'max' untuk memanfaatkan semua core CPU)
       exec_mode: 'cluster',          // Mode eksekusi ('fork' atau 'cluster')
