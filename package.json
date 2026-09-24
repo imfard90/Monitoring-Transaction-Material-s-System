@@ -73,7 +73,6 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@serwist/next": "^9.5.12",
     "@types/aos": "3.0.8",
     "@types/chance": "1.1.8",
     "@types/lodash": "^4.17.25",
@@ -86,6 +85,7 @@
     "@types/react-is": "19.3.0",
     "@types/react-slick": "^0.23.13",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "esbuild": "^0.28.2",
     "kysely-codegen": "^0.20.0",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",

@@ -7,7 +7,7 @@ export default function ServiceWorkerRegister() {
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker
-                    .register('/sw.js')
+                    .register('/serwist/sw.js')
                     .then((_reg) => {})
                     .catch((_err) => {});
             });
