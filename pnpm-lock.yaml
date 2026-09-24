@@ -161,6 +161,9 @@ importers:
       redux-persist:
         specifier: 6.0.0
         version: 6.0.0(react@19.3.0)(redux@5.0.1)
+      serwist:
+        specifier: ^9.5.12
+        version: 9.5.12(browserslist@4.28.6)(typescript@7.0.2)
       sharp:
         specifier: 0.35.4
         version: 0.35.4(@types/node@26.6.2)
@@ -186,6 +189,9 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
+      '@serwist/next':
+        specifier: ^9.5.12
+        version: 9.5.12(next@16.3.5(@types/node@26.6.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)(typescript@7.0.2)
       '@types/aos':
         specifier: 3.0.8
         version: 3.0.8
@@ -1362,6 +1368,20 @@ packages:
       typescript:
         optional: true
 
+  '@serwist/next@9.5.12':
+    resolution: {integrity: sha512-aKSDZmxC2w6mvLC1aOcO4OnZqdKIl4zrW2VndlZT12+m+nIyOWih1xqqw4LsvUGfQCx0AswtKUUQ7woRYZ2thg==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@serwist/cli': ^9.5.12
+      next: '>=14.0.0'
+      react: '>=18.0.0'
+      typescript: '>=5.0.0'
+    peerDependenciesMeta:
+      '@serwist/cli':
+        optional: true
+      typescript:
+        optional: true
+
   '@serwist/turbopack@9.5.12':
     resolution: {integrity: sha512-mQuk5dxYxnf7c2ZYZpyOfFj3kaTn04z9rj/en6SXvTIMyOCONKi8ITEmaplNMJbno3Tw3cPkNIAyByeD+QnR+g==}
     engines: {node: '>=18.0.0'}
@@ -1385,6 +1405,18 @@ packages:
       browserslist: '>=4'
     peerDependenciesMeta:
       browserslist:
+        optional: true
+
+  '@serwist/webpack-plugin@9.5.12':
+    resolution: {integrity: sha512-+a5Fap7wVR4oN5jg1GxVNbWW+xUv3LO7UWYfg2D8PkJZiTCcX8PwkcmdzMGVr39dyOtIMTSAANw0af1zMjVbOA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      typescript: '>=5.0.0'
+      webpack: 4.4.0 || ^5.9.0
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+      webpack:
         optional: true
 
   '@serwist/window@9.5.12':
@@ -3808,6 +3840,25 @@ snapshots:
     transitivePeerDependencies:
       - browserslist
 
+  '@serwist/next@9.5.12(next@16.3.5(@types/node@26.6.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)(typescript@7.0.2)':
+    dependencies:
+      '@serwist/build': 9.5.12(browserslist@4.28.6)(typescript@7.0.2)
+      '@serwist/utils': 9.5.12(browserslist@4.28.6)
+      '@serwist/webpack-plugin': 9.5.12(browserslist@4.28.6)(typescript@7.0.2)
+      '@serwist/window': 9.5.12(browserslist@4.28.6)(typescript@7.0.2)
+      browserslist: 4.28.6
+      glob: 13.0.6
+      kolorist: 1.8.0
+      next: 16.3.5(@types/node@26.6.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+      semver: 7.8.5
+      serwist: 9.5.12(browserslist@4.28.6)(typescript@7.0.2)
+      zod: 4.4.3
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - webpack
+
   '@serwist/turbopack@9.5.12(@swc/helpers@0.5.23)(next@16.3.5(@types/node@26.6.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)(typescript@7.0.2)':
     dependencies:
       '@serwist/build': 9.5.12(browserslist@4.28.6)(typescript@7.0.2)
@@ -3829,6 +3880,17 @@ snapshots:
   '@serwist/utils@9.5.12(browserslist@4.28.6)':
     optionalDependencies:
       browserslist: 4.28.6
+
+  '@serwist/webpack-plugin@9.5.12(browserslist@4.28.6)(typescript@7.0.2)':
+    dependencies:
+      '@serwist/build': 9.5.12(browserslist@4.28.6)(typescript@7.0.2)
+      '@serwist/utils': 9.5.12(browserslist@4.28.6)
+      pretty-bytes: 6.1.1
+      zod: 4.4.3
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - browserslist
 
   '@serwist/window@9.5.12(browserslist@4.28.6)(typescript@7.0.2)':
     dependencies:
