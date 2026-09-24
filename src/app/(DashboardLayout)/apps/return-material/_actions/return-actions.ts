@@ -108,7 +108,6 @@ export async function createReturnMaterial(payload: any) {
                     notes: payload.notes,
                     end_status: 'pending',
                     created_by: createdBy,
-                    created_at: sql`NOW() AT TIME ZONE 'Asia/Jakarta'`,
                 })
                 .returning('id')
                 .executeTakeFirstOrThrow();
