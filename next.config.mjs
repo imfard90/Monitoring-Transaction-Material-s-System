@@ -6,10 +6,12 @@ const withSerwist = withSerwistInit({
     reloadOnOnline: true,
     disablePrecacheManifest: false,
 });
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: false,
     images: { unoptimized: true },
+    turbopack: {},
 };
 
 export default withSerwist(nextConfig);
