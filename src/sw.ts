@@ -9,14 +9,25 @@ declare global {
     }
 }
 
-declare const self: ServiceWorkerGlobalScope;
+const self = globalThis as unknown as ServiceWorkerGlobalScope;
 
 const serwist = new Serwist({
     precacheEntries: self.__SW_MANIFEST,
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
-    runtimeCaching: defaultCache,
+    runtimeCaching: defaultCache.filter((entry) => !entry.matcher?.toString().includes('api')),
+
+    fallbacks: {
+        entries: [
+            {
+                url: '/~offline',
+                matcher({ request }) {
+                    return request.destination === 'document';
+                },
+            },
+        ],
+    },
 });
 
 serwist.addEventListeners();
