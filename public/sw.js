@@ -1,9 +1,6 @@
 const CACHE_NAME = 'tailwind-admin-cache-v1';
 const urlsToCache = [
-    '/',
     '/auth/login',
-    '/dashboard',
-    '/_next/static/',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
 ];
