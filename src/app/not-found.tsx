@@ -9,26 +9,24 @@ export const metadata: Metadata = {
 };
 const Error = () => {
     return (
-        <>
-            <div className="h-screen flex items-center justify-center bg-background">
-                <div className="text-center">
-                    <Image
-                        src={'/images/backgrounds/errorimg.svg'}
-                        alt="error"
-                        className="mb-4"
-                        width={400}
-                        height={300}
-                    />
-                    <h1 className="text-ld text-4xl mb-6">Opps!!!</h1>
-                    <h6 className="text-xl text-ld">
-                        This page you are looking for could not be found.
-                    </h6>
-                    <Button asChild className="mt-6 mx-auto">
-                        <Link href="/">Go Back to Home</Link>
-                    </Button>
-                </div>
+        <div className="h-screen flex items-center justify-center bg-background">
+            <div className="text-center">
+                <Image
+                    src={'/images/backgrounds/errorimg.svg'}
+                    alt="error"
+                    className="mb-4"
+                    width={400}
+                    height={300}
+                />
+                <h1 className="text-ld text-4xl mb-6">Opps!!!</h1>
+                <h6 className="text-xl text-ld">
+                    This page you are looking for could not be found.
+                </h6>
+                <Button asChild className="mt-6 mx-auto">
+                    <Link href="/">Go Back to Home</Link>
+                </Button>
             </div>
-        </>
+        </div>
     );
 };
 

@@ -1,5 +1,3 @@
-import { Icon, IconListCheck, IconMail, IconProps, IconUser } from '@tabler/icons-react';
-
 //  Profile Data
 interface ProfileType {
     title: string;

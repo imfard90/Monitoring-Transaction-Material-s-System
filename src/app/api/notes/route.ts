@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
     try {
         const { id } = await req.json();
-        const remainingNotes = NotesData.filter((note) => note.id !== parseInt(id));
+        const remainingNotes = NotesData.filter((note) => note.id !== parseInt(id, 10));
         NotesData = remainingNotes;
         return NextResponse.json({ status: 200, msg: 'Success', data: NotesData });
     } catch (error) {

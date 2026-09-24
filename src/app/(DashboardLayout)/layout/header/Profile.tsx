@@ -17,7 +17,7 @@ import { authClient } from '@/lib/auth-client';
 import * as profileData from './data';
 
 const Profile = () => {
-    const router = useRouter();
+    const _router = useRouter();
     return (
         <div className="relative group/menu ps-15 shrink-0">
             <DropdownMenu>

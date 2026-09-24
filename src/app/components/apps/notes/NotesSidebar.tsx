@@ -17,16 +17,14 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
     onDeleteNote,
 }) => {
     return (
-        <>
-            <div className="left-part">
-                <Notelist
-                    notes={notes}
-                    loading={loading}
-                    onSelectNote={onSelectNote}
-                    onDeleteNote={onDeleteNote}
-                />
-            </div>
-        </>
+        <div className="left-part">
+            <Notelist
+                notes={notes}
+                loading={loading}
+                onSelectNote={onSelectNote}
+                onDeleteNote={onDeleteNote}
+            />
+        </div>
     );
 };
 

@@ -1,11 +1,9 @@
 import { Icon } from '@iconify/react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import SimpleBar from 'simplebar-react';
-import { AMLogo, AMMenu, AMMenuItem, AMSidebar, AMSubmenu } from 'tailwind-sidebar';
-import { Button } from '@/components/ui/button';
+import { AMMenu, AMMenuItem, AMSidebar, AMSubmenu } from 'tailwind-sidebar';
 import FullLogo from '../shared/logo/FullLogo';
 import SidebarContent from './sidebaritems';
 import 'tailwind-sidebar/styles.css';

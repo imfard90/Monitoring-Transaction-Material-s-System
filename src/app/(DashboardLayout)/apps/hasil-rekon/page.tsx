@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import React from 'react';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
 import { getHasilRekon } from './_actions/rekon-actions';
 import HasilRekonClient from './_components/HasilRekonClient';

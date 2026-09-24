@@ -3,7 +3,6 @@ import { DM_Sans } from 'next/font/google';
 import type React from 'react';
 import './css/globals.css';
 import ServiceWorkerRegister from '@/app/components/service-worker/ServiceWorkerRegister';
-import { ThemeProvider } from '@/components/theme-provider';
 import { Providers } from './providers';
 
 const dmSans = DM_Sans({

@@ -18,7 +18,7 @@ interface NoteContentProps {
 
 const NoteContent: React.FC<NoteContentProps> = ({ note, updateNote }) => {
     const [title, setTitle] = useState('');
-    const [isEditing, setIsEditing] = useState(false);
+    const [_isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
         if (note?.title) setTitle(note.title);

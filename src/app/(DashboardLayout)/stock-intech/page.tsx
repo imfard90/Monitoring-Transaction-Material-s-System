@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import React from 'react';
 import { StockIntechOverview } from '../../components/dashboard/StockIntechOverview';
 import BreadcrumbComp from '../layout/shared/breadcrumb/BreadcrumbComp';
 

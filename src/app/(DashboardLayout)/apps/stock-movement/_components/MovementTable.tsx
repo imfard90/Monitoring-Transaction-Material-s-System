@@ -9,7 +9,6 @@ import {
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { CalendarIcon, FilterX, Search } from 'lucide-react';
-import React from 'react';
 import type { DateRange } from 'react-day-picker';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Badge } from '@/components/ui/badge';

@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import React from 'react';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
 import { getStockMovements } from './_actions/movement-actions';
 import StockMovementClient from './_components/StockMovementClient';

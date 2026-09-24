@@ -107,7 +107,7 @@ export const BlogProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Fetch posts initially
     useEffect(() => {
         fetchPosts();
-    }, []);
+    }, [fetchPosts]);
 
     const value: BlogContextProps = {
         posts,

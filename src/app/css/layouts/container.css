@@ -3,10 +3,10 @@
     transition: 0.2s ease-in;
 }
 .custom-dropdown {
-    transform: translate(-245px, 40px) !important;
+    transform: translate(-245px, 40px);
 }
 .sales-box {
-    padding-bottom: 0px !important;
+    padding-bottom: 0px;
 }
 .btn-circle {
     width: 40px;

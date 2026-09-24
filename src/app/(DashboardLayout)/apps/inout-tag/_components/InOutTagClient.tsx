@@ -3,7 +3,11 @@
 import { useQuery } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import CardBox from '@/app/components/shared/CardBox';
-import { getInOutTags, getInoutTagItemsByHeaderId, getReturnMaterialItemsByHeaderId } from '../_actions/tag-actions';
+import {
+    getInOutTags,
+    getInoutTagItemsByHeaderId,
+    getReturnMaterialItemsByHeaderId,
+} from '../_actions/tag-actions';
 import CreateTagModal from './CreateTagModal';
 import InOutTagCards from './InOutTagCards';
 import InOutTagDetailModal from './InOutTagDetailModal';
@@ -25,10 +29,10 @@ export default function InOutTagClient() {
         // Fetch items from correct table based on row type
         if (row.type === 'return') {
             const res = await getReturnMaterialItemsByHeaderId(row.id);
-            setUpdateItems(res.success ? (res.data || []) : []);
+            setUpdateItems(res.success ? res.data || [] : []);
         } else {
             const res = await getInoutTagItemsByHeaderId(row.id);
-            setUpdateItems(res.success ? (res.data || []) : []);
+            setUpdateItems(res.success ? res.data || [] : []);
         }
     };
 

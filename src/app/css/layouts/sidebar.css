@@ -1,6 +1,6 @@
 /* tailwind-sidebar package override styles */
 [data-slot="collapsible"] [data-slot="sidebar-menu-item"] [data-slot="sidebar-menu-button"]:hover {
-    background-color: transparent !important;
+    background-color: transparent;
 }
 
 [data-slot="badge"] {

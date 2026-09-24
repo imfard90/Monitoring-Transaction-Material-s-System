@@ -51,7 +51,7 @@ function Search() {
     const results = useMemo(() => {
         if (!query.trim()) return [];
         return searchItems(SidebarContent, query);
-    }, [query]);
+    }, [query, searchItems]);
 
     return (
         <div className="relative w-full">

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, HelpCircle, Plus, Trash2 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -433,7 +433,7 @@ function MaterialRow({
                     value={item.qty === 0 || item.qty === '' ? '' : item.qty}
                     onChange={(e) => {
                         let val: string | number =
-                            e.target.value === '' ? '' : parseInt(e.target.value);
+                            e.target.value === '' ? '' : parseInt(e.target.value, 10);
                         if (
                             typeof val === 'number' &&
                             selectedMat &&

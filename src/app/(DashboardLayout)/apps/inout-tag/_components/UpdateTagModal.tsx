@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ban } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -88,7 +88,7 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
 
             setMaterialItems(baseItems);
         }
-    }, [isOpen, row, items]);
+    }, [isOpen, row, items, isReturn]);
 
     const updateMutation = useMutation({
         mutationFn: async () => {
@@ -251,7 +251,7 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
                                                             const val =
                                                                 e.target.value === ''
                                                                     ? ''
-                                                                    : parseInt(e.target.value);
+                                                                    : parseInt(e.target.value, 10);
                                                             handleQtyChange(item.id, val as number);
                                                         }}
                                                     />

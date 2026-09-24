@@ -143,7 +143,7 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[]) 
 
                     await trx
                         .updateTable('inventory.sap_out_items')
-                        .set((eb) => ({
+                        .set((_eb) => ({
                             qty_used: sql`COALESCE(qty_used, 0) + ${item.qty}`,
                         }))
                         .where('id', '=', item.sap_out_item_id)

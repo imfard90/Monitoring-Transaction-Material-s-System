@@ -36,55 +36,53 @@ const AddNotes = ({ colors, addNote }: Props) => {
     };
 
     return (
-        <>
-            <Dialog open={openNoteModal} onOpenChange={setOpenNoteModal}>
-                <DialogTrigger asChild>
-                    <Button className="rounded-md">Add Note</Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Add New Note</DialogTitle>
-                    </DialogHeader>
+        <Dialog open={openNoteModal} onOpenChange={setOpenNoteModal}>
+            <DialogTrigger asChild>
+                <Button className="rounded-md">Add Note</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Add New Note</DialogTitle>
+                </DialogHeader>
 
-                    <div className="space-y-2">
-                        <Textarea
-                            rows={5}
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="w-full"
-                            placeholder="Write your note here..."
-                        />
-                        <h6 className="text-base pt-4">Change Note Color</h6>
-                        <div className="flex gap-2 items-center">
-                            {colors?.map((color) => (
-                                <div
-                                    key={color.disp}
-                                    onClick={() => setColor(color.disp)}
-                                    className={`h-7 w-7 flex justify-center items-center rounded-full cursor-pointer bg-${color.disp}`}
-                                >
-                                    {scolor === color.disp && (
-                                        <TbCheck size={18} className="text-white" />
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                <div className="space-y-2">
+                    <Textarea
+                        rows={5}
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full"
+                        placeholder="Write your note here..."
+                    />
+                    <h6 className="text-base pt-4">Change Note Color</h6>
+                    <div className="flex gap-2 items-center">
+                        {colors?.map((color) => (
+                            <div
+                                key={color.disp}
+                                onClick={() => setColor(color.disp)}
+                                className={`h-7 w-7 flex justify-center items-center rounded-full cursor-pointer bg-${color.disp}`}
+                            >
+                                {scolor === color.disp && (
+                                    <TbCheck size={18} className="text-white" />
+                                )}
+                            </div>
+                        ))}
                     </div>
+                </div>
 
-                    <DialogFooter className="pt-4">
-                        <Button disabled={!title} onClick={handleSave} className="rounded-md">
-                            Save
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="rounded-md"
-                            onClick={() => setOpenNoteModal(false)}
-                        >
-                            Close
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </>
+                <DialogFooter className="pt-4">
+                    <Button disabled={!title} onClick={handleSave} className="rounded-md">
+                        Save
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="rounded-md"
+                        onClick={() => setOpenNoteModal(false)}
+                    >
+                        Close
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 };
 

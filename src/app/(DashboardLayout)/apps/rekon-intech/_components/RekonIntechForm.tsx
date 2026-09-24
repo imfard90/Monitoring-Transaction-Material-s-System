@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { FileText, Send } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useEffect, useState } from 'react';
@@ -116,7 +116,7 @@ export default function RekonIntechForm() {
             const rawQty = rowStates[m.sap_out_item_id];
             if (rawQty === '' || rawQty === undefined || rawQty === 0) continue;
 
-            const qty = typeof rawQty === 'string' ? parseInt(rawQty) : rawQty;
+            const qty = typeof rawQty === 'string' ? parseInt(rawQty, 10) : rawQty;
 
             if (qty < 0) {
                 toast.error(`Quantity for material ${m.material_code} cannot be negative.`);
@@ -312,7 +312,10 @@ export default function RekonIntechForm() {
                                                                 let val: string | number =
                                                                     e.target.value === ''
                                                                         ? ''
-                                                                        : parseInt(e.target.value);
+                                                                        : parseInt(
+                                                                              e.target.value,
+                                                                              10
+                                                                          );
 
                                                                 if (
                                                                     typeof val === 'number' &&

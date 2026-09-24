@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { TicketType } from '@/app/(DashboardLayout)/types/ticket';
 import TicketFilter from '@/app/components/apps/tickets/TicketFilter';
 import TicketListing from '@/app/components/apps/tickets/TicketListing';

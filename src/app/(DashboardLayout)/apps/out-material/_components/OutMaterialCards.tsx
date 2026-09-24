@@ -1,5 +1,4 @@
-import { CheckCircle, Clock, FileEdit, Truck, XCircle } from 'lucide-react';
-import React from 'react';
+import { CheckCircle, Clock, FileEdit, Truck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 

@@ -6,6 +6,8 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import CardBox from '@/app/components/shared/CardBox';
+import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
+import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,9 +18,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
-import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import {
     createReturnMaterial,
     getAvailableSapOuts,
@@ -26,7 +33,7 @@ import {
 } from '../_actions/return-actions';
 
 export default function ReturnForm() {
-    const router = useRouter();
+    const _router = useRouter();
     const [loading, setLoading] = useState(false);
 
     const [sapOuts, setSapOuts] = useState<any[]>([]);
@@ -156,7 +163,7 @@ export default function ReturnForm() {
             } else {
                 toast.error(res.error || 'Failed to submit return');
             }
-        } catch (err: any) {
+        } catch (_err: any) {
             toast.error('An error occurred');
         } finally {
             setLoading(false);
@@ -257,7 +264,7 @@ export default function ReturnForm() {
                                             const val =
                                                 e.target.value === ''
                                                     ? ''
-                                                    : parseInt(e.target.value);
+                                                    : parseInt(e.target.value, 10);
                                             handleItemChange(index, 'qty', val);
                                         }}
                                     />
@@ -312,7 +319,9 @@ export default function ReturnForm() {
                         </div>
                         <div>
                             <span className="text-gray-500 block mb-1">Teknisi:</span>
-                            <span className="font-medium">{selectedTech?.nama_teknisi} ({selectedTech?.nik_teknisi})</span>
+                            <span className="font-medium">
+                                {selectedTech?.nama_teknisi} ({selectedTech?.nik_teknisi})
+                            </span>
                         </div>
                         <div className="col-span-2">
                             <span className="text-gray-500 block mb-1">Notes:</span>
@@ -334,11 +343,15 @@ export default function ReturnForm() {
                                 <TableBody>
                                     {items.map((item, idx) => {
                                         const mat = availableItems.find(
-                                            (ai) => ai.sap_out_item_id.toString() === item.sap_out_item_id
+                                            (ai) =>
+                                                ai.sap_out_item_id.toString() ===
+                                                item.sap_out_item_id
                                         );
                                         return (
                                             <TableRow key={idx}>
-                                                <TableCell className="text-center">{idx + 1}</TableCell>
+                                                <TableCell className="text-center">
+                                                    {idx + 1}
+                                                </TableCell>
                                                 <TableCell className="text-xs">
                                                     {mat?.material_code} - {mat?.material_name}
                                                 </TableCell>

@@ -22,7 +22,7 @@ const NotesApp = () => {
     const [notes, setNotes] = useState<NotesType[]>([]);
     const [loading, setLoading] = useState(false);
     const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
-    const location = usePathname();
+    const _location = usePathname();
 
     const handleClose = () => setIsOpen(false);
 
@@ -63,7 +63,7 @@ const NotesApp = () => {
         } else {
             fetchNotes();
         }
-    }, [location]);
+    }, [handleResetNotes, fetchNotes]);
 
     useEffect(() => {
         const handleBeforeUnload = () => {

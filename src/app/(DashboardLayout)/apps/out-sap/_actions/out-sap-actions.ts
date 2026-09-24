@@ -245,7 +245,7 @@ export async function createOutSap(payload: any) {
 // Additional action to update status to intech, triggering SP reduction
 export async function updateOutSapStatusToIntech(headerId: number | string) {
     try {
-        const result = await db.transaction().execute(async (trx) => {
+        const _result = await db.transaction().execute(async (trx) => {
             // Set to intech
             await trx
                 .updateTable('inventory.sap_out_header')

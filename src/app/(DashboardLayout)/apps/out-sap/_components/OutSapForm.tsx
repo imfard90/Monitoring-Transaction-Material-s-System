@@ -13,13 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import {
     Table,
     TableBody,
     TableCell,
@@ -33,7 +26,6 @@ import {
     getMaterialsInWarehouse,
     getTechnicians,
     getWarehouses,
-    updateOutSapStatusToIntech,
 } from '../_actions/out-sap-actions';
 
 export default function OutSapForm() {
@@ -64,7 +56,7 @@ export default function OutSapForm() {
 
     const { data: matData } = useQuery({
         queryKey: ['materials', formData.warehouse_id],
-        queryFn: () => getMaterialsInWarehouse(parseInt(formData.warehouse_id)),
+        queryFn: () => getMaterialsInWarehouse(parseInt(formData.warehouse_id, 10)),
         enabled: !!formData.warehouse_id,
     });
 
@@ -127,10 +119,10 @@ export default function OutSapForm() {
         setLoading(true);
         const payload = {
             ...formData,
-            warehouse_id: parseInt(formData.warehouse_id),
+            warehouse_id: parseInt(formData.warehouse_id, 10),
             items: items.map((i) => ({
-                designator_id: parseInt(i.designator_id),
-                qty_req: parseInt(i.qty_req),
+                designator_id: parseInt(i.designator_id, 10),
+                qty_req: parseInt(i.qty_req, 10),
             })),
         };
 
@@ -308,7 +300,7 @@ export default function OutSapForm() {
                                                 let val: string | number =
                                                     e.target.value === ''
                                                         ? ''
-                                                        : parseInt(e.target.value);
+                                                        : parseInt(e.target.value, 10);
 
                                                 const selectedMat = materials.find(
                                                     (m: any) =>

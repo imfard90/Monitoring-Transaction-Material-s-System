@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import React from 'react';
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
 import StockBalanceOverview from '../../components/dashboard/StockBalanceOverview';
 

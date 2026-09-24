@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { Check, ChevronsUpDown, Edit2, Eye, Plus, Search } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import React from 'react';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
 import InOutTagClient from './_components/InOutTagClient';
 

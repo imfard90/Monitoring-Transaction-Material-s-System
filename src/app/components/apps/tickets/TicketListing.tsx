@@ -34,7 +34,7 @@ const TicketListing: React.FC<TicketListingProps> = ({
     ticketSearch,
     filter,
 }) => {
-    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [_showCreateForm, _setShowCreateForm] = useState(false);
     const router = useRouter();
 
     const getVisibleTickets = (tickets: TicketType[], filter: string, ticketSearch: string) => {

@@ -13,6 +13,6 @@
 }
 
 .mySwiper .swiper-wrapper {
-    transition-timing-function: linear !important;
-    margin: 0 auto !important;
+    transition-timing-function: linear;
+    margin: 0 auto;
 }

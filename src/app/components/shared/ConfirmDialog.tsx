@@ -1,3 +1,5 @@
+import { Send } from 'lucide-react';
+import type React from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -7,8 +9,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Send } from 'lucide-react';
-import React from 'react';
 
 interface ConfirmDialogProps {
     isOpen: boolean;

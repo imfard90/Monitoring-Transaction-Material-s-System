@@ -1,4 +1,3 @@
-import React from 'react';
 import BasicTable from '@/app/components/utilities/basic-table/BasicTable';
 import CheckboxTable from '@/app/components/utilities/checkbox-table/CheckboxTable';
 import { EmployeesData } from '@/app/components/utilities/data';

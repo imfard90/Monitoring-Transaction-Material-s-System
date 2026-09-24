@@ -2,7 +2,7 @@
 import { format, isValid } from 'date-fns';
 import { ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { TicketType } from '@/app/(DashboardLayout)/types/ticket';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ const agents = [
 ];
 
 const CreateTicketForm = () => {
-    const [tickets, setTickets] = useState<TicketType[]>([]);
+    const [_tickets, setTickets] = useState<TicketType[]>([]);
     const [ticketId, setTicketId] = useState<number | undefined>(undefined);
     const [ticketDate, setTicketDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [ticketTitle, setTicketTitle] = useState('');

@@ -10,73 +10,71 @@ import CardBox from '../shared/CardBox';
 
 export const Login = () => {
     return (
-        <>
-            <div className="h-screen w-full flex justify-center items-center bg-lightprimary">
-                <div className="md:min-w-[450px] min-w-max">
-                    <CardBox>
-                        <div className="flex justify-center mb-4">
-                            <FullLogo />
+        <div className="h-screen w-full flex justify-center items-center bg-lightprimary">
+            <div className="md:min-w-[450px] min-w-max">
+                <CardBox>
+                    <div className="flex justify-center mb-4">
+                        <FullLogo />
+                    </div>
+                    <p className="text-sm text-muted-foreground text-center mb-6">
+                        Welcome to Tailwind-Admin
+                    </p>
+                    <div>
+                        <div className="mb-2 block">
+                            <Label htmlFor="username1" className="font-medium">
+                                Username
+                            </Label>
                         </div>
-                        <p className="text-sm text-muted-foreground text-center mb-6">
-                            Welcome to Tailwind-Admin
+                        <Input
+                            id="username1"
+                            type="text"
+                            placeholder="Enter your username"
+                            required
+                        />
+                    </div>
+                    <div className="mt-6">
+                        <div className="mb-2 block">
+                            <Label htmlFor="password1" className="font-medium">
+                                Password
+                            </Label>
+                        </div>
+                        <Input
+                            id="password1"
+                            type="password"
+                            placeholder="Enter your password"
+                            required
+                        />
+                    </div>
+                    <div className="flex flex-wrap gap-6 items-center justify-between my-6">
+                        <div className="flex items-center gap-2">
+                            <Checkbox id="remember" checked />
+                            <Label className="text-link font-normal text-sm" htmlFor="remember">
+                                Remember this device
+                            </Label>
+                        </div>
+                        <Link
+                            href="#"
+                            className="text-sm font-medium text-primary hover:text-primaryemphasis"
+                        >
+                            Forgot Password ?
+                        </Link>
+                    </div>
+                    <Button className="w-full" asChild>
+                        <Link href="/">Sign In</Link>
+                    </Button>
+                    <div className="flex items center gap-2 justify-center mt-6 flex-wrap">
+                        <p className="text-base font-medium text-muted-foreground">
+                            New to TailwindAdmin?
                         </p>
-                        <div>
-                            <div className="mb-2 block">
-                                <Label htmlFor="username1" className="font-medium">
-                                    Username
-                                </Label>
-                            </div>
-                            <Input
-                                id="username1"
-                                type="text"
-                                placeholder="Enter your username"
-                                required
-                            />
-                        </div>
-                        <div className="mt-6">
-                            <div className="mb-2 block">
-                                <Label htmlFor="password1" className="font-medium">
-                                    Password
-                                </Label>
-                            </div>
-                            <Input
-                                id="password1"
-                                type="password"
-                                placeholder="Enter your password"
-                                required
-                            />
-                        </div>
-                        <div className="flex flex-wrap gap-6 items-center justify-between my-6">
-                            <div className="flex items-center gap-2">
-                                <Checkbox id="remember" checked />
-                                <Label className="text-link font-normal text-sm" htmlFor="remember">
-                                    Remember this device
-                                </Label>
-                            </div>
-                            <Link
-                                href="#"
-                                className="text-sm font-medium text-primary hover:text-primaryemphasis"
-                            >
-                                Forgot Password ?
-                            </Link>
-                        </div>
-                        <Button className="w-full" asChild>
-                            <Link href="/">Sign In</Link>
-                        </Button>
-                        <div className="flex items center gap-2 justify-center mt-6 flex-wrap">
-                            <p className="text-base font-medium text-muted-foreground">
-                                New to TailwindAdmin?
-                            </p>
-                            <Link
-                                href="/auth/register"
-                                className="text-sm font-medium text-primary hover:text-primaryemphasis"
-                            >
-                                Create an account
-                            </Link>
-                        </div>
-                    </CardBox>
-                </div>
+                        <Link
+                            href="/auth/register"
+                            className="text-sm font-medium text-primary hover:text-primaryemphasis"
+                        >
+                            Create an account
+                        </Link>
+                    </div>
+                </CardBox>
             </div>
-        </>
+        </div>
     );
 };

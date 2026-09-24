@@ -325,7 +325,7 @@ const DataTable = <T extends Record<string, unknown>>({ data = [] }: DynamicTabl
         };
 
         return [...baseColumns, actionColumn];
-    }, [data]);
+    }, [data, renderValue]);
 
     // React Table Setup
     const table = useReactTable({

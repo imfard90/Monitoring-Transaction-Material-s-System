@@ -9,11 +9,7 @@ export const metadata: Metadata = {
 const Notes = async () => {
     const { data } = await getProfileData();
 
-    return (
-        <>
-            <UserProfile profileData={data} />
-        </>
-    );
+    return <UserProfile profileData={data} />;
 };
 
 export default Notes;

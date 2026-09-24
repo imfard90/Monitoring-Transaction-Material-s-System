@@ -1,17 +1,14 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
-
   "vcs": {
     "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": true,
     "defaultBranch": "main"
   },
-
   "files": {
     "ignoreUnknown": true
   },
-
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -21,12 +18,10 @@
     "bracketSpacing": true,
     "trailingNewline": true
   },
-
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
-
       "correctness": {
         "noUnusedVariables": "warn",
         "noUnusedImports": "warn",
@@ -34,20 +29,21 @@
         "noConstantCondition": "error",
         "noUnsafeFinally": "error"
       },
-
       "suspicious": {
         "noExplicitAny": "warn",
         "noConsole": {
           "level": "warn",
           "options": {
-            "allow": ["warn", "error"]
+            "allow": [
+              "warn",
+              "error"
+            ]
           }
         },
         "noDoubleEquals": "error",
         "noArrayIndexKey": "warn",
         "noDuplicateObjectKeys": "error"
       },
-
       "style": {
         "useConst": "error",
         "useTemplate": "error",
@@ -55,31 +51,27 @@
         "useDefaultParameterLast": "error",
         "noParameterAssign": "warn"
       },
-
       "complexity": {
         "noBannedTypes": "error",
         "noUselessFragments": "warn",
         "useOptionalChain": "warn",
         "noForEach": "off"
       },
-
       "security": {
         "noDangerouslySetInnerHtml": "warn"
       },
-
       "performance": {
         "noDelete": "warn"
       },
-
       "a11y": {
         "useAltText": "warn",
         "useButtonType": "warn",
         "noAutofocus": "warn",
-        "useValidAnchor": "warn"
+        "useValidAnchor": "warn",
+        "noSvgWithoutTitle": "off"
       }
     }
   },
-
   "assist": {
     "enabled": true,
     "actions": {
@@ -88,7 +80,6 @@
       }
     }
   },
-
   "javascript": {
     "formatter": {
       "quoteStyle": "single",
@@ -98,10 +89,12 @@
       "arrowParentheses": "always",
       "bracketSameLine": false
     },
-    "globals": ["React", "JSX"],
+    "globals": [
+      "React",
+      "JSX"
+    ],
     "jsxRuntime": "transparent"
   },
-
   "json": {
     "parser": {
       "allowComments": true,
@@ -114,7 +107,6 @@
       "trailingCommas": "none"
     }
   },
-
   "css": {
     "parser": {
       "tailwindDirectives": true
@@ -128,10 +120,12 @@
       "enabled": true
     }
   },
-
   "overrides": [
     {
-      "includes": ["**/src/lib/**/*.ts", "**/src/lib/**/*.tsx"],
+      "includes": [
+        "**/src/lib/**/*.ts",
+        "**/src/lib/**/*.tsx"
+      ],
       "linter": {
         "rules": {
           "suspicious": {
@@ -140,9 +134,12 @@
         }
       }
     },
-
     {
-      "includes": ["**/*.config.ts", "**/*.config.mjs", "**/tailwind.config.*"],
+      "includes": [
+        "**/*.config.ts",
+        "**/*.config.mjs",
+        "**/tailwind.config.*"
+      ],
       "linter": {
         "rules": {
           "style": {
@@ -151,9 +148,10 @@
         }
       }
     },
-
     {
-      "includes": ["**/src/components/tailgrids/core/**"],
+      "includes": [
+        "**/src/components/tailgrids/core/**"
+      ],
       "linter": {
         "rules": {
           "a11y": {
@@ -162,9 +160,10 @@
         }
       }
     },
-
     {
-      "includes": ["**/src/hooks/**"],
+      "includes": [
+        "**/src/hooks/**"
+      ],
       "linter": {
         "rules": {
           "suspicious": {
@@ -177,9 +176,10 @@
         }
       }
     },
-
     {
-      "includes": ["**/src/services/api/**"],
+      "includes": [
+        "**/src/services/api/**"
+      ],
       "linter": {
         "rules": {
           "suspicious": {

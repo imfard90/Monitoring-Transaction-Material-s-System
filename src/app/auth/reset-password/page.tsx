@@ -14,7 +14,7 @@ import { authClient } from '@/lib/auth-client';
 
 function ResetPasswordForm() {
     const searchParams = useSearchParams();
-    const router = useRouter();
+    const _router = useRouter();
     const token = searchParams.get('token');
 
     const [isValidating, setIsValidating] = useState(true);

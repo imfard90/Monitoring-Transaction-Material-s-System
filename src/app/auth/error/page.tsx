@@ -1,7 +1,6 @@
 'use client';
 
 import { AlertTriangle } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import AuthCard from '@/app/auth/components/AuthCard';
