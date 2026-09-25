@@ -1,8 +1,21 @@
-import { type Cookie, chromium } from 'playwright';
+import { type Cookie, type Browser, chromium } from 'playwright';
 import { redis } from '../src/lib/redis';
 
+// Gunakan globalThis untuk menyimpan instance browser agar bisa digunakan ulang lintas request
+// (menghindari memory leak/server crash jika banyak user request bersamaan)
+let globalBrowser: Browser | null = null;
+
+async function getBrowserInstance() {
+    if (!globalBrowser || !globalBrowser.isConnected()) {
+        globalBrowser = await chromium.launch({ 
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] 
+        });
+    }
+    return globalBrowser;
+}
+
 const LENSA_URL = 'https://lensa-inventory.telkomakses.co.id';
-const REDIS_SESSION_KEY = 'lensa_session:user';
 const SESSION_TTL = 60 * 60 * 2; // 2 hours
 
 export async function scrapeReservation(
@@ -17,12 +30,13 @@ export async function scrapeReservation(
         throw new Error('LENSA_USERNAME or LENSA_PASSWORD is not set in .env or User Profile');
     }
 
-    const browser = await chromium.launch({ headless: true });
+    const browser = await getBrowserInstance();
     const context = await browser.newContext();
 
     try {
+        const sessionKey = `lensa_session:${username}`;
         // Try to load cookies from Redis
-        const cachedCookies = await redis.get(REDIS_SESSION_KEY);
+        const cachedCookies = await redis.get(sessionKey);
         let isAuthenticated = false;
 
         if (cachedCookies) {
@@ -71,7 +85,7 @@ export async function scrapeReservation(
 
             // Extract cookies and save to Redis
             const freshCookies = await context.cookies();
-            await redis.set(REDIS_SESSION_KEY, JSON.stringify(freshCookies), 'EX', SESSION_TTL);
+            await redis.set(sessionKey, JSON.stringify(freshCookies), 'EX', SESSION_TTL);
         }
 
         // 1. Fetch Reservation List
@@ -80,7 +94,7 @@ export async function scrapeReservation(
 
         // Check if session was invalid/expired (server redirected us back to login)
         if (page.url().includes('login')) {
-            await redis.del(REDIS_SESSION_KEY); // Clear invalid cached session
+            await redis.del(sessionKey); // Clear invalid cached session
             throw new Error(
                 'Sesi Lensa tidak valid atau telah kadaluarsa. Sistem akan mencoba login ulang pada request berikutnya. Silakan coba lagi.'
             );
@@ -186,6 +200,8 @@ export async function scrapeReservation(
         console.error('Scraping error:', error);
         throw error;
     } finally {
-        await browser.close();
+        await context.close();
+        // Jangan close browser utama agar bisa dipakai oleh request/user lain
+        // await browser.close(); 
     }
 }
