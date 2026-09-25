@@ -10,28 +10,14 @@ export async function proxy(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Bypass SSL Error (ERR_SSL_WRONG_VERSION_NUMBER) di Edge Runtime
-    // Menggunakan fetch manual ke alamat loopback HTTP server lokal
-    const port = process.env.PORT || 8000;
-    const baseUrl =
-        process.env.NODE_ENV === 'production' ? `http://127.0.0.1:${port}` : request.nextUrl.origin;
-
-    let sessionData = null;
-    try {
-        const res = await fetch(`${baseUrl}/api/auth/get-session`, {
-            headers: {
-                cookie: request.headers.get('cookie') || '',
-            },
-        });
-        if (res.ok) {
-            sessionData = await res.json();
-        }
-    } catch (e) {
-        console.error('Middleware fetch session error:', e);
-    }
+    // Periksa keberadaan cookie sesi (mengabaikan SSL/fetch loopback error)
+    // Nama cookie dari Better Auth biasanya 'better-auth.session_token' atau versi Secure-nya
+    const hasSessionCookie = 
+        request.cookies.has('better-auth.session_token') || 
+        request.cookies.has('__Secure-better-auth.session_token');
 
     // Jika belum login dan mencoba mengakses route selain auth (misal '/')
-    if (!sessionData) {
+    if (!hasSessionCookie) {
         if (!isAuthRoute) {
             return NextResponse.redirect(new URL('/auth/login', request.url));
         }
