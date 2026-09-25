@@ -23,7 +23,9 @@ const BCrumb = [
 export default function OutMaterialPage() {
     return (
         <div className="flex flex-col flex-1 h-full min-h-0">
-            <div className="shrink-0"><BreadcrumbComp title="Out Material" items={BCrumb} /></div>
+            <div className="shrink-0">
+                <BreadcrumbComp title="Out Material" items={BCrumb} />
+            </div>
             <OutMaterialClient />
         </div>
     );

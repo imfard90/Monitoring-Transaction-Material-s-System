@@ -25,7 +25,9 @@ import { Footer } from '@/app/components/dashboard/Footer';
 export default function RekonIntechPage() {
     return (
         <div className="flex flex-col flex-1 h-full gap-6">
-            <div className="shrink-0"><BreadcrumbComp title="Rekon Intech" items={BCrumb} /></div>
+            <div className="shrink-0">
+                <BreadcrumbComp title="Rekon Intech" items={BCrumb} />
+            </div>
             <RekonIntechForm />
             <Footer />
         </div>

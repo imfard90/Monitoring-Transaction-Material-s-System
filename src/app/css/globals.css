@@ -321,3 +321,6 @@ input[type="time"] {
     will-change: transform;
     -webkit-transform: translate3d(0, 0, 0);
 }
+.mySwiper .swiper-wrapper {
+    transition-timing-function: linear !important;
+}

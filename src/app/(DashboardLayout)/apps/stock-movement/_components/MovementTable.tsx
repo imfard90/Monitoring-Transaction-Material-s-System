@@ -8,6 +8,7 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
+import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarIcon, FilterX, Search } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
@@ -63,7 +64,11 @@ export default function MovementTable({
         }),
         columnHelper.accessor('reference_trx', {
             header: 'Reference TRX',
-            cell: (info) => <span className="text-sm font-medium">{info.getValue() || '-'}</span>,
+            cell: (info) => (
+                <div className="max-w-[160px] whitespace-normal break-all text-sm font-medium">
+                    {info.getValue() || '-'}
+                </div>
+            ),
         }),
         columnHelper.accessor('warehouse_name', {
             header: 'Warehouse',
@@ -257,24 +262,29 @@ export default function MovementTable({
                     </thead>
                     <tbody>
                         {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <tr
-                                    key={row.id}
-                                    className="border-b transition-colors hover:bg-gray-50/50"
-                                >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <td
-                                            key={cell.id}
-                                            className="px-3 py-1.5 align-middle whitespace-nowrap"
-                                        >
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))
+                            <AnimatePresence>
+                                {table.getRowModel().rows.map((row, i) => (
+                                    <motion.tr
+                                        key={row.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.2, delay: i * 0.03 }}
+                                        className="border-b transition-colors hover:bg-gray-50/50"
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <td
+                                                key={cell.id}
+                                                className="px-3 py-1.5 align-middle whitespace-nowrap"
+                                            >
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </td>
+                                        ))}
+                                    </motion.tr>
+                                ))}
+                            </AnimatePresence>
                         ) : (
                             <tr>
                                 <td
@@ -290,23 +300,28 @@ export default function MovementTable({
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-end space-x-2 py-4 px-4">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
-                >
-                    Previous
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
-                >
-                    Next
-                </Button>
+            <div className="flex items-center justify-between py-4 px-4">
+                <div className="text-sm text-gray-500 font-medium">
+                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                    >
+                        Previous
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                    >
+                        Next
+                    </Button>
+                </div>
             </div>
         </div>
     );

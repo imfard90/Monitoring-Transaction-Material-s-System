@@ -6,6 +6,8 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Check, ChevronsUpDown, Eye, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,7 +23,6 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { Check, ChevronsUpDown, Eye, Search } from 'lucide-react';
 
 interface OutMaterialTableProps {
     data: any[];
@@ -258,18 +259,26 @@ export default function OutMaterialTable({
                                 </td>
                             </tr>
                         ) : (
-                            table.getRowModel().rows.map((row) => (
-                                <tr key={row.id} className="bg-white border-b hover:bg-gray-50">
-                                    {row.getVisibleCells().map((cell) => (
-                                        <td key={cell.id} className="px-3 py-1.5">
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))
+                            <AnimatePresence>
+                                {table.getRowModel().rows.map((row, i) => (
+                                    <motion.tr
+                                        key={row.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.2, delay: i * 0.03 }}
+                                        className="bg-white border-b hover:bg-gray-50"
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <td key={cell.id} className="px-3 py-1.5">
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </td>
+                                        ))}
+                                    </motion.tr>
+                                ))}
+                            </AnimatePresence>
                         )}
                     </tbody>
                 </table>
@@ -278,8 +287,7 @@ export default function OutMaterialTable({
             {/* Pagination Controls */}
             <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-500">
-                    Page {table.getState().pagination.pageIndex + 1} of{' '}
-                    {table.getPageCount()}
+                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
                 </div>
                 <div className="flex gap-2">
                     <Button

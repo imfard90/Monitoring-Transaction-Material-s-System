@@ -1,6 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import React, { useState } from 'react';
 import CardBox from '@/app/components/shared/CardBox';
 import {
@@ -55,7 +56,36 @@ export default function InOutTagClient() {
         return Array.from(set).sort();
     }, [tags]);
 
-    // Apply filters robustly
+    const [monthsOffset, setMonthsOffset] = useState(0);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasMoreData, setHasMoreData] = useState(true);
+    const queryClient = useQueryClient();
+
+    const loadMore = async () => {
+        if (isLoadingMore || !hasMoreData) return;
+        setIsLoadingMore(true);
+        try {
+            const nextOffset = monthsOffset + 5;
+            const res = await getInOutTags(nextOffset, 5);
+            if (!res.success || !res.data || res.data.length === 0) {
+                setHasMoreData(false);
+            } else {
+                queryClient.setQueryData(['inoutTags'], (old: any) => {
+                    if (!old) return old;
+                    return {
+                        ...old,
+                        data: [...old.data, ...res.data],
+                    };
+                });
+                setMonthsOffset(nextOffset);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+
     const filteredTags = React.useMemo(() => {
         return tags.filter((tag) => {
             const matchesStatus = filterStatus === 'all' || tag.end_status === filterStatus;
@@ -77,28 +107,66 @@ export default function InOutTagClient() {
         });
     }, [tags, filterStatus, searchQuery, toWhFilter]);
 
-    return (
-        <div className="flex flex-col flex-1 min-h-0  space-y-6">
-            <InOutTagCards
-                counts={counts}
-                activeFilter={filterStatus}
-                onFilterChange={setFilterStatus}
-            />
+    React.useEffect(() => {
+        if (
+            searchQuery &&
+            filteredTags.length === 0 &&
+            hasMoreData &&
+            !isLoadingMore &&
+            !isLoading
+        ) {
+            const timeout = setTimeout(() => {
+                loadMore();
+            }, 800);
+            return () => clearTimeout(timeout);
+        }
+    }, [searchQuery, filteredTags.length, hasMoreData, isLoadingMore, isLoading]);
 
-            <CardBox className="flex flex-col flex-1 min-h-0">
-                <InOutTagTable
-                    data={filteredTags}
-                    isLoading={isLoading}
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    toWhOptions={uniqueToWh}
-                    toWhFilter={toWhFilter}
-                    onToWhChange={setToWhFilter}
-                    onCreateClick={() => setIsCreateModalOpen(true)}
-                    onViewDetail={(row) => setDetailRow(row)}
-                    onUpdateClick={handleUpdateClick}
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="flex flex-col flex-1 min-h-0 space-y-6"
+        >
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+            >
+                <InOutTagCards
+                    counts={counts}
+                    activeFilter={filterStatus}
+                    onFilterChange={setFilterStatus}
                 />
-            </CardBox>
+            </motion.div>
+
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="flex flex-col flex-1 min-h-0"
+            >
+                <CardBox className="flex flex-col flex-1 min-h-0">
+                    <InOutTagTable
+                        data={filteredTags}
+                        isLoading={isLoading}
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        toWhOptions={uniqueToWh}
+                        toWhFilter={toWhFilter}
+                        onToWhChange={setToWhFilter}
+                        onCreateClick={() => setIsCreateModalOpen(true)}
+                        onViewDetail={(row) => setDetailRow(row)}
+                        onUpdateClick={handleUpdateClick}
+                    />
+                    {isLoadingMore && (
+                        <div className="text-center text-sm text-gray-500 py-2">
+                            Mencari di 5 bulan sebelumnya...
+                        </div>
+                    )}
+                </CardBox>
+            </motion.div>
 
             <CreateTagModal
                 isOpen={isCreateModalOpen}
@@ -117,6 +185,6 @@ export default function InOutTagClient() {
                 isOpen={updateRow !== null}
                 onClose={() => setUpdateRow(null)}
             />
-        </div>
+        </motion.div>
     );
 }

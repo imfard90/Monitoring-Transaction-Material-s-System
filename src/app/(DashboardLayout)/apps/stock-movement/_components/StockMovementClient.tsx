@@ -1,8 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { useEffect, useMemo, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
+import { getStockMovements } from '../_actions/movement-actions';
 import MovementTable from './MovementTable';
 
 interface StockMovementClientProps {
@@ -10,20 +12,25 @@ interface StockMovementClientProps {
 }
 
 export default function StockMovementClient({ initialData }: StockMovementClientProps) {
+    const [data, setData] = useState(initialData);
+    const [monthsOffset, setMonthsOffset] = useState(0);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasMoreData, setHasMoreData] = useState(true);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [warehouseFilter, setWarehouseFilter] = useState('all');
     const [materialFilter, setMaterialFilter] = useState('all');
 
     const uniqueWarehouses = useMemo(() => {
-        const set = new Set(initialData.map((item) => item.warehouse_name).filter(Boolean));
+        const set = new Set(data.map((item) => item.warehouse_name).filter(Boolean));
         return Array.from(set).sort() as string[];
-    }, [initialData]);
+    }, [data]);
 
     const uniqueMaterials = useMemo(() => {
-        const set = new Set(initialData.map((item) => item.material_code).filter(Boolean));
+        const set = new Set(data.map((item) => item.material_code).filter(Boolean));
         return Array.from(set).sort() as string[];
-    }, [initialData]);
+    }, [data]);
 
     const handleClearFilters = () => {
         setSearchQuery('');
@@ -32,8 +39,27 @@ export default function StockMovementClient({ initialData }: StockMovementClient
         setMaterialFilter('all');
     };
 
+    const loadMore = async () => {
+        if (isLoadingMore || !hasMoreData) return;
+        setIsLoadingMore(true);
+        try {
+            const nextOffset = monthsOffset + 5;
+            const newData = await getStockMovements(nextOffset, 5);
+            if (newData.length === 0) {
+                setHasMoreData(false);
+            } else {
+                setData((prev) => [...prev, ...newData]);
+                setMonthsOffset(nextOffset);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+
     const filteredData = useMemo(() => {
-        return initialData.filter((item) => {
+        return data.filter((item) => {
             // Date filter (Range)
             if (dateRange?.from && item.created_at) {
                 const itemDate = new Date(item.created_at);
@@ -78,24 +104,45 @@ export default function StockMovementClient({ initialData }: StockMovementClient
                 item.movement_type?.toLowerCase().includes(q)
             );
         });
-    }, [initialData, searchQuery, dateRange, warehouseFilter, materialFilter]);
+    }, [data, searchQuery, dateRange, warehouseFilter, materialFilter]);
+
+    useEffect(() => {
+        if (searchQuery && filteredData.length === 0 && hasMoreData && !isLoadingMore) {
+            const timeout = setTimeout(() => {
+                loadMore();
+            }, 800);
+            return () => clearTimeout(timeout);
+        }
+    }, [searchQuery, filteredData.length, hasMoreData, isLoadingMore]);
 
     return (
-        <CardBox className="flex flex-col flex-1 min-h-0 overflow-hidden p-6">
-            <MovementTable
-                data={filteredData}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                dateRange={dateRange}
-                onDateRangeChange={setDateRange}
-                warehouseFilter={warehouseFilter}
-                onWarehouseFilterChange={setWarehouseFilter}
-                materialFilter={materialFilter}
-                onMaterialFilterChange={setMaterialFilter}
-                uniqueWarehouses={uniqueWarehouses}
-                uniqueMaterials={uniqueMaterials}
-                onClearFilters={handleClearFilters}
-            />
-        </CardBox>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="flex flex-col flex-1 min-h-0"
+        >
+            <CardBox className="flex flex-col flex-1 min-h-0 overflow-hidden p-6">
+                <MovementTable
+                    data={filteredData}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    dateRange={dateRange}
+                    onDateRangeChange={setDateRange}
+                    warehouseFilter={warehouseFilter}
+                    onWarehouseFilterChange={setWarehouseFilter}
+                    materialFilter={materialFilter}
+                    onMaterialFilterChange={setMaterialFilter}
+                    uniqueWarehouses={uniqueWarehouses}
+                    uniqueMaterials={uniqueMaterials}
+                    onClearFilters={handleClearFilters}
+                />
+                {isLoadingMore && (
+                    <div className="text-center text-sm text-gray-500 py-2">
+                        Mencari di 5 bulan sebelumnya...
+                    </div>
+                )}
+            </CardBox>
+        </motion.div>
     );
 }

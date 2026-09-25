@@ -1,5 +1,6 @@
 'use server';
 
+import { sql } from 'kysely';
 import { getSessionNik } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 
@@ -16,6 +17,7 @@ export interface UserProfileData {
     branch_name: string | null;
     area: string | null;
     regional: string | null;
+    lensa_acount: any | null;
 }
 
 export async function getProfileData(): Promise<{
@@ -42,6 +44,7 @@ export async function getProfileData(): Promise<{
                 'u.email',
                 'u.name',
                 'u.is_active',
+                sql<any>`u.lensa_acount`.as('lensa_acount'),
                 'e.nama as employee_name',
                 'e.status',
                 'l.level_name',
@@ -73,6 +76,7 @@ export async function getProfileData(): Promise<{
                 branch_name: profileData.branch_name,
                 area: profileData.area,
                 regional: profileData.regional,
+                lensa_acount: profileData.lensa_acount,
             },
         };
     } catch (error: unknown) {

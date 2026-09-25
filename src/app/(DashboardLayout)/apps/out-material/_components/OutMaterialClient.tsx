@@ -1,6 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import React, { useState } from 'react';
 import CardBox from '@/app/components/shared/CardBox';
 import { getOutMaterials } from '../_actions/out-material-actions';
@@ -32,7 +33,36 @@ export default function OutMaterialClient() {
         return Array.from(set).sort() as string[];
     }, [headers]);
 
-    // Apply filters robustly
+    const [monthsOffset, setMonthsOffset] = useState(0);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasMoreData, setHasMoreData] = useState(true);
+    const queryClient = useQueryClient();
+
+    const loadMore = async () => {
+        if (isLoadingMore || !hasMoreData) return;
+        setIsLoadingMore(true);
+        try {
+            const nextOffset = monthsOffset + 5;
+            const res = await getOutMaterials(nextOffset, 5);
+            if (!res.success || !res.data || res.data.length === 0) {
+                setHasMoreData(false);
+            } else {
+                queryClient.setQueryData(['outMaterials'], (old: any) => {
+                    if (!old) return old;
+                    return {
+                        ...old,
+                        data: [...old.data, ...res.data],
+                    };
+                });
+                setMonthsOffset(nextOffset);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+
     const filteredData = React.useMemo(() => {
         return headers.filter((header: any) => {
             const matchesStatus = filterStatus === 'all' || header.end_status === filterStatus;
@@ -54,32 +84,70 @@ export default function OutMaterialClient() {
         });
     }, [headers, filterStatus, whFilter, searchQuery]);
 
-    return (
-        <div className="flex flex-col flex-1 min-h-0  space-y-6">
-            <OutMaterialCards
-                counts={counts}
-                activeFilter={filterStatus}
-                onFilterChange={setFilterStatus}
-            />
+    React.useEffect(() => {
+        if (
+            searchQuery &&
+            filteredData.length === 0 &&
+            hasMoreData &&
+            !isLoadingMore &&
+            !isLoading
+        ) {
+            const timeout = setTimeout(() => {
+                loadMore();
+            }, 800);
+            return () => clearTimeout(timeout);
+        }
+    }, [searchQuery, filteredData.length, hasMoreData, isLoadingMore, isLoading]);
 
-            <CardBox className="flex flex-col flex-1 min-h-0">
-                <OutMaterialTable
-                    data={filteredData}
-                    isLoading={isLoading}
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    whOptions={whOptions}
-                    whFilter={whFilter}
-                    onWhChange={setWhFilter}
-                    onViewDetail={(row) => setDetailRow(row)}
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="flex flex-col flex-1 min-h-0 space-y-6"
+        >
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+            >
+                <OutMaterialCards
+                    counts={counts}
+                    activeFilter={filterStatus}
+                    onFilterChange={setFilterStatus}
                 />
-            </CardBox>
+            </motion.div>
+
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="flex flex-col flex-1 min-h-0"
+            >
+                <CardBox className="flex flex-col flex-1 min-h-0">
+                    <OutMaterialTable
+                        data={filteredData}
+                        isLoading={isLoading}
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        whOptions={whOptions}
+                        whFilter={whFilter}
+                        onWhChange={setWhFilter}
+                        onViewDetail={(row) => setDetailRow(row)}
+                    />
+                    {isLoadingMore && (
+                        <div className="text-center text-sm text-gray-500 py-2">
+                            Mencari di 5 bulan sebelumnya...
+                        </div>
+                    )}
+                </CardBox>
+            </motion.div>
 
             <OutMaterialDetailModal
                 row={detailRow}
                 isOpen={detailRow !== null}
                 onClose={() => setDetailRow(null)}
             />
-        </div>
+        </motion.div>
     );
 }

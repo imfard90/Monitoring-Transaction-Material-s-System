@@ -15,20 +15,6 @@ const profileDD: ProfileType[] = [
         icon: 'tabler:user',
         url: '/user-profile',
     },
-    {
-        img: '/images/svgs/icon-inbox.svg',
-        title: 'My Notes',
-        subtitle: 'My Daily Notes',
-        icon: 'tabler:mail',
-        url: '/apps/notes',
-    },
-    {
-        img: '/images/svgs/icon-tasks.svg',
-        title: 'My Blogs',
-        subtitle: 'Stories, insights, and updates',
-        icon: 'tabler:list-check',
-        url: '/apps/blog/post',
-    },
 ];
 
 const Notifications = [

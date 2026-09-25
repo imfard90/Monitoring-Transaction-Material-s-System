@@ -62,7 +62,7 @@ export default function InOutTagCards({
                 <Card
                     key={card.id}
                     className={cn(
-                        'cursor-pointer transition-all hover:shadow-md border-none',
+                        'cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg border-none',
                         card.color,
                         activeFilter === card.id ? 'ring-2 ring-primary shadow-md' : ''
                     )}

@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
@@ -174,199 +175,232 @@ export default function ReturnForm() {
     const selectedTech = sapOuts.find((s) => s.id.toString() === formData.sap_out_id);
 
     return (
-        <CardBox className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-8">
-                <div>
-                    <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
-                        Return Transaction (Pengembalian Material)
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label>Search Teknisi (Intech)</Label>
-                            <SearchableSelect
-                                options={sapOuts.map((s) => ({
-                                    value: s.id.toString(),
-                                    label: `${s.id_trx} - ${s.nik_teknisi} - ${s.nama_teknisi}`,
-                                }))}
-                                value={formData.sap_out_id}
-                                onValueChange={handleSapOutChange}
-                                placeholder="Search Teknisi yang terdapat intech"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Notes / Reason</Label>
-                            <Input
-                                value={formData.notes}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, notes: e.target.value })
-                                }
-                                placeholder="e.g. Unused from installation"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <div className="flex justify-between items-center mb-4 border-b pb-2">
-                        <h2 className="text-lg font-bold text-gray-900">Return Items</h2>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleAddItem}
-                            disabled={!formData.sap_out_id}
-                        >
-                            <Plus className="h-4 w-4 mr-2" /> Add Item
-                        </Button>
-                    </div>
-
-                    <div className="space-y-4">
-                        {items.map((item, index) => (
-                            <div
-                                key={index}
-                                className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-gray-50/50"
-                            >
-                                <div className="flex-1 space-y-2">
-                                    <Label>Material</Label>
-                                    <Select
-                                        value={item.sap_out_item_id}
-                                        onValueChange={(val) =>
-                                            handleItemChange(index, 'sap_out_item_id', val)
-                                        }
-                                    >
-                                        <SelectTrigger className="bg-white">
-                                            <SelectValue placeholder="Select Material" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {availableItems.map((ai) => (
-                                                <SelectItem
-                                                    key={ai.sap_out_item_id}
-                                                    value={ai.sap_out_item_id.toString()}
-                                                >
-                                                    {ai.material_code} - {ai.material_name} (Max:{' '}
-                                                    {ai.maxReturn})
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="w-full sm:w-32 space-y-2">
-                                    <Label>Return Qty</Label>
-                                    <Input
-                                        type="number"
-                                        min="1"
-                                        max={item.maxReturn || 1}
-                                        placeholder="0"
-                                        value={item.qty === 0 || item.qty === '' ? '' : item.qty}
-                                        onChange={(e) => {
-                                            const val =
-                                                e.target.value === ''
-                                                    ? ''
-                                                    : parseInt(e.target.value, 10);
-                                            handleItemChange(index, 'qty', val);
-                                        }}
-                                    />
-                                </div>
-
-                                <div className="pt-8">
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        size="icon"
-                                        onClick={() => handleRemoveItem(index)}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
+            <CardBox className="p-6">
+                <form onSubmit={handleSubmit} className="space-y-8">
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
+                            Return Transaction (Pengembalian Material)
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label>Search Teknisi (Intech)</Label>
+                                <SearchableSelect
+                                    options={sapOuts.map((s) => ({
+                                        value: s.id.toString(),
+                                        label: `${s.id_trx} - ${s.nik_teknisi} - ${s.nama_teknisi}`,
+                                    }))}
+                                    value={formData.sap_out_id}
+                                    onValueChange={handleSapOutChange}
+                                    placeholder="Search Teknisi yang terdapat intech"
+                                />
                             </div>
-                        ))}
 
-                        {items.length === 0 && (
-                            <div className="text-center p-8 border border-dashed rounded-lg text-gray-500">
-                                No items added yet. Click "Add Item" to select materials to return.
+                            <div className="space-y-2">
+                                <Label>Notes / Reason</Label>
+                                <Input
+                                    value={formData.notes}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, notes: e.target.value })
+                                    }
+                                    placeholder="e.g. Unused from installation"
+                                />
                             </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex justify-end pt-4 border-t">
-                    <Button
-                        type="submit"
-                        disabled={loading || items.length === 0}
-                        className="w-full sm:w-auto"
-                    >
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Review & Submit Return
-                    </Button>
-                </div>
-            </form>
-
-            <ConfirmDialog
-                isOpen={isConfirmModalOpen}
-                onOpenChange={setIsConfirmModalOpen}
-                title="Konfirmasi Return Material"
-                description="Pastikan data pengembalian material sudah benar. Status akan menjadi pending dan menunggu persetujuan (accept) dari gudang."
-                onConfirm={handleConfirmSubmit}
-                loading={loading}
-            >
-                <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
-                        <div>
-                            <span className="text-gray-500 block mb-1">Transaksi SAP Out:</span>
-                            <span className="font-medium">{selectedTech?.id_trx}</span>
-                        </div>
-                        <div>
-                            <span className="text-gray-500 block mb-1">Teknisi:</span>
-                            <span className="font-medium">
-                                {selectedTech?.nama_teknisi} ({selectedTech?.nik_teknisi})
-                            </span>
-                        </div>
-                        <div className="col-span-2">
-                            <span className="text-gray-500 block mb-1">Notes:</span>
-                            <span>{formData.notes || '-'}</span>
                         </div>
                     </div>
 
                     <div>
-                        <h4 className="text-sm font-semibold mb-2">Material yang Dikembalikan:</h4>
-                        <div className="border rounded-md max-h-[300px] overflow-y-auto">
-                            <Table>
-                                <TableHeader className="bg-muted/50">
-                                    <TableRow>
-                                        <TableHead className="w-[40px] text-center">No</TableHead>
-                                        <TableHead>Material</TableHead>
-                                        <TableHead className="text-center">Return Qty</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {items.map((item, idx) => {
-                                        const mat = availableItems.find(
-                                            (ai) =>
-                                                ai.sap_out_item_id.toString() ===
-                                                item.sap_out_item_id
-                                        );
-                                        return (
-                                            <TableRow key={idx}>
-                                                <TableCell className="text-center">
-                                                    {idx + 1}
-                                                </TableCell>
-                                                <TableCell className="text-xs">
-                                                    {mat?.material_code} - {mat?.material_name}
-                                                </TableCell>
-                                                <TableCell className="text-center font-bold text-blue-600">
-                                                    {item.qty}
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
+                        <div className="flex justify-between items-center mb-4 border-b pb-2">
+                            <h2 className="text-lg font-bold text-gray-900">Return Items</h2>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleAddItem}
+                                disabled={!formData.sap_out_id}
+                            >
+                                <Plus className="h-4 w-4 mr-2" /> Add Item
+                            </Button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <AnimatePresence mode="popLayout">
+                                {items.map((item, index) => (
+                                    <motion.div
+                                        key={item.id || index}
+                                        initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                                        exit={{ opacity: 0, height: 0, scale: 0.9 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-gray-50/50 overflow-hidden"
+                                    >
+                                        <div className="flex-1 space-y-2">
+                                            <Label>Material</Label>
+                                            <Select
+                                                value={item.sap_out_item_id}
+                                                onValueChange={(val) =>
+                                                    handleItemChange(index, 'sap_out_item_id', val)
+                                                }
+                                            >
+                                                <SelectTrigger className="bg-white">
+                                                    <SelectValue placeholder="Select Material" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {availableItems.map((ai) => (
+                                                        <SelectItem
+                                                            key={ai.sap_out_item_id}
+                                                            value={ai.sap_out_item_id.toString()}
+                                                        >
+                                                            {ai.material_code} - {ai.material_name}{' '}
+                                                            (Max: {ai.maxReturn})
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="w-full sm:w-32 space-y-2">
+                                            <Label>Return Qty</Label>
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                max={item.maxReturn || 1}
+                                                placeholder="0"
+                                                value={
+                                                    item.qty === 0 || item.qty === ''
+                                                        ? ''
+                                                        : item.qty
+                                                }
+                                                onChange={(e) => {
+                                                    const val =
+                                                        e.target.value === ''
+                                                            ? ''
+                                                            : parseInt(e.target.value, 10);
+                                                    handleItemChange(index, 'qty', val);
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div className="pt-8">
+                                            <motion.div
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                            >
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    size="icon"
+                                                    onClick={() => handleRemoveItem(index)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </motion.div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+
+                            {items.length === 0 && (
+                                <div className="text-center p-8 border border-dashed rounded-lg text-gray-500">
+                                    No items added yet. Click "Add Item" to select materials to
+                                    return.
+                                </div>
+                            )}
                         </div>
                     </div>
-                </div>
-            </ConfirmDialog>
-        </CardBox>
+
+                    <div className="flex justify-end pt-4 border-t">
+                        <motion.div
+                            whileHover={{ scale: items.length === 0 ? 1 : 1.02 }}
+                            whileTap={{ scale: items.length === 0 ? 1 : 0.98 }}
+                        >
+                            <Button
+                                type="submit"
+                                disabled={loading || items.length === 0}
+                                className="w-full sm:w-auto"
+                            >
+                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Review & Submit Return
+                            </Button>
+                        </motion.div>
+                    </div>
+                </form>
+
+                <ConfirmDialog
+                    isOpen={isConfirmModalOpen}
+                    onOpenChange={setIsConfirmModalOpen}
+                    title="Konfirmasi Return Material"
+                    description="Pastikan data pengembalian material sudah benar. Status akan menjadi pending dan menunggu persetujuan (accept) dari gudang."
+                    onConfirm={handleConfirmSubmit}
+                    loading={loading}
+                >
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
+                            <div>
+                                <span className="text-gray-500 block mb-1">Transaksi SAP Out:</span>
+                                <span className="font-medium">{selectedTech?.id_trx}</span>
+                            </div>
+                            <div>
+                                <span className="text-gray-500 block mb-1">Teknisi:</span>
+                                <span className="font-medium">
+                                    {selectedTech?.nama_teknisi} ({selectedTech?.nik_teknisi})
+                                </span>
+                            </div>
+                            <div className="col-span-2">
+                                <span className="text-gray-500 block mb-1">Notes:</span>
+                                <span>{formData.notes || '-'}</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 className="text-sm font-semibold mb-2">
+                                Material yang Dikembalikan:
+                            </h4>
+                            <div className="border rounded-md max-h-[300px] overflow-y-auto">
+                                <Table>
+                                    <TableHeader className="bg-muted/50">
+                                        <TableRow>
+                                            <TableHead className="w-[40px] text-center">
+                                                No
+                                            </TableHead>
+                                            <TableHead>Material</TableHead>
+                                            <TableHead className="text-center">
+                                                Return Qty
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {items.map((item, idx) => {
+                                            const mat = availableItems.find(
+                                                (ai) =>
+                                                    ai.sap_out_item_id.toString() ===
+                                                    item.sap_out_item_id
+                                            );
+                                            return (
+                                                <TableRow key={idx}>
+                                                    <TableCell className="text-center">
+                                                        {idx + 1}
+                                                    </TableCell>
+                                                    <TableCell className="text-xs">
+                                                        {mat?.material_code} - {mat?.material_name}
+                                                    </TableCell>
+                                                    <TableCell className="text-center font-bold text-blue-600">
+                                                        {item.qty}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+                    </div>
+                </ConfirmDialog>
+            </CardBox>
+        </motion.div>
     );
 }

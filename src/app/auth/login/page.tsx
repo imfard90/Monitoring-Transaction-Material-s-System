@@ -28,7 +28,9 @@ type LoginFormValues = z.infer<typeof LoginSchema>;
 const LoginForm = () => {
     const _router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [errorMsg, setErrorMsg] = useState<{ type: 'error' | 'warning'; text: string } | null>(
+        null
+    );
 
     const {
         register,
@@ -44,8 +46,22 @@ const LoginForm = () => {
     const remember = watch('remember');
 
     const onSubmit = async (data: LoginFormValues) => {
-        setError(null);
+        setErrorMsg(null);
         try {
+            // 1. Lakukan pre-check terlebih dahulu
+            const { precheckLogin } = await import('./_actions/login-actions');
+            const precheck = await precheckLogin(data.email);
+
+            if (precheck.status === 'not_found') {
+                setErrorMsg({ type: 'error', text: 'User tidak terdaftar' });
+                return;
+            }
+            if (precheck.status === 'inactive') {
+                setErrorMsg({ type: 'warning', text: 'User belum aktif / diblokir' });
+                return;
+            }
+
+            // 2. Lanjut ke otentikasi Better Auth
             const result = await authClient.signIn.email({
                 email: data.email,
                 password: data.password,
@@ -53,24 +69,30 @@ const LoginForm = () => {
             });
 
             if (result.error) {
-                throw new Error(result.error.message || 'Login gagal');
+                // Jika precheck lolos namun authClient gagal, maka kemungkinannya hanya password yang salah
+                setErrorMsg({ type: 'error', text: 'Username dan password salah' });
+                return;
             }
 
             toast.success('Berhasil masuk');
             window.location.href = '/';
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Email atau password salah';
-            setError(message);
-            toast.error(message);
+            setErrorMsg({ type: 'error', text: 'Terjadi kesalahan sistem, silakan coba lagi' });
         }
     };
 
     return (
         <AuthLayout formPosition="right">
             <AuthCard title="Masuk" description="Selamat datang kembali di MTMS">
-                {error && (
-                    <div className="mb-4 p-3 text-sm text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
-                        {error}
+                {errorMsg && (
+                    <div
+                        className={`mb-4 p-3 text-sm rounded-lg border ${
+                            errorMsg.type === 'error'
+                                ? 'text-destructive bg-destructive/10 border-destructive/20'
+                                : 'text-yellow-600 bg-yellow-50 border-yellow-200 dark:text-yellow-500 dark:bg-yellow-950/30 dark:border-yellow-900/50'
+                        }`}
+                    >
+                        {errorMsg.text}
                     </div>
                 )}
 

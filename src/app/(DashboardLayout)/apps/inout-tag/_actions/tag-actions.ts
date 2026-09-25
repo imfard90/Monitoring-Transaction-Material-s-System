@@ -4,10 +4,16 @@ import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 
-export async function getInOutTags() {
+export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
         const applyWhFilter = isStaff && warehouseIds.length > 0;
+
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() - offsetMonths);
+
+        const startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - (offsetMonths + limitMonths));
 
         let inoutQuery = db
             .selectFrom('inventory.inout_tag_header as h')
@@ -15,7 +21,9 @@ export async function getInOutTags() {
             .leftJoin('inventory.mas_wh as wh_from', 'wh_from.id', 'h.from_wh_id')
             .leftJoin('inventory.mas_wh as wh_to', 'wh_to.id', 'h.to_wh_id')
             .selectAll('h')
-            .select(['v.name_vendor', 'wh_from.name as from_wh_name', 'wh_to.name as to_wh_name']);
+            .select(['v.name_vendor', 'wh_from.name as from_wh_name', 'wh_to.name as to_wh_name'])
+            .where('h.request_time', '<=', endDate)
+            .where('h.request_time', '>', startDate);
 
         if (applyWhFilter) {
             inoutQuery = inoutQuery.where((eb) =>
@@ -40,7 +48,9 @@ export async function getInOutTags() {
                 'r.created_at as request_time',
                 't.name as from_wh_name',
                 'wh_to.name as to_wh_name',
-            ]);
+            ])
+            .where('r.created_at', '<=', endDate)
+            .where('r.created_at', '>', startDate);
 
         if (applyWhFilter) {
             returnQuery = returnQuery.where('r.warehouse_id', 'in', warehouseIds as any);

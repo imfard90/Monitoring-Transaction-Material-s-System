@@ -26,7 +26,9 @@ import { Footer } from '@/app/components/dashboard/Footer';
 export default function ReturnMaterialPage() {
     return (
         <div className="flex flex-col flex-1 h-full gap-6">
-            <div className="shrink-0"><BreadcrumbComp title="Return Material" items={BCrumb} /></div>
+            <div className="shrink-0">
+                <BreadcrumbComp title="Return Material" items={BCrumb} />
+            </div>
             <ReturnForm />
             <Footer />
         </div>

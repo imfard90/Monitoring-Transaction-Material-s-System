@@ -3,9 +3,15 @@
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 
-export async function getStockMovements() {
+export async function getStockMovements(offsetMonths = 0, limitMonths = 5) {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
+
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() - offsetMonths);
+
+        const startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - (offsetMonths + limitMonths));
 
         let query = db
             .selectFrom('inventory.stock_movement as sm')
@@ -24,6 +30,8 @@ export async function getStockMovements() {
                 'm.code as material_code',
                 'm.description as material_name',
             ])
+            .where('sm.created_at', '<=', endDate)
+            .where('sm.created_at', '>', startDate)
             .orderBy('sm.created_at', 'desc');
 
         if (isStaff && warehouseIds.length > 0) {

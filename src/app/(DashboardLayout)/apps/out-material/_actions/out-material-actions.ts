@@ -3,9 +3,15 @@
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 
-export async function getOutMaterials() {
+export async function getOutMaterials(offsetMonths = 0, limitMonths = 5) {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
+
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() - offsetMonths);
+
+        const startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - (offsetMonths + limitMonths));
 
         let query = db
             .selectFrom('inventory.sap_out_header as h')
@@ -13,6 +19,8 @@ export async function getOutMaterials() {
             .leftJoin('inventory.mas_wh as wh', 'wh.id', 'h.warehouse_id')
             .selectAll('h')
             .select(['t.name as nama_teknisi', 'wh.name as nama_gudang'])
+            .where('h.request_time', '<=', endDate)
+            .where('h.request_time', '>', startDate)
             .orderBy('h.request_time', 'desc');
 
         if (isStaff && warehouseIds.length > 0) {

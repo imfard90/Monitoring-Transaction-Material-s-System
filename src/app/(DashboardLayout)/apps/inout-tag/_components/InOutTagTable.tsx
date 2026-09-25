@@ -306,8 +306,7 @@ export default function InOutTagTable({
             {/* Pagination Controls */}
             <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-500">
-                    Page {table.getState().pagination.pageIndex + 1} of{' '}
-                    {table.getPageCount()}
+                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
                 </div>
                 <div className="flex gap-2">
                     <Button

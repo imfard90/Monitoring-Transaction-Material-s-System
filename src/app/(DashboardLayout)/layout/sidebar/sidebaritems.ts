@@ -129,32 +129,6 @@ const SidebarContent: MenuItem[] = [
         children: [
             {
                 id: uniqueId(),
-                name: 'Notes',
-                icon: 'solar:notes-linear',
-                url: '/apps/notes',
-                isPro: false,
-            },
-            {
-                id: uniqueId(),
-                name: 'Tickets',
-                icon: 'solar:ticker-star-linear',
-                url: '/apps/tickets',
-                isPro: false,
-            },
-            {
-                name: 'Tables',
-                icon: 'solar:server-linear',
-                id: uniqueId(),
-                url: '/utilities/table',
-            },
-            {
-                name: 'Form',
-                icon: 'solar:document-add-linear',
-                id: uniqueId(),
-                url: '/utilities/form',
-            },
-            {
-                id: uniqueId(),
                 name: 'Iconify Icons',
                 icon: 'solar:structure-linear',
                 url: '/icons/iconify',

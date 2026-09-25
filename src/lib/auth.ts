@@ -75,29 +75,27 @@ export const auth = betterAuth({
 
     // ─── Database Hooks ───────────────────────────────────────────────
     databaseHooks: {
-        user: {
-            update: {
+        session: {
+            create: {
                 /**
                  * Prevent sign-in for inactive users.
-                 * Better Auth calls user.update before creating a session (to update lastLogin etc.)
-                 * We intercept here to check is_active.
+                 * Intercept session creation to check if user is active.
                  */
-                before: async (user) => {
-                    // On sign-in, Better Auth updates the user record.
-                    // We check is_active at the source — the DB itself.
-                    if (user.id) {
+                before: async (session) => {
+                    if (session.userId) {
                         const result = await pool.query(
                             'SELECT is_active FROM auth."user" WHERE id = $1',
-                            [user.id]
+                            [session.userId]
                         );
                         const row = result.rows[0];
-                        if (row && row.is_active === false) {
+                        // If is_active is null, false, or anything other than true, block it
+                        if (row && row.is_active !== true) {
                             throw new Error(
                                 'Akun Anda tidak aktif. Silakan hubungi administrator untuk mengaktifkan akun.'
                             );
                         }
                     }
-                    return { data: user };
+                    return { data: session };
                 },
             },
         },

@@ -68,7 +68,9 @@ export const ProductPerformance = () => {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="text-sm font-semibold py-2">No</TableHead>
+                                        <TableHead className="text-sm font-semibold py-2">
+                                            No
+                                        </TableHead>
                                         <TableHead className="text-sm font-semibold py-2">
                                             Nama WH
                                         </TableHead>

@@ -29,7 +29,9 @@ export default async function HasilRekonPage() {
 
     return (
         <div className="flex flex-col flex-1 h-full min-h-0">
-            <div className="shrink-0"><BreadcrumbComp title="Hasil Rekon" items={BCrumb} /></div>
+            <div className="shrink-0">
+                <BreadcrumbComp title="Hasil Rekon" items={BCrumb} />
+            </div>
             <HasilRekonClient initialData={data} />
         </div>
     );

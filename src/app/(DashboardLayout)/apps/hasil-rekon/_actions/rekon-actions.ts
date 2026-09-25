@@ -3,9 +3,15 @@
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 
-export async function getHasilRekon() {
+export async function getHasilRekon(offsetMonths = 0, limitMonths = 5) {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
+
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() - offsetMonths);
+
+        const startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - (offsetMonths + limitMonths));
 
         let query = db
             .selectFrom('inventory.transaction_used_header as tuh')
@@ -24,6 +30,8 @@ export async function getHasilRekon() {
                 'm.description as material_name',
                 'tui.qty',
             ])
+            .where('tui.created_at', '<=', endDate)
+            .where('tui.created_at', '>', startDate)
             .orderBy('tui.created_at', 'desc');
 
         if (isStaff && warehouseIds.length > 0) {

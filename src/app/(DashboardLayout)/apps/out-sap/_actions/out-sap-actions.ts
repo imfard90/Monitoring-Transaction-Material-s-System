@@ -88,6 +88,21 @@ export async function getOutSapItemsByHeaderId(headerId: number | string) {
     }
 }
 
+export async function getTechnicianByNik(nik: string) {
+    try {
+        const t = await db
+            .selectFrom('hr.technicians as t')
+            .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
+            .select(['t.nik', 't.name', 'b.service_area as sa'])
+            .where('t.nik', '=', nik)
+            .executeTakeFirst();
+        return { success: true, data: t };
+    } catch (error: any) {
+        console.error('Failed to fetch technician by nik:', error);
+        return { success: false, data: null };
+    }
+}
+
 export async function getTechnicians(sa?: string) {
     try {
         let query = db.selectFrom('hr.technicians as t').selectAll('t');
