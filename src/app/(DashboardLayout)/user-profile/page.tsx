@@ -14,7 +14,7 @@ const Notes = async () => {
     const { data } = await getProfileData();
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col flex-1 h-full gap-6">
             <UserProfile profileData={data} />
             <Footer />
         </div>

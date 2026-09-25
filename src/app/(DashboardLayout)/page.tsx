@@ -9,31 +9,31 @@ import { TopCards } from '../components/dashboard/TopCards';
 
 const page = () => {
     return (
-        <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-12">
-                <ProfileWelcome />
+        <div className="flex flex-col flex-1 h-full gap-6">
+            <div className="grid grid-cols-12 gap-6">
+                <div className="col-span-12">
+                    <ProfileWelcome />
+                </div>
+                <div className="col-span-12">
+                    <TopCards />
+                </div>
+                <div className="lg:col-span-8 col-span-12">
+                    <SalesOverview />
+                </div>
+                <div className="lg:col-span-4 col-span-12">
+                    <RecentTransaction />
+                </div>
+                <div className="col-span-12">
+                    <OutMaterialLineChart />
+                </div>
+                <div className="col-span-12 lg:col-span-8 flex">
+                    <StockWarningTable />
+                </div>
+                <div className="col-span-12 lg:col-span-4 flex">
+                    <ProductPerformance />
+                </div>
             </div>
-            <div className="col-span-12">
-                <TopCards />
-            </div>
-            <div className="lg:col-span-8 col-span-12">
-                <SalesOverview />
-            </div>
-            <div className="lg:col-span-4 col-span-12">
-                <RecentTransaction />
-            </div>
-            <div className="col-span-12">
-                <OutMaterialLineChart />
-            </div>
-            <div className="col-span-12 lg:col-span-8 flex">
-                <StockWarningTable />
-            </div>
-            <div className="col-span-12 lg:col-span-4 flex">
-                <ProductPerformance />
-            </div>
-            <div className="col-span-12">
-                <Footer />
-            </div>
+            <Footer />
         </div>
     );
 };

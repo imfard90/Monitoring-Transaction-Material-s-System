@@ -15,11 +15,11 @@ export default function Layout({
                 <div className="xl:block hidden">
                     <Sidebar />
                 </div>
-                <div className="body-wrapper w-full bg-background">
+                <div className="body-wrapper w-full bg-background flex flex-col min-h-screen">
                     {/* Top Header  */}
                     <Header />
                     {/* Body Content  */}
-                    <div className={`container mx-auto px-6 py-30`}>{children}</div>
+                    <div className="container mx-auto px-6 py-30 flex-1 flex flex-col">{children}</div>
                 </div>
             </div>
         </div>
