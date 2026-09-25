@@ -8,10 +8,17 @@ export const metadata: Metadata = {
     title: 'user-profile',
 };
 
+import { Footer } from '@/app/components/dashboard/Footer';
+
 const Notes = async () => {
     const { data } = await getProfileData();
 
-    return <UserProfile profileData={data} />;
+    return (
+        <div className="flex flex-col gap-6">
+            <UserProfile profileData={data} />
+            <Footer />
+        </div>
+    );
 };
 
 export default Notes;

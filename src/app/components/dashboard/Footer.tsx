@@ -2,15 +2,9 @@ import Link from 'next/link';
 
 export const Footer = () => {
     return (
-        <p className="text-base text-center text-bodytext font-medium">
-            Design and Developed by{' '}
-            <Link
-                href="https://tailwind-admin.com/"
-                target="_blank"
-                className="text-primary font-normal underline hover:text-primaryemphasis"
-            >
-                tailwind-admin.com
-            </Link>{' '}
+        <p className="text-sm text-center text-gray-500 font-medium py-4">
+            © 2026 MTMS develop by CreDEa brand by Dima Rafsa Berkarya - All rights reserved.
         </p>
     );
 };
+

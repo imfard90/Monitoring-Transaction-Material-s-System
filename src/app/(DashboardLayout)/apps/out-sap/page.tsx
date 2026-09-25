@@ -20,11 +20,14 @@ const BCrumb = [
     },
 ];
 
+import { Footer } from '@/app/components/dashboard/Footer';
+
 export default function OutSapPage() {
     return (
-        <>
+        <div className="flex flex-col gap-6">
             <BreadcrumbComp title="Out SAP" items={BCrumb} />
             <OutSapForm />
-        </>
+            <Footer />
+        </div>
     );
 }

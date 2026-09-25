@@ -20,11 +20,14 @@ const BCrumb = [
     },
 ];
 
+import { Footer } from '@/app/components/dashboard/Footer';
+
 export default function RekonIntechPage() {
     return (
-        <>
+        <div className="flex flex-col gap-6">
             <BreadcrumbComp title="Rekon Intech" items={BCrumb} />
             <RekonIntechForm />
-        </>
+            <Footer />
+        </div>
     );
 }
