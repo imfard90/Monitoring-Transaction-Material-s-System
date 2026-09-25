@@ -225,7 +225,7 @@ export async function createOutSap(payload: any) {
             }
 
             // Call SP sp_sap_out for this header to reduce stock
-            await sql`CALL inventory.sp_sap_out(${headerResult.id}::bigint, ${payload.warehouse_id}::integer, 'system')`.execute(
+            await sql`CALL inventory.sp_sap_out(${headerResult.id}::bigint, ${payload.warehouse_id}::integer, ${createdBy})`.execute(
                 trx
             );
 
@@ -261,9 +261,10 @@ export async function updateOutSapStatusToIntech(headerId: number | string) {
                 .executeTakeFirst();
 
             const warehouseId = header?.warehouse_id;
+            const createdBy = await getSessionNik();
 
             // Call SP sp_sap_out for this header to reduce stock
-            await sql`CALL inventory.sp_sap_out(${headerId}::bigint, ${warehouseId}::integer, 'system')`.execute(
+            await sql`CALL inventory.sp_sap_out(${headerId}::bigint, ${warehouseId}::integer, ${createdBy})`.execute(
                 trx
             );
 

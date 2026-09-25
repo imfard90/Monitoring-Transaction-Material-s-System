@@ -157,7 +157,7 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[]) 
                         .executeTakeFirst();
                     const warehouseId = sap?.warehouse_id || 0;
 
-                    await sql`CALL inventory.sp_record_material_used(${warehouseId}, ${item.designator_id}, ${item.qty}, ${generatedIdTrx}, ${item.notes || null}, 'system')`.execute(
+                    await sql`CALL inventory.sp_record_material_used(${warehouseId}, ${item.designator_id}, ${item.qty}, ${generatedIdTrx}, ${item.notes || null}, ${createdBy})`.execute(
                         trx
                     );
                 }

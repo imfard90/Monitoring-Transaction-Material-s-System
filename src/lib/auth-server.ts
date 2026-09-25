@@ -4,16 +4,21 @@ import { db } from '@/lib/db/db';
 
 /**
  * Helper untuk mengambil NIK pengguna dari session auth di Server Actions.
- * Returns 'system' sebagai fallback jika tidak ada session aktif.
+ * Akan melempar Error 'Unauthorized' jika sesi tidak valid.
  */
 export async function getSessionNik(): Promise<string> {
     try {
         const session = await auth.api.getSession({
             headers: await headers(),
         });
-        return (session?.user as any)?.nik ?? 'system';
-    } catch {
-        return 'system';
+        const nik = (session?.user as any)?.nik;
+        if (!nik) {
+            throw new Error('Unauthorized');
+        }
+        return nik;
+    } catch (e: any) {
+        if (e.message === 'Unauthorized') throw e;
+        throw new Error('Unauthorized');
     }
 }
 
@@ -33,6 +38,7 @@ export interface SessionUser {
  * Role di-query live dari hr.employees → hr.levels.
  * Untuk Staff, warehouse_ids di-query dari inventory.mas_wh berdasarkan pic_1/pic_2 = nik.
  * Non-staff = akses semua data (warehouseIds kosong, isStaff false).
+ * Akan melempar Error 'Unauthorized' jika sesi tidak valid.
  */
 export async function getSessionUser(): Promise<SessionUser> {
     try {
@@ -41,17 +47,10 @@ export async function getSessionUser(): Promise<SessionUser> {
         });
 
         const user = session?.user as any;
-        const nik: string = user?.nik ?? 'system';
+        const nik: string = user?.nik;
 
-        if (!nik || nik === 'system') {
-            return {
-                nik: 'system',
-                role: null,
-                warehouseIds: [],
-                isStaff: false,
-                branchId: null,
-                branchName: null,
-            };
+        if (!nik) {
+            throw new Error('Unauthorized');
         }
 
         // Query role from hr.employees → hr.levels
@@ -86,14 +85,9 @@ export async function getSessionUser(): Promise<SessionUser> {
             branchId,
             branchName,
         };
-    } catch {
-        return {
-            nik: 'system',
-            role: null,
-            warehouseIds: [],
-            isStaff: false,
-            branchId: null,
-            branchName: null,
-        };
+    } catch (e: any) {
+        if (e.message === 'Unauthorized') throw e;
+        console.error('getSessionUser Error:', e);
+        throw new Error('Unauthorized');
     }
 }
