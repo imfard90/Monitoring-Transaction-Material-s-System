@@ -702,6 +702,18 @@ export interface InventoryStockMovement {
     warehouse_id: number;
 }
 
+export interface InventoryStockPolicy {
+    id: Generated<Int8>;
+    warehouse_id: number;
+    designator_id: number;
+    min_qty: Generated<number>;
+    max_qty: Generated<number>;
+    average_demand_weekly: Generated<string>;
+    lead_time_weeks: Generated<number>;
+    safety_stock_pct: Generated<string>;
+    updated_at: Generated<Timestamp | null>;
+}
+
 export interface InventoryTransactionUsedHeader {
     created_at: Generated<Timestamp>;
     created_by: string | null;
@@ -1043,6 +1055,7 @@ export interface DB {
     'inventory.sap_out_items': InventorySapOutItems;
     'inventory.stock_balance': InventoryStockBalance;
     'inventory.stock_movement': InventoryStockMovement;
+    'inventory.stock_policy': InventoryStockPolicy;
     'inventory.transaction_used_header': InventoryTransactionUsedHeader;
     'inventory.transaction_used_item': InventoryTransactionUsedItem;
     'inventory.vendor_tracking': InventoryVendorTracking;

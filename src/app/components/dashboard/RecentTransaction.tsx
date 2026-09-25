@@ -1,103 +1,95 @@
-import Link from 'next/link';
+'use client';
+
+import type { ApexOptions } from 'apexcharts';
+import dynamic from 'next/dynamic';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import CardBox from '../shared/CardBox';
 
-export const RecentTransaction = () => {
-    const timelineData = [
-        {
-            key: 'timeline1',
-            time: '09:30 am',
-            desc: 'Payment received from John Doe of $385.90',
-            isSale: false,
-            borderColor: 'border-primary',
-            isLastItem: false,
+const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
+
+const RecentTransaction: React.FC = () => {
+    const [chartData, setChartData] = useState<{ categories: string[]; seriesData: number[] }>({
+        categories: [],
+        seriesData: [],
+    });
+
+    useEffect(() => {
+        const loadData = async () => {
+            const { getTopOutMaterials } = await import(
+                '@/app/(DashboardLayout)/_actions/dashboard-actions'
+            );
+            const result = await getTopOutMaterials(7);
+
+            if (result.success && result.data) {
+                const categories = result.data.map((d: any) => d.material_name);
+                const seriesData = result.data.map((d: any) => Number(d.total_qty));
+                setChartData({ categories, seriesData });
+            }
+        };
+
+        loadData();
+    }, []);
+    const ChartOptions: ApexOptions = {
+        chart: {
+            toolbar: { show: false },
+            type: 'bar',
+            fontFamily: 'inherit',
+            foreColor: '#7C8FAC',
+            height: 310,
         },
-        {
-            key: 'timeline2',
-            time: '10:00 am',
-            desc: 'New sale recorded',
-            isSale: true,
-            borderColor: 'border-info',
-            isLastItem: false,
+        colors: ['var(--color-primary)'],
+        plotOptions: {
+            bar: {
+                horizontal: true,
+                borderRadius: 4,
+                barHeight: '50%',
+            },
         },
-        {
-            key: 'timeline3',
-            time: '12:00 am',
-            desc: 'Payment was made of $64.95 to Michael',
-            isSale: false,
-            borderColor: 'border-success',
-            isLastItem: false,
+        dataLabels: {
+            enabled: true,
+            style: {
+                colors: ['#fff'],
+            },
         },
-        {
-            key: 'timeline4',
-            time: '09:30 am',
-            desc: 'New sale recorded',
-            isSale: true,
-            borderColor: 'border-warning',
-            isLastItem: false,
+        legend: { show: false },
+        grid: { borderColor: 'rgba(0,0,0,0.1)', strokeDashArray: 3 },
+        xaxis: {
+            categories: chartData.categories,
+            axisBorder: { show: false },
+            axisTicks: { show: false },
         },
-        {
-            key: 'timeline5',
-            time: '09:30 am',
-            desc: 'New sale recorded',
-            isSale: true,
-            borderColor: 'border-error',
-            isLastItem: false,
+        tooltip: {
+            theme: 'dark',
         },
+    };
+
+    const series = [
         {
-            key: 'timeline6',
-            time: '12:00 am',
-            desc: 'Payment Done',
-            isSale: false,
-            borderColor: 'border-success',
-            isLastItem: true,
+            name: 'Total Out',
+            data: chartData.seriesData,
         },
     ];
+
     return (
         <CardBox className="h-full w-full">
-            <div className="flex flex-col">
-                <h5 className="card-title">Recent Transactions</h5>
-                <p className="text-sm text-muted-foreground font-normal">
-                    How to secure recent transactions
-                </p>
+            <div className="flex flex-col mb-6">
+                <h5 className="card-title">Top Out Material</h5>
+                <p className="text-sm text-muted-foreground font-normal">30 Hari Terakhir</p>
             </div>
-            <div className="mt-6">
-                {timelineData.map((item) => {
-                    return (
-                        <div key={item.key} className="flex gap-x-3">
-                            <div className="w-1/4 text-end">
-                                <span className="font-medium text-foreground dark:text-muted-foreground">
-                                    {item.time}
-                                </span>
-                            </div>
-                            <div
-                                className={`relative ${
-                                    item.isLastItem ? 'after:hidden' : null
-                                } after:absolute after:top-7 after:bottom-0 after:start-3.5 after:w-px after:-translate-x-[0.5px] after:bg-border`}
-                            >
-                                <div className="relative z-1 w-7 h-7 flex justify-center items-center">
-                                    <div
-                                        className={`h-3 w-3 rounded-full bg-transparent border-2 ${item.borderColor}`}
-                                    ></div>
-                                </div>
-                            </div>
-                            <div className="w-1/4 grow pt-0.5 pb-6">
-                                {item.isSale ? (
-                                    <div>
-                                        <h6>New sale recorded </h6>
-                                        <Link href="#" className="text-primary">
-                                            #ML-3467
-                                        </Link>
-                                    </div>
-                                ) : (
-                                    <p className="font-medium text-foreground dark:text-muted-foreground">
-                                        {item.desc}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
+            <div className="mt-2">
+                <Chart
+                    options={ChartOptions}
+                    series={series}
+                    type="bar"
+                    height={316}
+                    width="100%"
+                />
             </div>
         </CardBox>
     );
 };
+
+// Also default export not needed if named exported but original exported `export const RecentTransaction = () => {`
+// Let's keep it named export so it works with page.tsx
+export { RecentTransaction };

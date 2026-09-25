@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
     Table,
@@ -11,65 +12,52 @@ import {
 import CardBox from '../shared/CardBox';
 
 export const ProductPerformance = () => {
-    const PerformersData = [
-        {
-            key: 'performerData1',
-            username: 'Sunil Joshi',
-            designation: 'Web Designer',
-            project: 'Elite Admin',
-            priority: 'Low',
-            color: 'primary',
-            bgcolor: 'bg-primary text-white',
-            budget: '3.9k',
-        },
-        {
-            key: 'performerData2',
-            username: 'Andrew McDownland',
-            designation: 'Project Manager',
-            project: 'Real Homes WP Theme',
-            priority: 'Medium',
-            color: 'secondary',
-            bgcolor: 'bg-secondary text-white',
-            budget: '24.5k',
-        },
-        {
-            key: 'performerData3',
-            username: 'Christopher Jamil',
-            designation: 'Project Manager',
-            project: 'MedicalPro WP Theme',
-            priority: 'High',
-            color: 'error',
-            bgcolor: 'bg-error text-white',
-            budget: '12.8k',
-        },
-        {
-            key: 'performerData4',
-            username: 'Nirav Joshi',
-            designation: 'Frontend Engineer',
-            project: 'Hosting Press HTML',
-            priority: 'Critical',
-            color: 'success',
-            bgcolor: 'bg-success text-white',
-            budget: '4.8k',
-        },
-        {
-            key: 'performerData5',
-            username: 'Micheal Doe',
-            designation: 'Content Writer',
-            project: 'Helping Hands WP Theme',
-            priority: 'Low',
-            color: 'primary',
-            bgcolor: 'bg-primary text-white',
-            budget: '9.3k',
-        },
-    ];
+    const [warehouseData, setWarehouseData] = useState<any[]>([]);
+
+    useEffect(() => {
+        const loadData = async () => {
+            const { getWarehousePerformance } = await import(
+                '@/app/(DashboardLayout)/_actions/dashboard-actions'
+            );
+            const result = await getWarehousePerformance();
+            if (result.success && result.data) {
+                setWarehouseData(
+                    result.data.map((d: any) => ({
+                        key: String(d.key),
+                        name: d.name,
+                        trxOut: Number(d.trxOut),
+                        trxClose: Number(d.trxClose),
+                    }))
+                );
+            }
+        };
+        loadData();
+    }, []);
+
+    // Calculate percentage and sort by percentage descending
+    const performaceData = warehouseData
+        .map((item) => {
+            const percentage =
+                item.trxOut === 0 ? 0 : Math.round((item.trxClose / item.trxOut) * 100);
+            let badgeColor = 'bg-success text-white';
+            if (percentage < 50) badgeColor = 'bg-error text-white';
+            else if (percentage < 80) badgeColor = 'bg-warning text-white';
+
+            return {
+                ...item,
+                percentage,
+                badgeColor,
+            };
+        })
+        .sort((a, b) => b.percentage - a.percentage);
+
     return (
-        <CardBox>
+        <CardBox className="w-full">
             <div id="product" className="mb-6">
                 <div>
-                    <h5 className="card-title">Product Performance</h5>
+                    <h5 className="card-title">Warehouse Performance</h5>
                     <p className="text-sm text-muted-foreground font-normal">
-                        Overview of product performance
+                        Overview of warehouse out material completion
                     </p>
                 </div>
             </div>
@@ -80,24 +68,24 @@ export const ProductPerformance = () => {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="text-sm font-semibold">Id</TableHead>
+                                        <TableHead className="text-sm font-semibold">No</TableHead>
                                         <TableHead className="text-sm font-semibold">
-                                            Assigned
+                                            Nama WH
                                         </TableHead>
-                                        <TableHead className="text-sm font-semibold">
-                                            Name
+                                        <TableHead className="text-sm font-semibold text-center">
+                                            Total Trx Out
                                         </TableHead>
-                                        <TableHead className="text-sm font-semibold">
-                                            Priority
+                                        <TableHead className="text-sm font-semibold text-center">
+                                            Trx Out Close
                                         </TableHead>
-                                        <TableHead className="text-sm font-semibold">
-                                            Budget
+                                        <TableHead className="text-sm font-semibold text-center">
+                                            Prosentase
                                         </TableHead>
                                     </TableRow>
                                 </TableHeader>
 
                                 <TableBody>
-                                    {PerformersData.map((item, index) => (
+                                    {performaceData.map((item, index) => (
                                         <TableRow key={item.key} className="border-b border-border">
                                             <TableCell>
                                                 <p className="text-muted-foreground font-medium text-sm">
@@ -106,34 +94,29 @@ export const ProductPerformance = () => {
                                             </TableCell>
 
                                             <TableCell className="ps-0 min-w-[200px]">
-                                                <div>
-                                                    <h6 className="text-sm font-semibold mb-1">
-                                                        {item.username}
-                                                    </h6>
-                                                    <p className="text-xs font-medium text-muted-foreground">
-                                                        {item.designation}
-                                                    </p>
-                                                </div>
+                                                <h6 className="text-sm font-semibold">
+                                                    {item.name}
+                                                </h6>
                                             </TableCell>
 
-                                            <TableCell>
+                                            <TableCell className="text-center">
                                                 <p className="font-medium text-muted-foreground text-sm">
-                                                    {item.project}
+                                                    {item.trxOut}
                                                 </p>
                                             </TableCell>
 
-                                            <TableCell>
+                                            <TableCell className="text-center">
+                                                <p className="font-medium text-muted-foreground text-sm">
+                                                    {item.trxClose}
+                                                </p>
+                                            </TableCell>
+
+                                            <TableCell className="text-center">
                                                 <Badge
-                                                    className={`text-[13px] px-3 rounded-full justify-center py-0.5 ${item.bgcolor}`}
+                                                    className={`text-[13px] px-3 rounded-full justify-center py-0.5 ${item.badgeColor}`}
                                                 >
-                                                    {item.priority}
+                                                    {item.percentage}%
                                                 </Badge>
-                                            </TableCell>
-
-                                            <TableCell>
-                                                <p className="text-muted-foreground text-[15px] font-medium">
-                                                    {item.budget}
-                                                </p>
                                             </TableCell>
                                         </TableRow>
                                     ))}

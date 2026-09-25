@@ -16,6 +16,7 @@ MTMS (Monitoring Transaction Material's System) adalah sistem manajemen material
 |---|---|---|
 | Warehouse | `inventory.mas_wh` | Gudang penyimpanan material (id, name, branch) |
 | Material | `inventory.materials` | Master material/designator (id, code, description, unit) |
+| Stock Policy | `inventory.stock_policy` | Batasan min/max stok per material dan per warehouse |
 | Teknisi | `hr.technicians` | Data teknisi (nik, name, level, branch, mitra) |
 | Employee | `hr.employees` | Data karyawan internal |
 | Branch | `hr.branches` | Regional → Area → Service Area → Branch |
@@ -416,6 +417,22 @@ Semua perubahan stok di-handle oleh stored procedures untuk menjamin **atomicity
 | `sp_update_inout_tag` | Update fase InOut Tag | Update status + items + panggil sp_close |
 
 ---
+
+### 3.6 Kalkulasi Stock Policy (Minimum & Maksimum Stok)
+
+> **Tujuan:** Menentukan batas aman ketersediaan stok per material di masing-masing warehouse.
+
+Setiap warehouse memiliki kebutuhan `min_qty` dan `max_qty` yang berbeda untuk material yang sama. Nilai ini disimpan dalam tabel terpisah (`inventory.stock_policy`). 
+Untuk menjaga keakuratan, batas minimum (Minimum Stock) dapat dikalkulasi secara otomatis oleh sistem menggunakan parameter historis dengan rumus berikut:
+
+**Minimum Stock = (Average Demand × Lead Time) + Safety Stock**
+
+Keterangan parameter:
+- **Average Demand:** Rata-rata pengeluaran material (berdasarkan data historis transaksi seperti SAP Out / Transaction Used) dalam rentang waktu **1 minggu**.
+- **Lead Time:** Waktu tunggu dari pemesanan hingga barang tiba. Ditetapkan konstan **2 minggu**.
+- **Safety Stock:** Buffer tambahan untuk fluktuasi, ditetapkan sebesar **10%** dari total kebutuhan lead time `(Average Demand × Lead Time)`.
+
+Kalkulasi dan update data dilakukan melalui *Stored Procedure* (`sp_calculate_stock_policy`) agar terjamin atomik dan mencegah *race conditions*. UI *Dashboard* dapat memanggil prosedur ini atau menyesuaikan nilai hasil kalkulasi.
 
 ## 4. Diagram Alur End-to-End
 

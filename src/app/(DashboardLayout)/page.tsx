@@ -1,12 +1,11 @@
 import { Footer } from '../components/dashboard/Footer';
-import { MonthlyEarning } from '../components/dashboard/MonthlyEarning';
+import OutMaterialLineChart from '../components/dashboard/OutMaterialLineChart';
 import { ProductPerformance } from '../components/dashboard/ProductPerformance';
 import ProfileWelcome from '../components/dashboard/ProfileWelcome';
 import { RecentTransaction } from '../components/dashboard/RecentTransaction';
 import SalesOverview from '../components/dashboard/SalesOverview';
-import { StockIntechOverview } from '../components/dashboard/StockIntechOverview';
+import { StockWarningTable } from '../components/dashboard/StockWarningTable';
 import { TopCards } from '../components/dashboard/TopCards';
-import { YearlyBreakup } from '../components/dashboard/YearlyBreakup';
 
 const page = () => {
     return (
@@ -21,23 +20,16 @@ const page = () => {
                 <SalesOverview />
             </div>
             <div className="lg:col-span-4 col-span-12">
-                <div className="grid grid-cols-12 gap-6">
-                    <div className="col-span-12">
-                        <YearlyBreakup />
-                    </div>
-                    <div className="col-span-12">
-                        <MonthlyEarning />
-                    </div>
-                </div>
-            </div>
-            <div className="lg:col-span-4 col-span-12">
                 <RecentTransaction />
             </div>
-            <div className="lg:col-span-8 col-span-12 flex">
-                <ProductPerformance />
-            </div>
             <div className="col-span-12">
-                <StockIntechOverview />
+                <OutMaterialLineChart />
+            </div>
+            <div className="col-span-12 lg:col-span-8 flex">
+                <StockWarningTable />
+            </div>
+            <div className="col-span-12 lg:col-span-4 flex">
+                <ProductPerformance />
             </div>
             <div className="col-span-12">
                 <Footer />

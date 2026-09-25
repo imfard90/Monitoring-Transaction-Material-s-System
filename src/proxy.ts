@@ -12,8 +12,8 @@ export async function proxy(request: NextRequest) {
 
     // Periksa keberadaan cookie sesi (mengabaikan SSL/fetch loopback error)
     // Nama cookie dari Better Auth biasanya 'better-auth.session_token' atau versi Secure-nya
-    const hasSessionCookie = 
-        request.cookies.has('better-auth.session_token') || 
+    const hasSessionCookie =
+        request.cookies.has('better-auth.session_token') ||
         request.cookies.has('__Secure-better-auth.session_token');
 
     // Jika belum login dan mencoba mengakses route selain auth (misal '/')

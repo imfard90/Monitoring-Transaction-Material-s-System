@@ -34,10 +34,7 @@
         "noConsole": {
           "level": "warn",
           "options": {
-            "allow": [
-              "warn",
-              "error"
-            ]
+            "allow": ["warn", "error"]
           }
         },
         "noDoubleEquals": "error",
@@ -89,10 +86,7 @@
       "arrowParentheses": "always",
       "bracketSameLine": false
     },
-    "globals": [
-      "React",
-      "JSX"
-    ],
+    "globals": ["React", "JSX"],
     "jsxRuntime": "transparent"
   },
   "json": {
@@ -122,10 +116,7 @@
   },
   "overrides": [
     {
-      "includes": [
-        "**/src/lib/**/*.ts",
-        "**/src/lib/**/*.tsx"
-      ],
+      "includes": ["**/src/lib/**/*.ts", "**/src/lib/**/*.tsx"],
       "linter": {
         "rules": {
           "suspicious": {
@@ -135,11 +126,7 @@
       }
     },
     {
-      "includes": [
-        "**/*.config.ts",
-        "**/*.config.mjs",
-        "**/tailwind.config.*"
-      ],
+      "includes": ["**/*.config.ts", "**/*.config.mjs", "**/tailwind.config.*"],
       "linter": {
         "rules": {
           "style": {
@@ -149,9 +136,7 @@
       }
     },
     {
-      "includes": [
-        "**/src/components/tailgrids/core/**"
-      ],
+      "includes": ["**/src/components/tailgrids/core/**"],
       "linter": {
         "rules": {
           "a11y": {
@@ -161,9 +146,7 @@
       }
     },
     {
-      "includes": [
-        "**/src/hooks/**"
-      ],
+      "includes": ["**/src/hooks/**"],
       "linter": {
         "rules": {
           "suspicious": {
@@ -177,9 +160,7 @@
       }
     },
     {
-      "includes": [
-        "**/src/services/api/**"
-      ],
+      "includes": ["**/src/services/api/**"],
       "linter": {
         "rules": {
           "suspicious": {

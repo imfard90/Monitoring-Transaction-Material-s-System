@@ -4,14 +4,10 @@ import { createSerwistRoute } from '@serwist/turbopack';
 const revision =
     spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf-8' }).stdout ?? crypto.randomUUID();
 
-export const {
-    dynamic,
-    dynamicParams,
-    revalidate,
-    generateStaticParams,
-    GET,
-} = createSerwistRoute({
-    swSrc: 'src/sw.ts',
-    additionalPrecacheEntries: [{ url: '/~offline', revision }],
-    useNativeEsbuild: true,
-});
+export const { dynamic, dynamicParams, revalidate, generateStaticParams, GET } = createSerwistRoute(
+    {
+        swSrc: 'src/sw.ts',
+        additionalPrecacheEntries: [{ url: '/~offline', revision }],
+        useNativeEsbuild: true,
+    }
+);
