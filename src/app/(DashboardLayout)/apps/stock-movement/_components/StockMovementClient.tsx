@@ -81,7 +81,7 @@ export default function StockMovementClient({ initialData }: StockMovementClient
     }, [initialData, searchQuery, dateRange, warehouseFilter, materialFilter]);
 
     return (
-        <CardBox className="p-6">
+        <CardBox className="flex flex-col flex-1 min-h-0 overflow-hidden p-6">
             <MovementTable
                 data={filteredData}
                 searchQuery={searchQuery}

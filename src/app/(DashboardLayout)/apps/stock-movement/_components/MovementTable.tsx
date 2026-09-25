@@ -133,7 +133,7 @@ export default function MovementTable({
     });
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 flex flex-col flex-1 min-h-0">
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4">
                 <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
@@ -236,15 +236,15 @@ export default function MovementTable({
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
+            <div className="flex-1 overflow-auto rounded-md border">
                 <table className="w-full text-left border-collapse">
-                    <thead>
+                    <thead className="sticky top-0 z-10 bg-gray-50 shadow-sm">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id} className="border-b bg-gray-50/50">
                                 {headerGroup.headers.map((header) => (
                                     <th
                                         key={header.id}
-                                        className="h-12 px-4 align-middle font-medium text-gray-500 text-sm whitespace-nowrap"
+                                        className="h-8 px-3 py-1.5 align-middle font-medium text-gray-500 text-sm whitespace-nowrap"
                                     >
                                         {flexRender(
                                             header.column.columnDef.header,
@@ -265,7 +265,7 @@ export default function MovementTable({
                                     {row.getVisibleCells().map((cell) => (
                                         <td
                                             key={cell.id}
-                                            className="p-4 align-middle whitespace-nowrap"
+                                            className="px-3 py-1.5 align-middle whitespace-nowrap"
                                         >
                                             {flexRender(
                                                 cell.column.columnDef.cell,

@@ -22,9 +22,11 @@ const BCrumb = [
 
 export default function InOutTagPage() {
     return (
-        <>
-            <BreadcrumbComp title="InOut Tag" items={BCrumb} />
+        <div className="flex flex-col flex-1 h-full min-h-0">
+            <div className="shrink-0">
+                <BreadcrumbComp title="InOut Tag" items={BCrumb} />
+            </div>
             <InOutTagClient />
-        </>
+        </div>
     );
 }

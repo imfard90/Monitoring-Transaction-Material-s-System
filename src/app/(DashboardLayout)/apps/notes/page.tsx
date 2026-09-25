@@ -16,10 +16,10 @@ const BCrumb = [
 ];
 const Notes = () => {
     return (
-        <>
-            <BreadcrumbComp title="Notes app" items={BCrumb} />
+        <div className="flex flex-col flex-1 h-full min-h-0">
+            <div className="shrink-0"><BreadcrumbComp title="Notes app" items={BCrumb} /></div>
             <NotesApp />
-        </>
+        </div>
     );
 };
 

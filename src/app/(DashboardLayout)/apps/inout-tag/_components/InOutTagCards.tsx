@@ -57,7 +57,7 @@ export default function InOutTagCards({
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-1">
             {cards.map((card) => (
                 <Card
                     key={card.id}
@@ -68,10 +68,10 @@ export default function InOutTagCards({
                     )}
                     onClick={() => onFilterChange(card.id)}
                 >
-                    <CardContent className="p-6 flex items-center justify-between">
+                    <CardContent className="p-4 flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-700 mb-1">{card.title}</p>
-                            <h3 className="text-3xl font-bold text-gray-900">{card.value}</h3>
+                            <h3 className="text-2xl font-bold text-gray-900">{card.value}</h3>
                         </div>
                         <div className="p-3 bg-white/50 rounded-full">{card.icon}</div>
                     </CardContent>

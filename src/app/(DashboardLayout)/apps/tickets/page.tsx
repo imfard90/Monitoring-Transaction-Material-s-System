@@ -16,10 +16,10 @@ const BCrumb = [
 ];
 const Tickets = () => {
     return (
-        <>
-            <BreadcrumbComp title="Tickets App" items={BCrumb} />
+        <div className="flex flex-col flex-1 h-full min-h-0">
+            <div className="shrink-0"><BreadcrumbComp title="Tickets App" items={BCrumb} /></div>
             <TicketsApp />
-        </>
+        </div>
     );
 };
 

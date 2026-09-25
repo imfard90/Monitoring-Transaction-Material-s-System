@@ -78,14 +78,14 @@ export default function InOutTagClient() {
     }, [tags, filterStatus, searchQuery, toWhFilter]);
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col flex-1 min-h-0  space-y-6">
             <InOutTagCards
                 counts={counts}
                 activeFilter={filterStatus}
                 onFilterChange={setFilterStatus}
             />
 
-            <CardBox>
+            <CardBox className="flex flex-col flex-1 min-h-0">
                 <InOutTagTable
                     data={filteredTags}
                     isLoading={isLoading}

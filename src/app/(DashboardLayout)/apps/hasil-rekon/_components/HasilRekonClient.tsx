@@ -92,7 +92,7 @@ export default function HasilRekonClient({ initialData }: HasilRekonClientProps)
     }, [initialData, searchQuery, dateRange, warehouseFilter, typeFilter, materialFilter]);
 
     return (
-        <CardBox className="p-6">
+        <CardBox className="flex flex-col flex-1 min-h-0 overflow-hidden p-6">
             <HasilRekonTable
                 data={filteredData}
                 searchQuery={searchQuery}

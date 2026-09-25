@@ -30,10 +30,13 @@ export const StockWarningTable = () => {
 
     return (
         <CardBox>
-            <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-semibold text-gray-800 dark:text-white">
-                    Stock Minimum Warning
-                </h4>
+            <div className="mb-2">
+                <div>
+                    <h5 className="card-title">Stock Minimum Warning</h5>
+                    <p className="text-sm text-muted-foreground font-normal">
+                        Daftar material yang memerlukan isi ulang stok
+                    </p>
+                </div>
             </div>
 
             <div className="overflow-x-auto">

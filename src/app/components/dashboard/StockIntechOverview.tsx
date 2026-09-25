@@ -48,7 +48,7 @@ export const StockIntechOverview = () => {
     }, [stockData, searchQuery, whFilter]);
 
     return (
-        <CardBox>
+        <CardBox className="flex flex-col flex-1 min-h-0 p-6">
             <div
                 id="stock-intech"
                 className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
@@ -130,46 +130,46 @@ export const StockIntechOverview = () => {
                     </Popover>
                 </div>
             </div>
-            <div className="rounded-md border overflow-x-auto max-h-[calc(100vh-250px)] relative">
+            <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
                 <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
                         <tr>
-                            <th className="px-6 py-3 font-semibold">Branch</th>
-                            <th className="px-6 py-3 font-semibold">Warehouse</th>
-                            <th className="px-6 py-3 font-semibold">Teknisi</th>
-                            <th className="px-6 py-3 font-semibold">Material Code</th>
-                            <th className="px-6 py-3 font-semibold">Material Name</th>
-                            <th className="px-6 py-3 font-semibold text-center">Qty Intech</th>
+                            <th className="px-3 py-1.5 font-semibold">Branch</th>
+                            <th className="px-3 py-1.5 font-semibold">Warehouse</th>
+                            <th className="px-3 py-1.5 font-semibold">Teknisi</th>
+                            <th className="px-3 py-1.5 font-semibold">Material Code</th>
+                            <th className="px-3 py-1.5 font-semibold">Material Name</th>
+                            <th className="px-3 py-1.5 font-semibold text-center">Qty Intech</th>
                         </tr>
                     </thead>
                     <tbody>
                         {isLoading ? (
                             <tr>
-                                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                <td colSpan={6} className="px-3 py-4 text-center text-gray-500">
                                     Loading data...
                                 </td>
                             </tr>
                         ) : filteredData.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                <td colSpan={6} className="px-3 py-4 text-center text-gray-500">
                                     Tidak ada material Intech.
                                 </td>
                             </tr>
                         ) : (
                             filteredData.map((item: any, index: number) => (
                                 <tr key={index} className="bg-white border-b hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-medium">{item.branch || '-'}</td>
-                                    <td className="px-6 py-4 text-gray-500">
+                                    <td className="px-3 py-1.5 font-medium">{item.branch || '-'}</td>
+                                    <td className="px-3 py-1.5 text-gray-500">
                                         {item.wh_name || '-'}
                                     </td>
-                                    <td className="px-6 py-4 font-semibold">
+                                    <td className="px-3 py-1.5 font-semibold">
                                         {item.teknisi || '-'}
                                     </td>
-                                    <td className="px-6 py-4 font-mono text-xs">
+                                    <td className="px-3 py-1.5 font-mono text-xs">
                                         {item.material_code}
                                     </td>
-                                    <td className="px-6 py-4">{item.material_name}</td>
-                                    <td className="px-6 py-4 font-bold text-blue-600 text-center">
+                                    <td className="px-3 py-1.5">{item.material_name}</td>
+                                    <td className="px-3 py-1.5 font-bold text-blue-600 text-center">
                                         {item.qty_intech}
                                     </td>
                                 </tr>

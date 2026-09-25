@@ -53,7 +53,7 @@ export const ProductPerformance = () => {
 
     return (
         <CardBox className="w-full">
-            <div id="product" className="mb-6">
+            <div id="product" className="mb-2">
                 <div>
                     <h5 className="card-title">Warehouse Performance</h5>
                     <p className="text-sm text-muted-foreground font-normal">
@@ -68,17 +68,17 @@ export const ProductPerformance = () => {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="text-sm font-semibold">No</TableHead>
-                                        <TableHead className="text-sm font-semibold">
+                                        <TableHead className="text-sm font-semibold py-2">No</TableHead>
+                                        <TableHead className="text-sm font-semibold py-2">
                                             Nama WH
                                         </TableHead>
-                                        <TableHead className="text-sm font-semibold text-center">
+                                        <TableHead className="text-sm font-semibold text-center py-2">
                                             Total Trx Out
                                         </TableHead>
-                                        <TableHead className="text-sm font-semibold text-center">
+                                        <TableHead className="text-sm font-semibold text-center py-2">
                                             Trx Out Close
                                         </TableHead>
-                                        <TableHead className="text-sm font-semibold text-center">
+                                        <TableHead className="text-sm font-semibold text-center py-2">
                                             Prosentase
                                         </TableHead>
                                     </TableRow>
@@ -87,31 +87,31 @@ export const ProductPerformance = () => {
                                 <TableBody>
                                     {performaceData.map((item, index) => (
                                         <TableRow key={item.key} className="border-b border-border">
-                                            <TableCell>
+                                            <TableCell className="py-2">
                                                 <p className="text-muted-foreground font-medium text-sm">
                                                     {index + 1}
                                                 </p>
                                             </TableCell>
 
-                                            <TableCell className="ps-0 min-w-[200px]">
+                                            <TableCell className="ps-0 min-w-[200px] py-2">
                                                 <h6 className="text-sm font-semibold">
                                                     {item.name}
                                                 </h6>
                                             </TableCell>
 
-                                            <TableCell className="text-center">
+                                            <TableCell className="text-center py-2">
                                                 <p className="font-medium text-muted-foreground text-sm">
                                                     {item.trxOut}
                                                 </p>
                                             </TableCell>
 
-                                            <TableCell className="text-center">
+                                            <TableCell className="text-center py-2">
                                                 <p className="font-medium text-muted-foreground text-sm">
                                                     {item.trxClose}
                                                 </p>
                                             </TableCell>
 
-                                            <TableCell className="text-center">
+                                            <TableCell className="text-center py-2">
                                                 <Badge
                                                     className={`text-[13px] px-3 rounded-full justify-center py-0.5 ${item.badgeColor}`}
                                                 >

@@ -148,7 +148,7 @@ const OutMaterialLineChart: React.FC = () => {
 
     return (
         <CardBox className="pb-0 h-full w-full">
-            <div className="sm:flex items-center justify-between mb-6">
+            <div className="sm:flex items-center justify-between mb-2">
                 <div>
                     <h5 className="card-title">Out Material by Day (Last 30 Days)</h5>
                     <p className="text-sm text-muted-foreground font-normal">

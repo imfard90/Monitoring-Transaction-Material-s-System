@@ -73,7 +73,7 @@ const RecentTransaction: React.FC = () => {
 
     return (
         <CardBox className="h-full w-full">
-            <div className="flex flex-col mb-6">
+            <div className="flex flex-col mb-2">
                 <h5 className="card-title">Top Out Material</h5>
                 <p className="text-sm text-muted-foreground font-normal">30 Hari Terakhir</p>
             </div>

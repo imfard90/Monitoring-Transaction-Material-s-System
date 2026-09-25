@@ -28,9 +28,9 @@ export default async function StockMovementPage() {
     const data = await getStockMovements();
 
     return (
-        <>
-            <BreadcrumbComp title="Stock Movement" items={BCrumb} />
+        <div className="flex flex-col flex-1 h-full min-h-0">
+            <div className="shrink-0"><BreadcrumbComp title="Stock Movement" items={BCrumb} /></div>
             <StockMovementClient initialData={data} />
-        </>
+        </div>
     );
 }

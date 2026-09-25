@@ -2,6 +2,7 @@ import {
     createColumnHelper,
     flexRender,
     getCoreRowModel,
+    getPaginationRowModel,
     useReactTable,
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
@@ -157,10 +158,12 @@ export default function InOutTagTable({
         data,
         columns,
         getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        initialState: { pagination: { pageSize: 15 } },
     });
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 flex flex-col flex-1 min-h-0">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="flex flex-wrap items-center gap-3 flex-1 w-full">
                     <div className="relative w-full md:w-64">
@@ -247,13 +250,13 @@ export default function InOutTagTable({
                 </Button>
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
+            <div className="rounded-md border flex-1 overflow-auto">
                 <table className="w-full text-sm text-left text-gray-500">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
-                                    <th key={header.id} className="px-6 py-3 font-semibold">
+                                    <th key={header.id} className="px-3 py-1.5 font-semibold">
                                         {flexRender(
                                             header.column.columnDef.header,
                                             header.getContext()
@@ -268,7 +271,7 @@ export default function InOutTagTable({
                             <tr>
                                 <td
                                     colSpan={columns.length}
-                                    className="px-6 py-8 text-center text-gray-500"
+                                    className="px-3 py-4 text-center text-gray-500"
                                 >
                                     Loading data...
                                 </td>
@@ -277,7 +280,7 @@ export default function InOutTagTable({
                             <tr>
                                 <td
                                     colSpan={columns.length}
-                                    className="px-6 py-8 text-center text-gray-500"
+                                    className="px-3 py-4 text-center text-gray-500"
                                 >
                                     No tags found.
                                 </td>
@@ -286,7 +289,7 @@ export default function InOutTagTable({
                             table.getRowModel().rows.map((row) => (
                                 <tr key={row.id} className="bg-white border-b hover:bg-gray-50">
                                     {row.getVisibleCells().map((cell) => (
-                                        <td key={cell.id} className="px-6 py-4">
+                                        <td key={cell.id} className="px-3 py-1.5">
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext()
@@ -298,6 +301,32 @@ export default function InOutTagTable({
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-500">
+                    Page {table.getState().pagination.pageIndex + 1} of{' '}
+                    {table.getPageCount()}
+                </div>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                    >
+                        Previous
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                    >
+                        Next
+                    </Button>
+                </div>
             </div>
         </div>
     );

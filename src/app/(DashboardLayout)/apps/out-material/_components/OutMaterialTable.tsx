@@ -2,20 +2,35 @@ import {
     createColumnHelper,
     flexRender,
     getCoreRowModel,
+    getPaginationRowModel,
     useReactTable,
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { Eye, Search } from 'lucide-react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { Check, ChevronsUpDown, Eye, Search } from 'lucide-react';
 
 interface OutMaterialTableProps {
     data: any[];
     isLoading: boolean;
     searchQuery: string;
     onSearchChange: (val: string) => void;
+    whOptions: string[];
+    whFilter: string;
+    onWhChange: (val: string) => void;
     onViewDetail: (row: any) => void;
 }
 
@@ -26,8 +41,12 @@ export default function OutMaterialTable({
     isLoading,
     searchQuery,
     onSearchChange,
+    whOptions,
+    whFilter,
+    onWhChange,
     onViewDetail,
 }: OutMaterialTableProps) {
+    const [openCombo, setOpenCombo] = useState(false);
     // Columns order: request time, id trx, request_id, nik teknisi, nama teknisi, nama sa, nama gudang, id reservasi, sap number, end_status, action
     const columns = [
         columnHelper.accessor('request_time', {
@@ -120,33 +139,96 @@ export default function OutMaterialTable({
         data,
         columns,
         getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        initialState: { pagination: { pageSize: 15 } },
     });
 
     return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <div className="relative w-80">
-                    <Input
-                        placeholder="Search request id, reservasi, sap..."
-                        value={searchQuery}
-                        onChange={(e) => onSearchChange(e.target.value)}
-                        className="pl-9"
-                    />
-                    <Search
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                        size={16}
-                    />
+        <div className="space-y-4 flex flex-col flex-1 min-h-0">
+            <div className="flex justify-between items-center flex-wrap gap-4">
+                <div className="flex gap-3 flex-wrap items-center">
+                    <div className="relative w-full md:w-80">
+                        <Input
+                            placeholder="Search request id, reservasi, sap..."
+                            value={searchQuery}
+                            onChange={(e) => onSearchChange(e.target.value)}
+                            className="pl-9 bg-white"
+                        />
+                        <Search
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            size={16}
+                        />
+                    </div>
+                    {/* Warehouse Filter */}
+                    <Popover open={openCombo} onOpenChange={setOpenCombo}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={openCombo}
+                                className="w-[200px] justify-between font-normal bg-white"
+                            >
+                                {whFilter === 'all' ? 'All Warehouses' : whFilter}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0" align="start">
+                            <Command>
+                                <CommandInput placeholder="Search WH..." />
+                                <CommandEmpty>No WH found.</CommandEmpty>
+                                <CommandList>
+                                    <CommandGroup>
+                                        <CommandItem
+                                            value="all"
+                                            onSelect={() => {
+                                                onWhChange('all');
+                                                setOpenCombo(false);
+                                            }}
+                                        >
+                                            <Check
+                                                className={cn(
+                                                    'mr-2 h-4 w-4',
+                                                    whFilter === 'all' ? 'opacity-100' : 'opacity-0'
+                                                )}
+                                            />
+                                            All Warehouses
+                                        </CommandItem>
+                                        {whOptions.map((wh) => (
+                                            <CommandItem
+                                                key={wh}
+                                                value={wh}
+                                                onSelect={(currentValue) => {
+                                                    onWhChange(currentValue);
+                                                    setOpenCombo(false);
+                                                }}
+                                            >
+                                                <Check
+                                                    className={cn(
+                                                        'mr-2 h-4 w-4',
+                                                        whFilter === wh
+                                                            ? 'opacity-100'
+                                                            : 'opacity-0'
+                                                    )}
+                                                />
+                                                {wh}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                 </div>
                 {/* No Create Button based on requirements */}
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
+            <div className="rounded-md border flex-1 overflow-auto">
                 <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
-                                    <th key={header.id} className="px-6 py-3 font-semibold">
+                                    <th key={header.id} className="px-3 py-1.5 font-semibold">
                                         {flexRender(
                                             header.column.columnDef.header,
                                             header.getContext()
@@ -161,7 +243,7 @@ export default function OutMaterialTable({
                             <tr>
                                 <td
                                     colSpan={columns.length}
-                                    className="px-6 py-8 text-center text-gray-500"
+                                    className="px-3 py-4 text-center text-gray-500"
                                 >
                                     Loading data...
                                 </td>
@@ -170,7 +252,7 @@ export default function OutMaterialTable({
                             <tr>
                                 <td
                                     colSpan={columns.length}
-                                    className="px-6 py-8 text-center text-gray-500"
+                                    className="px-3 py-4 text-center text-gray-500"
                                 >
                                     No materials found.
                                 </td>
@@ -179,7 +261,7 @@ export default function OutMaterialTable({
                             table.getRowModel().rows.map((row) => (
                                 <tr key={row.id} className="bg-white border-b hover:bg-gray-50">
                                     {row.getVisibleCells().map((cell) => (
-                                        <td key={cell.id} className="px-6 py-4">
+                                        <td key={cell.id} className="px-3 py-1.5">
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext()
@@ -191,6 +273,32 @@ export default function OutMaterialTable({
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-500">
+                    Page {table.getState().pagination.pageIndex + 1} of{' '}
+                    {table.getPageCount()}
+                </div>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                    >
+                        Previous
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                    >
+                        Next
+                    </Button>
+                </div>
             </div>
         </div>
     );

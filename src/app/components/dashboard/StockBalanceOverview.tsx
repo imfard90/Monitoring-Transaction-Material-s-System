@@ -106,7 +106,7 @@ export default function StockBalanceOverview() {
     });
 
     return (
-        <CardBox className="p-6">
+        <CardBox className="flex flex-col flex-1 min-h-0 p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-4">
                 <div>
                     <h2 className="text-lg font-bold text-gray-900">Real-time Stock Balance</h2>
@@ -186,13 +186,13 @@ export default function StockBalanceOverview() {
                 </div>
             </div>
 
-            <div className="rounded-md border overflow-x-auto max-h-[calc(100vh-250px)] relative">
+            <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
                 <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
-                                    <th key={header.id} className="px-6 py-3 font-semibold">
+                                    <th key={header.id} className="px-3 py-1.5 font-semibold">
                                         {flexRender(
                                             header.column.columnDef.header,
                                             header.getContext()
@@ -207,7 +207,7 @@ export default function StockBalanceOverview() {
                             <tr>
                                 <td
                                     colSpan={columns.length}
-                                    className="px-6 py-8 text-center text-gray-500"
+                                    className="px-3 py-4 text-center text-gray-500"
                                 >
                                     Loading data...
                                 </td>
@@ -216,7 +216,7 @@ export default function StockBalanceOverview() {
                             <tr>
                                 <td
                                     colSpan={columns.length}
-                                    className="px-6 py-8 text-center text-gray-500"
+                                    className="px-3 py-4 text-center text-gray-500"
                                 >
                                     No stock balance found.
                                 </td>
@@ -225,7 +225,7 @@ export default function StockBalanceOverview() {
                             table.getRowModel().rows.map((row) => (
                                 <tr key={row.id} className="bg-white border-b hover:bg-gray-50">
                                     {row.getVisibleCells().map((cell) => (
-                                        <td key={cell.id} className="px-6 py-4">
+                                        <td key={cell.id} className="px-3 py-1.5">
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext()

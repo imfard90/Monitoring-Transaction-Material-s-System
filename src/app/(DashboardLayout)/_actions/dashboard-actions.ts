@@ -86,22 +86,22 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
 
         const outData = await outQuery.execute();
 
-        // 2. Get Hasil Rekon from material_rekonsiliasi
-        // Note: No clear WH link, fetching overall for now.
-        const rekonQuery = db
-            .selectFrom('inventory.material_rekonsiliasi as mr')
-            .innerJoin(
-                'inventory.material_rekonsiliasi_actual_list as mra',
-                'mra.material_rekonsiliasi_id',
-                'mr.id'
-            )
+        // 2. Get Hasil Rekon from transaction_used_header
+        let rekonQuery = db
+            .selectFrom('inventory.transaction_used_header as tu')
+            .innerJoin('inventory.transaction_used_item as tui', 'tui.used_id', 'tu.id')
+            .innerJoin('inventory.sap_out_header as soh', 'soh.id', 'tu.sap_out_id')
             .select([
-                sql<string>`TO_CHAR(mr.created_at, 'YYYY-MM-DD')`.as('date_val'),
-                sql<number>`COALESCE(SUM(mra.quantity), 0)`.as('total_qty'),
+                sql<string>`TO_CHAR(tu.created_at, 'YYYY-MM-DD')`.as('date_val'),
+                sql<number>`COALESCE(SUM(tui.qty), 0)`.as('total_qty'),
             ])
-            .where('mr.created_at', '>=', startDate)
-            .where('mr.created_at', '<=', endDate)
-            .groupBy(sql`TO_CHAR(mr.created_at, 'YYYY-MM-DD')`);
+            .where('tu.created_at', '>=', startDate)
+            .where('tu.created_at', '<=', endDate)
+            .groupBy(sql`TO_CHAR(tu.created_at, 'YYYY-MM-DD')`);
+
+        if (wh_id && wh_id !== 'all') {
+            rekonQuery = rekonQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
+        }
 
         const rekonData = await rekonQuery.execute();
 
@@ -113,8 +113,10 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
         for (let i = 0; i < daysCount; i++) {
             const d = new Date(startDate);
             d.setDate(startDate.getDate() + i);
-            const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD format
-
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
             dates.push(`${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`);
 
             const outVal = outData.find((o) => o.date_val === dateStr)?.total_qty || 0;
