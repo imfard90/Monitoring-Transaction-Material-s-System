@@ -30,9 +30,9 @@ BEGIN
         sb.warehouse_id,
         sb.designator_id,
         -- Rumus: (Avg Demand * Lead Time) + 10% Safety Stock
-        CEIL(((COALESCE(SUM(ABS(sm.qty_delta)), 0) / 4.0) * v_lead_time) * (1 + (v_safety_pct / 100.0))) as calc_min_qty,
-        -- Avg Demand = Total pengeluaran 28 hari (4 minggu) dibagi 4
-        COALESCE(SUM(ABS(sm.qty_delta)), 0) / 4.0 as calc_avg,
+        CEIL(((COALESCE(SUM(ABS(sm.qty_delta)), 0) / 12.0) * v_lead_time) * (1 + (v_safety_pct / 100.0))) as calc_min_qty,
+        -- Avg Demand = Total pengeluaran 84 hari (12 minggu/3 bulan) dibagi 12
+        COALESCE(SUM(ABS(sm.qty_delta)), 0) / 12.0 as calc_avg,
         v_lead_time,
         v_safety_pct,
         CURRENT_TIMESTAMP
@@ -41,7 +41,7 @@ BEGIN
            ON sm.warehouse_id = sb.warehouse_id 
           AND sm.designator_id = sb.designator_id
           AND sm.movement_type IN ('sap_out', 'transfer_out')
-          AND sm.created_at >= CURRENT_DATE - INTERVAL '28 days'
+          AND sm.created_at >= CURRENT_DATE - INTERVAL '84 days'
     WHERE sb.warehouse_id = p_warehouse_id
     GROUP BY sb.warehouse_id, sb.designator_id
     ON CONFLICT (warehouse_id, designator_id) DO UPDATE SET

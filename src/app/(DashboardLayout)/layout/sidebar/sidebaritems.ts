@@ -136,6 +136,18 @@ const SidebarContent: MenuItem[] = [
             },
         ],
     },
+    {
+        heading: 'Management',
+        children: [
+            {
+                id: uniqueId(),
+                name: 'Users',
+                icon: 'solar:users-group-rounded-linear',
+                url: '/management/users',
+                isPro: false,
+            },
+        ],
+    },
 ];
 
 export default SidebarContent;

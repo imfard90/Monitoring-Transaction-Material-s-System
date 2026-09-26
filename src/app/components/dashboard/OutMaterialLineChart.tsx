@@ -47,8 +47,10 @@ const OutMaterialLineChart: React.FC = () => {
                 }
 
                 const allMatNames = resData.topMats.map((t: any) => t.material_name);
+                const allMatCodes = resData.topMats.map((t: any) => t.material_code);
 
-                const series = allMatNames.map((mat: string) => {
+                const series = allMatNames.map((mat: string, idx: number) => {
+                    const matCode = allMatCodes[idx];
                     const data = [];
                     const startDateObj = new Date(resData.startDate);
                     for (let i = 0; i < 30; i++) {
@@ -58,12 +60,20 @@ const OutMaterialLineChart: React.FC = () => {
                         const dateStr = `${yyyy}-${mm}-${dd}`;
 
                         const dailyRec = resData.dailyData.find(
-                            (dd: any) => dd.material_name === mat && dd.date_val === dateStr
+                            (dd: any) => dd.material_code === matCode && dd.date_val === dateStr
                         );
-                        data.push(dailyRec ? Number(dailyRec.total_qty) : 0);
+                        let val = dailyRec ? Number(dailyRec.total_qty) : 0;
+                        
+                        // Scale down AC-OF-SM-1-3SL by 100 for better comparison
+                        if (matCode === 'AC-OF-SM-1-3SL') {
+                            val = val / 100;
+                        }
+                        
+                        data.push(val);
                         startDateObj.setDate(startDateObj.getDate() + 1);
                     }
-                    return { name: mat, data };
+                    const displayName = matCode === 'AC-OF-SM-1-3SL' ? `${mat} (x100)` : mat;
+                    return { name: displayName, originalName: mat, data };
                 });
 
                 setChartData({ dates, series, allMatNames });
@@ -81,7 +91,7 @@ const OutMaterialLineChart: React.FC = () => {
             // Default: show only Top 10 materials
             return chartData.series.slice(0, 10);
         }
-        return chartData.series.filter((s) => s.name === selectedMaterial);
+        return chartData.series.filter((s) => s.originalName === selectedMaterial);
     }, [selectedMaterial, chartData]);
 
     const ChartOptions: ApexOptions = {

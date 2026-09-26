@@ -2,6 +2,7 @@
 
 import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
+import { getSessionUser } from '@/lib/auth-server';
 
 export async function getStockBalances() {
     try {
@@ -32,7 +33,10 @@ export async function getStockBalances() {
 
 export async function getDashboardStockIntech() {
     try {
-        const data = await db
+        const { isStaff, warehouseIds } = await getSessionUser();
+        const applyWhFilter = isStaff && warehouseIds.length > 0;
+
+        let query = db
             .selectFrom('inventory.sap_out_header as soh')
             .innerJoin('inventory.sap_out_items as soi', 'soi.header_id', 'soh.id')
             .leftJoin('hr.technicians as t', 't.nik', 'soh.nik_teknisi')
@@ -48,7 +52,13 @@ export async function getDashboardStockIntech() {
                 sql<number>`soi.qty_req - COALESCE(soi.qty_used, 0)`.as('qty_intech'),
             ])
             .where('soh.end_status', '=', 'intech')
-            .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0)
+            .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0);
+
+        if (applyWhFilter) {
+            query = query.where('soh.warehouse_id', 'in', warehouseIds as any);
+        }
+
+        const data = await query
             .orderBy('wh.branch', 'asc')
             .orderBy('t.name', 'asc')
             .execute();
@@ -172,11 +182,12 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
             .innerJoin('inventory.sap_out_header as soh', 'soh.id', 'soi.header_id')
             .innerJoin('inventory.materials as m', 'm.id', 'soi.designator_id')
             .select([
+                'm.code as material_code',
                 'm.description as material_name',
                 sql<number>`SUM(soi.qty_req)`.as('total_qty'),
             ])
             .where(sql`COALESCE(soh.sap_time, soh.request_time)`, '>=', thirtyDaysAgo)
-            .groupBy('m.description')
+            .groupBy(['m.code', 'm.description'])
             .orderBy('total_qty', 'desc')
             .limit(limit);
 
@@ -185,9 +196,9 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
         }
 
         const topMats = await topMatQuery.execute();
-        const topMatNames = topMats.map((t) => t.material_name);
+        const topMatCodes = topMats.map((t) => t.material_code);
 
-        if (topMatNames.length === 0) {
+        if (topMatCodes.length === 0) {
             return { success: true, data: [] };
         }
 
@@ -197,6 +208,7 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
             .innerJoin('inventory.sap_out_header as soh', 'soh.id', 'soi.header_id')
             .innerJoin('inventory.materials as m', 'm.id', 'soi.designator_id')
             .select([
+                'm.code as material_code',
                 'm.description as material_name',
                 sql<string>`TO_CHAR(COALESCE(soh.sap_time, soh.request_time), 'YYYY-MM-DD')`.as(
                     'date_val'
@@ -204,8 +216,9 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
                 sql<number>`COALESCE(SUM(soi.qty_req), 0)`.as('total_qty'),
             ])
             .where(sql`COALESCE(soh.sap_time, soh.request_time)`, '>=', thirtyDaysAgo)
-            .where('m.description', 'in', topMatNames)
+            .where('m.code', 'in', topMatCodes)
             .groupBy([
+                'm.code',
                 'm.description',
                 sql`TO_CHAR(COALESCE(soh.sap_time, soh.request_time), 'YYYY-MM-DD')`,
             ]);
@@ -273,7 +286,6 @@ export async function getStockWarnings() {
             )
             .innerJoin('inventory.materials as m', 'm.id', 'p.designator_id')
             .innerJoin('inventory.mas_wh as w', 'w.id', 'p.warehouse_id')
-            .whereRef('b.qty_stock', '<', 'p.min_qty')
             .select([
                 'w.name as warehouse_name',
                 'm.code as material_code',
@@ -282,9 +294,12 @@ export async function getStockWarnings() {
                 'p.safety_stock_pct',
                 'p.min_qty',
                 'b.qty_stock',
+                sql<number>`p.min_qty - b.qty_stock`.as('deficit'),
             ])
+            .orderBy('deficit', 'desc')
             .orderBy('w.name')
             .orderBy('m.code')
+            .limit(15)
             .execute();
 
         return { success: true, data };

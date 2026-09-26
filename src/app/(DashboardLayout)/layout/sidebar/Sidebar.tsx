@@ -2,8 +2,10 @@ import { Icon } from '@iconify/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 import SimpleBar from 'simplebar-react';
 import { AMMenu, AMMenuItem, AMSidebar, AMSubmenu } from 'tailwind-sidebar';
+import { checkIsStaff } from '../../management/users/actions';
 import FullLogo from '../shared/logo/FullLogo';
 import SidebarContent from './sidebaritems';
 import 'tailwind-sidebar/styles.css';
@@ -97,6 +99,19 @@ const renderSidebarItems = (
 const SidebarLayout = ({ onClose }: { onClose?: () => void }) => {
     const pathname = usePathname();
     const { theme } = useTheme();
+    const [isStaff, setIsStaff] = useState<boolean>(true); // default to true to hide sensitive menus until checked
+
+    useEffect(() => {
+        checkIsStaff().then((staff) => setIsStaff(staff));
+    }, []);
+
+    // Filter sidebar content based on role
+    const filteredSidebarContent = SidebarContent.filter((section) => {
+        if (section.heading === 'Management' && isStaff) {
+            return false;
+        }
+        return true;
+    });
 
     // Only allow "light" or "dark" for AMSidebar
     const sidebarMode = theme === 'light' || theme === 'dark' ? theme : undefined;
@@ -122,7 +137,7 @@ const SidebarLayout = ({ onClose }: { onClose?: () => void }) => {
 
             <SimpleBar className="h-[calc(100vh-100px)]">
                 <div className="px-6">
-                    {SidebarContent.map((section, index) => (
+                    {filteredSidebarContent.map((section, index) => (
                         <div key={index}>
                             {renderSidebarItems(
                                 [

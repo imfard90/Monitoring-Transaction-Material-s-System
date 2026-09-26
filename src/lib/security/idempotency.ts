@@ -71,7 +71,6 @@ export async function checkIdempotency<T = unknown>(
             }
         }
     } catch (e) {
-
         console.warn('[Idempotency] Redis unavailable or error, skipping check', e);
     }
 
@@ -97,7 +96,6 @@ export async function storeIdempotencyResult<T = unknown>(
             ttl: config.ttl,
         });
     } catch (e) {
-
         console.warn('[Idempotency] Redis unavailable or error, skipping store', e);
     }
 }
@@ -142,7 +140,6 @@ export async function deleteIdempotencyKey(
         const redisKey = `${config.prefix}:${key}`;
         await redis.del(redisKey);
     } catch (e) {
-
         console.warn('[Idempotency] Error deleting key', e);
     }
 }

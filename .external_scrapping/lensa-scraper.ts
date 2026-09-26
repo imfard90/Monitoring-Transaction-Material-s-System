@@ -1,4 +1,4 @@
-import { type Cookie, type Browser, chromium } from 'playwright';
+import { type Browser, type Cookie, chromium } from 'playwright';
 import { redis } from '../src/lib/redis';
 
 // Gunakan globalThis untuk menyimpan instance browser agar bisa digunakan ulang lintas request
@@ -7,9 +7,9 @@ let globalBrowser: Browser | null = null;
 
 async function getBrowserInstance() {
     if (!globalBrowser || !globalBrowser.isConnected()) {
-        globalBrowser = await chromium.launch({ 
+        globalBrowser = await chromium.launch({
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] 
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
         });
     }
     return globalBrowser;
@@ -79,7 +79,7 @@ export async function scrapeReservation(
             // Check if login failed by verifying the URL
             if (page.url().includes('login')) {
                 throw new Error(
-                    'Gagal login ke sistem Lensa. Silakan periksa username dan password di .env.'
+                    'Gagal login ke sistem Lensa. Silakan periksa username dan password SSO.'
                 );
             }
 
@@ -202,6 +202,6 @@ export async function scrapeReservation(
     } finally {
         await context.close();
         // Jangan close browser utama agar bisa dipakai oleh request/user lain
-        // await browser.close(); 
+        // await browser.close();
     }
 }
