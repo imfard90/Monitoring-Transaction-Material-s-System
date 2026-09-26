@@ -96,7 +96,13 @@ const renderSidebarItems = (
     });
 };
 
-const SidebarLayout = ({ onClose }: { onClose?: () => void }) => {
+const SidebarLayout = ({
+    onClose,
+    isMobile = false,
+}: {
+    onClose?: () => void;
+    isMobile?: boolean;
+}) => {
     const pathname = usePathname();
     const { theme } = useTheme();
     const [isStaff, setIsStaff] = useState<boolean>(true); // default to true to hide sensitive menus until checked
@@ -106,12 +112,14 @@ const SidebarLayout = ({ onClose }: { onClose?: () => void }) => {
     }, []);
 
     // Filter sidebar content based on role
-    const filteredSidebarContent = SidebarContent.filter((section) => {
+    const filteredSidebarContent = SidebarContent.map((section) => {
         if (section.heading === 'Management' && isStaff) {
-            return false;
+            // Remove 'Users' from Management if user is staff
+            const filteredChildren = section.children?.filter((child) => child.name !== 'Users');
+            return { ...section, children: filteredChildren };
         }
-        return true;
-    });
+        return section;
+    }).filter((section) => !section.heading || (section.children && section.children.length > 0));
 
     // Only allow "light" or "dark" for AMSidebar
     const sidebarMode = theme === 'light' || theme === 'dark' ? theme : undefined;
@@ -124,7 +132,11 @@ const SidebarLayout = ({ onClose }: { onClose?: () => void }) => {
             width={'270px'}
             showTrigger={false}
             mode={sidebarMode}
-            className="fixed left-0 top-0 border border-border bg-sidebar dark:bg-sidebar z-10 h-screen"
+            className={
+                isMobile
+                    ? 'bg-sidebar dark:bg-sidebar w-full h-full'
+                    : 'fixed left-0 top-0 border-r border-border bg-sidebar dark:bg-sidebar z-10 h-screen'
+            }
         >
             {/* Logo */}
             <div className="px-6 py-6 flex items-center brand-logo overflow-hidden">

@@ -104,7 +104,7 @@ export default function OutMaterialClient() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="flex flex-col flex-1 min-h-0 space-y-6"
+            className="flex flex-col space-y-6"
         >
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -122,9 +122,8 @@ export default function OutMaterialClient() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex flex-col flex-1 min-h-0"
             >
-                <CardBox className="flex flex-col flex-1 min-h-0">
+                <CardBox className="p-4 w-full overflow-hidden">
                     <OutMaterialTable
                         data={filteredData}
                         isLoading={isLoading}

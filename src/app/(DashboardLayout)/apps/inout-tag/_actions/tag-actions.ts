@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
     try {
@@ -28,8 +29,8 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
         if (applyWhFilter) {
             inoutQuery = inoutQuery.where((eb) =>
                 eb.or([
-                    eb('h.from_wh_id', 'in', warehouseIds as any),
-                    eb('h.to_wh_id', 'in', warehouseIds as any),
+                    eb('h.from_wh_id', 'in', warehouseIds),
+                    eb('h.to_wh_id', 'in', warehouseIds),
                 ])
             );
         }
@@ -165,7 +166,7 @@ export async function getMaterialsWithStock(fromWhId?: number | null) {
             const wh = await db
                 .selectFrom('inventory.mas_wh')
                 .select('check_stock')
-                .where('id', '=', String(fromWhId) as any)
+                .where('id', '=', Number(fromWhId))
                 .executeTakeFirst();
             if (wh?.check_stock) {
                 checkStock = true;
@@ -179,7 +180,7 @@ export async function getMaterialsWithStock(fromWhId?: number | null) {
                 .innerJoin('inventory.stock_balance as sb', 'sb.designator_id', 'm.id')
                 .selectAll('m')
                 .select('sb.qty_stock')
-                .where('sb.warehouse_id', '=', String(fromWhId) as any)
+                .where('sb.warehouse_id', '=', Number(fromWhId))
                 .where('sb.qty_stock', '>', 0)
                 .execute();
 
@@ -204,28 +205,42 @@ export async function createTag(payload: {
     vendorName: string;
     cost: number;
     items: Array<{ designator_id: number; qty: number }>;
+    idemKey: string;
 }) {
+    if (!payload.idemKey)
+        return { success: false, error: 'Security constraint: Idempotency key required' };
+
     try {
-        const itemsJson = JSON.stringify(payload.items);
+        const { isDuplicate, result } = await checkAndStoreIdempotency(
+            payload.idemKey,
+            payload,
+            async (data) => {
+                const itemsJson = JSON.stringify(data.items);
 
-        // Call stored procedure and extract OUT parameter p_id_trx
-        const result = await sql<{ p_id_trx: string }>`
-      CALL inventory.sp_create_inout_tag(
-        ${payload.fromWhId}::bigint, 
-        ${payload.toWhId}::bigint, 
-        ${payload.requestId || null}, 
-        ${payload.vendorName || null}, 
-        ${payload.cost}, 
-        ${itemsJson}::jsonb, 
-        null
-      )
-    `.execute(db);
+                const res = await sql<{ p_id_trx: string }>`
+                  CALL inventory.sp_create_inout_tag(
+                    ${data.fromWhId}::bigint, 
+                    ${data.toWhId}::bigint, 
+                    ${data.requestId || null}, 
+                    ${data.vendorName || null}, 
+                    ${data.cost}, 
+                    ${itemsJson}::jsonb, 
+                    null
+                  )
+                `.execute(db);
 
-        return { success: true, id_trx: result.rows[0]?.p_id_trx };
-    } catch (error: any) {
+                return res.rows[0]?.p_id_trx;
+            }
+        );
+
+        if (isDuplicate)
+            return { success: false, error: 'Transaksi ganda terdeteksi. Silakan tunggu.' };
+
+        return { success: true, id_trx: result };
+    } catch (error: unknown) {
         console.error('Error creating tag:', error);
 
-        if (error.code === '23505') {
+        if ((error as any).code === '23505') {
             return {
                 success: false,
                 error: 'ID (Request/Send/Accept) sudah pernah digunakan di transaksi lain.',
@@ -256,9 +271,9 @@ export async function getInoutTagItemsByHeaderId(headerId: number) {
             .execute();
 
         return { success: true, data: items };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch tag items:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 
@@ -267,34 +282,49 @@ export async function updateTag(payload: {
     actionType: 'request' | 'send' | 'accept';
     actionId: string;
     items: { designator_id: number; qty: number }[];
+    idemKey: string;
 }) {
-    try {
-        const itemsJson = JSON.stringify(payload.items);
+    if (!payload.idemKey)
+        return { success: false, error: 'Security constraint: Idempotency key required' };
 
-        await sql`
-      CALL inventory.sp_update_inout_tag(
-        ${Number(payload.headerId)},
-        ${payload.actionType},
-        ${payload.actionId},
-        ${itemsJson}::jsonb
-      )
-    `.execute(db);
+    try {
+        const { isDuplicate } = await checkAndStoreIdempotency(
+            payload.idemKey,
+            payload,
+            async (data) => {
+                const itemsJson = JSON.stringify(data.items);
+
+                await sql`
+                  CALL inventory.sp_update_inout_tag(
+                    ${Number(data.headerId)},
+                    ${data.actionType},
+                    ${data.actionId},
+                    ${itemsJson}::jsonb
+                  )
+                `.execute(db);
+
+                return true;
+            }
+        );
+
+        if (isDuplicate)
+            return { success: false, error: 'Transaksi ganda terdeteksi. Silakan tunggu.' };
 
         revalidatePath('/apps/inout-tag');
         revalidatePath('/stock-inventory');
         revalidatePath('/stock-intech');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to update tag:', error);
 
-        if (error.code === '23505') {
+        if ((error as any).code === '23505') {
             return {
                 success: false,
                 error: 'ID (Request/Send/Accept) sudah pernah digunakan di transaksi lain. Harap gunakan ID yang unik.',
             };
         }
 
-        return { success: false, error: error.message || 'Failed to update tag.' };
+        return { success: false, error: (error as any).message || 'Failed to update tag.' };
     }
 }
 
@@ -312,28 +342,43 @@ export async function cancelTag(headerId: number) {
         revalidatePath('/stock-inventory');
         revalidatePath('/stock-intech');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to cancel tag:', error);
         return { success: false, error: 'Failed to cancel tag.' };
     }
 }
 
-export async function acceptReturnTag(headerId: number, acceptId: string) {
+export async function acceptReturnTag(headerId: number, acceptId: string, idemKey: string) {
+    if (!idemKey) return { success: false, error: 'Security constraint: Idempotency key required' };
+
     try {
-        await sql`
-            CALL inventory.sp_return_material(
-                ${headerId}::bigint,
-                ${acceptId}
-            )
-        `.execute(db);
+        const { isDuplicate } = await checkAndStoreIdempotency(
+            idemKey,
+            { headerId, acceptId },
+            async (data) => {
+                await sql`
+                    CALL inventory.sp_return_material(
+                        ${data.headerId}::bigint,
+                        ${data.acceptId}
+                    )
+                `.execute(db);
+                return true;
+            }
+        );
+
+        if (isDuplicate)
+            return { success: false, error: 'Transaksi ganda terdeteksi. Silakan tunggu.' };
 
         revalidatePath('/apps/inout-tag');
         revalidatePath('/stock-inventory');
         revalidatePath('/stock-intech');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to accept return material:', error);
-        return { success: false, error: error.message || 'Failed to accept return material.' };
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to accept return material.',
+        };
     }
 }
 
@@ -347,8 +392,12 @@ export async function getReturnMaterialItemsByHeaderId(headerId: number) {
             .execute();
 
         return { success: true, data: items };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch return material items:', error);
-        return { success: false, data: [], error: error.message };
+        return {
+            success: false,
+            data: [],
+            error: error instanceof Error ? error.message : 'Unknown error',
+        };
     }
 }

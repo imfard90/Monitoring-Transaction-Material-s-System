@@ -22,6 +22,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import {
     createOutSap,
     getBranches,
@@ -236,8 +237,13 @@ export default function OutSapForm() {
 
     const handleConfirmSubmit = async () => {
         setLoading(true);
+
+        const idemKey = generateIdempotencyKey();
+        setIdempotencyKey(idemKey, 'inventoryTx');
+
         const payload = {
             ...formData,
+            idemKey,
             warehouse_id: parseInt(formData.warehouse_id, 10),
             items: items.map((i) => ({
                 designator_id: parseInt(i.designator_id, 10),
@@ -681,7 +687,7 @@ export default function OutSapForm() {
                         loading={loading}
                     >
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
                                 <div>
                                     <span className="text-gray-500 block mb-1">Teknisi:</span>
                                     <span className="font-medium">
@@ -744,7 +750,7 @@ export default function OutSapForm() {
                                                         <TableCell className="text-center">
                                                             {idx + 1}
                                                         </TableCell>
-                                                        <TableCell className="text-xs">
+                                                        <TableCell className="text-sm">
                                                             {mat?.code} - {mat?.description}
                                                         </TableCell>
                                                         <TableCell className="text-center font-bold text-blue-600">

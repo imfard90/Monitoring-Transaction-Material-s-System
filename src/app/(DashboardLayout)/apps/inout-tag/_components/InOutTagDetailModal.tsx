@@ -53,7 +53,7 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
                     ) : (
                         <div className="rounded-md border overflow-x-auto">
                             <table className="w-full text-sm text-left text-gray-500">
-                                <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
+                                <thead className="text-sm text-gray-700 uppercase bg-gray-50 border-b">
                                     <tr>
                                         <th className="px-4 py-3">No</th>
                                         <th className="px-4 py-3">Designator / Code</th>

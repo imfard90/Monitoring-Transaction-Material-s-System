@@ -28,6 +28,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import {
     getTechnicianMaterials,
     getTechniciansWithIntechSaps,
@@ -159,7 +160,10 @@ export default function RekonIntechForm() {
     const handleConfirmSubmit = async () => {
         setLoading(true);
 
-        const res = await submitRekonIntech(selectedNik, itemsToSubmit);
+        const idemKey = generateIdempotencyKey();
+        setIdempotencyKey(idemKey, 'inventoryTx');
+
+        const res = await submitRekonIntech(selectedNik, itemsToSubmit, idemKey);
 
         if (res.success) {
             toast.success('Rekon Intech berhasil disubmit!');
@@ -265,22 +269,28 @@ export default function RekonIntechForm() {
                                     <Table className="min-w-[800px]">
                                         <TableHeader className="bg-muted/50">
                                             <TableRow>
-                                                <TableHead className="w-[50px] text-center">
+                                                <TableHead className="w-[50px] text-center py-1 px-2">
                                                     No
                                                 </TableHead>
-                                                <TableHead className="min-w-[120px]">
+                                                <TableHead className="min-w-[150px] py-1 px-2">
+                                                    Request Time
+                                                </TableHead>
+                                                <TableHead className="min-w-[150px] py-1 px-2">
                                                     ID Trx (SAP)
                                                 </TableHead>
-                                                <TableHead className="min-w-[120px]">
+                                                <TableHead className="min-w-[120px] py-1 px-2">
+                                                    SAP Number
+                                                </TableHead>
+                                                <TableHead className="min-w-[120px] py-1 px-2">
                                                     Material Code
                                                 </TableHead>
-                                                <TableHead className="min-w-[200px]">
+                                                <TableHead className="min-w-[200px] py-1 px-2">
                                                     Material Name
                                                 </TableHead>
-                                                <TableHead className="text-center w-[120px]">
+                                                <TableHead className="text-center w-[100px] py-1 px-2">
                                                     Qty Intech
                                                 </TableHead>
-                                                <TableHead className="w-[150px]">
+                                                <TableHead className="w-[120px] py-1 px-2">
                                                     Qty Used
                                                 </TableHead>
                                             </TableRow>
@@ -305,24 +315,32 @@ export default function RekonIntechForm() {
                                                             }}
                                                             className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                                                         >
-                                                            <TableCell className="text-center font-medium">
+                                                            <TableCell className="text-center font-medium py-1 px-2 text-sm">
                                                                 {index + 1}
                                                             </TableCell>
-                                                            <TableCell className="text-xs">
+                                                            <TableCell className="text-sm py-1 px-2">
+                                                                {m.request_time
+                                                                    ? new Date(
+                                                                          m.request_time
+                                                                      ).toLocaleString('id-ID')
+                                                                    : '-'}
+                                                            </TableCell>
+                                                            <TableCell className="text-sm py-1 px-2">
                                                                 {m.id_trx}
                                                             </TableCell>
-                                                            <TableCell className="font-semibold">
+                                                            <TableCell className="text-sm py-1 px-2">
+                                                                {m.sap_number || '-'}
+                                                            </TableCell>
+                                                            <TableCell className="font-semibold py-1 px-2 text-sm">
                                                                 {m.material_code}
                                                             </TableCell>
-                                                            <TableCell className="text-xs">
+                                                            <TableCell className="text-sm py-1 px-2">
                                                                 {m.description}
                                                             </TableCell>
-                                                            <TableCell className="text-center font-bold text-blue-600">
+                                                            <TableCell className="text-center font-bold text-blue-600 py-1 px-2 text-sm">
                                                                 {availableQty}
                                                             </TableCell>
-
-                                                            {/* Input Qty */}
-                                                            <TableCell>
+                                                            <TableCell className="py-1 px-2">
                                                                 <Input
                                                                     type="number"
                                                                     min="0"
@@ -354,7 +372,7 @@ export default function RekonIntechForm() {
                                                                             val
                                                                         );
                                                                     }}
-                                                                    className="h-9 text-center"
+                                                                    className="h-8 text-center text-sm"
                                                                     placeholder="0"
                                                                 />
                                                             </TableCell>
@@ -409,7 +427,7 @@ export default function RekonIntechForm() {
                     loading={loading}
                 >
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
                             <div>
                                 <span className="text-gray-500 block mb-1">Teknisi:</span>
                                 <span className="font-medium">{selectedTechName}</span>
@@ -456,7 +474,7 @@ export default function RekonIntechForm() {
                                                     <TableCell className="font-medium">
                                                         {mat?.material_code}
                                                     </TableCell>
-                                                    <TableCell className="text-xs">
+                                                    <TableCell className="text-sm">
                                                         {mat?.description}
                                                     </TableCell>
                                                     <TableCell className="text-center font-bold text-blue-600">

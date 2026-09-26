@@ -18,6 +18,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import { acceptReturnTag, cancelTag, updateTag } from '../_actions/tag-actions';
 
 interface UpdateTagModalProps {
@@ -95,8 +96,11 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
             if (!actionType) throw new Error('Invalid state');
             if (!actionId) throw new Error(`${idLabel} is required`);
 
+            const idemKey = generateIdempotencyKey();
+            setIdempotencyKey(idemKey, 'inventoryTx');
+
             if (isReturn) {
-                return acceptReturnTag(row.id, actionId);
+                return acceptReturnTag(row.id, actionId, idemKey);
             }
 
             return updateTag({
@@ -107,6 +111,7 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
                     designator_id: i.designator_id,
                     qty: Number(i.qty),
                 })),
+                idemKey,
             });
         },
         onSuccess: (res) => {
@@ -118,7 +123,7 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
                 toast.error(res.error || 'Failed to update tag');
             }
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error(error.message);
         },
     });
@@ -140,7 +145,7 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
                 toast.error(res.error || 'Failed to cancel tag');
             }
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error(error.message);
         },
     });
@@ -164,7 +169,7 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
                     <DialogTitle>Update Tag: {row.id_trx}</DialogTitle>
                 </DialogHeader>
 
-                <div className="grid grid-cols-2 gap-6 py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-4">
                     <div className="space-y-4">
                         <div className="space-y-1">
                             <p className="text-sm text-gray-500">Transaction ID</p>

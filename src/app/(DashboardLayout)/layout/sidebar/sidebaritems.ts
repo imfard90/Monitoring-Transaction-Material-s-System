@@ -63,13 +63,6 @@ const SidebarContent: MenuItem[] = [
         children: [
             {
                 id: uniqueId(),
-                name: 'User Profile',
-                icon: 'solar:user-circle-linear',
-                url: '/user-profile',
-                isPro: false,
-            },
-            {
-                id: uniqueId(),
                 name: 'Out SAP',
                 icon: 'solar:box-linear',
                 url: '/apps/out-sap',
@@ -125,6 +118,32 @@ const SidebarContent: MenuItem[] = [
         ],
     },
     {
+        heading: 'Management',
+        children: [
+            {
+                id: uniqueId(),
+                name: 'User Profile',
+                icon: 'solar:user-circle-linear',
+                url: '/user-profile',
+                isPro: false,
+            },
+            {
+                id: uniqueId(),
+                name: 'Users',
+                icon: 'solar:users-group-rounded-linear',
+                url: '/management/users',
+                isPro: false,
+            },
+            {
+                id: uniqueId(),
+                name: 'Technicians',
+                icon: 'solar:user-id-linear',
+                url: '/management/technician',
+                isPro: false,
+            },
+        ],
+    },
+    {
         heading: 'Reference',
         children: [
             {
@@ -132,18 +151,6 @@ const SidebarContent: MenuItem[] = [
                 name: 'Iconify Icons',
                 icon: 'solar:structure-linear',
                 url: '/icons/iconify',
-                isPro: false,
-            },
-        ],
-    },
-    {
-        heading: 'Management',
-        children: [
-            {
-                id: uniqueId(),
-                name: 'Users',
-                icon: 'solar:users-group-rounded-linear',
-                url: '/management/users',
                 isPro: false,
             },
         ],

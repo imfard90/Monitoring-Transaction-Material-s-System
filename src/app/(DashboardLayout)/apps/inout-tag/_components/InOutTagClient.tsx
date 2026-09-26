@@ -61,7 +61,7 @@ export default function InOutTagClient() {
     const [hasMoreData, setHasMoreData] = useState(true);
     const queryClient = useQueryClient();
 
-    const loadMore = async () => {
+    const loadMore = React.useCallback(async () => {
         if (isLoadingMore || !hasMoreData) return;
         setIsLoadingMore(true);
         try {
@@ -70,13 +70,16 @@ export default function InOutTagClient() {
             if (!res.success || !res.data || res.data.length === 0) {
                 setHasMoreData(false);
             } else {
-                queryClient.setQueryData(['inoutTags'], (old: any) => {
-                    if (!old) return old;
-                    return {
-                        ...old,
-                        data: [...old.data, ...res.data],
-                    };
-                });
+                queryClient.setQueryData(
+                    ['inoutTags'],
+                    (old: { data: any[] } | undefined) => {
+                        if (!old) return old;
+                        return {
+                            ...old,
+                            data: [...old.data, ...res.data],
+                        };
+                    }
+                );
                 setMonthsOffset(nextOffset);
             }
         } catch (e) {
@@ -84,7 +87,7 @@ export default function InOutTagClient() {
         } finally {
             setIsLoadingMore(false);
         }
-    };
+    }, [isLoadingMore, hasMoreData, monthsOffset, queryClient]);
 
     const filteredTags = React.useMemo(() => {
         return tags.filter((tag) => {
@@ -127,7 +130,7 @@ export default function InOutTagClient() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="flex flex-col flex-1 min-h-0 space-y-6"
+            className="flex flex-col space-y-6"
         >
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -145,9 +148,8 @@ export default function InOutTagClient() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex flex-col flex-1 min-h-0"
             >
-                <CardBox className="flex flex-col flex-1 min-h-0">
+                <CardBox className="p-4 w-full overflow-hidden">
                     <InOutTagTable
                         data={filteredTags}
                         isLoading={isLoading}

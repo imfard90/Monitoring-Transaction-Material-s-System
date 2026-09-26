@@ -27,6 +27,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import {
     createReturnMaterial,
     getAvailableSapOuts,
@@ -89,7 +90,7 @@ export default function ReturnForm() {
         setItems(newItems);
     };
 
-    const handleItemChange = (index: number, field: string, value: any) => {
+    const handleItemChange = (index: number, field: string, value: number | string) => {
         const newItems = [...items];
 
         if (field === 'sap_out_item_id') {
@@ -140,8 +141,14 @@ export default function ReturnForm() {
     const handleConfirmSubmit = async () => {
         setLoading(true);
         try {
+            const idemKey = generateIdempotencyKey();
+            setIdempotencyKey(idemKey, 'inventoryTx');
+
             const payload = {
                 ...formData,
+                sap_out_id: Number(formData.sap_out_id),
+                warehouse_id: Number(formData.warehouse_id),
+                idemKey,
                 items,
             };
 
@@ -164,7 +171,7 @@ export default function ReturnForm() {
             } else {
                 toast.error(res.error || 'Failed to submit return');
             }
-        } catch (_err: any) {
+        } catch (_err: unknown) {
             toast.error('An error occurred');
         } finally {
             setLoading(false);
@@ -339,7 +346,7 @@ export default function ReturnForm() {
                     loading={loading}
                 >
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
                             <div>
                                 <span className="text-gray-500 block mb-1">Transaksi SAP Out:</span>
                                 <span className="font-medium">{selectedTech?.id_trx}</span>
@@ -385,7 +392,7 @@ export default function ReturnForm() {
                                                     <TableCell className="text-center">
                                                         {idx + 1}
                                                     </TableCell>
-                                                    <TableCell className="text-xs">
+                                                    <TableCell className="text-sm">
                                                         {mat?.material_code} - {mat?.material_name}
                                                     </TableCell>
                                                     <TableCell className="text-center font-bold text-blue-600">

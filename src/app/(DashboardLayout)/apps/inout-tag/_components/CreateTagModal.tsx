@@ -26,6 +26,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import { cn } from '@/lib/utils';
 import { createTag, getMaterialsWithStock, getWarehouses } from '../_actions/tag-actions';
 
@@ -56,12 +57,12 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
     const [openTo, setOpenTo] = useState(false);
 
     // Queries
-    const { data: whRes, isLoading: loadingWh } = useQuery({
+    const { data: whRes } = useQuery({
         queryKey: ['warehouses'],
         queryFn: getWarehouses,
     });
 
-    const { data: matRes, isLoading: loadingMat } = useQuery({
+    const { data: matRes } = useQuery({
         queryKey: ['materials', fromWhId],
         queryFn: () => getMaterialsWithStock(fromWhId),
     });
@@ -89,13 +90,20 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
             if (items.some((i) => !i.designator_id || Number(i.qty) <= 0))
                 throw new Error('All materials must be selected and have quantity > 0');
 
+            const idemKey = generateIdempotencyKey();
+            setIdempotencyKey(idemKey, 'inventoryTx');
+
             return createTag({
                 fromWhId,
                 toWhId,
                 requestId,
                 vendorName,
                 cost,
-                items: items.map((i) => ({ designator_id: i.designator_id!, qty: Number(i.qty) })),
+                items: items.map((i) => ({
+                    designator_id: i.designator_id ?? 0,
+                    qty: Number(i.qty),
+                })),
+                idemKey,
             });
         },
         onSuccess: (res) => {
@@ -107,7 +115,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                 toast.error(res.error || 'Failed to create tag');
             }
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error(error.message);
         },
     });
@@ -120,7 +128,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
         setItems(items.filter((i) => i.id !== id));
     };
 
-    const handleItemChange = (id: string, field: keyof MaterialItem, value: any) => {
+    const handleItemChange = (id: string, field: keyof MaterialItem, value: number | string) => {
         setItems(items.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
     };
 
@@ -131,7 +139,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                     <DialogTitle>Create New Tag</DialogTitle>
                 </DialogHeader>
 
-                <div className="grid grid-cols-2 gap-6 py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-4">
                     {/* LEFT COLUMN */}
                     <div className="space-y-4">
                         <div className="space-y-2">
@@ -257,7 +265,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Vendor</Label>
                                 <Input
@@ -360,7 +368,7 @@ function MaterialRow({
     item: MaterialItem;
     index: number;
     materials: any[];
-    onItemChange: (id: string, field: keyof MaterialItem, value: any) => void;
+    onItemChange: (id: string, field: keyof MaterialItem, value: number | string) => void;
     onRemoveItem: (id: string) => void;
 }) {
     const [open, setOpen] = useState(false);

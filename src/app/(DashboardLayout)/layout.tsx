@@ -19,7 +19,7 @@ export default function Layout({
                     {/* Top Header  */}
                     <Header />
                     {/* Body Content  */}
-                    <div className="container mx-auto px-6 py-6 flex-1 flex flex-col overflow-y-auto">
+                    <div className="container mx-auto p-4 md:p-6 flex-1 flex flex-col overflow-y-auto">
                         {children}
                     </div>
                 </div>

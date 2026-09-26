@@ -199,7 +199,7 @@ export default function StockBalanceOverview() {
 
                 <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
                     <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
+                        <thead className="text-sm text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
                             {table.getHeaderGroups().map((headerGroup) => (
                                 <tr key={headerGroup.id}>
                                     {headerGroup.headers.map((header) => (

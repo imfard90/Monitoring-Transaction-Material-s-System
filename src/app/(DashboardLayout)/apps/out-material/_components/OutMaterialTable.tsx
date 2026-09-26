@@ -145,7 +145,7 @@ export default function OutMaterialTable({
     });
 
     return (
-        <div className="space-y-4 flex flex-col flex-1 min-h-0">
+        <div className="space-y-4">
             <div className="flex justify-between items-center flex-wrap gap-4">
                 <div className="flex gap-3 flex-wrap items-center">
                     <div className="relative w-full md:w-80">
@@ -223,9 +223,9 @@ export default function OutMaterialTable({
                 {/* No Create Button based on requirements */}
             </div>
 
-            <div className="rounded-md border flex-1 overflow-auto">
+            <div className="rounded-md border overflow-x-auto">
                 <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
+                    <thead className="text-sm text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (

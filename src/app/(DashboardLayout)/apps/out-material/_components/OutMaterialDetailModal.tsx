@@ -38,7 +38,7 @@ export default function OutMaterialDetailModal({
                     <DialogTitle>Out Material Detail</DialogTitle>
                 </DialogHeader>
 
-                <div className="grid grid-cols-2 gap-4 mt-4 bg-gray-50 p-4 rounded-md text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 bg-gray-50 p-4 rounded-md text-sm">
                     <div>
                         <p className="text-gray-500 mb-1">NIK Teknisi</p>
                         <p className="font-medium">{row.nik_teknisi || '-'}</p>

@@ -4,6 +4,7 @@ import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 export async function getOutSaps() {
     try {
@@ -123,7 +124,7 @@ export async function getMaterials() {
     try {
         const mats = await db.selectFrom('inventory.materials').selectAll().execute();
         return { success: true, data: mats };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching materials:', error);
         return { success: false, data: [] };
     }
@@ -139,7 +140,7 @@ export async function getMaterialsInWarehouse(whId: number) {
             .where('sb.qty_stock', '>', 0)
             .execute();
         return { success: true, data: mats };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching materials for warehouse:', error);
         return { success: false, data: [] };
     }
@@ -151,14 +152,14 @@ export async function getWarehouses() {
         let query = db.selectFrom('inventory.mas_wh').selectAll();
 
         if (isStaff && warehouseIds.length > 0) {
-            query = query.where('id', 'in', warehouseIds as any);
+            query = query.where('id', 'in', warehouseIds);
         } else if (isStaff && warehouseIds.length === 0) {
             return { success: true, data: [] };
         }
 
         const whs = await query.execute();
         return { success: true, data: whs };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching warehouses:', error);
         return { success: false, data: [] };
     }
@@ -175,77 +176,93 @@ export async function getBranches() {
 
         const branches = await query.execute();
         return { success: true, data: branches };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching branches:', error);
         return { success: false, data: [] };
     }
 }
 
 export async function createOutSap(payload: any) {
+    if (!payload.idemKey)
+        return { success: false, error: 'Security constraint: Idempotency key required' };
+
     try {
-        const result = await db.transaction().execute(async (trx) => {
-            // Get Warehouse initials
-            const wh = await trx
-                .selectFrom('inventory.mas_wh')
-                .select('intls')
-                .where('id', '=', payload.warehouse_id)
-                .executeTakeFirst();
-            const intls = wh?.intls || 'UNKNOWN';
+        const { isDuplicate, result } = await checkAndStoreIdempotency(
+            payload.idemKey,
+            payload,
+            async (data) => {
+                return await db.transaction().execute(async (trx) => {
+                    // Get Warehouse initials
+                    const wh = await trx
+                        .selectFrom('inventory.mas_wh')
+                        .select('intls')
+                        .where('id', '=', data.warehouse_id)
+                        .executeTakeFirst();
+                    const intls = wh?.intls || 'UNKNOWN';
 
-            // Generate YYMM
-            const now = new Date();
-            const yymm = `${now.getFullYear().toString().slice(2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+                    // Generate YYMM
+                    const now = new Date();
+                    const yymm = `${now.getFullYear().toString().slice(2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
 
-            // Get Sequence
-            const countRes = await sql<{ count: string | number }>`
-        SELECT COUNT(*) + 1 as count 
-        FROM inventory.sap_out_header 
-        WHERE to_char(request_time, 'YYMM') = ${yymm}
-      `.execute(trx);
-            const count = Number(countRes.rows[0].count);
-            const sequence = count.toString().padStart(4, '0');
+                    // Get Sequence
+                    const countRes = await sql<{ count: string | number }>`
+                        SELECT COUNT(*) + 1 as count 
+                        FROM inventory.sap_out_header 
+                        WHERE to_char(request_time, 'YYMM') = ${yymm}
+                    `.execute(trx);
+                    const count = Number(countRes.rows[0].count);
+                    const sequence = count.toString().padStart(4, '0');
 
-            const generatedIdTrx = `TRX-OUT-${intls}-${payload.nik_teknisi}-${yymm}${sequence}`;
+                    const generatedIdTrx = `TRX-OUT-${intls}-${data.nik_teknisi}-${yymm}${sequence}`;
 
-            const createdBy = await getSessionNik();
+                    const createdBy = await getSessionNik();
 
-            // Create Header
-            const headerResult = await trx
-                .insertInto('inventory.sap_out_header')
-                .values({
-                    id_trx: generatedIdTrx,
-                    nik_teknisi: payload.nik_teknisi,
-                    name_sa: payload.name_sa,
-                    warehouse_id: payload.warehouse_id,
-                    id_reservasi: payload.id_reservasi,
-                    sap_number: payload.sap_number,
-                    request_id: payload.request_id,
-                    end_status: 'intech',
-                    created_by: createdBy,
-                })
-                .returning('id')
-                .executeTakeFirstOrThrow();
+                    // Create Header
+                    const headerResult = await trx
+                        .insertInto('inventory.sap_out_header')
+                        .values({
+                            id_trx: generatedIdTrx,
+                            nik_teknisi: data.nik_teknisi,
+                            name_sa: data.name_sa,
+                            warehouse_id: data.warehouse_id,
+                            id_reservasi: data.id_reservasi,
+                            sap_number: data.sap_number,
+                            request_id: data.request_id,
+                            end_status: 'intech',
+                            created_by: createdBy,
+                        })
+                        .returning('id')
+                        .executeTakeFirstOrThrow();
 
-            // Create Items
-            if (payload.items && payload.items.length > 0) {
-                const itemsToInsert = payload.items.map((item: any) => ({
-                    header_id: headerResult.id,
-                    designator_id: item.designator_id,
-                    qty_req: item.qty_req,
-                    qty_used: 0,
-                    unit_price: item.unit_price || 0,
-                }));
+                    // Create Items
+                    if (data.items && data.items.length > 0) {
+                        const itemsToInsert = data.items.map((item: any) => ({
+                            header_id: headerResult.id,
+                            designator_id: item.designator_id,
+                            qty_req: item.qty_req,
+                            qty_used: 0,
+                            unit_price: item.unit_price || 0,
+                        }));
 
-                await trx.insertInto('inventory.sap_out_items').values(itemsToInsert).execute();
+                        await trx
+                            .insertInto('inventory.sap_out_items')
+                            .values(itemsToInsert)
+                            .execute();
+                    }
+
+                    // Call SP sp_sap_out for this header to reduce stock
+                    await sql`CALL inventory.sp_sap_out(${headerResult.id}::bigint, ${data.warehouse_id}::integer, ${createdBy})`.execute(
+                        trx
+                    );
+
+                    return headerResult.id;
+                });
             }
+        );
 
-            // Call SP sp_sap_out for this header to reduce stock
-            await sql`CALL inventory.sp_sap_out(${headerResult.id}::bigint, ${payload.warehouse_id}::integer, ${createdBy})`.execute(
-                trx
-            );
-
-            return headerResult.id;
-        });
+        if (isDuplicate) {
+            return { success: false, error: 'Transaksi ganda terdeteksi. Silakan tunggu.' };
+        }
 
         revalidatePath('/stock-intech');
         revalidatePath('/stock-inventory');

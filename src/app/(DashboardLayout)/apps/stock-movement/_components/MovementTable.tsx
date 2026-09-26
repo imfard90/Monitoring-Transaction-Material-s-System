@@ -117,11 +117,11 @@ export default function MovementTable({
         }),
         columnHelper.accessor('notes', {
             header: 'Notes',
-            cell: (info) => <span className="text-xs text-gray-500">{info.getValue() || '-'}</span>,
+            cell: (info) => <span className="text-sm text-gray-500">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('created_by', {
             header: 'By',
-            cell: (info) => <span className="text-xs">{info.getValue() || '-'}</span>,
+            cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
         }),
     ];
 

@@ -37,7 +37,7 @@ export default async function UserManagementPage() {
                 <BreadcrumbComp title="User Management" items={BCrumb} />
             </div>
 
-            <div className="bg-card rounded-lg border shadow-sm mt-4 flex-1 flex flex-col min-h-0">
+            <div className="bg-card rounded-lg border shadow-sm mt-4 overflow-hidden">
                 <UserTable data={users} />
             </div>
         </div>

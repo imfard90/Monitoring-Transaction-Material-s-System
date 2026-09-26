@@ -163,7 +163,7 @@ export default function InOutTagTable({
     });
 
     return (
-        <div className="space-y-4 flex flex-col flex-1 min-h-0">
+        <div className="space-y-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="flex flex-wrap items-center gap-3 flex-1 w-full">
                     <div className="relative w-full md:w-64">
@@ -250,9 +250,9 @@ export default function InOutTagTable({
                 </Button>
             </div>
 
-            <div className="rounded-md border flex-1 overflow-auto">
-                <table className="w-full text-sm text-left text-gray-500">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
+            <div className="rounded-md border overflow-x-auto">
+                <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap">
+                    <thead className="text-sm text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
