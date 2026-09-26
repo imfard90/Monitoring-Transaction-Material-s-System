@@ -5,6 +5,8 @@ import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
 import { getUsers } from './actions';
 import UserTable from './user-table';
 
+export const dynamic = 'force-dynamic';
+
 const BCrumb = [
     {
         to: '/',

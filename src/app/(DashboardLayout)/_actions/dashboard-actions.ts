@@ -1,8 +1,8 @@
 'use server';
 
 import { sql } from 'kysely';
-import { db } from '@/lib/db/db';
 import { getSessionUser } from '@/lib/auth-server';
+import { db } from '@/lib/db/db';
 
 export async function getStockBalances() {
     try {
@@ -58,10 +58,7 @@ export async function getDashboardStockIntech() {
             query = query.where('soh.warehouse_id', 'in', warehouseIds as any);
         }
 
-        const data = await query
-            .orderBy('wh.branch', 'asc')
-            .orderBy('t.name', 'asc')
-            .execute();
+        const data = await query.orderBy('wh.branch', 'asc').orderBy('t.name', 'asc').execute();
 
         return { success: true, data };
     } catch (error: any) {

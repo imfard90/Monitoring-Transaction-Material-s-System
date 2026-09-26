@@ -66,7 +66,9 @@ export const StockWarningTable = () => {
                                 return (
                                     <TableRow key={index}>
                                         <TableCell>{w.warehouse_name}</TableCell>
-                                        <TableCell className="font-medium">{w.material_code}</TableCell>
+                                        <TableCell className="font-medium">
+                                            {w.material_code}
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             {Number(w.average_demand_weekly).toFixed(2)}
                                         </TableCell>
@@ -79,14 +81,26 @@ export const StockWarningTable = () => {
                                         <TableCell className="text-right font-semibold">
                                             {w.min_qty}
                                         </TableCell>
-                                        <TableCell className={`text-right font-bold ${isWarning ? 'text-yellow-500' : 'text-green-600'}`}>
+                                        <TableCell
+                                            className={`text-right font-bold ${isWarning ? 'text-yellow-500' : 'text-green-600'}`}
+                                        >
                                             {w.qty_stock}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             {isWarning ? (
-                                                <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">Warning</Badge>
+                                                <Badge
+                                                    variant="outline"
+                                                    className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                                                >
+                                                    Warning
+                                                </Badge>
                                             ) : (
-                                                <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">Safe</Badge>
+                                                <Badge
+                                                    variant="outline"
+                                                    className="bg-green-500/10 text-green-600 border-green-500/20"
+                                                >
+                                                    Safe
+                                                </Badge>
                                             )}
                                         </TableCell>
                                     </TableRow>

@@ -37,7 +37,7 @@ export default function InOutTagClient() {
         }
     };
 
-    const { data, isLoading, error } = useQuery({
+    const { data, isLoading } = useQuery({
         queryKey: ['inoutTags'],
         queryFn: async () => {
             const res = await getInOutTags();
@@ -120,7 +120,7 @@ export default function InOutTagClient() {
             }, 800);
             return () => clearTimeout(timeout);
         }
-    }, [searchQuery, filteredTags.length, hasMoreData, isLoadingMore, isLoading]);
+    }, [searchQuery, filteredTags.length, hasMoreData, isLoadingMore, isLoading, loadMore]);
 
     return (
         <motion.div

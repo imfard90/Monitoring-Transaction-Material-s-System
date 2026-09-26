@@ -63,12 +63,12 @@ const OutMaterialLineChart: React.FC = () => {
                             (dd: any) => dd.material_code === matCode && dd.date_val === dateStr
                         );
                         let val = dailyRec ? Number(dailyRec.total_qty) : 0;
-                        
+
                         // Scale down AC-OF-SM-1-3SL by 100 for better comparison
                         if (matCode === 'AC-OF-SM-1-3SL') {
                             val = val / 100;
                         }
-                        
+
                         data.push(val);
                         startDateObj.setDate(startDateObj.getDate() + 1);
                     }
