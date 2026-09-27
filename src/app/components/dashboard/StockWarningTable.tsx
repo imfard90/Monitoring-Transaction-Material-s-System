@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -54,59 +55,72 @@ export const StockWarningTable = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {warnings.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={8} className="text-center">
-                                    Tidak ada material yang dibawah stok minimum
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            warnings.map((w, index) => {
-                                const isWarning = w.qty_stock < w.min_qty;
-                                return (
-                                    <TableRow key={index}>
-                                        <TableCell>{w.warehouse_name}</TableCell>
-                                        <TableCell className="font-medium">
-                                            {w.material_code}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {Number(w.average_demand_weekly).toFixed(2)}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {w.lead_time_weeks}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {Number(w.safety_stock_pct).toFixed(0)}%
-                                        </TableCell>
-                                        <TableCell className="text-right font-semibold">
-                                            {w.min_qty}
-                                        </TableCell>
-                                        <TableCell
-                                            className={`text-right font-bold ${isWarning ? 'text-yellow-500' : 'text-green-600'}`}
+                        <AnimatePresence>
+                            {warnings.length === 0 ? (
+                                <motion.tr
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                                >
+                                    <TableCell colSpan={8} className="text-center">
+                                        Tidak ada material yang dibawah stok minimum
+                                    </TableCell>
+                                </motion.tr>
+                            ) : (
+                                warnings.map((w, index) => {
+                                    const isWarning = w.qty_stock < w.min_qty;
+                                    return (
+                                        <motion.tr
+                                            key={index}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.2, delay: index * 0.03 }}
+                                            className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                                         >
-                                            {w.qty_stock}
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            {isWarning ? (
-                                                <Badge
-                                                    variant="outline"
-                                                    className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
-                                                >
-                                                    Warning
-                                                </Badge>
-                                            ) : (
-                                                <Badge
-                                                    variant="outline"
-                                                    className="bg-green-500/10 text-green-600 border-green-500/20"
-                                                >
-                                                    Safe
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })
-                        )}
+                                            <TableCell>{w.warehouse_name}</TableCell>
+                                            <TableCell className="font-medium">
+                                                {w.material_code}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {Number(w.average_demand_weekly).toFixed(2)}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {w.lead_time_weeks}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {Number(w.safety_stock_pct).toFixed(0)}%
+                                            </TableCell>
+                                            <TableCell className="text-right font-semibold">
+                                                {w.min_qty}
+                                            </TableCell>
+                                            <TableCell
+                                                className={`text-right font-bold ${isWarning ? 'text-yellow-500' : 'text-green-600'}`}
+                                            >
+                                                {w.qty_stock}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {isWarning ? (
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                                                    >
+                                                        Warning
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="bg-green-500/10 text-green-600 border-green-500/20"
+                                                    >
+                                                        Safe
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                        </motion.tr>
+                                    );
+                                })
+                            )}
+                        </AnimatePresence>
                     </TableBody>
                 </Table>
             </div>

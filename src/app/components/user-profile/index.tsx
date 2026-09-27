@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { authClient } from '@/lib/auth-client';
 import CardBox from '../shared/CardBox';
 
 const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
@@ -55,6 +56,27 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
     const [lensaUsername, setLensaUsername] = useState('');
     const [lensaPassword, setLensaPassword] = useState('');
     const [isPending, startTransition] = useTransition();
+    const [isSendingVerification, setIsSendingVerification] = useState(false);
+
+    const handleSendVerification = async () => {
+        if (!profileData?.email) return;
+        setIsSendingVerification(true);
+        try {
+            const { error } = await authClient.sendVerificationEmail({
+                email: profileData.email,
+                callbackURL: '/user-profile',
+            });
+            if (error) {
+                toast.error(error.message || 'Gagal mengirim link verifikasi');
+            } else {
+                toast.success('Link verifikasi berhasil dikirim ke email Anda');
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Terjadi kesalahan saat mengirim email');
+        } finally {
+            setIsSendingVerification(false);
+        }
+    };
 
     const handleSaveLensa = async () => {
         if (!lensaUsername || !lensaPassword) {
@@ -171,7 +193,38 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                             </div>
                             <div>
                                 <p className="text-xs text-gray-500">Email</p>
-                                <p>{profileData?.email || '-'}</p>
+                                <div className="flex items-center gap-2">
+                                    <p>{profileData?.email || '-'}</p>
+                                    {profileData?.email &&
+                                        (profileData.emailVerified ? (
+                                            <span
+                                                className="flex items-center text-success"
+                                                title="Email Verified"
+                                            >
+                                                <Icon icon="lucide:check-circle-2" width="16" />
+                                            </span>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <span
+                                                    className="flex items-center text-warning"
+                                                    title="Email Not Verified"
+                                                >
+                                                    <Icon icon="lucide:alert-circle" width="16" />
+                                                </span>
+                                                <Button
+                                                    variant="link"
+                                                    size="sm"
+                                                    className="h-auto p-0 text-xs text-blue-500"
+                                                    onClick={handleSendVerification}
+                                                    disabled={isSendingVerification}
+                                                >
+                                                    {isSendingVerification
+                                                        ? 'Mengirim...'
+                                                        : 'Kirim Link Verifikasi'}
+                                                </Button>
+                                            </div>
+                                        ))}
+                                </div>
                             </div>
                             <div>
                                 <p className="text-xs text-gray-500">Account Status</p>

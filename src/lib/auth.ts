@@ -1,7 +1,13 @@
+import { render } from '@react-email/render';
 import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
 import { Pool } from 'pg';
+import { Resend } from 'resend';
+import { ResetPasswordEmail } from './emails/reset-password-email';
+import { VerificationEmail } from './emails/verification-email';
 import { redis } from './redis';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -18,6 +24,30 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
         requireEmailVerification: false,
+        sendResetPassword: async ({ user, url }) => {
+            const emailHtml = await render(ResetPasswordEmail({ url }));
+
+            await resend.emails.send({
+                from: 'noreply@mtms-app.credea.biz.id',
+                to: user.email,
+                subject: 'Reset Password MTMS',
+                html: emailHtml,
+            });
+        },
+    },
+    emailVerification: {
+        sendOnSignUp: true,
+        autoSignInAfterVerification: true,
+        sendVerificationEmail: async ({ user, url }) => {
+            const emailHtml = await render(VerificationEmail({ url }));
+
+            await resend.emails.send({
+                from: 'noreply@mtms-app.credea.biz.id',
+                to: user.email,
+                subject: 'Verifikasi Email Anda untuk MTMS',
+                html: emailHtml,
+            });
+        },
     },
     session: {
         modelName: 'auth.session',

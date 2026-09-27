@@ -12,6 +12,14 @@ import AuthCard from '@/app/auth/components/AuthCard';
 import AuthLayout from '@/app/auth/components/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -31,6 +39,8 @@ const LoginForm = () => {
     const [errorMsg, setErrorMsg] = useState<{ type: 'error' | 'warning'; text: string } | null>(
         null
     );
+    const [pendingLogin, setPendingLogin] = useState<LoginFormValues | null>(null);
+    const [isRevoking, setIsRevoking] = useState(false);
 
     const {
         register,
@@ -61,6 +71,11 @@ const LoginForm = () => {
                 return;
             }
 
+            if (precheck.status === 'active_session_exists') {
+                setPendingLogin(data);
+                return;
+            }
+
             // 2. Lanjut ke otentikasi Better Auth
             const result = await authClient.signIn.email({
                 email: data.email,
@@ -69,8 +84,17 @@ const LoginForm = () => {
             });
 
             if (result.error) {
-                // Jika precheck lolos namun authClient gagal, maka kemungkinannya hanya password yang salah
-                setErrorMsg({ type: 'error', text: 'Username dan password salah' });
+                if (result.error.code === 'EMAIL_NOT_VERIFIED') {
+                    setErrorMsg({
+                        type: 'warning',
+                        text: 'Email Anda belum diverifikasi. Silakan periksa inbox email Anda untuk memverifikasi akun.',
+                    });
+                } else {
+                    setErrorMsg({
+                        type: 'error',
+                        text: result.error.message || 'Username dan password salah',
+                    });
+                }
                 return;
             }
 
@@ -78,6 +102,45 @@ const LoginForm = () => {
             window.location.href = '/';
         } catch (err) {
             setErrorMsg({ type: 'error', text: 'Terjadi kesalahan sistem, silakan coba lagi' });
+        }
+    };
+
+    const handleRevokeAndLogin = async () => {
+        if (!pendingLogin) return;
+        setIsRevoking(true);
+        setErrorMsg(null);
+        try {
+            const { revokeAllUserSessions } = await import('./_actions/login-actions');
+            await revokeAllUserSessions(pendingLogin.email);
+
+            const result = await authClient.signIn.email({
+                email: pendingLogin.email,
+                password: pendingLogin.password,
+                rememberMe: pendingLogin.remember,
+            });
+
+            if (result.error) {
+                if (result.error.code === 'EMAIL_NOT_VERIFIED') {
+                    setErrorMsg({
+                        type: 'warning',
+                        text: 'Email Anda belum diverifikasi. Silakan periksa inbox email Anda untuk memverifikasi akun.',
+                    });
+                } else {
+                    setErrorMsg({
+                        type: 'error',
+                        text: result.error.message || 'Username dan password salah',
+                    });
+                }
+                return;
+            }
+
+            toast.success('Sesi lama telah diputuskan. Berhasil masuk');
+            window.location.href = '/';
+        } catch (err) {
+            setErrorMsg({ type: 'error', text: 'Gagal memutuskan sesi lama' });
+        } finally {
+            setIsRevoking(false);
+            setPendingLogin(null);
         }
     };
 
@@ -189,6 +252,37 @@ const LoginForm = () => {
                     </Link>
                 </div>
             </AuthCard>
+
+            <Dialog open={!!pendingLogin} onOpenChange={(open) => !open && setPendingLogin(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Sesi Aktif Ditemukan</DialogTitle>
+                        <DialogDescription>
+                            Akun Anda terdeteksi masih login di perangkat atau browser lain. Apakah
+                            Anda ingin memutuskan sesi tersebut dan login di sini?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-4">
+                        <Button
+                            variant="outline"
+                            onClick={() => setPendingLogin(null)}
+                            disabled={isRevoking}
+                        >
+                            Batal
+                        </Button>
+                        <Button onClick={handleRevokeAndLogin} disabled={isRevoking}>
+                            {isRevoking ? (
+                                <>
+                                    <Loader2 className="size-4 animate-spin mr-2" />
+                                    Memproses...
+                                </>
+                            ) : (
+                                'Ya, Putuskan Sesi'
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AuthLayout>
     );
 };

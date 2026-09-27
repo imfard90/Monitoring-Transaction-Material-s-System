@@ -1,4 +1,5 @@
 'use client';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -87,41 +88,49 @@ export const ProductPerformance = () => {
                                 </TableHeader>
 
                                 <TableBody>
-                                    {performaceData.map((item, index) => (
-                                        <TableRow key={item.key} className="border-b border-border">
-                                            <TableCell className="py-2">
-                                                <p className="text-muted-foreground font-medium text-sm">
-                                                    {index + 1}
-                                                </p>
-                                            </TableCell>
+                                    <AnimatePresence>
+                                        {performaceData.map((item, index) => (
+                                            <motion.tr
+                                                key={item.key}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ duration: 0.2, delay: index * 0.03 }}
+                                                className="border-b border-border transition-colors hover:bg-muted/50"
+                                            >
+                                                <TableCell className="py-2">
+                                                    <p className="text-muted-foreground font-medium text-sm">
+                                                        {index + 1}
+                                                    </p>
+                                                </TableCell>
 
-                                            <TableCell className="ps-0 min-w-[200px] py-2">
-                                                <h6 className="text-sm font-semibold">
-                                                    {item.name}
-                                                </h6>
-                                            </TableCell>
+                                                <TableCell className="ps-0 min-w-[200px] py-2">
+                                                    <h6 className="text-sm font-semibold">
+                                                        {item.name}
+                                                    </h6>
+                                                </TableCell>
 
-                                            <TableCell className="text-center py-2">
-                                                <p className="font-medium text-muted-foreground text-sm">
-                                                    {item.trxOut}
-                                                </p>
-                                            </TableCell>
+                                                <TableCell className="text-center py-2">
+                                                    <p className="font-medium text-muted-foreground text-sm">
+                                                        {item.trxOut}
+                                                    </p>
+                                                </TableCell>
 
-                                            <TableCell className="text-center py-2">
-                                                <p className="font-medium text-muted-foreground text-sm">
-                                                    {item.trxClose}
-                                                </p>
-                                            </TableCell>
+                                                <TableCell className="text-center py-2">
+                                                    <p className="font-medium text-muted-foreground text-sm">
+                                                        {item.trxClose}
+                                                    </p>
+                                                </TableCell>
 
-                                            <TableCell className="text-center py-2">
-                                                <Badge
-                                                    className={`text-[13px] px-3 rounded-full justify-center py-0.5 ${item.badgeColor}`}
-                                                >
-                                                    {item.percentage}%
-                                                </Badge>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                                <TableCell className="text-center py-2">
+                                                    <Badge
+                                                        className={`text-[13px] px-3 rounded-full justify-center py-0.5 ${item.badgeColor}`}
+                                                    >
+                                                        {item.percentage}%
+                                                    </Badge>
+                                                </TableCell>
+                                            </motion.tr>
+                                        ))}
+                                    </AnimatePresence>
                                 </TableBody>
                             </Table>
                         </div>

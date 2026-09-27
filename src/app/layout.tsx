@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
-import { DM_Sans } from 'next/font/google';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import type React from 'react';
 import './css/globals.css';
 import ServiceWorkerRegister from '@/app/components/service-worker/ServiceWorkerRegister';
 import { Providers } from './providers';
 
-const dmSans = DM_Sans({
+const plusJakarta = Plus_Jakarta_Sans({
     subsets: ['latin'],
     display: 'swap',
-    variable: '--font-dm-sans',
+    variable: '--font-plus-jakarta',
 });
 
 export const metadata: Metadata = {
@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <link rel="manifest" href="/manifest.json" />
                 <meta name="theme-color" content="#5d87ff" />
             </head>
-            <body className={`${dmSans.className}`}>
+            <body className={`${plusJakarta.className}`}>
                 <Providers>
                     <ServiceWorkerRegister />
                     {children}

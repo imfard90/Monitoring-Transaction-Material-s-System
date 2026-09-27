@@ -70,16 +70,13 @@ export default function InOutTagClient() {
             if (!res.success || !res.data || res.data.length === 0) {
                 setHasMoreData(false);
             } else {
-                queryClient.setQueryData(
-                    ['inoutTags'],
-                    (old: { data: any[] } | undefined) => {
-                        if (!old) return old;
-                        return {
-                            ...old,
-                            data: [...old.data, ...res.data],
-                        };
-                    }
-                );
+                queryClient.setQueryData(['inoutTags'], (old: { data: any[] } | undefined) => {
+                    if (!old) return old;
+                    return {
+                        ...old,
+                        data: [...old.data, ...res.data],
+                    };
+                });
                 setMonthsOffset(nextOffset);
             }
         } catch (e) {

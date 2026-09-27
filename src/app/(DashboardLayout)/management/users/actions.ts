@@ -1,8 +1,10 @@
 'use server';
 
+import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { redis } from '@/lib/redis';
 
 export async function checkIsStaff() {
     try {
@@ -34,6 +36,16 @@ export async function getUsers() {
         ])
         .orderBy('auth.user.name', 'asc')
         .execute();
+
+    // Map presence status from Redis
+    if (users.length > 0) {
+        const keys = users.map((u) => `presence:user:${u.nik}`);
+        const onlineStatuses = await redis.mget(keys);
+
+        users.forEach((u, i) => {
+            (u as any).is_online = !!onlineStatuses[i];
+        });
+    }
 
     return users;
 }

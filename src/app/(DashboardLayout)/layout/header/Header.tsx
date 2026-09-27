@@ -13,24 +13,7 @@ import Search from './Search';
 
 const Header = () => {
     const { theme, setTheme } = useTheme();
-    const [isSticky, setIsSticky] = useState(false);
-    const [_mobileMenu, _setMobileMenu] = useState('');
     const [isOpen, setIsOpen] = useState(false);
-
-    useEffect(() => {
-        const handleScroll = () => {
-            if (window.scrollY > 50) {
-                setIsSticky(true);
-            } else {
-                setIsSticky(false);
-            }
-        };
-
-        window.addEventListener('scroll', handleScroll);
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-        };
-    }, []);
 
     const toggleMode = () => {
         setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
@@ -38,14 +21,8 @@ const Header = () => {
 
     return (
         <>
-            <header
-                className={`sticky top-0 z-2 ${
-                    isSticky ? 'bg-background shadow-md fixed w-full' : 'bg-transparent'
-                }`}
-            >
-                <nav
-                    className={`rounded-none  py-4 sm:ps-6 max-w-full! sm:pe-10 dark:bg-dark flex justify-between items-center px-6`}
-                >
+            <header className="sticky top-0 z-10 w-full shrink-0 bg-background/80 backdrop-blur-md border-b border-border transition-colors duration-200">
+                <nav className="flex justify-between items-center py-3 px-4 sm:px-6 lg:px-8 max-w-full">
                     {/* LEFT SECTION */}
                     <div className="flex items-center gap-2">
                         {/* Hamburger for mobile */}

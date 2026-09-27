@@ -97,48 +97,48 @@ main {
 }
 
 :root {
-    --radius: 10px;
+    --radius: 12px;
     --background: var(--white);
     --foreground: var(--dark);
     --card: var(--white);
-    --card-foreground: var(--link);
+    --card-foreground: var(--dark);
     --popover: var(--white);
-    --popover-foreground: var(--link);
-    --primary: #5d87ff;
+    --popover-foreground: var(--dark);
+    --primary: #4f46e5; /* Elegant Indigo */
     --primary-foreground: var(--white);
-    --secondary: #49beff;
+    --secondary: #0ea5e9; /* Modern Sky Blue */
     --secondary-foreground: var(--white);
-    --muted: #f5f5f5;
-    --muted-foreground: #5a6a85bf;
+    --muted: #f1f5f9; /* Slate 100 */
+    --muted-foreground: #64748b; /* Slate 500 */
     --accent: var(--lightprimary);
     --accent-foreground: var(--primary);
     --destructive: var(--error);
     --destructive-foreground: var(--white);
-    --border: #dfe5ef;
-    --input: #e5e7eb;
-    --ring: var(--lightprimary);
+    --border: #e2e8f0; /* Slate 200 */
+    --input: #e2e8f0; /* Slate 200 */
+    --ring: var(--primary);
     --chart-1: var(--primary);
     --chart-2: var(--secondary);
     --chart-3: var(--success);
     --chart-4: var(--warning);
     --chart-5: var(--error);
     --sidebar: var(--white);
-    --sidebar-foreground: #2a3547;
+    --sidebar-foreground: #0f172a;
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--white);
-    --sidebar-accent: var(--lightprimary);
+    --sidebar-accent: #f8fafc;
     --sidebar-accent-foreground: var(--primary);
     --sidebar-border: var(--border);
-    --sidebar-ring: #a1a1a1;
+    --sidebar-ring: var(--primary);
 
     /* CUSTOM COLORS */
-    --info: #8754ec;
-    --success: #13deb9;
-    --warning: #f6b51e;
-    --error: #ef4444;
+    --info: #8b5cf6; /* Violet 500 */
+    --success: #10b981; /* Emerald 500 */
+    --warning: #f59e0b; /* Amber 500 */
+    --error: #ef4444; /* Red 500 */
     --white: #ffffff;
-    --dark: #1c2536;
-    --bodytext: #5a6a85bf;
+    --dark: #0f172a; /* Slate 900 */
+    --bodytext: #475569; /* Slate 600 */
 
     /* Light Variants */
     --lightprimary: color-mix(in oklab, var(--primary) 12%, transparent);
@@ -158,46 +158,46 @@ main {
 }
 
 .dark {
-    --background: var(--dark);
+    --background: #020817; /* Slate 950 */
     --foreground: var(--white);
-    --card: var(--dark);
+    --card: #0f172a; /* Slate 900 */
     --card-foreground: var(--white);
-    --popover: #333f55;
+    --popover: #0f172a; /* Slate 900 */
     --popover-foreground: var(--white);
-    --primary: #5d87ff;
+    --primary: #4f46e5; /* Elegant Indigo */
     --primary-foreground: var(--white);
-    --secondary: #49beff;
+    --secondary: #0ea5e9; /* Modern Sky Blue */
     --secondary-foreground: var(--white);
-    --muted: #2a3851;
-    --muted-foreground: #7c8fac;
+    --muted: #1e293b; /* Slate 800 */
+    --muted-foreground: #94a3b8; /* Slate 400 */
     --accent: var(--accent);
     --accent-foreground: var(--accent-foreground);
     --destructive: var(--error);
-    --border: #333f55;
-    --input: var(--border);
-    --ring: var(--lightprimary);
+    --border: #1e293b; /* Slate 800 */
+    --input: #1e293b; /* Slate 800 */
+    --ring: var(--primary);
     --chart-1: var(--primary);
     --chart-2: var(--secondary);
     --chart-3: var(--success);
     --chart-4: var(--warning);
     --chart-5: var(--error);
-    --sidebar: var(--dark);
-    --sidebar-foreground: #7c8fac;
+    --sidebar: #020817; /* Slate 950 */
+    --sidebar-foreground: #cbd5e1; /* Slate 300 */
     --sidebar-primary: var(--sidebar-primary);
     --sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --sidebar-accent: var(--sidebar-accent);
-    --sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --sidebar-border: var(--sidebar-border);
-    --sidebar-ring: var(--sidebar-ring);
+    --sidebar-accent: #1e293b;
+    --sidebar-accent-foreground: var(--white);
+    --sidebar-border: #1e293b;
+    --sidebar-ring: var(--primary);
 
     /* CUSTOM COLORS */
-    --info: #8754ec;
-    --success: #13deb9;
-    --warning: #f6b51e;
+    --info: #8b5cf6;
+    --success: #10b981;
+    --warning: #f59e0b;
     --error: #ef4444;
     --white: #ffffff;
-    --dark: #1c2536;
-    --bodytext: #5a6a85bf;
+    --dark: #0f172a;
+    --bodytext: #94a3b8;
 
     /* Light Variants */
     --lightprimary: color-mix(in oklab, var(--primary) 20%, transparent);

@@ -7,6 +7,7 @@ import { db } from '@/lib/db/db';
 export interface UserProfileData {
     nik: string;
     email: string;
+    emailVerified: boolean;
     name: string;
     is_active: boolean;
     employee_name: string | null;
@@ -42,6 +43,7 @@ export async function getProfileData(): Promise<{
             .select([
                 'u.nik',
                 'u.email',
+                'u.emailVerified',
                 'u.name',
                 'u.is_active',
                 sql<any>`u.lensa_acount`.as('lensa_acount'),
@@ -66,6 +68,7 @@ export async function getProfileData(): Promise<{
             data: {
                 nik: profileData.nik,
                 email: profileData.email,
+                emailVerified: profileData.emailVerified,
                 name: profileData.name,
                 is_active: profileData.is_active ?? false,
                 employee_name: profileData.employee_name,

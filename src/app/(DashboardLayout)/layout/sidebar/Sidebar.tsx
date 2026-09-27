@@ -148,7 +148,7 @@ const SidebarLayout = ({
             {/* Sidebar items */}
 
             <SimpleBar className="h-[calc(100vh-100px)]">
-                <div className="px-6">
+                <div className="px-4">
                     {filteredSidebarContent.map((section, index) => (
                         <div key={index}>
                             {renderSidebarItems(

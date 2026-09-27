@@ -1,6 +1,7 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Loader2, Send } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -31,8 +32,7 @@ export default function ForgotPasswordPage() {
         setError(null);
 
         try {
-            // @ts-expect-error - forgetPassword exists in plugin/core but might be untyped in this version
-            const result = await authClient.forgetPassword({
+            const result = await (authClient as any).requestPasswordReset({
                 email,
                 redirectTo: '/auth/reset-password',
             });
@@ -104,14 +104,34 @@ export default function ForgotPasswordPage() {
                         </p>
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={isLoading}>
+                    <Button
+                        type="submit"
+                        className="w-full relative overflow-hidden group h-10"
+                        disabled={isLoading}
+                    >
                         {isLoading ? (
-                            <>
-                                <Loader2 className="size-4 animate-spin mr-2" />
-                                Mengirim...
-                            </>
+                            <div className="flex items-center justify-center w-full h-full relative">
+                                <motion.div
+                                    className="absolute"
+                                    initial={{ left: '-10%', y: 10, opacity: 0 }}
+                                    animate={{ left: '110%', y: -10, opacity: [0, 1, 1, 0] }}
+                                    transition={{
+                                        duration: 1.5,
+                                        repeat: Infinity,
+                                        ease: 'easeInOut',
+                                    }}
+                                >
+                                    <Send className="size-5" />
+                                </motion.div>
+                                <span className="z-10 bg-primary/80 px-2 rounded backdrop-blur-sm">
+                                    Mengirim...
+                                </span>
+                            </div>
                         ) : (
-                            'Kirim Link Reset'
+                            <div className="flex items-center justify-center w-full h-full">
+                                <Send className="size-4 mr-2 transition-transform duration-300 group-hover:translate-x-2 group-hover:-translate-y-2" />
+                                <span>Kirim Link Reset</span>
+                            </div>
                         )}
                     </Button>
                 </form>

@@ -59,7 +59,18 @@ export default function UserTable({ data }: UserTableProps) {
     const columns = [
         columnHelper.accessor('name', {
             header: 'Name',
-            cell: (info) => <span className="font-medium">{info.getValue() || '-'}</span>,
+            cell: (info) => {
+                const isOnline = info.row.original.is_online;
+                return (
+                    <div className="flex items-center gap-2">
+                        <div
+                            className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-gray-300 dark:bg-gray-600'}`}
+                            title={isOnline ? 'Online' : 'Offline'}
+                        />
+                        <span className="font-medium">{info.getValue() || '-'}</span>
+                    </div>
+                );
+            },
         }),
         columnHelper.accessor('email', {
             header: 'Email',

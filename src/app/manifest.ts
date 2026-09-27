@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'Tailwind Admin Dashboard',
-        short_name: 'TailwindAdmin',
+        name: "Warehouse Monitoring Transaction Material's System",
+        short_name: 'WarehouseMTMS',
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',
