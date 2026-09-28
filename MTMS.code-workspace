@@ -13,6 +13,14 @@
       "path": "../../../Movies/ui-ux-pro-max-skill-main"
     },
     {
+      "name": "next.js-canary",
+      "path": "../../../Movies/next.js-canary"
+    },
+    {
+      "name": "agent-rules-books-main",
+      "path": "../../../Movies/agent-rules-books-main"
+    },
+    {
       "name": "gresikV2",
       "path": "../gresikV2"
     }
