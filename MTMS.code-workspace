@@ -13,12 +13,28 @@
       "path": "../../../Movies/ui-ux-pro-max-skill-main"
     },
     {
+      "name": "ui-ux-hallmark-main",
+      "path": "../../../Movies/ui-ux-hallmark-main"
+    },
+    {
       "name": "next.js-canary",
       "path": "../../../Movies/next.js-canary"
     },
     {
       "name": "agent-rules-books-main",
       "path": "../../../Movies/agent-rules-books-main"
+    },
+    {
+      "name": "SecOpsAgentKit-main",
+      "path": "../../../Movies/SecOpsAgentKit-main"
+    },
+    {
+      "name": "claude-cybersecurity-main",
+      "path": "../../../Movies/claude-cybersecurity-main"
+    },
+    {
+      "name": "Anthropic-Cybersecurity-Skills-main",
+      "path": "../../../Movies/Anthropic-Cybersecurity-Skills-main"
     },
     {
       "name": "gresikV2",

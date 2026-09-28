@@ -14,7 +14,7 @@ export function PresenceHeartbeat() {
             if (!isMounted) return;
             try {
                 const res = await fetch('/api/presence', { method: 'POST' });
-                
+
                 // Only force logout if server explicitly says so
                 if (res.status === 401) {
                     try {
@@ -37,7 +37,7 @@ export function PresenceHeartbeat() {
         const timeout = setTimeout(() => {
             sendHeartbeat();
         }, 5000);
-        
+
         const interval = setInterval(sendHeartbeat, 30000); // every 30 seconds
 
         return () => {
