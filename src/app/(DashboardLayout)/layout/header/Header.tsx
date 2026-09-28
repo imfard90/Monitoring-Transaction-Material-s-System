@@ -26,12 +26,14 @@ const Header = () => {
                     {/* LEFT SECTION */}
                     <div className="flex items-center gap-2">
                         {/* Hamburger for mobile */}
-                        <div
+                        <button
+                            type="button"
                             onClick={() => setIsOpen(true)}
                             className="xl:hidden px-3 hover:text-primary text-foreground relative after:absolute after:w-10 after:h-10 after:rounded-full hover:after:bg-lightprimary after:bg-transparent rounded-full flex justify-center items-center cursor-pointer"
+                            aria-label="Open sidebar menu"
                         >
                             <Icon icon="tabler:menu-2" height={20} width={20} />
-                        </div>
+                        </button>
                         {/* Logo for mobile */}
                         <div className="xl:hidden block ml-2">
                             <FullLogo />
@@ -45,9 +47,11 @@ const Header = () => {
                     {/* RIGHT SECTION */}
                     <div className="flex items-center gap-3 sm:gap-4">
                         {/* Theme Toggle */}
-                        <div
+                        <button
+                            type="button"
                             className="hover:text-primary group focus:ring-0 rounded-full flex justify-center items-center cursor-pointer relative"
                             onClick={toggleMode}
+                            aria-label="Toggle dark/light mode"
                         >
                             <span className="flex items-center justify-center relative after:absolute after:w-10 after:h-10 after:rounded-full after:-top-1/2 group-hover:after:bg-lightprimary">
                                 {theme === 'light' ? (
@@ -64,7 +68,7 @@ const Header = () => {
                                     />
                                 )}
                             </span>
-                        </div>
+                        </button>
 
                         {/* Notifications */}
                         <Notifications />

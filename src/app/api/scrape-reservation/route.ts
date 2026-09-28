@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getProfileData } from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
 import { scrapeReservation } from '../../../../.external_scrapping/lensa-scraper';

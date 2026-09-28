@@ -33,12 +33,7 @@ export default function MFAPage({ mode = 'verify', userId, onSuccess }: MFAPageP
         setError(null);
 
         try {
-            let result;
-            if (mode === 'setup') {
-                result = await authClient.twoFactor.verifyTotp({ code: otpCode });
-            } else {
-                result = await authClient.twoFactor.verifyTotp({ code: otpCode });
-            }
+            const result = await authClient.twoFactor.verifyTotp({ code: otpCode });
 
             if (result.error) {
                 throw new Error(result.error.message || 'Verifikasi gagal');

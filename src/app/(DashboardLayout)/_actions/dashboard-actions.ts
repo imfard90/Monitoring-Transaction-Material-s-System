@@ -25,9 +25,9 @@ export async function getStockBalances() {
             .execute();
 
         return { success: true, data: balances };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch stock balances:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 
@@ -61,9 +61,9 @@ export async function getDashboardStockIntech() {
         const data = await query.orderBy('wh.branch', 'asc').orderBy('t.name', 'asc').execute();
 
         return { success: true, data };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch dashboard stock intech:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 
@@ -134,9 +134,9 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
         }
 
         return { success: true, data: { dates, outMaterial, hasilRekon } };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch sales overview:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 
@@ -161,9 +161,9 @@ export async function getTopOutMaterials(limit: number = 7) {
             .execute();
 
         return { success: true, data };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch top out materials:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 
@@ -227,9 +227,9 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
         const dailyData = await dailyQuery.execute();
 
         return { success: true, data: { topMats, dailyData, startDate: thirtyDaysAgo } };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch out material line chart data:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 
@@ -252,9 +252,9 @@ export async function getWarehousePerformance() {
             .execute();
 
         return { success: true, data };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch warehouse performance:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 
@@ -267,9 +267,9 @@ export async function getWarehouses() {
             .execute();
 
         return { success: true, data };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch warehouses:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 export async function getStockWarnings() {
@@ -300,7 +300,7 @@ export async function getStockWarnings() {
             .execute();
 
         return { success: true, data };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch stock warnings:', error);
         return { success: false, data: [] };
     }

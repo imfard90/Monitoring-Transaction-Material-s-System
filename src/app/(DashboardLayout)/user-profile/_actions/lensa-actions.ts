@@ -1,6 +1,6 @@
 'use server';
 
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
@@ -15,7 +15,7 @@ function encrypt(text: string) {
     const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(SECRET_KEY), iv);
     let encrypted = cipher.update(text);
     encrypted = Buffer.concat([encrypted, cipher.final()]);
-    return iv.toString('hex') + ':' + encrypted.toString('hex');
+    return `${iv.toString('hex')}:${encrypted.toString('hex')}`;
 }
 
 export async function saveLensaAccount(username: string, passwordRaw: string) {

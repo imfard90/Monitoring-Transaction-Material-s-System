@@ -102,8 +102,8 @@ export function TechnicianDialog({
                 });
                 toast.success(`Technician successfully ${initialData ? 'updated' : 'inserted'}`);
                 onOpenChange(false);
-            } catch (error: any) {
-                toast.error(error.message || 'Failed to save technician');
+            } catch (error: unknown) {
+                toast.error(error instanceof Error ? error.message : 'Failed to save technician');
             }
         });
     };

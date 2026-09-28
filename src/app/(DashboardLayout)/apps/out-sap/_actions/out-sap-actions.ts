@@ -58,9 +58,9 @@ export async function getOutSaps() {
         };
 
         return { success: true, data: saps, counts };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch Out SAPs:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 
@@ -83,9 +83,9 @@ export async function getOutSapItemsByHeaderId(headerId: number | string) {
             .execute();
 
         return { success: true, data: items };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch items:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 
@@ -98,7 +98,7 @@ export async function getTechnicianByNik(nik: string) {
             .where('t.nik', '=', nik)
             .executeTakeFirst();
         return { success: true, data: t };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch technician by nik:', error);
         return { success: false, data: null };
     }
@@ -114,7 +114,7 @@ export async function getTechnicians(sa?: string) {
         }
         const technicians = await query.execute();
         return { success: true, data: technicians };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch technicians:', error);
         return { success: false, data: [] };
     }
@@ -268,9 +268,9 @@ export async function createOutSap(payload: any) {
         revalidatePath('/stock-inventory');
         revalidatePath('/apps/out-material');
         return { success: true, header_id: result };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to create Out SAP:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 
@@ -307,8 +307,8 @@ export async function updateOutSapStatusToIntech(headerId: number | string) {
         revalidatePath('/stock-inventory');
         revalidatePath('/apps/out-material');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to update status to intech:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }

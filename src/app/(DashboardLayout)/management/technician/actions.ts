@@ -24,7 +24,7 @@ export async function getTechnicians() {
             .execute();
 
         return technicians;
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch technicians:', error);
         throw new Error('Failed to load technicians');
     }
@@ -37,7 +37,7 @@ export async function getBranches() {
             .select(['id', 'service_area', 'branch'])
             .orderBy('service_area', 'asc')
             .execute();
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch branches:', error);
         return [];
     }
@@ -50,7 +50,7 @@ export async function getMitras() {
             .select(['id', 'mitra_name'])
             .orderBy('mitra_name', 'asc')
             .execute();
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to fetch mitras:', error);
         return [];
     }
@@ -67,7 +67,7 @@ export async function toggleTechnicianStatus(id: string | number, isActive: bool
 
         revalidatePath('/management/technician');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to toggle technician status:', error);
         throw new Error('Failed to update status');
     }
@@ -108,7 +108,7 @@ export async function upsertTechnician(data: {
 
         revalidatePath('/management/technician');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to upsert technician:', error);
         throw new Error('Failed to save technician');
     }

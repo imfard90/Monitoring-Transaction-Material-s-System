@@ -216,7 +216,7 @@ const DataTable = <T extends Record<string, unknown>>({ data = [] }: DynamicTabl
                             <div className="flex flex-col">
                                 {keys.map((k) => {
                                     const val = rest[k];
-                                    let displayValue;
+                                    let displayValue: React.ReactNode;
 
                                     const isTimestamp = (v: unknown) => {
                                         if (typeof v !== 'string') return false;

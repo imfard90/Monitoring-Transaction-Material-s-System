@@ -240,7 +240,7 @@ export async function createTag(payload: {
     } catch (error: unknown) {
         console.error('Error creating tag:', error);
 
-        if ((error as any).code === '23505') {
+        if (error instanceof Error && 'code' in error && (error as { code: string }).code === '23505') {
             return {
                 success: false,
                 error: 'ID (Request/Send/Accept) sudah pernah digunakan di transaksi lain.',
@@ -317,14 +317,14 @@ export async function updateTag(payload: {
     } catch (error: unknown) {
         console.error('Failed to update tag:', error);
 
-        if ((error as any).code === '23505') {
+        if (error instanceof Error && 'code' in error && (error as { code: string }).code === '23505') {
             return {
                 success: false,
                 error: 'ID (Request/Send/Accept) sudah pernah digunakan di transaksi lain. Harap gunakan ID yang unik.',
             };
         }
 
-        return { success: false, error: (error as any).message || 'Failed to update tag.' };
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to update tag.' };
     }
 }
 

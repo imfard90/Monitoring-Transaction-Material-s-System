@@ -33,8 +33,8 @@ export default function UserTable({ data }: UserTableProps) {
             try {
                 await toggleUserStatus(userId, !currentStatus);
                 toast.success(`User status ${currentStatus ? 'deactivated' : 'activated'}`);
-            } catch (error: any) {
-                toast.error(error.message || 'Failed to update user status');
+            } catch (error: unknown) {
+                toast.error(error instanceof Error ? error.message : 'Failed to update user status');
             }
         });
     };
@@ -49,8 +49,8 @@ export default function UserTable({ data }: UserTableProps) {
                 try {
                     await deleteUser(userId);
                     toast.success('User deleted successfully');
-                } catch (error: any) {
-                    toast.error(error.message || 'Failed to delete user');
+                } catch (error: unknown) {
+                    toast.error(error instanceof Error ? error.message : 'Failed to delete user');
                 }
             });
         }

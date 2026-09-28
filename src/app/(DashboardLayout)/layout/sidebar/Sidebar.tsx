@@ -74,7 +74,14 @@ const renderSidebarItems = (
             : `mt-0.5 text-sidebar-foreground dark:text-sidebar-foreground`;
 
         return (
-            <div onClick={onClose} key={index}>
+            <div
+                onClick={onClose}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') onClose?.();
+                }}
+                role="presentation"
+                key={index}
+            >
                 <AMMenuItem
                     key={item.id}
                     icon={iconElement}

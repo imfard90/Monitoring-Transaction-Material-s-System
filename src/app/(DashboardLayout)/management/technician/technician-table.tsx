@@ -60,8 +60,8 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
             try {
                 await toggleTechnicianStatus(id, !currentStatus);
                 toast.success(`Technician status ${currentStatus ? 'deactivated' : 'activated'}`);
-            } catch (error: any) {
-                toast.error(error.message || 'Failed to update status');
+            } catch (error: unknown) {
+                toast.error(error instanceof Error ? error.message : 'Failed to update status');
             }
         });
     };
