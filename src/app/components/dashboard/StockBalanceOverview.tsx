@@ -11,6 +11,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Check, ChevronsUpDown, Search } from 'lucide-react';
 import React, { useState } from 'react';
 import { getStockBalances } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
+
+interface StockBalanceData {
+    warehouse_name: string | null;
+    material_name: string | null;
+    material_code: string | null;
+    qty_stock: number;
+}
+
 import CardBox from '@/app/components/shared/CardBox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,12 +54,14 @@ export default function StockBalanceOverview() {
     const balances = data || [];
 
     const uniqueWhs = React.useMemo(() => {
-        const set = new Set(balances.map((b: any) => b.warehouse_name).filter(Boolean));
+        const set = new Set(
+            balances.map((b: StockBalanceData) => b.warehouse_name).filter(Boolean)
+        );
         return Array.from(set).sort() as string[];
     }, [balances]);
 
     const filteredBalances = React.useMemo(() => {
-        return balances.filter((b: any) => {
+        return balances.filter((b: StockBalanceData) => {
             const matchesWh = whFilter === 'all' || b.warehouse_name === whFilter;
 
             if (!searchQuery) return matchesWh;

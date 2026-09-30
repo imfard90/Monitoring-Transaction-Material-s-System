@@ -2,11 +2,20 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { redis } from '@/lib/redis';
+import { rateLimit } from '@/lib/security/rate-limit';
 
 export async function POST() {
     try {
+        const reqHeaders = await headers();
+
+        const ip = reqHeaders.get('x-forwarded-for') || 'unknown';
+        const { success } = await rateLimit(`presence:${ip}`, 30, 60); // 30 req/min
+        if (!success) {
+            return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+        }
+
         const sessionData = await auth.api.getSession({
-            headers: await headers(),
+            headers: reqHeaders,
         });
 
         // No session = not logged in, return 401 WITHOUT forceLogout flag

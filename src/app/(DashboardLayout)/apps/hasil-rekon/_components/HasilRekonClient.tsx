@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
 import { getHasilRekon } from '../_actions/rekon-actions';
@@ -46,7 +46,7 @@ export default function HasilRekonClient({ initialData }: HasilRekonClientProps)
         setMaterialFilter('all');
     };
 
-    const loadMore = async () => {
+    const loadMore = useCallback(async () => {
         if (isLoadingMore || !hasMoreData) return;
         setIsLoadingMore(true);
         try {
@@ -63,7 +63,7 @@ export default function HasilRekonClient({ initialData }: HasilRekonClientProps)
         } finally {
             setIsLoadingMore(false);
         }
-    };
+    }, [isLoadingMore, hasMoreData, monthsOffset]);
 
     const filteredData = useMemo(() => {
         return data.filter((item) => {
@@ -124,7 +124,7 @@ export default function HasilRekonClient({ initialData }: HasilRekonClientProps)
             }, 800);
             return () => clearTimeout(timeout);
         }
-    }, [searchQuery, filteredData.length, hasMoreData, isLoadingMore]);
+    }, [searchQuery, filteredData.length, hasMoreData, isLoadingMore, loadMore]);
 
     return (
         <motion.div

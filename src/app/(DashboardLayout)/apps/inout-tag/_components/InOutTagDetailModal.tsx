@@ -2,10 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
 import { getInOutTagItems } from '../_actions/tag-actions';
 
 interface InOutTagDetailModalProps {
-    row: any | null;
+    row: InOutTagRow | null;
     isOpen: boolean;
     onClose: () => void;
 }
@@ -18,22 +19,22 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
         queryKey: ['inoutTagItems', headerId],
         queryFn: async () => {
             if (headerId === null) return { success: false, data: [] };
-            const res = await getInOutTagItems(headerId);
+            const res = await getInOutTagItems(Number(headerId));
             if (!res.success) throw new Error('Failed to fetch items');
             return res;
         },
         enabled: headerId !== null,
     });
 
-    let items = data?.data || [];
+    let items: InOutTagItem[] = data?.data || [];
 
     // Filter items based on the current status of the header
     if (status === 'requested') {
-        items = items.filter((item: any) => item.action === 'request');
+        items = items.filter((item: InOutTagItem) => item.action === 'request');
     } else if (status === 'in_transit') {
-        items = items.filter((item: any) => item.action === 'send');
+        items = items.filter((item: InOutTagItem) => item.action === 'send');
     } else if (status === 'closed') {
-        items = items.filter((item: any) => item.action === 'accept');
+        items = items.filter((item: InOutTagItem) => item.action === 'accept');
     }
 
     return (
@@ -62,7 +63,7 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {items.map((item: any, idx: number) => (
+                                    {items.map((item: InOutTagItem, idx: number) => (
                                         <tr
                                             key={item.id}
                                             className="bg-white border-b hover:bg-gray-50"

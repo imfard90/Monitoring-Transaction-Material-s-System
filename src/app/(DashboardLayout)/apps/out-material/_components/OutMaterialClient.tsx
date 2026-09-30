@@ -1,9 +1,12 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { endOfDay, isWithinInterval, startOfDay } from 'date-fns';
 import { motion } from 'framer-motion';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
+import type { OutMaterialRow } from '@/lib/types/inventory';
 import { getOutMaterials } from '../_actions/out-material-actions';
 import OutMaterialCards from './OutMaterialCards';
 import OutMaterialDetailModal from './OutMaterialDetailModal';
@@ -13,9 +16,10 @@ export default function OutMaterialClient() {
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [whFilter, setWhFilter] = useState<string>('all');
-    const [detailRow, setDetailRow] = useState<any | null>(null);
+    const [dateFilter, setDateFilter] = useState<DateRange | undefined>();
+    const [detailRow, setDetailRow] = useState<OutMaterialRow | null>(null);
 
-    const { data, isLoading, error } = useQuery({
+    const { data, isLoading } = useQuery({
         queryKey: ['outMaterials'],
         queryFn: async () => {
             const res = await getOutMaterials();
@@ -29,7 +33,7 @@ export default function OutMaterialClient() {
     const counts = data?.counts || { wait_approve: 0, request: 0, intech: 0, close: 0 };
 
     const whOptions = React.useMemo(() => {
-        const set = new Set(headers.map((h: any) => h.nama_gudang).filter(Boolean));
+        const set = new Set(headers.map((h: OutMaterialRow) => h.nama_gudang).filter(Boolean));
         return Array.from(set).sort() as string[];
     }, [headers]);
 
@@ -38,7 +42,7 @@ export default function OutMaterialClient() {
     const [hasMoreData, setHasMoreData] = useState(true);
     const queryClient = useQueryClient();
 
-    const loadMore = async () => {
+    const loadMore = useCallback(async () => {
         if (isLoadingMore || !hasMoreData) return;
         setIsLoadingMore(true);
         try {
@@ -47,13 +51,16 @@ export default function OutMaterialClient() {
             if (!res.success || !res.data || res.data.length === 0) {
                 setHasMoreData(false);
             } else {
-                queryClient.setQueryData(['outMaterials'], (old: any) => {
-                    if (!old) return old;
-                    return {
-                        ...old,
-                        data: [...old.data, ...res.data],
-                    };
-                });
+                queryClient.setQueryData(
+                    ['outMaterials'],
+                    (old: { data: OutMaterialRow[] } | undefined) => {
+                        if (!old) return old;
+                        return {
+                            ...old,
+                            data: [...old.data, ...res.data],
+                        };
+                    }
+                );
                 setMonthsOffset(nextOffset);
             }
         } catch (e) {
@@ -61,14 +68,12 @@ export default function OutMaterialClient() {
         } finally {
             setIsLoadingMore(false);
         }
-    };
+    }, [isLoadingMore, hasMoreData, monthsOffset, queryClient]);
 
     const filteredData = React.useMemo(() => {
-        return headers.filter((header: any) => {
+        return headers.filter((header: OutMaterialRow) => {
             const matchesStatus = filterStatus === 'all' || header.end_status === filterStatus;
             const matchesWh = whFilter === 'all' || header.nama_gudang === whFilter;
-
-            if (!searchQuery) return matchesStatus && matchesWh;
 
             const searchLower = searchQuery.toLowerCase();
             const reqId = header.request_id ? String(header.request_id).toLowerCase() : '';
@@ -76,13 +81,27 @@ export default function OutMaterialClient() {
             const sapNum = header.sap_number ? String(header.sap_number).toLowerCase() : '';
 
             const matchesSearch =
+                !searchQuery ||
                 reqId.includes(searchLower) ||
                 resId.includes(searchLower) ||
                 sapNum.includes(searchLower);
 
-            return matchesStatus && matchesWh && matchesSearch;
+            let matchesDate = true;
+            if (dateFilter?.from && header.request_time) {
+                const rowDate = new Date(header.request_time);
+                if (dateFilter.to) {
+                    matchesDate = isWithinInterval(rowDate, {
+                        start: startOfDay(dateFilter.from),
+                        end: endOfDay(dateFilter.to),
+                    });
+                } else {
+                    matchesDate = rowDate >= startOfDay(dateFilter.from);
+                }
+            }
+
+            return matchesStatus && matchesWh && matchesSearch && matchesDate;
         });
-    }, [headers, filterStatus, whFilter, searchQuery]);
+    }, [headers, filterStatus, whFilter, searchQuery, dateFilter]);
 
     React.useEffect(() => {
         if (
@@ -97,7 +116,14 @@ export default function OutMaterialClient() {
             }, 800);
             return () => clearTimeout(timeout);
         }
-    }, [searchQuery, filteredData.length, hasMoreData, isLoadingMore, isLoading]);
+    }, [searchQuery, filteredData.length, hasMoreData, isLoadingMore, isLoading, loadMore]);
+
+    const handleClearFilters = () => {
+        setFilterStatus('all');
+        setSearchQuery('');
+        setWhFilter('all');
+        setDateFilter(undefined);
+    };
 
     return (
         <motion.div
@@ -132,7 +158,10 @@ export default function OutMaterialClient() {
                         whOptions={whOptions}
                         whFilter={whFilter}
                         onWhChange={setWhFilter}
+                        dateFilter={dateFilter}
+                        onDateFilterChange={setDateFilter}
                         onViewDetail={(row) => setDetailRow(row)}
+                        onClearFilters={handleClearFilters}
                     />
                     {isLoadingMore && (
                         <div className="text-center text-sm text-gray-500 py-2">
@@ -143,7 +172,7 @@ export default function OutMaterialClient() {
             </motion.div>
 
             <OutMaterialDetailModal
-                row={detailRow}
+                row={detailRow as OutMaterialRow}
                 isOpen={detailRow !== null}
                 onClose={() => setDetailRow(null)}
             />

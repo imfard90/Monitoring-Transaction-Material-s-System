@@ -13,8 +13,19 @@ import {
 } from '@/components/ui/table';
 import CardBox from '../shared/CardBox';
 
+interface StockWarning {
+    warehouse_name: string | null;
+    material_code: string | null;
+    average_demand_weekly: string;
+    lead_time_weeks: number;
+    safety_stock_pct: string;
+    min_qty: number;
+    qty_stock: number;
+    deficit: number;
+}
+
 export const StockWarningTable = () => {
-    const [warnings, setWarnings] = useState<any[]>([]);
+    const [warnings, setWarnings] = useState<StockWarning[]>([]);
 
     useEffect(() => {
         const loadData = async () => {
@@ -68,7 +79,7 @@ export const StockWarningTable = () => {
                                     </TableCell>
                                 </motion.tr>
                             ) : (
-                                warnings.map((w, index) => {
+                                warnings.map((w: StockWarning, index: number) => {
                                     const isWarning = w.qty_stock < w.min_qty;
                                     return (
                                         <motion.tr

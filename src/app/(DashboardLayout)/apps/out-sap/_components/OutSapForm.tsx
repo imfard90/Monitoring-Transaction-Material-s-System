@@ -23,6 +23,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
+import type { OutSapFormItem } from '@/lib/types/inventory';
 import {
     createOutSap,
     getBranches,
@@ -47,7 +48,7 @@ export default function OutSapForm() {
         request_id: '',
     });
 
-    const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<OutSapFormItem[]>([]);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
     const { data: techData } = useQuery({
@@ -133,7 +134,7 @@ export default function OutSapForm() {
                 const materialsRes = await getMaterials();
                 const allMaterials = materialsRes.success ? materialsRes.data : [];
 
-                const mappedItems: any[] = [];
+                const mappedItems: OutSapFormItem[] = [];
 
                 scrapedDetail.materials?.forEach((scrapedMat: any) => {
                     const code = (scrapedMat['ID MATERIAL'] || '').trim();
@@ -246,8 +247,8 @@ export default function OutSapForm() {
             idemKey,
             warehouse_id: parseInt(formData.warehouse_id, 10),
             items: items.map((i) => ({
-                designator_id: parseInt(i.designator_id, 10),
-                qty_req: parseInt(i.qty_req, 10),
+                designator_id: Number(i.designator_id),
+                qty_req: Number(i.qty_req),
             })),
         };
 
@@ -550,7 +551,7 @@ export default function OutSapForm() {
                                                                 value: m.id.toString(),
                                                                 label: `${m.code} - ${m.description} (Stock: ${m.qty})`,
                                                             }))}
-                                                            value={item.designator_id}
+                                                            value={item.designator_id.toString()}
                                                             onValueChange={(v) =>
                                                                 handleItemChange(
                                                                     index,
@@ -576,7 +577,7 @@ export default function OutSapForm() {
                                                             disabled={isScraped}
                                                             value={
                                                                 item.qty_req === 0 ||
-                                                                item.qty_req === ''
+                                                                item.qty_req.toString() === ''
                                                                     ? ''
                                                                     : item.qty_req
                                                             }

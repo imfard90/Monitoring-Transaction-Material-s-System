@@ -12,8 +12,15 @@ import {
 } from '@/components/ui/table';
 import CardBox from '../shared/CardBox';
 
+interface WarehousePerformance {
+    key: number;
+    name: string;
+    trxOut: number;
+    trxClose: number;
+}
+
 export const ProductPerformance = () => {
-    const [warehouseData, setWarehouseData] = useState<any[]>([]);
+    const [warehouseData, setWarehouseData] = useState<WarehousePerformance[]>([]);
 
     useEffect(() => {
         const loadData = async () => {
@@ -23,12 +30,14 @@ export const ProductPerformance = () => {
             const result = await getWarehousePerformance();
             if (result.success && result.data) {
                 setWarehouseData(
-                    result.data.map((d: any) => ({
-                        key: String(d.key),
-                        name: d.name,
-                        trxOut: Number(d.trxOut),
-                        trxClose: Number(d.trxClose),
-                    }))
+                    result.data.map(
+                        (d: { key: number; name: string; trxOut: number; trxClose: number }) => ({
+                            key: d.key,
+                            name: d.name,
+                            trxOut: Number(d.trxOut),
+                            trxClose: Number(d.trxClose),
+                        })
+                    )
                 );
             }
         };

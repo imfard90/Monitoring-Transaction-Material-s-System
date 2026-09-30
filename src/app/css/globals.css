@@ -97,23 +97,23 @@ main {
 }
 
 :root {
-    --radius: 12px;
-    --background: var(--white);
-    --foreground: var(--dark);
-    --card: var(--white);
-    --card-foreground: var(--dark);
-    --popover: var(--white);
-    --popover-foreground: var(--dark);
-    --primary: #4f46e5; /* Elegant Indigo */
-    --primary-foreground: var(--white);
-    --secondary: #0ea5e9; /* Modern Sky Blue */
-    --secondary-foreground: var(--white);
+    --radius: 8px; /* Slightly denser UI radius */
+    --background: #f8fafc; /* Slate 50 */
+    --foreground: #0f172a; /* Slate 900 */
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+    --primary: #1e40af; /* Blue 800 */
+    --primary-foreground: #ffffff;
+    --secondary: #3b82f6; /* Blue 500 */
+    --secondary-foreground: #ffffff;
     --muted: #f1f5f9; /* Slate 100 */
     --muted-foreground: #64748b; /* Slate 500 */
     --accent: var(--lightprimary);
     --accent-foreground: var(--primary);
-    --destructive: var(--error);
-    --destructive-foreground: var(--white);
+    --destructive: #ef4444; /* Red 500 */
+    --destructive-foreground: #ffffff;
     --border: #e2e8f0; /* Slate 200 */
     --input: #e2e8f0; /* Slate 200 */
     --ring: var(--primary);
@@ -122,19 +122,19 @@ main {
     --chart-3: var(--success);
     --chart-4: var(--warning);
     --chart-5: var(--error);
-    --sidebar: var(--white);
+    --sidebar: #ffffff;
     --sidebar-foreground: #0f172a;
     --sidebar-primary: var(--primary);
-    --sidebar-primary-foreground: var(--white);
+    --sidebar-primary-foreground: #ffffff;
     --sidebar-accent: #f8fafc;
     --sidebar-accent-foreground: var(--primary);
     --sidebar-border: var(--border);
     --sidebar-ring: var(--primary);
 
     /* CUSTOM COLORS */
-    --info: #8b5cf6; /* Violet 500 */
+    --info: #0ea5e9; /* Sky 500 */
     --success: #10b981; /* Emerald 500 */
-    --warning: #f59e0b; /* Amber 500 */
+    --warning: #d97706; /* Amber 600 */
     --error: #ef4444; /* Red 500 */
     --white: #ffffff;
     --dark: #0f172a; /* Slate 900 */
@@ -159,20 +159,20 @@ main {
 
 .dark {
     --background: #020817; /* Slate 950 */
-    --foreground: var(--white);
+    --foreground: #f8fafc; /* Slate 50 */
     --card: #0f172a; /* Slate 900 */
-    --card-foreground: var(--white);
+    --card-foreground: #f8fafc;
     --popover: #0f172a; /* Slate 900 */
-    --popover-foreground: var(--white);
-    --primary: #4f46e5; /* Elegant Indigo */
-    --primary-foreground: var(--white);
-    --secondary: #0ea5e9; /* Modern Sky Blue */
-    --secondary-foreground: var(--white);
+    --popover-foreground: #f8fafc;
+    --primary: #3b82f6; /* Blue 500 */
+    --primary-foreground: #ffffff;
+    --secondary: #1d4ed8; /* Blue 700 */
+    --secondary-foreground: #ffffff;
     --muted: #1e293b; /* Slate 800 */
     --muted-foreground: #94a3b8; /* Slate 400 */
     --accent: var(--accent);
     --accent-foreground: var(--accent-foreground);
-    --destructive: var(--error);
+    --destructive: #ef4444; /* Red 500 */
     --border: #1e293b; /* Slate 800 */
     --input: #1e293b; /* Slate 800 */
     --ring: var(--primary);
@@ -191,10 +191,10 @@ main {
     --sidebar-ring: var(--primary);
 
     /* CUSTOM COLORS */
-    --info: #8b5cf6;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --error: #ef4444;
+    --info: #38bdf8; /* Sky 400 */
+    --success: #10b981; /* Emerald 500 */
+    --warning: #fbbf24; /* Amber 400 */
+    --error: #ef4444; /* Red 500 */
     --white: #ffffff;
     --dark: #0f172a;
     --bodytext: #94a3b8;

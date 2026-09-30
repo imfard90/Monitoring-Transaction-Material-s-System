@@ -2,9 +2,30 @@
 
 import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
+
+const rekonItemSchema = z.object({
+    sap_out_id: z.string().min(1),
+    id_trx: z.string().min(1),
+    sap_number: z.string().nullable(),
+    name_sa: z.string().min(1),
+    name_wh: z.string().nullable(),
+    designator_id: z.number().int().positive(),
+    sap_out_item_id: z.string().min(1),
+    qty: z.number().positive(),
+    wo_type: z.any(),
+    wo_number: z.string().min(1),
+    notes: z.string(),
+});
+
+const submitRekonIntechSchema = z.object({
+    nik: z.string().min(1),
+    items: z.array(rekonItemSchema).min(1),
+    idemKey: z.string().min(1),
+});
 
 export async function getTechniciansWithIntechSaps() {
     try {
@@ -84,8 +105,13 @@ export type RekonItemPayload = {
 export async function submitRekonIntech(nik: string, items: RekonItemPayload[], idemKey: string) {
     if (!idemKey) return { success: false, error: 'Security constraint: Idempotency key required' };
 
+    const parsed = submitRekonIntechSchema.safeParse({ nik, items, idemKey });
+    if (!parsed.success) {
+        return { success: false, error: 'Invalid input data: ' + parsed.error.issues[0].message };
+    }
+
     try {
-        const { isDuplicate, result } = await checkAndStoreIdempotency(
+        const { isDuplicate, result: _result } = await checkAndStoreIdempotency(
             idemKey,
             { nik, items },
             async (data) => {
@@ -181,7 +207,7 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
                             await trx
                                 .updateTable('inventory.sap_out_header')
                                 .set({ end_status: 'close' })
-                                .where('id', '=', first.sap_out_id as any)
+                                .where('id', '=', String(first.sap_out_id))
                                 .execute();
                         }
                     }

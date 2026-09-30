@@ -1,9 +1,48 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
+
+const createTagSchema = z.object({
+    fromWhId: z.number().int().positive(),
+    toWhId: z.number().int().positive(),
+    requestId: z.string().optional().nullable(),
+    vendorName: z.string().optional().nullable(),
+    cost: z.number().nonnegative(),
+    items: z
+        .array(
+            z.object({
+                designator_id: z.number().int().positive(),
+                qty: z.number().positive(),
+            })
+        )
+        .min(1),
+    idemKey: z.string().min(1),
+});
+
+const updateTagSchema = z.object({
+    headerId: z.number().int().positive(),
+    actionType: z.enum(['request', 'send', 'accept']),
+    actionId: z.string().min(1),
+    items: z
+        .array(
+            z.object({
+                designator_id: z.number().int().positive(),
+                qty: z.number().positive(),
+            })
+        )
+        .min(1),
+    idemKey: z.string().min(1),
+});
+
+const acceptReturnTagSchema = z.object({
+    headerId: z.number().int().positive(),
+    acceptId: z.string().min(1),
+    idemKey: z.string().min(1),
+});
 
 export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
     try {
@@ -127,7 +166,7 @@ export async function getInOutTagItems(headerId: number) {
                 'm.code as designator_code',
                 'm.description as material_description',
             ])
-            .where('i.header_id', '=', String(headerId) as any)
+            .where('i.header_id', '=', String(headerId))
             .execute();
 
         return { success: true, data: items };
@@ -210,6 +249,11 @@ export async function createTag(payload: {
     if (!payload.idemKey)
         return { success: false, error: 'Security constraint: Idempotency key required' };
 
+    const parsed = createTagSchema.safeParse(payload);
+    if (!parsed.success) {
+        return { success: false, error: 'Invalid input data: ' + parsed.error.issues[0].message };
+    }
+
     try {
         const { isDuplicate, result } = await checkAndStoreIdempotency(
             payload.idemKey,
@@ -240,7 +284,11 @@ export async function createTag(payload: {
     } catch (error: unknown) {
         console.error('Error creating tag:', error);
 
-        if (error instanceof Error && 'code' in error && (error as { code: string }).code === '23505') {
+        if (
+            error instanceof Error &&
+            'code' in error &&
+            (error as { code: string }).code === '23505'
+        ) {
             return {
                 success: false,
                 error: 'ID (Request/Send/Accept) sudah pernah digunakan di transaksi lain.',
@@ -267,7 +315,7 @@ export async function getInoutTagItemsByHeaderId(headerId: number) {
                 'mat.description',
                 'mat.unit',
             ])
-            .where('items.header_id', '=', String(headerId) as any)
+            .where('items.header_id', '=', String(headerId))
             .execute();
 
         return { success: true, data: items };
@@ -286,6 +334,11 @@ export async function updateTag(payload: {
 }) {
     if (!payload.idemKey)
         return { success: false, error: 'Security constraint: Idempotency key required' };
+
+    const parsed = updateTagSchema.safeParse(payload);
+    if (!parsed.success) {
+        return { success: false, error: 'Invalid input data: ' + parsed.error.issues[0].message };
+    }
 
     try {
         const { isDuplicate } = await checkAndStoreIdempotency(
@@ -317,14 +370,21 @@ export async function updateTag(payload: {
     } catch (error: unknown) {
         console.error('Failed to update tag:', error);
 
-        if (error instanceof Error && 'code' in error && (error as { code: string }).code === '23505') {
+        if (
+            error instanceof Error &&
+            'code' in error &&
+            (error as { code: string }).code === '23505'
+        ) {
             return {
                 success: false,
                 error: 'ID (Request/Send/Accept) sudah pernah digunakan di transaksi lain. Harap gunakan ID yang unik.',
             };
         }
 
-        return { success: false, error: error instanceof Error ? error.message : 'Failed to update tag.' };
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to update tag.',
+        };
     }
 }
 
@@ -333,7 +393,7 @@ export async function cancelTag(headerId: number) {
         await db
             .updateTable('inventory.inout_tag_header')
             .set({ end_status: 'cancel' })
-            .where('id', '=', headerId as any)
+            .where('id', '=', String(headerId))
             .where('end_status', '!=', 'closed')
             .where('end_status', '!=', 'cancel')
             .execute();
@@ -350,6 +410,11 @@ export async function cancelTag(headerId: number) {
 
 export async function acceptReturnTag(headerId: number, acceptId: string, idemKey: string) {
     if (!idemKey) return { success: false, error: 'Security constraint: Idempotency key required' };
+
+    const parsed = acceptReturnTagSchema.safeParse({ headerId, acceptId, idemKey });
+    if (!parsed.success) {
+        return { success: false, error: 'Invalid input data: ' + parsed.error.issues[0].message };
+    }
 
     try {
         const { isDuplicate } = await checkAndStoreIdempotency(
@@ -388,7 +453,7 @@ export async function getReturnMaterialItemsByHeaderId(headerId: number) {
             .selectFrom('inventory.return_material_items as ri')
             .innerJoin('inventory.materials as m', 'm.id', 'ri.designator_id')
             .select(['ri.id', 'ri.designator_id', 'ri.qty', 'm.code', 'm.description', 'm.unit'])
-            .where('ri.header_id', '=', headerId as any)
+            .where('ri.header_id', '=', String(headerId))
             .execute();
 
         return { success: true, data: items };

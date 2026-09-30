@@ -8,6 +8,8 @@ import {
 import { format } from 'date-fns';
 import { Check, ChevronsUpDown, Edit2, Eye, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
+import type { DateRange } from 'react-day-picker';
+import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,10 +23,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { InOutTagRow } from '@/lib/types/inventory';
 import { cn } from '@/lib/utils';
 
 interface InOutTagTableProps {
-    data: any[];
+    data: InOutTagRow[];
     isLoading: boolean;
     searchQuery: string;
     onSearchChange: (val: string) => void;
@@ -32,11 +35,13 @@ interface InOutTagTableProps {
     toWhFilter: string;
     onToWhChange: (val: string) => void;
     onCreateClick: () => void;
-    onViewDetail: (row: any) => void;
-    onUpdateClick: (row: any) => void;
+    onViewDetail: (row: InOutTagRow) => void;
+    onUpdateClick: (row: InOutTagRow) => void;
+    dateFilter: DateRange | undefined;
+    onDateFilterChange: (val: DateRange | undefined) => void;
 }
 
-const columnHelper = createColumnHelper<any>();
+const columnHelper = createColumnHelper<InOutTagRow>();
 
 export default function InOutTagTable({
     data,
@@ -49,6 +54,8 @@ export default function InOutTagTable({
     onCreateClick,
     onViewDetail,
     onUpdateClick,
+    dateFilter,
+    onDateFilterChange,
 }: InOutTagTableProps) {
     const [openCombo, setOpenCombo] = useState(false);
 
@@ -57,7 +64,9 @@ export default function InOutTagTable({
         columnHelper.accessor('request_time', {
             header: 'Request Time',
             cell: (info) =>
-                info.getValue() ? format(new Date(info.getValue()), 'dd MMM yyyy HH:mm') : '-',
+                info.getValue()
+                    ? format(new Date(info.getValue() as string), 'dd MMM yyyy HH:mm')
+                    : '-',
         }),
         columnHelper.accessor('id_trx', {
             header: 'ID Trx',
@@ -178,6 +187,12 @@ export default function InOutTagTable({
                             size={16}
                         />
                     </div>
+
+                    <DateRangePicker
+                        date={dateFilter}
+                        setDate={onDateFilterChange}
+                        className="w-full md:w-auto"
+                    />
 
                     {/* To WH Combobox Filter */}
                     <Popover open={openCombo} onOpenChange={setOpenCombo}>

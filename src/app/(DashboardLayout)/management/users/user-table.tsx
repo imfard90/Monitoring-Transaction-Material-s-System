@@ -34,7 +34,9 @@ export default function UserTable({ data }: UserTableProps) {
                 await toggleUserStatus(userId, !currentStatus);
                 toast.success(`User status ${currentStatus ? 'deactivated' : 'activated'}`);
             } catch (error: unknown) {
-                toast.error(error instanceof Error ? error.message : 'Failed to update user status');
+                toast.error(
+                    error instanceof Error ? error.message : 'Failed to update user status'
+                );
             }
         });
     };

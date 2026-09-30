@@ -105,9 +105,10 @@ export const BlogProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     // Fetch posts initially
+    // biome-ignore lint/correctness/useExhaustiveDependencies: fetchPosts uses only stable setters, run once on mount
     useEffect(() => {
         fetchPosts();
-    }, [fetchPosts]);
+    }, []);
 
     const value: BlogContextProps = {
         posts,

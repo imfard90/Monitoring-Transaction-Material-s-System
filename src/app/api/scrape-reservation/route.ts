@@ -1,10 +1,13 @@
 import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getProfileData } from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
+import { rateLimit } from '@/lib/security/rate-limit';
 import { scrapeReservation } from '../../../../.external_scrapping/lensa-scraper';
 
-const SECRET_KEY =
-    process.env.MFA_ENCRYPTION_SECRET?.slice(0, 32) || '12345678901234567890123456789012';
+const SECRET_KEY = process.env.MFA_ENCRYPTION_SECRET?.slice(0, 32) as string;
+if (!SECRET_KEY) {
+    throw new Error('Critical Configuration Error: MFA_ENCRYPTION_SECRET is not set.');
+}
 
 function decrypt(hash: string) {
     const parts = hash.split(':');
@@ -20,6 +23,12 @@ function decrypt(hash: string) {
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    const { success } = await rateLimit(`scrape:${ip}`, 10, 60); // 10 requests per 60 seconds
+    if (!success) {
+        return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
 
     if (!id) {
         return NextResponse.json(

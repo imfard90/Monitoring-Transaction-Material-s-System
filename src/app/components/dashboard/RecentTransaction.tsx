@@ -22,8 +22,13 @@ const RecentTransaction: React.FC = () => {
             const result = await getTopOutMaterials(7);
 
             if (result.success && result.data) {
-                const categories = result.data.map((d: any) => d.material_name);
-                const seriesData = result.data.map((d: any) => Number(d.total_qty));
+                const categories = result.data.map(
+                    (d: { material_name: string | null; total_qty: number }) =>
+                        d.material_name || ''
+                );
+                const seriesData = result.data.map(
+                    (d: { material_name: string | null; total_qty: number }) => Number(d.total_qty)
+                );
                 setChartData({ categories, seriesData });
             }
         };

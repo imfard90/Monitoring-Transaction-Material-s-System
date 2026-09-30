@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import type { OutMaterialItem, OutMaterialRow } from '@/lib/types/inventory';
 import { getOutMaterialItems } from '../_actions/out-material-actions';
 
 interface OutMaterialDetailModalProps {
-    row: any;
+    row: OutMaterialRow;
     isOpen: boolean;
     onClose: () => void;
 }
@@ -14,13 +15,13 @@ export default function OutMaterialDetailModal({
     isOpen,
     onClose,
 }: OutMaterialDetailModalProps) {
-    const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<OutMaterialItem[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (isOpen && row) {
             setLoading(true);
-            getOutMaterialItems(row.id).then((res) => {
+            getOutMaterialItems(Number(row.id)).then((res) => {
                 if (res.success) setItems(res.data || []);
                 setLoading(false);
             });

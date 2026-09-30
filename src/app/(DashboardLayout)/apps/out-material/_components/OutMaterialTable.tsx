@@ -7,8 +7,10 @@ import {
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, ChevronsUpDown, Eye, Search } from 'lucide-react';
+import { Check, ChevronsUpDown, Eye, Search, FilterX } from 'lucide-react';
 import { useState } from 'react';
+import type { DateRange } from 'react-day-picker';
+import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,20 +24,24 @@ import {
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { OutMaterialRow } from '@/lib/types/inventory';
 import { cn } from '@/lib/utils';
 
 interface OutMaterialTableProps {
-    data: any[];
+    data: OutMaterialRow[];
     isLoading: boolean;
     searchQuery: string;
     onSearchChange: (val: string) => void;
     whOptions: string[];
     whFilter: string;
     onWhChange: (val: string) => void;
-    onViewDetail: (row: any) => void;
+    onViewDetail: (row: OutMaterialRow) => void;
+    dateFilter: DateRange | undefined;
+    onDateFilterChange: (val: DateRange | undefined) => void;
+    onClearFilters?: () => void;
 }
 
-const columnHelper = createColumnHelper<any>();
+const columnHelper = createColumnHelper<OutMaterialRow>();
 
 export default function OutMaterialTable({
     data,
@@ -46,6 +52,9 @@ export default function OutMaterialTable({
     whFilter,
     onWhChange,
     onViewDetail,
+    dateFilter,
+    onDateFilterChange,
+    onClearFilters,
 }: OutMaterialTableProps) {
     const [openCombo, setOpenCombo] = useState(false);
     // Columns order: request time, id trx, request_id, nik teknisi, nama teknisi, nama sa, nama gudang, id reservasi, sap number, end_status, action
@@ -160,6 +169,11 @@ export default function OutMaterialTable({
                             size={16}
                         />
                     </div>
+                    <DateRangePicker
+                        date={dateFilter}
+                        setDate={onDateFilterChange}
+                        className="w-full md:w-auto"
+                    />
                     {/* Warehouse Filter */}
                     <Popover open={openCombo} onOpenChange={setOpenCombo}>
                         <PopoverTrigger asChild>
@@ -220,7 +234,26 @@ export default function OutMaterialTable({
                         </PopoverContent>
                     </Popover>
                 </div>
-                {/* No Create Button based on requirements */}
+                
+                {onClearFilters && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={onClearFilters}
+                                    className="bg-white ml-auto md:ml-0"
+                                >
+                                    <FilterX className="h-4 w-4 text-gray-500" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Clear all filters</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
             </div>
 
             <div className="rounded-md border overflow-x-auto">

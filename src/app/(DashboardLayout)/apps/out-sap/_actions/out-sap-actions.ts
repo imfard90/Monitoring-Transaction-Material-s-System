@@ -2,9 +2,29 @@
 
 import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
+
+const createOutSapSchema = z.object({
+    idemKey: z.string().min(1),
+    warehouse_id: z.number().int().positive(),
+    nik_teknisi: z.string().min(1),
+    name_sa: z.string(),
+    id_reservasi: z.string(),
+    sap_number: z.string(),
+    request_id: z.string(),
+    items: z
+        .array(
+            z.object({
+                designator_id: z.number().int().positive(),
+                qty_req: z.number().positive(),
+                unit_price: z.number().nonnegative().optional(),
+            })
+        )
+        .optional(),
+});
 
 export async function getOutSaps() {
     try {
@@ -33,8 +53,8 @@ export async function getOutSaps() {
         let countQuery = db.selectFrom('inventory.sap_out_header');
 
         if (isStaff && warehouseIds.length > 0) {
-            sapQuery = sapQuery.where('soh.warehouse_id', 'in', warehouseIds as any);
-            countQuery = countQuery.where('warehouse_id', 'in', warehouseIds as any);
+            sapQuery = sapQuery.where('soh.warehouse_id', 'in', warehouseIds as number[]);
+            countQuery = countQuery.where('warehouse_id', 'in', warehouseIds as number[]);
         }
 
         const saps = await sapQuery.execute();
@@ -79,7 +99,7 @@ export async function getOutSapItemsByHeaderId(headerId: number | string) {
                 'i.qty_used',
                 'i.unit_price',
             ])
-            .where('i.header_id', '=', headerId as any)
+            .where('i.header_id', '=', String(headerId))
             .execute();
 
         return { success: true, data: items };
@@ -182,9 +202,23 @@ export async function getBranches() {
     }
 }
 
-export async function createOutSap(payload: any) {
+export async function createOutSap(payload: {
+    idemKey: string;
+    warehouse_id: number;
+    nik_teknisi: string;
+    name_sa: string;
+    id_reservasi: string;
+    sap_number: string;
+    request_id: string;
+    items?: { designator_id: number; qty_req: number; unit_price?: number }[];
+}) {
     if (!payload.idemKey)
         return { success: false, error: 'Security constraint: Idempotency key required' };
+
+    const parsed = createOutSapSchema.safeParse(payload);
+    if (!parsed.success) {
+        return { success: false, error: 'Invalid input data: ' + parsed.error.issues[0].message };
+    }
 
     try {
         const { isDuplicate, result } = await checkAndStoreIdempotency(
@@ -236,13 +270,19 @@ export async function createOutSap(payload: any) {
 
                     // Create Items
                     if (data.items && data.items.length > 0) {
-                        const itemsToInsert = data.items.map((item: any) => ({
-                            header_id: headerResult.id,
-                            designator_id: item.designator_id,
-                            qty_req: item.qty_req,
-                            qty_used: 0,
-                            unit_price: item.unit_price || 0,
-                        }));
+                        const itemsToInsert = data.items.map(
+                            (item: {
+                                designator_id: number;
+                                qty_req: number;
+                                unit_price?: number;
+                            }) => ({
+                                header_id: headerResult.id,
+                                designator_id: item.designator_id,
+                                qty_req: item.qty_req,
+                                qty_used: 0,
+                                unit_price: item.unit_price || 0,
+                            })
+                        );
 
                         await trx
                             .insertInto('inventory.sap_out_items')
@@ -282,14 +322,14 @@ export async function updateOutSapStatusToIntech(headerId: number | string) {
             await trx
                 .updateTable('inventory.sap_out_header')
                 .set({ end_status: 'intech' })
-                .where('id', '=', headerId as any)
+                .where('id', '=', String(headerId))
                 .execute();
 
             // Get warehouse_id first
             const header = await trx
                 .selectFrom('inventory.sap_out_header')
                 .select(['warehouse_id'])
-                .where('id', '=', headerId as any)
+                .where('id', '=', String(headerId))
                 .executeTakeFirst();
 
             const warehouseId = header?.warehouse_id;

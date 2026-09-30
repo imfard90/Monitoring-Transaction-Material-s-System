@@ -35,7 +35,7 @@ export async function getStockMovements(offsetMonths = 0, limitMonths = 5) {
             .orderBy('sm.created_at', 'desc');
 
         if (isStaff && warehouseIds.length > 0) {
-            query = query.where('sm.warehouse_id', 'in', warehouseIds as any);
+            query = query.where('sm.warehouse_id', 'in', warehouseIds as number[]);
         }
 
         const movements = await query.execute();

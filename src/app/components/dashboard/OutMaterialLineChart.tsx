@@ -21,7 +21,7 @@ const OutMaterialLineChart: React.FC = () => {
 
     const [chartData, setChartData] = useState<{
         dates: string[];
-        series: any[];
+        series: { name: string; originalName: string; data: number[] }[];
         allMatNames: string[];
     }>({
         dates: [],
@@ -36,7 +36,16 @@ const OutMaterialLineChart: React.FC = () => {
             );
             const result = await getOutMaterialLineChartData(selectedWh);
 
-            const resData = result.data as any;
+            const resData = result.data as {
+                topMats: { material_code: string; material_name: string; total_qty: number }[];
+                dailyData: {
+                    material_code: string;
+                    material_name: string;
+                    date_val: string;
+                    total_qty: number;
+                }[];
+                startDate: Date;
+            };
 
             if (result.success && resData?.topMats) {
                 const dates = [];
@@ -46,8 +55,14 @@ const OutMaterialLineChart: React.FC = () => {
                     d.setDate(d.getDate() + 1);
                 }
 
-                const allMatNames = resData.topMats.map((t: any) => t.material_name);
-                const allMatCodes = resData.topMats.map((t: any) => t.material_code);
+                const allMatNames = resData.topMats.map(
+                    (t: { material_code: string; material_name: string; total_qty: number }) =>
+                        t.material_name
+                );
+                const allMatCodes = resData.topMats.map(
+                    (t: { material_code: string; material_name: string; total_qty: number }) =>
+                        t.material_code
+                );
 
                 const series = allMatNames.map((mat: string, idx: number) => {
                     const matCode = allMatCodes[idx];
@@ -60,7 +75,12 @@ const OutMaterialLineChart: React.FC = () => {
                         const dateStr = `${yyyy}-${mm}-${dd}`;
 
                         const dailyRec = resData.dailyData.find(
-                            (dd: any) => dd.material_code === matCode && dd.date_val === dateStr
+                            (dd: {
+                                material_code: string;
+                                material_name: string;
+                                date_val: string;
+                                total_qty: number;
+                            }) => dd.material_code === matCode && dd.date_val === dateStr
                         );
                         let val = dailyRec ? Number(dailyRec.total_qty) : 0;
 
@@ -150,7 +170,12 @@ const OutMaterialLineChart: React.FC = () => {
             );
             const result = await getWarehouses();
             if (result.success && result.data) {
-                setWarehouses(result.data.map((w: any) => ({ id: w.id, name: w.name })));
+                setWarehouses(
+                    result.data.map((w: { id: number; name: string; branch: string }) => ({
+                        id: w.id,
+                        name: w.name,
+                    }))
+                );
             }
         };
         loadWarehouses();

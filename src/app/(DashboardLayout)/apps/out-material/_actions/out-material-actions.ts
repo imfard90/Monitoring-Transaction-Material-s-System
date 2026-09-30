@@ -24,7 +24,7 @@ export async function getOutMaterials(offsetMonths = 0, limitMonths = 5) {
             .orderBy('h.request_time', 'desc');
 
         if (isStaff && warehouseIds.length > 0) {
-            query = query.where('h.warehouse_id', 'in', warehouseIds as any);
+            query = query.where('h.warehouse_id', 'in', warehouseIds as number[]);
         }
 
         const headers = await query.execute();
@@ -68,7 +68,7 @@ export async function getOutMaterialItems(headerId: number) {
                 'm.code as designator_code',
                 'm.description as material_description',
             ])
-            .where('i.header_id', '=', String(headerId) as any)
+            .where('i.header_id', '=', String(headerId))
             .execute();
 
         return { success: true, data: items };

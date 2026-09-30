@@ -1,9 +1,12 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { endOfDay, isWithinInterval, startOfDay } from 'date-fns';
 import { motion } from 'framer-motion';
 import React, { useState } from 'react';
+import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
+import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
 import {
     getInOutTags,
     getInoutTagItemsByHeaderId,
@@ -19,21 +22,22 @@ export default function InOutTagClient() {
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [toWhFilter, setToWhFilter] = useState<string>('all');
+    const [dateFilter, setDateFilter] = useState<DateRange | undefined>();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [detailRow, setDetailRow] = useState<any | null>(null);
+    const [detailRow, setDetailRow] = useState<InOutTagRow | null>(null);
 
-    const [updateRow, setUpdateRow] = useState<any | null>(null);
-    const [updateItems, setUpdateItems] = useState<any[]>([]);
+    const [updateRow, setUpdateRow] = useState<InOutTagRow | null>(null);
+    const [updateItems, setUpdateItems] = useState<InOutTagItem[]>([]);
 
-    const handleUpdateClick = async (row: any) => {
+    const handleUpdateClick = async (row: InOutTagRow) => {
         setUpdateRow(row);
         // Fetch items from correct table based on row type
         if (row.type === 'return') {
-            const res = await getReturnMaterialItemsByHeaderId(row.id);
-            setUpdateItems(res.success ? res.data || [] : []);
+            const res = await getReturnMaterialItemsByHeaderId(Number(row.id));
+            setUpdateItems((res.success ? res.data || [] : []) as unknown as InOutTagItem[]);
         } else {
-            const res = await getInoutTagItemsByHeaderId(row.id);
-            setUpdateItems(res.success ? res.data || [] : []);
+            const res = await getInoutTagItemsByHeaderId(Number(row.id));
+            setUpdateItems((res.success ? res.data || [] : []) as unknown as InOutTagItem[]);
         }
     };
 
@@ -70,13 +74,16 @@ export default function InOutTagClient() {
             if (!res.success || !res.data || res.data.length === 0) {
                 setHasMoreData(false);
             } else {
-                queryClient.setQueryData(['inoutTags'], (old: { data: any[] } | undefined) => {
-                    if (!old) return old;
-                    return {
-                        ...old,
-                        data: [...old.data, ...res.data],
-                    };
-                });
+                queryClient.setQueryData(
+                    ['inoutTags'],
+                    (old: { data: InOutTagRow[] } | undefined) => {
+                        if (!old) return old;
+                        return {
+                            ...old,
+                            data: [...old.data, ...res.data],
+                        };
+                    }
+                );
                 setMonthsOffset(nextOffset);
             }
         } catch (e) {
@@ -91,21 +98,33 @@ export default function InOutTagClient() {
             const matchesStatus = filterStatus === 'all' || tag.end_status === filterStatus;
             const matchesToWh = toWhFilter === 'all' || tag.to_wh_name === toWhFilter;
 
-            if (!searchQuery) return matchesStatus && matchesToWh;
-
             const searchLower = searchQuery.toLowerCase();
             const reqId = tag.request_id ? String(tag.request_id).toLowerCase() : '';
             const sendId = tag.send_id ? String(tag.send_id).toLowerCase() : '';
             const accId = tag.accept_id ? String(tag.accept_id).toLowerCase() : '';
 
             const matchesSearch =
+                !searchQuery ||
                 reqId.includes(searchLower) ||
                 sendId.includes(searchLower) ||
                 accId.includes(searchLower);
 
-            return matchesStatus && matchesToWh && matchesSearch;
+            let matchesDate = true;
+            if (dateFilter?.from && tag.request_time) {
+                const tagDate = new Date(tag.request_time);
+                if (dateFilter.to) {
+                    matchesDate = isWithinInterval(tagDate, {
+                        start: startOfDay(dateFilter.from),
+                        end: endOfDay(dateFilter.to),
+                    });
+                } else {
+                    matchesDate = tagDate >= startOfDay(dateFilter.from);
+                }
+            }
+
+            return matchesStatus && matchesToWh && matchesSearch && matchesDate;
         });
-    }, [tags, filterStatus, searchQuery, toWhFilter]);
+    }, [tags, filterStatus, searchQuery, toWhFilter, dateFilter]);
 
     React.useEffect(() => {
         if (
@@ -148,13 +167,15 @@ export default function InOutTagClient() {
             >
                 <CardBox className="p-4 w-full overflow-hidden">
                     <InOutTagTable
-                        data={filteredTags}
+                        data={filteredTags as InOutTagRow[]}
                         isLoading={isLoading}
                         searchQuery={searchQuery}
                         onSearchChange={setSearchQuery}
                         toWhOptions={uniqueToWh}
                         toWhFilter={toWhFilter}
                         onToWhChange={setToWhFilter}
+                        dateFilter={dateFilter}
+                        onDateFilterChange={setDateFilter}
                         onCreateClick={() => setIsCreateModalOpen(true)}
                         onViewDetail={(row) => setDetailRow(row)}
                         onUpdateClick={handleUpdateClick}

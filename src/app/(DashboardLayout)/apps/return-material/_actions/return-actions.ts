@@ -53,7 +53,7 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
                 'i.qty_req',
                 'i.qty_used',
             ])
-            .where('i.header_id', '=', headerId as any)
+            .where('i.header_id', '=', String(headerId))
             .whereRef('i.qty_req', '>', 'i.qty_used')
             .execute();
 

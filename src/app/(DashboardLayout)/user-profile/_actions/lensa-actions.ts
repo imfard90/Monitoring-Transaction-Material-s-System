@@ -7,8 +7,11 @@ import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db/db';
 
-const SECRET_KEY =
-    process.env.MFA_ENCRYPTION_SECRET?.slice(0, 32) || '12345678901234567890123456789012';
+const SECRET_KEY = process.env.MFA_ENCRYPTION_SECRET?.slice(0, 32) as string;
+
+if (!SECRET_KEY) {
+    throw new Error('Critical Configuration Error: MFA_ENCRYPTION_SECRET is not set.');
+}
 
 function encrypt(text: string) {
     const iv = crypto.randomBytes(16);
@@ -33,8 +36,8 @@ export async function saveLensaAccount(username: string, passwordRaw: string) {
 
         revalidatePath('/user-profile');
         return { success: true };
-    } catch (e: any) {
-        return { success: false, error: e.message || 'Failed to save account' };
+    } catch (e: unknown) {
+        return { success: false, error: e instanceof Error ? e.message : 'Failed to save account' };
     }
 }
 
@@ -51,7 +54,10 @@ export async function deleteLensaAccount() {
 
         revalidatePath('/user-profile');
         return { success: true };
-    } catch (e: any) {
-        return { success: false, error: e.message || 'Failed to delete account' };
+    } catch (e: unknown) {
+        return {
+            success: false,
+            error: e instanceof Error ? e.message : 'Failed to delete account',
+        };
     }
 }

@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
+import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
 import { acceptReturnTag, cancelTag, updateTag } from '../_actions/tag-actions';
 
 interface UpdateTagModalProps {

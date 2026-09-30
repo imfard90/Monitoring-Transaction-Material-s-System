@@ -14,44 +14,40 @@ interface SearchResult {
     icon?: string;
 }
 
+// 🔍 Recursive search through menu (pure function, no deps on component state)
+function searchItems(items: (MenuItem | ChildItem)[], q: string, parentPath = ''): SearchResult[] {
+    let results: SearchResult[] = [];
+
+    items.forEach((item) => {
+        const currentPath = parentPath ? `${parentPath} → ${item.name}` : item.name;
+
+        // If match found
+        if (item.name?.toLowerCase().includes(q.toLowerCase()) && item.url) {
+            results.push({
+                name: item.name,
+                url: item.url,
+                path: currentPath,
+                icon: item.icon,
+            });
+        }
+
+        // Search deeper children
+        if (item.children) {
+            results = [...results, ...searchItems(item.children, q, currentPath)];
+        }
+    });
+
+    return results;
+}
+
 function Search() {
     const [query, setQuery] = useState('');
-
-    // 🔍 Recursive search through menu
-    const searchItems = (
-        items: (MenuItem | ChildItem)[],
-        q: string,
-        parentPath = ''
-    ): SearchResult[] => {
-        let results: SearchResult[] = [];
-
-        items.forEach((item) => {
-            const currentPath = parentPath ? `${parentPath} → ${item.name}` : item.name;
-
-            // If match found
-            if (item.name?.toLowerCase().includes(q.toLowerCase()) && item.url) {
-                results.push({
-                    name: item.name,
-                    url: item.url,
-                    path: currentPath,
-                    icon: item.icon,
-                });
-            }
-
-            // Search deeper children
-            if (item.children) {
-                results = [...results, ...searchItems(item.children, q, currentPath)];
-            }
-        });
-
-        return results;
-    };
 
     // Memoize filtered results
     const results = useMemo(() => {
         if (!query.trim()) return [];
         return searchItems(SidebarContent, query);
-    }, [query, searchItems]);
+    }, [query]);
 
     return (
         <div className="relative w-full">

@@ -28,15 +28,25 @@ export const StockIntechOverview = () => {
         queryFn: getDashboardStockIntech,
     });
 
-    const stockData = data?.data || [];
+    interface StockIntechItem {
+        branch: string | null;
+        wh_name: string | null;
+        teknisi: string | null;
+        nik: string | null;
+        material_code: string;
+        material_name: string | null;
+        qty_intech: number;
+    }
+
+    const stockData = (data?.data as StockIntechItem[]) || [];
 
     const uniqueWhs = useMemo(() => {
-        const set = new Set(stockData.map((item: any) => item.wh_name).filter(Boolean));
+        const set = new Set(stockData.map((item: StockIntechItem) => item.wh_name).filter(Boolean));
         return Array.from(set).sort() as string[];
     }, [stockData]);
 
     const filteredData = useMemo(() => {
-        return stockData.filter((item: any) => {
+        return stockData.filter((item: StockIntechItem) => {
             const matchesWh = whFilter === 'all' || item.wh_name === whFilter;
 
             if (!searchQuery) return matchesWh;
@@ -168,7 +178,7 @@ export const StockIntechOverview = () => {
                                 </tr>
                             ) : (
                                 <AnimatePresence>
-                                    {filteredData.map((item: any, index: number) => (
+                                    {filteredData.map((item: StockIntechItem, index: number) => (
                                         <motion.tr
                                             key={index}
                                             initial={{ opacity: 0, y: 10 }}

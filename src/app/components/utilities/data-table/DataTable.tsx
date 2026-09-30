@@ -65,15 +65,15 @@ interface DynamicTableProps<T> {
     data?: T[];
 }
 
+function renderValue(val: unknown): React.ReactNode {
+    if (val === null || val === undefined) return '-';
+    if (typeof val === 'object') return JSON.stringify(val);
+    return String(val);
+}
+
 const DataTable = <T extends Record<string, unknown>>({ data = [] }: DynamicTableProps<T>) => {
     const [globalFilter, setGlobalFilter] = useState('');
     const [sorting, setSorting] = useState<SortingState>([]);
-
-    const renderValue = (val: unknown): React.ReactNode => {
-        if (val === null || val === undefined) return '-';
-        if (typeof val === 'object') return JSON.stringify(val);
-        return String(val);
-    };
 
     const paginationOptions = useMemo(() => {
         const sizes = [5, 10, 20, 50];
@@ -325,7 +325,7 @@ const DataTable = <T extends Record<string, unknown>>({ data = [] }: DynamicTabl
         };
 
         return [...baseColumns, actionColumn];
-    }, [data, renderValue]);
+    }, [data]);
 
     // React Table Setup
     const table = useReactTable({

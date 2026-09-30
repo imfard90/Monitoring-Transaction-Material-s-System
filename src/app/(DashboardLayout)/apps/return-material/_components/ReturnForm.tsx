@@ -28,6 +28,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
+import type { ReturnAvailableItem, ReturnItem, ReturnSapOutOption } from '@/lib/types/inventory';
 import {
     createReturnMaterial,
     getAvailableSapOuts,
@@ -38,8 +39,8 @@ export default function ReturnForm() {
     const _router = useRouter();
     const [loading, setLoading] = useState(false);
 
-    const [sapOuts, setSapOuts] = useState<any[]>([]);
-    const [availableItems, setAvailableItems] = useState<any[]>([]);
+    const [sapOuts, setSapOuts] = useState<ReturnSapOutOption[]>([]);
+    const [availableItems, setAvailableItems] = useState<ReturnAvailableItem[]>([]);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -49,7 +50,7 @@ export default function ReturnForm() {
         notes: '',
     });
 
-    const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<ReturnItem[]>([]);
 
     useEffect(() => {
         const fetchSapOuts = async () => {
@@ -62,14 +63,14 @@ export default function ReturnForm() {
     }, []);
 
     const handleSapOutChange = async (val: string) => {
-        const selected = sapOuts.find((s) => s.id.toString() === val);
+        const selected = sapOuts.find((s: ReturnSapOutOption) => s.id.toString() === val);
         if (!selected) return;
 
         setFormData({
             ...formData,
             sap_out_id: val,
-            nik_teknisi: selected.nik_teknisi,
-            warehouse_id: selected.warehouse_id,
+            nik_teknisi: selected.nik_teknisi || '',
+            warehouse_id: selected.warehouse_id?.toString() || '',
         });
 
         // Fetch items
@@ -105,12 +106,15 @@ export default function ReturnForm() {
                 };
             }
         } else {
-            newItems[index][field] = value;
+            newItems[index] = { ...newItems[index], [field]: value };
 
             // Validation for max
-            if (field === 'qty' && value > newItems[index].maxReturn) {
-                newItems[index][field] = newItems[index].maxReturn;
-                toast.error(`Maximum return quantity is ${newItems[index].maxReturn}`);
+            if (field === 'qty') {
+                const maxReturn = newItems[index].maxReturn || 0;
+                if ((value as number) > maxReturn) {
+                    newItems[index].qty = maxReturn;
+                    toast.error(`Maximum return quantity is ${maxReturn}`);
+                }
             }
         }
 
@@ -129,7 +133,7 @@ export default function ReturnForm() {
             return;
         }
 
-        const invalidItems = items.filter((i) => !i.sap_out_item_id || i.qty <= 0);
+        const invalidItems = items.filter((i) => !i.sap_out_item_id || Number(i.qty) <= 0);
         if (invalidItems.length > 0) {
             toast.error('Please check your item selections and quantities');
             return;
@@ -149,7 +153,11 @@ export default function ReturnForm() {
                 sap_out_id: Number(formData.sap_out_id),
                 warehouse_id: Number(formData.warehouse_id),
                 idemKey,
-                items,
+                items: items.map((i) => ({
+                    designator_id: Number(i.designator_id),
+                    sap_out_item_id: Number(i.sap_out_item_id),
+                    qty: Number(i.qty),
+                })),
             };
 
             const res = await createReturnMaterial(payload);
@@ -179,7 +187,9 @@ export default function ReturnForm() {
         }
     };
 
-    const selectedTech = sapOuts.find((s) => s.id.toString() === formData.sap_out_id);
+    const selectedTech = sapOuts.find(
+        (s: ReturnSapOutOption) => s.id.toString() === formData.sap_out_id
+    );
 
     return (
         <motion.div
@@ -197,7 +207,7 @@ export default function ReturnForm() {
                             <div className="space-y-2">
                                 <Label>Search Teknisi (Intech)</Label>
                                 <SearchableSelect
-                                    options={sapOuts.map((s) => ({
+                                    options={sapOuts.map((s: ReturnSapOutOption) => ({
                                         value: s.id.toString(),
                                         label: `${s.id_trx} - ${s.nik_teknisi} - ${s.nama_teknisi}`,
                                     }))}
@@ -248,7 +258,7 @@ export default function ReturnForm() {
                                         <div className="flex-1 space-y-2">
                                             <Label>Material</Label>
                                             <Select
-                                                value={item.sap_out_item_id}
+                                                value={item.sap_out_item_id.toString()}
                                                 onValueChange={(val) =>
                                                     handleItemChange(index, 'sap_out_item_id', val)
                                                 }

@@ -125,7 +125,12 @@ const SalesOverview: React.FC = () => {
             );
             const result = await getWarehouses();
             if (result.success && result.data) {
-                setWarehouses(result.data.map((w: any) => ({ id: w.id, name: w.name })));
+                setWarehouses(
+                    result.data.map((w: { id: number; name: string; branch: string }) => ({
+                        id: w.id,
+                        name: w.name,
+                    }))
+                );
             }
         };
         loadWarehouses();

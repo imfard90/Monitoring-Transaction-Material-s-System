@@ -38,7 +38,9 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
     const [nikFilter, setNikFilter] = useState('');
     const [whFilter, setWhFilter] = useState<string>('all');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [selectedTechnician, setSelectedTechnician] = useState<any>(null);
+    const [selectedTechnician, setSelectedTechnician] = useState<Record<string, unknown> | null>(
+        null
+    );
 
     // Extract unique service areas for the filter
     const serviceAreas = useMemo(() => {
