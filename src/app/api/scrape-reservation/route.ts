@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getProfileData } from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
+import { logger } from '@/lib/logger';
 import { rateLimit } from '@/lib/security/rate-limit';
 import { scrapeReservation } from '../../../../.external_scrapping/lensa-scraper';
 
@@ -47,7 +48,10 @@ export async function GET(request: Request) {
             try {
                 customPassword = decrypt(profile.data.lensa_acount.password);
             } catch (e) {
-                console.error('Failed to decrypt Lensa password from database:', e);
+                logger.error(
+                    'Failed to decrypt Lensa password from database:',
+                    e instanceof Error ? e : new Error(String(e))
+                );
                 return NextResponse.json(
                     {
                         error: 'Gagal mendekripsi kredensial Lensa. Silakan hubungkan ulang akun Anda.',
@@ -67,7 +71,10 @@ export async function GET(request: Request) {
         const data = await scrapeReservation(id, customUsername, customPassword);
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Error in scrape-reservation API:', error);
+        logger.error(
+            'Error in scrape-reservation API:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to scrape reservation data' },
             { status: 500 }

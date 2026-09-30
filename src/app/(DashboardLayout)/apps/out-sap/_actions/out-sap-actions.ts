@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { actionLogger } from '@/lib/logger';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 const createOutSapSchema = z.object({
@@ -79,7 +80,10 @@ export async function getOutSaps() {
 
         return { success: true, data: saps, counts };
     } catch (error: unknown) {
-        console.error('Failed to fetch Out SAPs:', error);
+        actionLogger.error(
+            'Failed to fetch Out SAPs:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -104,7 +108,10 @@ export async function getOutSapItemsByHeaderId(headerId: number | string) {
 
         return { success: true, data: items };
     } catch (error: unknown) {
-        console.error('Failed to fetch items:', error);
+        actionLogger.error(
+            'Failed to fetch items:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -119,7 +126,10 @@ export async function getTechnicianByNik(nik: string) {
             .executeTakeFirst();
         return { success: true, data: t };
     } catch (error: unknown) {
-        console.error('Failed to fetch technician by nik:', error);
+        actionLogger.error(
+            'Failed to fetch technician by nik:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: null };
     }
 }
@@ -135,7 +145,10 @@ export async function getTechnicians(sa?: string) {
         const technicians = await query.execute();
         return { success: true, data: technicians };
     } catch (error: unknown) {
-        console.error('Failed to fetch technicians:', error);
+        actionLogger.error(
+            'Failed to fetch technicians:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }
@@ -145,7 +158,10 @@ export async function getMaterials() {
         const mats = await db.selectFrom('inventory.materials').selectAll().execute();
         return { success: true, data: mats };
     } catch (error: unknown) {
-        console.error('Error fetching materials:', error);
+        actionLogger.error(
+            'Error fetching materials:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }
@@ -161,7 +177,10 @@ export async function getMaterialsInWarehouse(whId: number) {
             .execute();
         return { success: true, data: mats };
     } catch (error: unknown) {
-        console.error('Error fetching materials for warehouse:', error);
+        actionLogger.error(
+            'Error fetching materials for warehouse:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }
@@ -180,7 +199,10 @@ export async function getWarehouses() {
         const whs = await query.execute();
         return { success: true, data: whs };
     } catch (error: unknown) {
-        console.error('Error fetching warehouses:', error);
+        actionLogger.error(
+            'Error fetching warehouses:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }
@@ -197,7 +219,10 @@ export async function getBranches() {
         const branches = await query.execute();
         return { success: true, data: branches };
     } catch (error: unknown) {
-        console.error('Error fetching branches:', error);
+        actionLogger.error(
+            'Error fetching branches:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }
@@ -309,7 +334,10 @@ export async function createOutSap(payload: {
         revalidatePath('/apps/out-material');
         return { success: true, header_id: result };
     } catch (error: unknown) {
-        console.error('Failed to create Out SAP:', error);
+        actionLogger.error(
+            'Failed to create Out SAP:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -348,7 +376,10 @@ export async function updateOutSapStatusToIntech(headerId: number | string) {
         revalidatePath('/apps/out-material');
         return { success: true };
     } catch (error: unknown) {
-        console.error('Failed to update status to intech:', error);
+        actionLogger.error(
+            'Failed to update status to intech:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }

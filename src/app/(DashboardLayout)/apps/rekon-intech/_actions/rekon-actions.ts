@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { actionLogger } from '@/lib/logger';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 const rekonItemSchema = z.object({
@@ -49,7 +50,10 @@ export async function getTechniciansWithIntechSaps() {
 
         return { success: true, data: saps };
     } catch (error: unknown) {
-        console.error('Failed to fetch technicians:', error);
+        actionLogger.error(
+            'Failed to fetch technicians:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -83,7 +87,10 @@ export async function getTechnicianMaterials(nik: string) {
 
         return { success: true, data: materials };
     } catch (error: unknown) {
-        console.error('Failed to fetch technician materials:', error);
+        actionLogger.error(
+            'Failed to fetch technician materials:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -107,7 +114,7 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
 
     const parsed = submitRekonIntechSchema.safeParse({ nik, items, idemKey });
     if (!parsed.success) {
-        return { success: false, error: 'Invalid input data: ' + parsed.error.issues[0].message };
+        return { success: false, error: `Invalid input data: ${parsed.error.issues[0].message}` };
     }
 
     try {
@@ -115,6 +122,23 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
             idemKey,
             { nik, items },
             async (data) => {
+                // Validate WO number uniqueness
+                const woNumbers = Array.from(new Set(data.items.map((item) => item.wo_number)));
+                if (woNumbers.length > 0) {
+                    const existingWos = await db
+                        .selectFrom('inventory.transaction_used_header')
+                        .select('wo_number')
+                        .where('wo_number', 'in', woNumbers)
+                        .execute();
+
+                    if (existingWos.length > 0) {
+                        const duplicateWos = existingWos.map((w) => w.wo_number).join(', ');
+                        throw new Error(
+                            `WO Number berikut sudah pernah digunakan: ${duplicateWos}`
+                        );
+                    }
+                }
+
                 // Group items by sap_out_id, wo_number, wo_type
                 const groups: { [key: string]: RekonItemPayload[] } = {};
                 for (const item of data.items) {
@@ -224,7 +248,10 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
         revalidatePath('/apps/rekon-intech');
         return { success: true };
     } catch (error: unknown) {
-        console.error('Failed to submit Rekon Intech:', error);
+        actionLogger.error(
+            'Failed to submit Rekon Intech:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }

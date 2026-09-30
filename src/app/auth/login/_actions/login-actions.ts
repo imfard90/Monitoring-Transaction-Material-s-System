@@ -2,6 +2,7 @@
 
 import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
+import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
 
 export async function precheckLogin(email: string) {
@@ -27,7 +28,10 @@ export async function precheckLogin(email: string) {
 
         return { status: 'ok' };
     } catch (error) {
-        console.error('Error prechecking login:', error);
+        actionLogger.error(
+            'Error prechecking login:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { status: 'error' };
     }
 }
@@ -48,7 +52,10 @@ export async function revokeAllUserSessions(email: string) {
 
         return { success: true };
     } catch (error) {
-        console.error('Error revoking sessions:', error);
+        actionLogger.error(
+            'Error revoking sessions:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false };
     }
 }

@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import { dbLogger } from '@/lib/logger';
 
 const redisUrl = process.env.REDIS_URL;
 const redisPass = process.env.REDIS_PASS;
@@ -14,11 +15,11 @@ export const redis = new Redis(redisUrl, {
     retryStrategy(times) {
         // Maximum delay of 3 seconds between retries
         const delay = Math.min(times * 100, 3000);
-        console.log(`[Redis] Reconnecting... Attempt: ${times} (Delay: ${delay}ms)`);
+        dbLogger.info(`[Redis] Reconnecting... Attempt: ${times} (Delay: ${delay}ms)`);
 
         // Stop retrying after 50 attempts to prevent infinite loops
         if (times >= 50) {
-            console.error('[Redis] Max retries reached. Stopping reconnection attempts.');
+            dbLogger.error('[Redis] Max retries reached. Stopping reconnection attempts.');
             return null; // Stop retrying
         }
         return delay;
@@ -27,7 +28,7 @@ export const redis = new Redis(redisUrl, {
 });
 
 redis.on('error', (err) => {
-    console.error('Redis connection error:', err);
+    dbLogger.error('Redis connection error', err);
 });
 
 redis.on('connect', () => {});

@@ -2,6 +2,7 @@
 
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { actionLogger } from '@/lib/logger';
 
 export async function getStockMovements(offsetMonths = 0, limitMonths = 5) {
     try {
@@ -41,7 +42,10 @@ export async function getStockMovements(offsetMonths = 0, limitMonths = 5) {
         const movements = await query.execute();
         return movements;
     } catch (error) {
-        console.error('Error fetching stock movements:', error);
+        actionLogger.error(
+            'Error fetching stock movements:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return [];
     }
 }

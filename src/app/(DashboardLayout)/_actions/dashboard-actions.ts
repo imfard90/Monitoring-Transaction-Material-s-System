@@ -3,6 +3,7 @@
 import { sql } from 'kysely';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { actionLogger } from '@/lib/logger';
 
 export async function getStockBalances() {
     try {
@@ -26,7 +27,10 @@ export async function getStockBalances() {
 
         return { success: true, data: balances };
     } catch (error: unknown) {
-        console.error('Failed to fetch stock balances:', error);
+        actionLogger.error(
+            'Failed to fetch stock balances:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -62,7 +66,10 @@ export async function getDashboardStockIntech() {
 
         return { success: true, data };
     } catch (error: unknown) {
-        console.error('Failed to fetch dashboard stock intech:', error);
+        actionLogger.error(
+            'Failed to fetch dashboard stock intech:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -135,7 +142,10 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
 
         return { success: true, data: { dates, outMaterial, hasilRekon } };
     } catch (error: unknown) {
-        console.error('Failed to fetch sales overview:', error);
+        actionLogger.error(
+            'Failed to fetch sales overview:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -162,7 +172,10 @@ export async function getTopOutMaterials(limit: number = 7) {
 
         return { success: true, data };
     } catch (error: unknown) {
-        console.error('Failed to fetch top out materials:', error);
+        actionLogger.error(
+            'Failed to fetch top out materials:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -228,7 +241,10 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
 
         return { success: true, data: { topMats, dailyData, startDate: thirtyDaysAgo } };
     } catch (error: unknown) {
-        console.error('Failed to fetch out material line chart data:', error);
+        actionLogger.error(
+            'Failed to fetch out material line chart data:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -253,7 +269,10 @@ export async function getWarehousePerformance() {
 
         return { success: true, data };
     } catch (error: unknown) {
-        console.error('Failed to fetch warehouse performance:', error);
+        actionLogger.error(
+            'Failed to fetch warehouse performance:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -268,7 +287,10 @@ export async function getWarehouses() {
 
         return { success: true, data };
     } catch (error: unknown) {
-        console.error('Failed to fetch warehouses:', error);
+        actionLogger.error(
+            'Failed to fetch warehouses:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -301,7 +323,10 @@ export async function getStockWarnings() {
 
         return { success: true, data };
     } catch (error: unknown) {
-        console.error('Failed to fetch stock warnings:', error);
+        actionLogger.error(
+            'Failed to fetch stock warnings:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }

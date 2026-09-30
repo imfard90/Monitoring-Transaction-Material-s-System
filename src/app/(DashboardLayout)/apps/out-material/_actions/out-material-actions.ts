@@ -2,6 +2,7 @@
 
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { actionLogger } from '@/lib/logger';
 
 export async function getOutMaterials(offsetMonths = 0, limitMonths = 5) {
     try {
@@ -47,7 +48,10 @@ export async function getOutMaterials(offsetMonths = 0, limitMonths = 5) {
 
         return { success: true, data: headers, counts };
     } catch (error) {
-        console.error('Error fetching out materials:', error);
+        actionLogger.error(
+            'Error fetching out materials:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return {
             success: false,
             data: [],
@@ -73,7 +77,10 @@ export async function getOutMaterialItems(headerId: number) {
 
         return { success: true, data: items };
     } catch (error) {
-        console.error('Error fetching out material items:', error);
+        actionLogger.error(
+            'Error fetching out material items:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }

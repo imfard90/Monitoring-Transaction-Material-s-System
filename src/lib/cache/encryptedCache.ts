@@ -1,3 +1,4 @@
+import { cacheLogger } from '@/lib/logger';
 /**
  * Encrypted Cache Utility for MTMS
  *
@@ -34,7 +35,7 @@ function getEncryptionKey(): Uint8Array {
                 '[EncryptedCache] CACHE_ENCRYPTION_KEY environment variable is required in non-development environments.'
             );
         }
-        console.warn(
+        cacheLogger.warn(
             '[EncryptedCache] CACHE_ENCRYPTION_KEY not set. Using insecure fallback — set this in .env for development.'
         );
         return Uint8Array.from(
@@ -147,10 +148,13 @@ export class EncryptedCache {
             if (!encryptedData) return null;
 
             const decrypted = await decrypt<T>(encryptedData);
-            console.debug(`[EncryptedCache] HIT: ${key}`);
+            cacheLogger.debug(`[EncryptedCache] HIT: ${key}`);
             return decrypted;
         } catch (error) {
-            console.error('[EncryptedCache] Decryption error', error);
+            cacheLogger.error(
+                '[EncryptedCache] ',
+                error instanceof Error ? error : new Error(String(error))
+            );
             return null;
         }
     }
@@ -167,9 +171,12 @@ export class EncryptedCache {
             const encryptedData = await encrypt(data);
 
             await redis.set(key, encryptedData, 'EX', ttl);
-            console.debug(`[EncryptedCache] SET: ${key} (TTL: ${ttl}s)`);
+            cacheLogger.debug(`[EncryptedCache] SET: ${key} (TTL: ${ttl}s)`);
         } catch (error) {
-            console.error('[EncryptedCache] Set error', error);
+            cacheLogger.error(
+                '[EncryptedCache] ',
+                error instanceof Error ? error : new Error(String(error))
+            );
         }
     }
 
@@ -184,11 +191,14 @@ export class EncryptedCache {
                 await redis.del(...keys);
             }
 
-            console.debug(
+            cacheLogger.debug(
                 `[EncryptedCache] Invalidated cache for user: ${userId}, type: ${cacheType ?? 'all'}`
             );
         } catch (error) {
-            console.error('[EncryptedCache] Invalidate error', error);
+            cacheLogger.error(
+                '[EncryptedCache] ',
+                error instanceof Error ? error : new Error(String(error))
+            );
         }
     }
 
@@ -199,9 +209,12 @@ export class EncryptedCache {
                 await redis.del(...keys);
             }
 
-            console.debug(`[EncryptedCache] Invalidated all ${keys.length} cache entries`);
+            cacheLogger.debug(`[EncryptedCache] Invalidated all ${keys.length} cache entries`);
         } catch (error) {
-            console.error('[EncryptedCache] InvalidateAll error', error);
+            cacheLogger.error(
+                '[EncryptedCache] ',
+                error instanceof Error ? error : new Error(String(error))
+            );
         }
     }
 
@@ -214,7 +227,10 @@ export class EncryptedCache {
 
             return await decrypt<T>(encryptedData);
         } catch (error) {
-            console.error('[EncryptedCache] General get error', error);
+            cacheLogger.error(
+                '[EncryptedCache] ',
+                error instanceof Error ? error : new Error(String(error))
+            );
             return null;
         }
     }
@@ -230,7 +246,10 @@ export class EncryptedCache {
             const encryptedData = await encrypt(data);
             await redis.set(key, encryptedData, 'EX', ttl);
         } catch (error) {
-            console.error('[EncryptedCache] General set error', error);
+            cacheLogger.error(
+                '[EncryptedCache] ',
+                error instanceof Error ? error : new Error(String(error))
+            );
         }
     }
 
@@ -245,7 +264,10 @@ export class EncryptedCache {
                 await redis.del(...keys);
             }
         } catch (error) {
-            console.error('[EncryptedCache] General invalidate error', error);
+            cacheLogger.error(
+                '[EncryptedCache] ',
+                error instanceof Error ? error : new Error(String(error))
+            );
         }
     }
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { actionLogger } from '@/lib/logger';
 
 export async function getTechnicians() {
     try {
@@ -25,7 +26,10 @@ export async function getTechnicians() {
 
         return technicians;
     } catch (error: unknown) {
-        console.error('Failed to fetch technicians:', error);
+        actionLogger.error(
+            'Failed to fetch technicians:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         throw new Error('Failed to load technicians');
     }
 }
@@ -38,7 +42,10 @@ export async function getBranches() {
             .orderBy('service_area', 'asc')
             .execute();
     } catch (error: unknown) {
-        console.error('Failed to fetch branches:', error);
+        actionLogger.error(
+            'Failed to fetch branches:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return [];
     }
 }
@@ -51,7 +58,10 @@ export async function getMitras() {
             .orderBy('mitra_name', 'asc')
             .execute();
     } catch (error: unknown) {
-        console.error('Failed to fetch mitras:', error);
+        actionLogger.error(
+            'Failed to fetch mitras:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return [];
     }
 }
@@ -68,7 +78,10 @@ export async function toggleTechnicianStatus(id: string | number, isActive: bool
         revalidatePath('/management/technician');
         return { success: true };
     } catch (error: unknown) {
-        console.error('Failed to toggle technician status:', error);
+        actionLogger.error(
+            'Failed to toggle technician status:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         throw new Error('Failed to update status');
     }
 }
@@ -108,8 +121,14 @@ export async function upsertTechnician(data: {
 
         revalidatePath('/management/technician');
         return { success: true };
-    } catch (error: unknown) {
-        console.error('Failed to upsert technician:', error);
+    } catch (error: any) {
+        actionLogger.error(
+            'Failed to upsert technician:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        if (error.code === '23505') {
+            throw new Error('NIK tersebut sudah terdaftar pada teknisi lain.');
+        }
         throw new Error('Failed to save technician');
     }
 }

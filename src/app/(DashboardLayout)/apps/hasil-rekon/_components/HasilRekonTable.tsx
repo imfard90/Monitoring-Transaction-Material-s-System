@@ -9,7 +9,7 @@ import {
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarIcon, FilterX, Search } from 'lucide-react';
+import { CalendarIcon, FilterX, Pencil, Search } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,7 @@ interface HasilRekonTableProps {
     uniqueTypes?: string[];
     uniqueMaterials?: string[];
     onClearFilters?: () => void;
+    onEditClick?: (row: any) => void;
 }
 
 const columnHelper = createColumnHelper<any>();
@@ -56,6 +57,7 @@ export default function HasilRekonTable({
     uniqueTypes = [],
     uniqueMaterials = [],
     onClearFilters,
+    onEditClick,
 }: HasilRekonTableProps) {
     const columns = [
         columnHelper.accessor('created_at', {
@@ -116,6 +118,33 @@ export default function HasilRekonTable({
             cell: (info) => (
                 <div className="text-right text-sm font-bold text-gray-900">
                     {info.getValue() || 0}
+                </div>
+            ),
+        }),
+        columnHelper.display({
+            id: 'actions',
+            header: () => <div className="text-center">Action</div>,
+            cell: (info) => (
+                <div className="flex justify-center">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                    onClick={() => {
+                                        if (onEditClick) onEditClick(info.row.original);
+                                    }}
+                                >
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Edit Rekon</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
             ),
         }),

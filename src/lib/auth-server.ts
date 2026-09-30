@@ -2,6 +2,9 @@ import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db/db';
 
+import { errors } from '@/lib/errors';
+import { authLogger } from '@/lib/logger';
+
 /**
  * Helper untuk mengambil NIK pengguna dari session auth di Server Actions.
  * Akan melempar Error 'Unauthorized' jika sesi tidak valid.
@@ -13,12 +16,13 @@ export async function getSessionNik(): Promise<string> {
         });
         const nik = (session?.user as any)?.nik;
         if (!nik) {
-            throw new Error('Unauthorized');
+            throw errors.auth();
         }
         return nik;
     } catch (e: any) {
-        if (e.message === 'Unauthorized') throw e;
-        throw new Error('Unauthorized');
+        if (e.name === 'AuthenticationError') throw e;
+        authLogger.error('getSessionNik Error', e);
+        throw errors.auth();
     }
 }
 
@@ -50,7 +54,7 @@ export async function getSessionUser(): Promise<SessionUser> {
         const nik: string = user?.nik;
 
         if (!nik) {
-            throw new Error('Unauthorized');
+            throw errors.auth();
         }
 
         // Query role from hr.employees → hr.levels
@@ -86,8 +90,8 @@ export async function getSessionUser(): Promise<SessionUser> {
             branchName,
         };
     } catch (e: any) {
-        if (e.message === 'Unauthorized') throw e;
-        console.error('getSessionUser Error:', e);
-        throw new Error('Unauthorized');
+        if (e.name === 'AuthenticationError') throw e;
+        authLogger.error('getSessionUser Error', e);
+        throw errors.auth();
     }
 }

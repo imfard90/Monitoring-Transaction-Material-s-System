@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
 import { rateLimit } from '@/lib/security/rate-limit';
 
@@ -42,7 +43,10 @@ export async function POST() {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('[presence] error:', error);
+        logger.error(
+            '[presence] error:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         // Internal error — do NOT force logout
         return NextResponse.json({ error: 'Internal error' }, { status: 500 });
     }

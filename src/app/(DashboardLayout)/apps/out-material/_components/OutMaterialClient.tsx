@@ -79,12 +79,14 @@ export default function OutMaterialClient() {
             const reqId = header.request_id ? String(header.request_id).toLowerCase() : '';
             const resId = header.id_reservasi ? String(header.id_reservasi).toLowerCase() : '';
             const sapNum = header.sap_number ? String(header.sap_number).toLowerCase() : '';
+            const nik = header.nik_teknisi ? String(header.nik_teknisi).toLowerCase() : '';
 
             const matchesSearch =
                 !searchQuery ||
                 reqId.includes(searchLower) ||
                 resId.includes(searchLower) ||
-                sapNum.includes(searchLower);
+                sapNum.includes(searchLower) ||
+                nik.includes(searchLower);
 
             let matchesDate = true;
             if (dateFilter?.from && header.request_time) {

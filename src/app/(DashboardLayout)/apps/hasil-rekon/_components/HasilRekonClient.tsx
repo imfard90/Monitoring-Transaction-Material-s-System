@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
 import { getHasilRekon } from '../_actions/rekon-actions';
+import EditRekonModal from './EditRekonModal';
 import HasilRekonTable from './HasilRekonTable';
 
 interface HasilRekonClientProps {
@@ -16,6 +17,9 @@ export default function HasilRekonClient({ initialData }: HasilRekonClientProps)
     const [monthsOffset, setMonthsOffset] = useState(0);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMoreData, setHasMoreData] = useState(true);
+
+    const [editRowData, setEditRowData] = useState<any | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -150,6 +154,10 @@ export default function HasilRekonClient({ initialData }: HasilRekonClientProps)
                     uniqueTypes={uniqueTypes}
                     uniqueMaterials={uniqueMaterials}
                     onClearFilters={handleClearFilters}
+                    onEditClick={(row) => {
+                        setEditRowData(row);
+                        setIsEditModalOpen(true);
+                    }}
                 />
                 {isLoadingMore && (
                     <div className="text-center text-sm text-gray-500 py-2">
@@ -157,6 +165,12 @@ export default function HasilRekonClient({ initialData }: HasilRekonClientProps)
                     </div>
                 )}
             </CardBox>
+
+            <EditRekonModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                rowData={editRowData}
+            />
         </motion.div>
     );
 }

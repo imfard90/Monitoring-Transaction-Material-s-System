@@ -145,7 +145,10 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
 
         return { success: true, data: allTags, counts };
     } catch (error) {
-        console.error('Error fetching tags:', error);
+        actionLogger.error(
+            'Error fetching tags:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return {
             success: false,
             data: [],
@@ -171,7 +174,10 @@ export async function getInOutTagItems(headerId: number) {
 
         return { success: true, data: items };
     } catch (error) {
-        console.error('Error fetching tag items:', error);
+        actionLogger.error(
+            'Error fetching tag items:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }
@@ -181,7 +187,10 @@ export async function getWarehouses() {
         const whs = await db.selectFrom('inventory.mas_wh').selectAll().execute();
         return { success: true, data: whs };
     } catch (error) {
-        console.error('Error fetching warehouses:', error);
+        actionLogger.error(
+            'Error fetching warehouses:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }
@@ -191,7 +200,10 @@ export async function getMaterials() {
         const mats = await db.selectFrom('inventory.materials').selectAll().execute();
         return { success: true, data: mats };
     } catch (error) {
-        console.error('Error fetching materials:', error);
+        actionLogger.error(
+            'Error fetching materials:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }
@@ -230,12 +242,16 @@ export async function getMaterialsWithStock(fromWhId?: number | null) {
             return { success: true, data };
         }
     } catch (error) {
-        console.error('Error fetching materials with stock:', error);
+        actionLogger.error(
+            'Error fetching materials with stock:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }
 
 import { sql } from 'kysely';
+import { actionLogger } from '@/lib/logger';
 
 export async function createTag(payload: {
     fromWhId: number;
@@ -282,7 +298,10 @@ export async function createTag(payload: {
 
         return { success: true, id_trx: result };
     } catch (error: unknown) {
-        console.error('Error creating tag:', error);
+        actionLogger.error(
+            'Error creating tag:',
+            error instanceof Error ? error : new Error(String(error))
+        );
 
         if (
             error instanceof Error &&
@@ -320,7 +339,10 @@ export async function getInoutTagItemsByHeaderId(headerId: number) {
 
         return { success: true, data: items };
     } catch (error: unknown) {
-        console.error('Failed to fetch tag items:', error);
+        actionLogger.error(
+            'Failed to fetch tag items:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
@@ -368,7 +390,10 @@ export async function updateTag(payload: {
         revalidatePath('/stock-intech');
         return { success: true };
     } catch (error: unknown) {
-        console.error('Failed to update tag:', error);
+        actionLogger.error(
+            'Failed to update tag:',
+            error instanceof Error ? error : new Error(String(error))
+        );
 
         if (
             error instanceof Error &&
@@ -403,7 +428,10 @@ export async function cancelTag(headerId: number) {
         revalidatePath('/stock-intech');
         return { success: true };
     } catch (error: unknown) {
-        console.error('Failed to cancel tag:', error);
+        actionLogger.error(
+            'Failed to cancel tag:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: 'Failed to cancel tag.' };
     }
 }
@@ -439,7 +467,10 @@ export async function acceptReturnTag(headerId: number, acceptId: string, idemKe
         revalidatePath('/stock-intech');
         return { success: true };
     } catch (error: unknown) {
-        console.error('Failed to accept return material:', error);
+        actionLogger.error(
+            'Failed to accept return material:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to accept return material.',
@@ -458,7 +489,10 @@ export async function getReturnMaterialItemsByHeaderId(headerId: number) {
 
         return { success: true, data: items };
     } catch (error: unknown) {
-        console.error('Failed to fetch return material items:', error);
+        actionLogger.error(
+            'Failed to fetch return material items:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return {
             success: false,
             data: [],

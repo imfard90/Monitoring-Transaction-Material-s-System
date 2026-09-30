@@ -4,6 +4,7 @@ import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { actionLogger } from '@/lib/logger';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 export async function getAvailableSapOuts() {
@@ -35,7 +36,10 @@ export async function getAvailableSapOuts() {
 
         return { success: true, data: sapOuts };
     } catch (error: unknown) {
-        console.error('Failed to fetch SAP Outs for return:', error);
+        actionLogger.error(
+            'Failed to fetch SAP Outs for return:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }
@@ -65,7 +69,10 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
 
         return { success: true, data: mapped };
     } catch (error: unknown) {
-        console.error('Failed to fetch SAP Out items:', error);
+        actionLogger.error(
+            'Failed to fetch SAP Out items:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, data: [] };
     }
 }
@@ -167,7 +174,10 @@ export async function createReturnMaterial(payload: ReturnMaterialPayload) {
         revalidatePath('/stock-intech');
         return { success: true, header_id: result };
     } catch (error: unknown) {
-        console.error('Failed to create Return Material:', error);
+        actionLogger.error(
+            'Failed to create Return Material:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }

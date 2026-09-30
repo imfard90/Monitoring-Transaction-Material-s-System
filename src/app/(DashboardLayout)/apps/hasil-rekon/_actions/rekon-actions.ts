@@ -2,6 +2,7 @@
 
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { actionLogger } from '@/lib/logger';
 
 export async function getHasilRekon(offsetMonths = 0, limitMonths = 5) {
     try {
@@ -19,6 +20,9 @@ export async function getHasilRekon(offsetMonths = 0, limitMonths = 5) {
             .innerJoin('inventory.sap_out_header as soh', 'soh.id', 'tuh.sap_out_id')
             .innerJoin('inventory.materials as m', 'm.id', 'tui.designator_id')
             .select([
+                'tuh.id as header_id',
+                'tui.id as item_id',
+                'soh.id as sap_out_id',
                 'tui.created_at',
                 'tuh.id_trx',
                 'soh.sap_number',
@@ -28,6 +32,7 @@ export async function getHasilRekon(offsetMonths = 0, limitMonths = 5) {
                 'tuh.wo_number',
                 'm.code as material_code',
                 'm.description as material_name',
+                'm.id as designator_id',
                 'tui.qty',
             ])
             .where('tui.created_at', '<=', endDate)
@@ -43,6 +48,10 @@ export async function getHasilRekon(offsetMonths = 0, limitMonths = 5) {
 
         // Standardize output format
         return data.map((item: any) => ({
+            header_id: item.header_id,
+            item_id: item.item_id,
+            sap_out_id: item.sap_out_id,
+            designator_id: item.designator_id,
             created_at: item.created_at ? new Date(item.created_at).toISOString() : null,
             trx_id: item.id_trx,
             sap_number: item.sap_number,
@@ -55,7 +64,10 @@ export async function getHasilRekon(offsetMonths = 0, limitMonths = 5) {
             qty: item.qty,
         }));
     } catch (error) {
-        console.error('Error fetching hasil rekon:', error);
+        actionLogger.error(
+            'Error fetching hasil rekon:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return [];
     }
 }

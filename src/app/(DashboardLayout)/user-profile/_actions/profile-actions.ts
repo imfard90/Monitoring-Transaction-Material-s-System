@@ -3,6 +3,7 @@
 import { sql } from 'kysely';
 import { getSessionNik } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { actionLogger } from '@/lib/logger';
 
 export interface UserProfileData {
     nik: string;
@@ -83,7 +84,10 @@ export async function getProfileData(): Promise<{
             },
         };
     } catch (error: unknown) {
-        console.error('Failed to fetch profile data:', error);
+        actionLogger.error(
+            'Failed to fetch profile data:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
