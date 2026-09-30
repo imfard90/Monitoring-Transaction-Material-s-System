@@ -1,7 +1,12 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'framer-motion';
+import {
+    createColumnHelper,
+    getCoreRowModel,
+    useReactTable,
+} from '@tanstack/react-table';
+import { motion } from 'framer-motion';
 import { Check, ChevronsUpDown, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { getDashboardStockIntech } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
@@ -18,6 +23,19 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import CardBox from '../shared/CardBox';
+import { DataTable } from '@/app/components/shared/DataTable';
+
+interface StockIntechItem {
+    branch: string | null;
+    wh_name: string | null;
+    teknisi: string | null;
+    nik: string | null;
+    material_code: string;
+    material_name: string | null;
+    qty_intech: number;
+}
+
+const columnHelper = createColumnHelper<StockIntechItem>();
 
 export const StockIntechOverview = () => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -27,16 +45,6 @@ export const StockIntechOverview = () => {
         queryKey: ['dashboardStockIntech'],
         queryFn: getDashboardStockIntech,
     });
-
-    interface StockIntechItem {
-        branch: string | null;
-        wh_name: string | null;
-        teknisi: string | null;
-        nik: string | null;
-        material_code: string;
-        material_name: string | null;
-        qty_intech: number;
-    }
 
     const stockData = (data?.data as StockIntechItem[]) || [];
 
@@ -57,6 +65,43 @@ export const StockIntechOverview = () => {
             return matchesWh && matchesSearch;
         });
     }, [stockData, searchQuery, whFilter]);
+
+    const columns = [
+        columnHelper.accessor('branch', {
+            header: 'Branch',
+            cell: (info) => <span className="font-medium">{info.getValue() || '-'}</span>,
+        }),
+        columnHelper.accessor('wh_name', {
+            header: 'Warehouse',
+            cell: (info) => <span className="text-gray-500">{info.getValue() || '-'}</span>,
+        }),
+        columnHelper.accessor('teknisi', {
+            header: 'Teknisi',
+            cell: (info) => <span className="font-semibold">{info.getValue() || '-'}</span>,
+        }),
+        columnHelper.accessor('material_code', {
+            header: 'Material Code',
+            cell: (info) => <span className="font-mono text-sm">{info.getValue()}</span>,
+        }),
+        columnHelper.accessor('material_name', {
+            header: 'Material Name',
+            cell: (info) => info.getValue() || '-',
+        }),
+        columnHelper.accessor('qty_intech', {
+            header: () => <div className="text-center">Qty Intech</div>,
+            cell: (info) => (
+                <div className="text-center font-bold text-blue-600">
+                    {info.getValue()}
+                </div>
+            ),
+        }),
+    ];
+
+    const table = useReactTable({
+        data: filteredData,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+    });
 
     return (
         <motion.div
@@ -149,66 +194,11 @@ export const StockIntechOverview = () => {
                         </Popover>
                     </div>
                 </div>
-                <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
-                    <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap">
-                        <thead className="text-sm text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
-                            <tr>
-                                <th className="px-3 py-1.5 font-semibold">Branch</th>
-                                <th className="px-3 py-1.5 font-semibold">Warehouse</th>
-                                <th className="px-3 py-1.5 font-semibold">Teknisi</th>
-                                <th className="px-3 py-1.5 font-semibold">Material Code</th>
-                                <th className="px-3 py-1.5 font-semibold">Material Name</th>
-                                <th className="px-3 py-1.5 font-semibold text-center">
-                                    Qty Intech
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan={6} className="px-3 py-4 text-center text-gray-500">
-                                        Loading data...
-                                    </td>
-                                </tr>
-                            ) : filteredData.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-3 py-4 text-center text-gray-500">
-                                        Tidak ada material Intech.
-                                    </td>
-                                </tr>
-                            ) : (
-                                <AnimatePresence>
-                                    {filteredData.map((item: StockIntechItem, index: number) => (
-                                        <motion.tr
-                                            key={index}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.2, delay: index * 0.03 }}
-                                            className="bg-white border-b hover:bg-gray-50"
-                                        >
-                                            <td className="px-3 py-1.5 font-medium">
-                                                {item.branch || '-'}
-                                            </td>
-                                            <td className="px-3 py-1.5 text-gray-500">
-                                                {item.wh_name || '-'}
-                                            </td>
-                                            <td className="px-3 py-1.5 font-semibold">
-                                                {item.teknisi || '-'}
-                                            </td>
-                                            <td className="px-3 py-1.5 font-mono text-sm">
-                                                {item.material_code}
-                                            </td>
-                                            <td className="px-3 py-1.5">{item.material_name}</td>
-                                            <td className="px-3 py-1.5 font-bold text-blue-600 text-center">
-                                                {item.qty_intech}
-                                            </td>
-                                        </motion.tr>
-                                    ))}
-                                </AnimatePresence>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable
+                    table={table}
+                    isLoading={isLoading}
+                    emptyMessage="Tidak ada material Intech."
+                />
             </CardBox>
         </motion.div>
     );

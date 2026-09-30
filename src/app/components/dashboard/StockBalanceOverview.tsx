@@ -7,7 +7,7 @@ import {
     getCoreRowModel,
     useReactTable,
 } from '@tanstack/react-table';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Check, ChevronsUpDown, Search } from 'lucide-react';
 import React, { useState } from 'react';
 import { getStockBalances } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
@@ -34,6 +34,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { DataTable } from '@/app/components/shared/DataTable';
 
 const columnHelper = createColumnHelper<StockBalanceData>();
 
@@ -208,66 +209,11 @@ export default function StockBalanceOverview() {
                     </div>
                 </div>
 
-                <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
-                    <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap">
-                        <thead className="text-sm text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
-                            {table.getHeaderGroups().map((headerGroup) => (
-                                <tr key={headerGroup.id}>
-                                    {headerGroup.headers.map((header) => (
-                                        <th key={header.id} className="px-3 py-1.5 font-semibold">
-                                            {flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext()
-                                            )}
-                                        </th>
-                                    ))}
-                                </tr>
-                            ))}
-                        </thead>
-                        <tbody>
-                            {isLoading ? (
-                                <tr>
-                                    <td
-                                        colSpan={columns.length}
-                                        className="px-3 py-4 text-center text-gray-500"
-                                    >
-                                        Loading data...
-                                    </td>
-                                </tr>
-                            ) : filteredBalances.length === 0 ? (
-                                <tr>
-                                    <td
-                                        colSpan={columns.length}
-                                        className="px-3 py-4 text-center text-gray-500"
-                                    >
-                                        No stock balance found.
-                                    </td>
-                                </tr>
-                            ) : (
-                                <AnimatePresence>
-                                    {table.getRowModel().rows.map((row, i) => (
-                                        <motion.tr
-                                            key={row.id}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.2, delay: i * 0.03 }}
-                                            className="bg-white border-b hover:bg-gray-50"
-                                        >
-                                            {row.getVisibleCells().map((cell) => (
-                                                <td key={cell.id} className="px-3 py-1.5">
-                                                    {flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext()
-                                                    )}
-                                                </td>
-                                            ))}
-                                        </motion.tr>
-                                    ))}
-                                </AnimatePresence>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable
+                    table={table}
+                    isLoading={isLoading}
+                    emptyMessage="No stock balance found."
+                />
             </CardBox>
         </motion.div>
     );

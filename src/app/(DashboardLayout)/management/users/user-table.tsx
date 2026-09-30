@@ -8,7 +8,7 @@ import {
     getPaginationRowModel,
     useReactTable,
 } from '@tanstack/react-table';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Search, ShieldAlert, Trash2, X } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { deleteUser, toggleUserStatus } from './actions';
+import { DataTable } from '@/app/components/shared/DataTable';
+import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 
 interface UserTableProps {
     data: any[];
@@ -189,82 +191,8 @@ export default function UserTable({ data }: UserTableProps) {
                 </div>
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
-                <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap">
-                    <thead className="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-800 dark:text-gray-300 border-b sticky top-0 z-10 shadow-sm">
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <tr key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => (
-                                    <th key={header.id} className="px-4 py-1.5 font-semibold">
-                                        {flexRender(
-                                            header.column.columnDef.header,
-                                            header.getContext()
-                                        )}
-                                    </th>
-                                ))}
-                            </tr>
-                        ))}
-                    </thead>
-                    <tbody>
-                        {data.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={columns.length}
-                                    className="px-4 py-6 text-center text-gray-500"
-                                >
-                                    No users found.
-                                </td>
-                            </tr>
-                        ) : (
-                            <AnimatePresence>
-                                {table.getRowModel().rows.map((row, i) => (
-                                    <motion.tr
-                                        key={row.id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.2, delay: i * 0.03 }}
-                                        className="bg-card border-b hover:bg-muted/50"
-                                    >
-                                        {row.getVisibleCells().map((cell) => (
-                                            <td key={cell.id} className="px-4 py-1.5">
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                )}
-                                            </td>
-                                        ))}
-                                    </motion.tr>
-                                ))}
-                            </AnimatePresence>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Pagination Controls */}
-            <div className="flex items-center justify-between px-2 py-2">
-                <div className="text-sm text-muted-foreground">
-                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                    </Button>
-                </div>
-            </div>
+            <DataTable table={table} />
+            <DataTablePagination table={table} />
         </motion.div>
     );
 }

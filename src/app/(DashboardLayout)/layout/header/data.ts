@@ -12,7 +12,7 @@ const profileDD: ProfileType[] = [
         img: '/images/svgs/icon-account.svg',
         title: 'My Profile',
         subtitle: 'Account settings',
-        icon: 'tabler:user',
+        icon: 'solar:user-circle-linear',
         url: '/user-profile',
     },
 ];

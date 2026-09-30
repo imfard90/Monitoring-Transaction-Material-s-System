@@ -33,7 +33,7 @@ const renderSidebarItems = (
         const IconComp = item.icon || null;
 
         const iconElement = IconComp ? (
-            <Icon icon={IconComp} height={21} width={21} />
+            <Icon icon={IconComp} height={22} width={22} />
         ) : (
             <Icon icon={'ri:checkbox-blank-circle-line'} height={9} width={9} />
         );

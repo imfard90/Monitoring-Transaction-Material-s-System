@@ -32,7 +32,7 @@ const Header = () => {
                             className="xl:hidden px-3 hover:text-primary text-foreground relative after:absolute after:w-10 after:h-10 after:rounded-full hover:after:bg-lightprimary after:bg-transparent rounded-full flex justify-center items-center cursor-pointer"
                             aria-label="Open sidebar menu"
                         >
-                            <Icon icon="tabler:menu-2" height={20} width={20} />
+                            <Icon icon="solar:hamburger-menu-linear" height={24} width={24} />
                         </button>
                         {/* Logo for mobile */}
                         <div className="xl:hidden block ml-2">
@@ -56,14 +56,14 @@ const Header = () => {
                             <span className="flex items-center justify-center relative after:absolute after:w-10 after:h-10 after:rounded-full after:-top-1/2 group-hover:after:bg-lightprimary">
                                 {theme === 'light' ? (
                                     <Icon
-                                        icon="tabler:moon"
-                                        width="20"
+                                        icon="solar:moon-linear"
+                                        width="22"
                                         className="text-foreground dark:text-muted-foreground group-hover:text-primary"
                                     />
                                 ) : (
                                     <Icon
-                                        icon="solar:sun-bold-duotone"
-                                        width="20"
+                                        icon="solar:sun-linear"
+                                        width="22"
                                         className="text-foreground dark:text-muted-foreground group-hover:text-primary"
                                     />
                                 )}
