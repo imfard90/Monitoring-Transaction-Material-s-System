@@ -185,7 +185,7 @@ export default function OutSapForm() {
             } else {
                 toast.error('Data Lensa tidak lengkap.');
             }
-        } catch (err) {
+        } catch (_err) {
             toast.error('Terjadi kesalahan jaringan.');
         }
         setIsScraping(false);

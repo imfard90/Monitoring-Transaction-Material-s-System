@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
 import { getInOutTagItems } from '../_actions/tag-actions';
 
@@ -38,12 +38,12 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>Tag Items Detail (ID Trx: {row?.id_trx})</DialogTitle>
-                </DialogHeader>
-
+        <ModalDialog
+            isOpen={isOpen}
+            onClose={onClose}
+            title={`Tag Items Detail (ID Trx: ${row?.id_trx})`}
+            className="sm:max-w-[700px]"
+        >
                 <div className="py-4">
                     {isLoading ? (
                         <p className="text-center text-gray-500 py-4">Loading items...</p>
@@ -85,7 +85,6 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
                         </div>
                     )}
                 </div>
-            </DialogContent>
-        </Dialog>
+        </ModalDialog>
     );
 }

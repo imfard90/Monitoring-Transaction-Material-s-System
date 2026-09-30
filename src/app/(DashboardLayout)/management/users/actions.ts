@@ -1,6 +1,5 @@
 'use server';
 
-import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';

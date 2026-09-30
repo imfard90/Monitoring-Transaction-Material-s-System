@@ -70,7 +70,7 @@ export async function submitEditRekon(
                     // Update qty_used in sap_out_items
                     await trx
                         .updateTable('inventory.sap_out_items')
-                        .set((eb) => ({
+                        .set((_eb) => ({
                             qty_used: sql`COALESCE(qty_used, 0) + ${diff}`,
                         }))
                         .where('id', '=', item.sap_out_item_id)
@@ -137,7 +137,7 @@ export async function submitEditRekon(
             await trx
                 .updateTable('inventory.sap_out_header')
                 .set({ end_status: checkRes.rows[0]?.all_closed ? 'close' : 'intech' })
-                .where('id', '=', String(sap_out_id) as any)
+                .where('id', '=', String(sap_out_id))
                 .execute();
         });
 

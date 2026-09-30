@@ -1,11 +1,23 @@
 'use server';
 
-import { sql } from 'kysely';
+import { z } from 'zod';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import { rateLimit } from '@/lib/rate-limit';
 import { redis } from '@/lib/redis';
 
+const emailSchema = z.string().email();
+
 export async function precheckLogin(email: string) {
+    const parsed = emailSchema.safeParse(email);
+    if (!parsed.success) return { status: 'error' };
+
+    // Limit to 10 attempts per minute per email
+    const rate = await rateLimit(`login_precheck:${email}`, { limit: 10, windowMs: 60000 });
+    if (!rate.success) {
+        return { status: 'rate_limited' }; // You might want to handle this on the frontend
+    }
+
     try {
         const user = await db
             .selectFrom('auth.user')
@@ -37,6 +49,13 @@ export async function precheckLogin(email: string) {
 }
 
 export async function revokeAllUserSessions(email: string) {
+    const parsed = emailSchema.safeParse(email);
+    if (!parsed.success) return { success: false };
+
+    // Limit to 5 attempts per 5 minutes per email
+    const rate = await rateLimit(`login_revoke:${email}`, { limit: 5, windowMs: 300000 });
+    if (!rate.success) return { success: false };
+
     try {
         const user = await db
             .selectFrom('auth.user')

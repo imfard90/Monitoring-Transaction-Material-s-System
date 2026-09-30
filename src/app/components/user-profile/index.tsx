@@ -12,14 +12,7 @@ import {
 } from '@/app/(DashboardLayout)/user-profile/_actions/lensa-actions';
 import type { UserProfileData } from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authClient } from '@/lib/auth-client';
@@ -346,15 +339,15 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                 </div>
             </motion.div>
 
-            <Dialog open={isLensaDialogOpen} onOpenChange={setIsLensaDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Lensa Inventory Account</DialogTitle>
-                        <DialogDescription>
+            <ModalDialog
+                isOpen={isLensaDialogOpen}
+                onClose={() => setIsLensaDialogOpen(false)}
+                title="Lensa Inventory Account"
+            >
+                    <p className="text-sm text-gray-500">
                             Masukkan kredensial akun Lensa Inventory kamu. Password akan dienkripsi
                             secara aman.
-                        </DialogDescription>
-                    </DialogHeader>
+                    </p>
 
                     <div className="flex flex-col gap-4 py-4">
                         <div className="flex flex-col gap-2">
@@ -378,7 +371,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                         </div>
                     </div>
 
-                    <DialogFooter>
+                    <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                         <Button
                             variant="outline"
                             onClick={() => setIsLensaDialogOpen(false)}
@@ -389,9 +382,8 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                         <Button onClick={handleSaveLensa} disabled={isPending}>
                             {isPending ? 'Menyimpan...' : 'Simpan Kredensial'}
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    </div>
+            </ModalDialog>
         </>
     );
 };

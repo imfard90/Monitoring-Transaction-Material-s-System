@@ -6,11 +6,13 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { Check, ChevronsUpDown, Edit2, Eye, Plus, Search } from 'lucide-react';
+import { Check, ChevronsUpDown, Edit2, Eye, Plus, Search, FilterX } from 'lucide-react';
 import { useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
-import { Badge } from '@/components/ui/badge';
+import { DataTable } from '@/app/components/shared/DataTable';
+import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { StatusBadge } from '@/app/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -34,6 +36,7 @@ interface InOutTagTableProps {
     toWhOptions: string[];
     toWhFilter: string;
     onToWhChange: (val: string) => void;
+    onClearFilters?: () => void;
     onCreateClick: () => void;
     onViewDetail: (row: InOutTagRow) => void;
     onUpdateClick: (row: InOutTagRow) => void;
@@ -51,6 +54,7 @@ export default function InOutTagTable({
     toWhOptions,
     toWhFilter,
     onToWhChange,
+    onClearFilters,
     onCreateClick,
     onViewDetail,
     onUpdateClick,
@@ -98,20 +102,7 @@ export default function InOutTagTable({
         }),
         columnHelper.accessor('end_status', {
             header: 'Status',
-            cell: (info) => {
-                const val = info.getValue();
-                let color = 'bg-gray-500/10 text-gray-800';
-                if (val === 'requested') color = 'bg-blue-500/10 text-blue-800';
-                else if (val === 'in_transit') color = 'bg-yellow-500/10 text-yellow-800';
-                else if (val === 'closed') color = 'bg-green-500/10 text-green-800';
-                else if (val === 'cancel') color = 'bg-red-500/10 text-red-800';
-
-                return (
-                    <Badge className={`capitalize border-none ${color}`} variant="outline">
-                        {val?.replace('_', ' ')}
-                    </Badge>
-                );
-            },
+            cell: (info) => <StatusBadge status={info.getValue()} />,
         }),
         columnHelper.display({
             id: 'actions',
@@ -255,6 +246,26 @@ export default function InOutTagTable({
                             </Command>
                         </PopoverContent>
                     </Popover>
+
+                    {onClearFilters && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={onClearFilters}
+                                        className="bg-white ml-auto"
+                                    >
+                                        <FilterX className="h-4 w-4 text-gray-500" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Clear all filters</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
                 </div>
 
                 <Button
@@ -265,83 +276,8 @@ export default function InOutTagTable({
                 </Button>
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
-                <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap">
-                    <thead className="text-sm text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <tr key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => (
-                                    <th key={header.id} className="px-3 py-1.5 font-semibold">
-                                        {flexRender(
-                                            header.column.columnDef.header,
-                                            header.getContext()
-                                        )}
-                                    </th>
-                                ))}
-                            </tr>
-                        ))}
-                    </thead>
-                    <tbody>
-                        {isLoading ? (
-                            <tr>
-                                <td
-                                    colSpan={columns.length}
-                                    className="px-3 py-4 text-center text-gray-500"
-                                >
-                                    Loading data...
-                                </td>
-                            </tr>
-                        ) : data.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={columns.length}
-                                    className="px-3 py-4 text-center text-gray-500"
-                                >
-                                    No tags found.
-                                </td>
-                            </tr>
-                        ) : (
-                            table.getRowModel().rows.map((row) => (
-                                <tr key={row.id} className="bg-white border-b hover:bg-gray-50">
-                                    {row.getVisibleCells().map((cell) => (
-                                        <td key={cell.id} className="px-3 py-1.5">
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Pagination Controls */}
-            <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-500">
-                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                    </Button>
-                </div>
-            </div>
+            <DataTable table={table} isLoading={isLoading} emptyMessage="No tags found." />
+            <DataTablePagination table={table} />
         </div>
     );
 }

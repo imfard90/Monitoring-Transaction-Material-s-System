@@ -1,18 +1,37 @@
 'use server';
 
+import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 
+const getOutMaterialsSchema = z.object({
+    offsetMonths: z.number().int().min(0).default(0),
+    limitMonths: z.number().int().min(1).max(12).default(5),
+});
+
 export async function getOutMaterials(offsetMonths = 0, limitMonths = 5) {
+    const parsed = getOutMaterialsSchema.safeParse({ offsetMonths, limitMonths });
+    if (!parsed.success) {
+        actionLogger.warn('Invalid parameters for getOutMaterials', {
+            issues: parsed.error.issues,
+        });
+        return {
+            success: false,
+            data: [],
+            counts: { wait_approve: 0, request: 0, intech: 0, close: 0 },
+        };
+    }
+    const { offsetMonths: validOffset, limitMonths: validLimit } = parsed.data;
+
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
 
         const endDate = new Date();
-        endDate.setMonth(endDate.getMonth() - offsetMonths);
+        endDate.setMonth(endDate.getMonth() - validOffset);
 
         const startDate = new Date();
-        startDate.setMonth(startDate.getMonth() - (offsetMonths + limitMonths));
+        startDate.setMonth(startDate.getMonth() - (validOffset + validLimit));
 
         let query = db
             .selectFrom('inventory.sap_out_header as h')
@@ -60,7 +79,19 @@ export async function getOutMaterials(offsetMonths = 0, limitMonths = 5) {
     }
 }
 
+const getOutMaterialItemsSchema = z.object({
+    headerId: z.number().int().positive(),
+});
+
 export async function getOutMaterialItems(headerId: number) {
+    const parsed = getOutMaterialItemsSchema.safeParse({ headerId });
+    if (!parsed.success) {
+        actionLogger.warn('Invalid headerId for getOutMaterialItems', {
+            issues: parsed.error.issues,
+        });
+        return { success: false, data: [] };
+    }
+
     try {
         const items = await db
             .selectFrom('inventory.sap_out_items as i')

@@ -97,7 +97,7 @@ main {
 }
 
 :root {
-    --radius: 8px; /* Slightly denser UI radius */
+    --radius: 6px; /* Dense UI radius */
     --background: #f8fafc; /* Slate 50 */
     --foreground: #0f172a; /* Slate 900 */
     --card: #ffffff;
@@ -158,7 +158,7 @@ main {
 }
 
 .dark {
-    --background: #020817; /* Slate 950 */
+    --background: #020617; /* Slate 950 */
     --foreground: #f8fafc; /* Slate 50 */
     --card: #0f172a; /* Slate 900 */
     --card-foreground: #f8fafc;
@@ -181,7 +181,7 @@ main {
     --chart-3: var(--success);
     --chart-4: var(--warning);
     --chart-5: var(--error);
-    --sidebar: #020817; /* Slate 950 */
+    --sidebar: #020617; /* Slate 950 */
     --sidebar-foreground: #cbd5e1; /* Slate 300 */
     --sidebar-primary: var(--sidebar-primary);
     --sidebar-primary-foreground: var(--sidebar-primary-foreground);
@@ -322,5 +322,5 @@ input[type="time"] {
     -webkit-transform: translate3d(0, 0, 0);
 }
 .mySwiper .swiper-wrapper {
-    transition-timing-function: linear !important;
+    transition-timing-function: linear;
 }

@@ -11,7 +11,9 @@ import { Check, ChevronsUpDown, Eye, FilterX, Search } from 'lucide-react';
 import { useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
-import { Badge } from '@/components/ui/badge';
+import { DataTable } from '@/app/components/shared/DataTable';
+import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { StatusBadge } from '@/app/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -98,21 +100,7 @@ export default function OutMaterialTable({
         }),
         columnHelper.accessor('end_status', {
             header: 'Status',
-            cell: (info) => {
-                const val = info.getValue();
-                let color = 'bg-gray-500/10 text-gray-800';
-                if (val === 'wait_approve') color = 'bg-yellow-500/10 text-yellow-800';
-                else if (val === 'request') color = 'bg-blue-500/10 text-blue-800';
-                else if (val === 'intech') color = 'bg-purple-500/10 text-purple-800';
-                else if (val === 'close') color = 'bg-green-500/10 text-green-800';
-                else if (val === 'cancel') color = 'bg-red-500/10 text-red-800';
-
-                return (
-                    <Badge className={`capitalize border-none ${color}`} variant="outline">
-                        {val?.replace('_', ' ')}
-                    </Badge>
-                );
-            },
+            cell: (info) => <StatusBadge status={info.getValue()} />,
         }),
         columnHelper.display({
             id: 'actions',
@@ -155,8 +143,8 @@ export default function OutMaterialTable({
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center flex-wrap gap-4">
-                <div className="flex gap-3 flex-wrap items-center">
+            <div className="flex justify-between items-center gap-4 mb-4">
+                <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
                     <div className="relative w-full md:w-80">
                         <Input
                             placeholder="Search request id, reservasi, sap..."
@@ -243,7 +231,7 @@ export default function OutMaterialTable({
                                     variant="outline"
                                     size="icon"
                                     onClick={onClearFilters}
-                                    className="bg-white ml-auto md:ml-0"
+                                    className="bg-white ml-auto"
                                 >
                                     <FilterX className="h-4 w-4 text-gray-500" />
                                 </Button>
@@ -256,91 +244,8 @@ export default function OutMaterialTable({
                 )}
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
-                <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap">
-                    <thead className="text-sm text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <tr key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => (
-                                    <th key={header.id} className="px-3 py-1.5 font-semibold">
-                                        {flexRender(
-                                            header.column.columnDef.header,
-                                            header.getContext()
-                                        )}
-                                    </th>
-                                ))}
-                            </tr>
-                        ))}
-                    </thead>
-                    <tbody>
-                        {isLoading ? (
-                            <tr>
-                                <td
-                                    colSpan={columns.length}
-                                    className="px-3 py-4 text-center text-gray-500"
-                                >
-                                    Loading data...
-                                </td>
-                            </tr>
-                        ) : data.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={columns.length}
-                                    className="px-3 py-4 text-center text-gray-500"
-                                >
-                                    No materials found.
-                                </td>
-                            </tr>
-                        ) : (
-                            <AnimatePresence>
-                                {table.getRowModel().rows.map((row, i) => (
-                                    <motion.tr
-                                        key={row.id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.2, delay: i * 0.03 }}
-                                        className="bg-white border-b hover:bg-gray-50"
-                                    >
-                                        {row.getVisibleCells().map((cell) => (
-                                            <td key={cell.id} className="px-3 py-1.5">
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                )}
-                                            </td>
-                                        ))}
-                                    </motion.tr>
-                                ))}
-                            </AnimatePresence>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Pagination Controls */}
-            <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-500">
-                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                    </Button>
-                </div>
-            </div>
+            <DataTable table={table} isLoading={isLoading} emptyMessage="No materials found." />
+            <DataTablePagination table={table} />
         </div>
     );
 }

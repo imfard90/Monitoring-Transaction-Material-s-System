@@ -242,7 +242,7 @@ export async function createOutSap(payload: {
 
     const parsed = createOutSapSchema.safeParse(payload);
     if (!parsed.success) {
-        return { success: false, error: 'Invalid input data: ' + parsed.error.issues[0].message };
+        return { success: false, error: `Invalid input data: ${parsed.error.issues[0].message}` };
     }
 
     try {

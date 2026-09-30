@@ -97,7 +97,10 @@ export default function OutMaterialClient() {
                         end: endOfDay(dateFilter.to),
                     });
                 } else {
-                    matchesDate = rowDate >= startOfDay(dateFilter.from);
+                    matchesDate = isWithinInterval(rowDate, {
+                        start: startOfDay(dateFilter.from),
+                        end: endOfDay(dateFilter.from),
+                    });
                 }
             }
 

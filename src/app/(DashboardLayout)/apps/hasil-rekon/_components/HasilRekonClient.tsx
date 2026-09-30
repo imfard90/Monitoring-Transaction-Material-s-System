@@ -4,12 +4,12 @@ import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
-import { getHasilRekon } from '../_actions/rekon-actions';
+import { getHasilRekon, type HasilRekonData } from '../_actions/rekon-actions';
 import EditRekonModal from './EditRekonModal';
 import HasilRekonTable from './HasilRekonTable';
 
 interface HasilRekonClientProps {
-    initialData: any[];
+    initialData: HasilRekonData[];
 }
 
 export default function HasilRekonClient({ initialData }: HasilRekonClientProps) {
@@ -18,7 +18,7 @@ export default function HasilRekonClient({ initialData }: HasilRekonClientProps)
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMoreData, setHasMoreData] = useState(true);
 
-    const [editRowData, setEditRowData] = useState<any | null>(null);
+    const [editRowData, setEditRowData] = useState<HasilRekonData | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState('');

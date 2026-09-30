@@ -118,7 +118,10 @@ export default function InOutTagClient() {
                         end: endOfDay(dateFilter.to),
                     });
                 } else {
-                    matchesDate = tagDate >= startOfDay(dateFilter.from);
+                    matchesDate = isWithinInterval(tagDate, {
+                        start: startOfDay(dateFilter.from),
+                        end: endOfDay(dateFilter.from),
+                    });
                 }
             }
 
@@ -140,6 +143,13 @@ export default function InOutTagClient() {
             return () => clearTimeout(timeout);
         }
     }, [searchQuery, filteredTags.length, hasMoreData, isLoadingMore, isLoading, loadMore]);
+
+    const handleClearFilters = () => {
+        setFilterStatus('all');
+        setSearchQuery('');
+        setToWhFilter('all');
+        setDateFilter(undefined);
+    };
 
     return (
         <motion.div
@@ -176,6 +186,7 @@ export default function InOutTagClient() {
                         onToWhChange={setToWhFilter}
                         dateFilter={dateFilter}
                         onDateFilterChange={setDateFilter}
+                        onClearFilters={handleClearFilters}
                         onCreateClick={() => setIsCreateModalOpen(true)}
                         onViewDetail={(row) => setDetailRow(row)}
                         onUpdateClick={handleUpdateClick}

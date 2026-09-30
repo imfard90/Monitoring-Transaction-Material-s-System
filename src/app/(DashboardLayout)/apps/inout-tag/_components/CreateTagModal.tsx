@@ -13,7 +13,7 @@ import {
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -39,6 +39,14 @@ interface MaterialItem {
     id: string; // unique frontend id for React keys
     designator_id: number | null;
     qty: number | string;
+}
+
+interface MaterialStock {
+    id: number;
+    code: string | null;
+    description: string | null;
+    unit: string | null;
+    qty_stock: number | string | null;
 }
 
 export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps) {
@@ -133,11 +141,13 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>Create New Tag</DialogTitle>
-                </DialogHeader>
+        <ModalDialog
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Create New Tag"
+            className="sm:max-w-[900px]"
+            preventOutsideClose
+        >
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-4">
                     {/* LEFT COLUMN */}
@@ -352,8 +362,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                         {createMutation.isPending ? 'Saving...' : 'Save Tag'}
                     </Button>
                 </div>
-            </DialogContent>
-        </Dialog>
+        </ModalDialog>
     );
 }
 
@@ -367,7 +376,7 @@ function MaterialRow({
 }: {
     item: MaterialItem;
     index: number;
-    materials: any[];
+    materials: MaterialStock[];
     onItemChange: (id: string, field: keyof MaterialItem, value: number | string) => void;
     onRemoveItem: (id: string) => void;
 }) {

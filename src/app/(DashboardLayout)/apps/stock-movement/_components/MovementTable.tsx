@@ -12,11 +12,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarIcon, FilterX, Search } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
+import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
+import { DataTable } from '@/app/components/shared/DataTable';
+import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
@@ -154,40 +155,11 @@ export default function MovementTable({
                     </div>
 
                     {onDateRangeChange && (
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={'outline'}
-                                    className={cn(
-                                        'w-[260px] justify-start text-left font-normal bg-white',
-                                        !dateRange && 'text-muted-foreground'
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateRange?.from ? (
-                                        dateRange.to ? (
-                                            <>
-                                                {format(dateRange.from, 'LLL dd, y')} -{' '}
-                                                {format(dateRange.to, 'LLL dd, y')}
-                                            </>
-                                        ) : (
-                                            format(dateRange.from, 'LLL dd, y')
-                                        )
-                                    ) : (
-                                        <span>Filter by date range...</span>
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    mode="range"
-                                    defaultMonth={dateRange?.from}
-                                    selected={dateRange}
-                                    onSelect={onDateRangeChange}
-                                    numberOfMonths={2}
-                                />
-                            </PopoverContent>
-                        </Popover>
+                        <DateRangePicker
+                            date={dateRange}
+                            setDate={onDateRangeChange}
+                            className="w-[260px]"
+                        />
                     )}
 
                     {onWarehouseFilterChange && (
@@ -241,87 +213,11 @@ export default function MovementTable({
             </div>
 
             {/* Table */}
-            <div className="flex-1 overflow-auto rounded-md border">
-                <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 z-10 bg-gray-50 shadow-sm">
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <tr key={headerGroup.id} className="border-b bg-gray-50/50">
-                                {headerGroup.headers.map((header) => (
-                                    <th
-                                        key={header.id}
-                                        className="h-8 px-3 py-1.5 align-middle font-medium text-gray-500 text-sm whitespace-nowrap"
-                                    >
-                                        {flexRender(
-                                            header.column.columnDef.header,
-                                            header.getContext()
-                                        )}
-                                    </th>
-                                ))}
-                            </tr>
-                        ))}
-                    </thead>
-                    <tbody>
-                        {table.getRowModel().rows?.length ? (
-                            <AnimatePresence>
-                                {table.getRowModel().rows.map((row, i) => (
-                                    <motion.tr
-                                        key={row.id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.2, delay: i * 0.03 }}
-                                        className="border-b transition-colors hover:bg-gray-50/50"
-                                    >
-                                        {row.getVisibleCells().map((cell) => (
-                                            <td
-                                                key={cell.id}
-                                                className="px-3 py-1.5 align-middle whitespace-nowrap"
-                                            >
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                )}
-                                            </td>
-                                        ))}
-                                    </motion.tr>
-                                ))}
-                            </AnimatePresence>
-                        ) : (
-                            <tr>
-                                <td
-                                    colSpan={columns.length}
-                                    className="h-24 text-center text-gray-500"
-                                >
-                                    No movements found.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+            <DataTable table={table} emptyMessage="No movements found." />
 
             {/* Pagination */}
-            <div className="flex items-center justify-between py-4 px-4">
-                <div className="text-sm text-gray-500 font-medium">
-                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
-                </div>
-                <div className="flex items-center space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                    </Button>
-                </div>
+            <div className="py-4 px-4">
+                <DataTablePagination table={table} />
             </div>
         </div>
     );

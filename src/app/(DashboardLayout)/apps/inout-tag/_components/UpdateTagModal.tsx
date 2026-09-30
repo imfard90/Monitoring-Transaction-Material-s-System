@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -25,8 +25,8 @@ import { acceptReturnTag, cancelTag, updateTag } from '../_actions/tag-actions';
 interface UpdateTagModalProps {
     isOpen: boolean;
     onClose: () => void;
-    row: any;
-    items: any[];
+    row: InOutTagRow | null;
+    items: InOutTagItem[];
 }
 
 interface MaterialItem {
@@ -81,10 +81,10 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
                 .filter((i) => isReturn || i.action === 'request')
                 .map((i) => ({
                     id: crypto.randomUUID(),
-                    designator_id: i.designator_id,
-                    code: i.code,
-                    description: i.description,
-                    unit: i.unit,
+                    designator_id: Number(i.designator_id) || 0,
+                    code: i.material_code || '',
+                    description: i.material_description || '',
+                    unit: i.material_unit || '',
                     qty: i.qty,
                 }));
 
@@ -101,15 +101,15 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
             setIdempotencyKey(idemKey, 'inventoryTx');
 
             if (isReturn) {
-                return acceptReturnTag(row.id, actionId, idemKey);
+                return acceptReturnTag(Number(row!.id), actionId, idemKey);
             }
 
             return updateTag({
-                headerId: row.id,
+                headerId: Number(row!.id),
                 actionType,
                 actionId,
                 items: materialItems.map((i) => ({
-                    designator_id: i.designator_id,
+                    designator_id: Number(i.designator_id),
                     qty: Number(i.qty),
                 })),
                 idemKey,
@@ -135,7 +135,7 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
 
     const cancelMutation = useMutation({
         mutationFn: async () => {
-            return cancelTag(row.id);
+            return cancelTag(Number(row!.id));
         },
         onSuccess: (res) => {
             if (res.success) {
@@ -164,11 +164,13 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
     if (!row || !actionType) return null;
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[700px]">
-                <DialogHeader>
-                    <DialogTitle>Update Tag: {row.id_trx}</DialogTitle>
-                </DialogHeader>
+        <ModalDialog
+            isOpen={isOpen}
+            onClose={onClose}
+            title={`Update Tag: ${row.id_trx}`}
+            className="sm:max-w-[700px]"
+            preventOutsideClose
+        >
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-4">
                     <div className="space-y-4">
@@ -312,7 +314,6 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
                         </Button>
                     </div>
                 </div>
-            </DialogContent>
-        </Dialog>
+        </ModalDialog>
     );
 }

@@ -7,16 +7,10 @@ import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Input } from '@/components/ui/input';
 import { getRekonEditData, submitEditRekon } from '../_actions/edit-rekon-actions';
+import type { HasilRekonData } from '../_actions/rekon-actions';
 
 const editItemSchema = z
     .object({
@@ -43,7 +37,7 @@ type EditRekonFormValues = z.infer<typeof editRekonSchema>;
 interface EditRekonModalProps {
     isOpen: boolean;
     onClose: () => void;
-    rowData: any | null; // This is the row from the table
+    rowData: HasilRekonData | null; // This is the row from the table
 }
 
 export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonModalProps) {
@@ -77,34 +71,49 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
                     setAvailableSapItems(res.sapItems);
 
                     // Populate existing items
-                    const mappedItems = res.existingItems.map((item: any) => {
-                        // Find this item in sapItems to know its sap_out_item_id and available limit
-                        const sapItem = res.sapItems.find(
-                            (s: any) => s.designator_id === item.designator_id
-                        );
-                        const qty_req = sapItem ? Number(sapItem.qty_req) : 0;
-                        const qty_used = sapItem ? Number(sapItem.qty_used) : 0;
-                        // The item.current_qty is already included in qty_used. So max editable is:
-                        const max_qty = qty_req - qty_used + item.current_qty;
+                    const mappedItems = res.existingItems.map(
+                        (item: {
+                            item_id: string | number;
+                            designator_id: string | number;
+                            current_qty: number;
+                            description: string | null;
+                            code: string | null;
+                        }) => {
+                            // Find this item in sapItems to know its sap_out_item_id and available limit
+                            const sapItem = res.sapItems.find(
+                                (s: {
+                                    designator_id: string | number;
+                                    qty_req: string | number;
+                                    qty_used: string | number | null;
+                                    sap_out_item_id: string | number;
+                                    code: string | null;
+                                    description: string | null;
+                                }) => Number(s.designator_id) === Number(item.designator_id)
+                            );
+                            const qty_req = sapItem ? Number(sapItem.qty_req) : 0;
+                            const qty_used = sapItem ? Number(sapItem.qty_used) : 0;
+                            // The item.current_qty is already included in qty_used. So max editable is:
+                            const max_qty = qty_req - qty_used + item.current_qty;
 
-                        return {
-                            item_id: String(item.item_id),
-                            designator_id: item.designator_id,
-                            sap_out_item_id: String(sapItem?.sap_out_item_id || ''),
-                            new_qty: item.current_qty,
-                            old_qty: item.current_qty,
-                            max_qty: max_qty,
-                            material_name: item.description,
-                            material_code: item.code,
-                        };
-                    });
+                            return {
+                                item_id: String(item.item_id),
+                                designator_id: Number(item.designator_id),
+                                sap_out_item_id: String(sapItem?.sap_out_item_id || ''),
+                                new_qty: item.current_qty,
+                                old_qty: item.current_qty,
+                                max_qty: max_qty,
+                                material_name: item.description || '',
+                                material_code: item.code || '',
+                            };
+                        }
+                    );
 
                     form.reset({ items: mappedItems });
                 } else {
                     toast.error(res.error || 'Gagal memuat data');
                     onClose();
                 }
-            } catch (err) {
+            } catch (_err) {
                 toast.error('Terjadi kesalahan sistem');
                 onClose();
             } finally {
@@ -132,7 +141,7 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
             } else {
                 toast.error(res.error || 'Gagal menyimpan');
             }
-        } catch (e) {
+        } catch (_e) {
             toast.error('Terjadi kesalahan sistem');
         } finally {
             setIsSubmitting(false);
@@ -167,11 +176,12 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle>Edit Rekon: {rowData?.trx_id}</DialogTitle>
-                </DialogHeader>
+        <ModalDialog
+            isOpen={isOpen}
+            onClose={onClose}
+            title={`Edit Rekon: ${rowData?.trx_id}`}
+            className="max-w-3xl"
+        >
 
                 {isLoading ? (
                     <div className="py-8 flex justify-center">
@@ -236,7 +246,7 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
                             Tambah Material
                         </Button>
 
-                        <DialogFooter>
+                        <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                             <Button type="button" variant="ghost" onClick={onClose}>
                                 Batal
                             </Button>
@@ -250,10 +260,9 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
                                     'Simpan Perubahan'
                                 )}
                             </Button>
-                        </DialogFooter>
+                        </div>
                     </form>
                 )}
-            </DialogContent>
-        </Dialog>
+        </ModalDialog>
     );
 }

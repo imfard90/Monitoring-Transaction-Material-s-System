@@ -14,6 +14,7 @@ import { getStockBalances } from '@/app/(DashboardLayout)/_actions/dashboard-act
 
 interface StockBalanceData {
     warehouse_name: string | null;
+    branch_name: string | null;
     material_name: string | null;
     material_code: string | null;
     qty_stock: number;
@@ -34,7 +35,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-const columnHelper = createColumnHelper<any>();
+const columnHelper = createColumnHelper<StockBalanceData>();
 
 export default function StockBalanceOverview() {
     const [searchQuery, setSearchQuery] = useState('');

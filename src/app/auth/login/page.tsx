@@ -12,14 +12,7 @@ import AuthCard from '@/app/auth/components/AuthCard';
 import AuthLayout from '@/app/auth/components/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -100,7 +93,7 @@ const LoginForm = () => {
 
             toast.success('Berhasil masuk');
             window.location.href = '/';
-        } catch (err) {
+        } catch (_err) {
             setErrorMsg({ type: 'error', text: 'Terjadi kesalahan sistem, silakan coba lagi' });
         }
     };
@@ -136,7 +129,7 @@ const LoginForm = () => {
 
             toast.success('Sesi lama telah diputuskan. Berhasil masuk');
             window.location.href = '/';
-        } catch (err) {
+        } catch (_err) {
             setErrorMsg({ type: 'error', text: 'Gagal memutuskan sesi lama' });
         } finally {
             setIsRevoking(false);
@@ -253,16 +246,16 @@ const LoginForm = () => {
                 </div>
             </AuthCard>
 
-            <Dialog open={!!pendingLogin} onOpenChange={(open) => !open && setPendingLogin(null)}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Sesi Aktif Ditemukan</DialogTitle>
-                        <DialogDescription>
+            <ModalDialog
+                isOpen={!!pendingLogin}
+                onClose={() => setPendingLogin(null)}
+                title="Sesi Aktif Ditemukan"
+            >
+                    <p className="text-sm text-gray-500">
                             Akun Anda terdeteksi masih login di perangkat atau browser lain. Apakah
                             Anda ingin memutuskan sesi tersebut dan login di sini?
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="mt-4">
+                    </p>
+                    <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                         <Button
                             variant="outline"
                             onClick={() => setPendingLogin(null)}
@@ -280,9 +273,8 @@ const LoginForm = () => {
                                 'Ya, Putuskan Sesi'
                             )}
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    </div>
+            </ModalDialog>
         </AuthLayout>
     );
 };

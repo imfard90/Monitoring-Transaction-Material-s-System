@@ -35,10 +35,6 @@
     {
       "name": "Anthropic-Cybersecurity-Skills-main",
       "path": "../../../Movies/Anthropic-Cybersecurity-Skills-main"
-    },
-    {
-      "name": "gresikV2",
-      "path": "../gresikV2"
     }
   ],
   "settings": {}

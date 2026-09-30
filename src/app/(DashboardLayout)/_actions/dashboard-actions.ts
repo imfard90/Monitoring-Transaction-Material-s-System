@@ -1,9 +1,26 @@
 'use server';
 
 import { sql } from 'kysely';
+import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
+import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+
+const getSalesOverviewDataSchema = z.object({
+    wh_id: z.string().min(1),
+    daysCount: z.number().int().positive().max(90),
+    endDate: z.date(),
+});
+
+const getTopOutMaterialsSchema = z.object({
+    limit: z.number().int().positive().max(50).default(7),
+});
+
+const getOutMaterialLineChartDataSchema = z.object({
+    wh_id: z.string().min(1),
+    limit: z.number().int().positive().max(50).default(20),
+});
 
 export async function getStockBalances() {
     try {
@@ -75,7 +92,26 @@ export async function getDashboardStockIntech() {
 }
 
 export async function getSalesOverviewData(wh_id: string, daysCount: number, endDate: Date) {
+    const parsed = getSalesOverviewDataSchema.safeParse({ wh_id, daysCount, endDate });
+    if (!parsed.success) {
+        actionLogger.warn('Invalid params for getSalesOverviewData', {
+            issues: parsed.error.issues,
+        });
+        return { success: false, error: 'Invalid parameters' };
+    }
+
     try {
+        const cacheKey = `sales_overview_${wh_id}_${daysCount}_${endDate.getTime()}`;
+        const cached = await encryptedCache.getGeneral<{
+            dates: string[];
+            outMaterial: number[];
+            hasilRekon: number[];
+        }>('dashboard', cacheKey);
+        if (cached) {
+            actionLogger.debug(`Cache hit for ${cacheKey}`);
+            return { success: true, data: cached };
+        }
+
         const startDate = new Date(endDate);
         startDate.setDate(endDate.getDate() - daysCount + 1);
         startDate.setHours(0, 0, 0, 0);
@@ -140,7 +176,10 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             hasilRekon.push(-Number(rekonVal)); // Negative for chart layout
         }
 
-        return { success: true, data: { dates, outMaterial, hasilRekon } };
+        const finalData = { dates, outMaterial, hasilRekon };
+        await encryptedCache.setGeneral('dashboard', finalData, cacheKey, 300); // Cache for 5 mins
+
+        return { success: true, data: finalData };
     } catch (error: unknown) {
         actionLogger.error(
             'Failed to fetch sales overview:',
@@ -151,6 +190,13 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
 }
 
 export async function getTopOutMaterials(limit: number = 7) {
+    const parsed = getTopOutMaterialsSchema.safeParse({ limit });
+    if (!parsed.success) {
+        actionLogger.warn('Invalid params for getTopOutMaterials', { issues: parsed.error.issues });
+        return { success: false, error: 'Invalid parameters' };
+    }
+    const validLimit = parsed.data.limit;
+
     try {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
@@ -167,7 +213,7 @@ export async function getTopOutMaterials(limit: number = 7) {
             .where(sql`COALESCE(soh.sap_time, soh.request_time)`, '>=', thirtyDaysAgo)
             .groupBy('m.description')
             .orderBy('total_qty', 'desc')
-            .limit(limit)
+            .limit(validLimit)
             .execute();
 
         return { success: true, data };
@@ -181,6 +227,15 @@ export async function getTopOutMaterials(limit: number = 7) {
 }
 
 export async function getOutMaterialLineChartData(wh_id: string, limit: number = 20) {
+    const parsed = getOutMaterialLineChartDataSchema.safeParse({ wh_id, limit });
+    if (!parsed.success) {
+        actionLogger.warn('Invalid params for getOutMaterialLineChartData', {
+            issues: parsed.error.issues,
+        });
+        return { success: false, error: 'Invalid parameters' };
+    }
+    const validLimit = parsed.data.limit;
+
     try {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
@@ -199,7 +254,7 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
             .where(sql`COALESCE(soh.sap_time, soh.request_time)`, '>=', thirtyDaysAgo)
             .groupBy(['m.code', 'm.description'])
             .orderBy('total_qty', 'desc')
-            .limit(limit);
+            .limit(validLimit);
 
         if (wh_id && wh_id !== 'all') {
             topMatQuery = topMatQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
@@ -251,6 +306,13 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
 
 export async function getWarehousePerformance() {
     try {
+        const cacheKey = `warehouse_perf`;
+        const cached = await encryptedCache.getGeneral<any>('dashboard', cacheKey);
+        if (cached) {
+            actionLogger.debug(`Cache hit for ${cacheKey}`);
+            return { success: true, data: cached };
+        }
+
         // total trx out = count all
         // trx out close = count end_status = 'close'
         const data = await db
@@ -266,6 +328,8 @@ export async function getWarehousePerformance() {
             ])
             .groupBy(['wh.id', 'wh.name'])
             .execute();
+
+        await encryptedCache.setGeneral('dashboard', data, cacheKey, 300);
 
         return { success: true, data };
     } catch (error: unknown) {

@@ -3,7 +3,7 @@
 import { Icon } from '@iconify/react';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import FullLogo from '../shared/logo/FullLogo';
 import SidebarLayout from '../sidebar/Sidebar';

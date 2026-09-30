@@ -1,4 +1,3 @@
-import React from 'react';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
 import { getBranches, getMitras, getTechnicians } from './actions';
 import TechnicianTable from './technician-table';

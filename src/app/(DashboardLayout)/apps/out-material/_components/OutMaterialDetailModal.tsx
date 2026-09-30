@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import type { OutMaterialItem, OutMaterialRow } from '@/lib/types/inventory';
 import { getOutMaterialItems } from '../_actions/out-material-actions';
 
@@ -33,11 +33,12 @@ export default function OutMaterialDetailModal({
     if (!row) return null;
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>Out Material Detail</DialogTitle>
-                </DialogHeader>
+        <ModalDialog
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Out Material Detail"
+            className="max-w-4xl"
+        >
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 bg-gray-50 p-4 rounded-md text-sm">
                     <div>
@@ -127,7 +128,6 @@ export default function OutMaterialDetailModal({
                         </table>
                     </div>
                 </div>
-            </DialogContent>
-        </Dialog>
+        </ModalDialog>
     );
 }

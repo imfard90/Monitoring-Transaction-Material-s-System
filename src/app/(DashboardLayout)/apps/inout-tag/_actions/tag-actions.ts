@@ -93,7 +93,7 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
             .where('r.created_at', '>', startDate);
 
         if (applyWhFilter) {
-            returnQuery = returnQuery.where('r.warehouse_id', 'in', warehouseIds as any);
+            returnQuery = returnQuery.where('r.warehouse_id', 'in', warehouseIds.map(String));
         }
 
         const returnHeaders = await returnQuery.execute();
@@ -267,7 +267,7 @@ export async function createTag(payload: {
 
     const parsed = createTagSchema.safeParse(payload);
     if (!parsed.success) {
-        return { success: false, error: 'Invalid input data: ' + parsed.error.issues[0].message };
+        return { success: false, error: `Invalid input data: ${parsed.error.issues[0].message}` };
     }
 
     try {
@@ -359,7 +359,7 @@ export async function updateTag(payload: {
 
     const parsed = updateTagSchema.safeParse(payload);
     if (!parsed.success) {
-        return { success: false, error: 'Invalid input data: ' + parsed.error.issues[0].message };
+        return { success: false, error: `Invalid input data: ${parsed.error.issues[0].message}` };
     }
 
     try {
@@ -441,7 +441,7 @@ export async function acceptReturnTag(headerId: number, acceptId: string, idemKe
 
     const parsed = acceptReturnTagSchema.safeParse({ headerId, acceptId, idemKey });
     if (!parsed.success) {
-        return { success: false, error: 'Invalid input data: ' + parsed.error.issues[0].message };
+        return { success: false, error: `Invalid input data: ${parsed.error.issues[0].message}` };
     }
 
     try {

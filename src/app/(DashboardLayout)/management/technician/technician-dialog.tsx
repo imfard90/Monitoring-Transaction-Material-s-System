@@ -12,13 +12,7 @@ import {
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -109,14 +103,13 @@ export function TechnicianDialog({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+        <ModalDialog
+            isOpen={open}
+            onClose={() => onOpenChange(false)}
+            title={initialData ? 'Edit Technician' : 'Insert Technician'}
+            className="sm:max-w-[425px]"
+        >
                 <form onSubmit={handleSubmit}>
-                    <DialogHeader>
-                        <DialogTitle>
-                            {initialData ? 'Edit Technician' : 'Insert Technician'}
-                        </DialogTitle>
-                    </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="nik">
@@ -256,7 +249,7 @@ export function TechnicianDialog({
                             </Popover>
                         </div>
                     </div>
-                    <DialogFooter>
+                    <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
                         <Button
                             type="button"
                             variant="outline"
@@ -268,9 +261,8 @@ export function TechnicianDialog({
                         <Button type="submit" disabled={isPending}>
                             Save changes
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </form>
-            </DialogContent>
-        </Dialog>
+        </ModalDialog>
     );
 }

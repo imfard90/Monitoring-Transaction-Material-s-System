@@ -4,7 +4,24 @@ import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 
-export async function getHasilRekon(offsetMonths = 0, limitMonths = 5) {
+export interface HasilRekonData {
+    header_id: number;
+    item_id: number;
+    sap_out_id: number;
+    designator_id: number;
+    created_at: string | null;
+    trx_id: string | null;
+    sap_number: string | null;
+    warehouse_name: string | null;
+    nik: string | null;
+    type: string | null;
+    workorder: string | null;
+    material_code: string | null;
+    material_name: string | null;
+    qty: number | null;
+}
+
+export async function getHasilRekon(offsetMonths = 0, limitMonths = 5): Promise<HasilRekonData[]> {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
 
@@ -47,21 +64,21 @@ export async function getHasilRekon(offsetMonths = 0, limitMonths = 5) {
         const data = await query.execute();
 
         // Standardize output format
-        return data.map((item: any) => ({
-            header_id: item.header_id,
-            item_id: item.item_id,
-            sap_out_id: item.sap_out_id,
-            designator_id: item.designator_id,
+        return data.map((item) => ({
+            header_id: Number(item.header_id),
+            item_id: Number(item.item_id),
+            sap_out_id: Number(item.sap_out_id),
+            designator_id: Number(item.designator_id),
             created_at: item.created_at ? new Date(item.created_at).toISOString() : null,
-            trx_id: item.id_trx,
-            sap_number: item.sap_number,
-            warehouse_name: item.warehouse_name,
-            nik: item.nik_teknisi,
-            type: item.wo_type,
-            workorder: item.wo_number,
-            material_code: item.material_code,
-            material_name: item.material_name,
-            qty: item.qty,
+            trx_id: String(item.id_trx),
+            sap_number: String(item.sap_number),
+            warehouse_name: String(item.warehouse_name),
+            nik: String(item.nik_teknisi),
+            type: String(item.wo_type),
+            workorder: String(item.wo_number),
+            material_code: String(item.material_code),
+            material_name: String(item.material_name),
+            qty: Number(item.qty),
         }));
     } catch (error) {
         actionLogger.error(

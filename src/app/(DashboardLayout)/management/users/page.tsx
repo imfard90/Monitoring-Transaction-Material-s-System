@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import React from 'react';
 import { getSessionUser } from '@/lib/auth-server';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
 import { getUsers } from './actions';
