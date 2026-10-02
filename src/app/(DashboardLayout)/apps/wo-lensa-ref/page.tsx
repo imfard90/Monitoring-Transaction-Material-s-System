@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth-server';
 import { getWOLensaRefList } from './_actions/wo-lensa-actions';
 import WOLensaRefClient from './_components/WOLensaRefClient';
 
+export const dynamic = 'force-dynamic';
 export const metadata = {
     title: "WO Lensa Ref - Monitoring Transaction Material's System",
     description: 'Data WO Lensa Ref',

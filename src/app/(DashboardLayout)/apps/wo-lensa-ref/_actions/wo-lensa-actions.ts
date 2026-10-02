@@ -59,6 +59,24 @@ export async function getWOLensaRefList() {
     return list;
 }
 
+async function asyncPool(poolLimit: number, array: any[], iteratorFn: (item: any) => Promise<any>) {
+    const ret: Promise<any>[] = [];
+    const executing: Promise<void>[] = [];
+    for (const item of array) {
+        const p = Promise.resolve().then(() => iteratorFn(item));
+        ret.push(p);
+
+        if (poolLimit <= array.length) {
+            const e: any = p.then(() => executing.splice(executing.indexOf(e), 1));
+            executing.push(e);
+            if (executing.length >= poolLimit) {
+                await Promise.race(executing);
+            }
+        }
+    }
+    return Promise.all(ret);
+}
+
 async function internalTriggerWOScraping() {
     try {
         const validUsers = await db
@@ -82,7 +100,7 @@ async function internalTriggerWOScraping() {
 
         let totalInserted = 0;
 
-        const headerPromises = validUsers.map(async (u) => {
+        const headerResults = await asyncPool(5, validUsers, async (u) => {
             const lensaAcount = u.lensa_acount as any;
             if (!lensaAcount?.username || !lensaAcount?.password) return [];
 
@@ -112,7 +130,6 @@ async function internalTriggerWOScraping() {
             }
         });
 
-        const headerResults = await Promise.all(headerPromises);
         const allNewHeaders = headerResults.flat();
 
         const uniqueHeadersMap = new Map();
@@ -147,48 +164,99 @@ async function internalTriggerWOScraping() {
         const headersMissingDetails = await db
             .selectFrom('inventory.wo_lensa_header as h')
             .leftJoin('inventory.wo_lensa_list as l', 'l.header_id', 'h.id')
-            .select(['h.id', 'h.pemakaian_id'])
+            .select(['h.id', 'h.pemakaian_id', 'h.nama_gudang'])
             .where('l.id', 'is', null)
             .execute();
 
-        if (headersMissingDetails.length > 0 && validUsers.length > 0) {
-            const u = validUsers[0];
-            const lensaAcount = u.lensa_acount as any;
-            const customUsername = lensaAcount.username;
-            let customPassword = '';
-            try {
-                customPassword = decrypt(lensaAcount.password);
-            } catch (_e) {}
+        if (headersMissingDetails.length > 0) {
+            const whs = await db
+                .selectFrom('inventory.mas_wh')
+                .select(['name', 'pic_1', 'pic_2'])
+                .execute();
+            const usersWithLensa = await db
+                .selectFrom('auth.user as u')
+                .where('u.lensa_acount', 'is not', null)
+                .select(['u.nik', 'u.lensa_acount'])
+                .execute();
 
-            if (customUsername && customPassword) {
-                const details = await scrapeWOLensaDetails(
-                    headersMissingDetails.map((h) => ({
-                        id: Number(h.id),
-                        pemakaian_id: String(h.pemakaian_id),
-                    })),
-                    customUsername,
-                    customPassword
-                );
+            const groupedHeaders: Record<string, any[]> = {};
+            for (const h of headersMissingDetails) {
+                const gudang = h.nama_gudang || 'UNKNOWN';
+                if (!groupedHeaders[gudang]) groupedHeaders[gudang] = [];
+                groupedHeaders[gudang].push(h);
+            }
 
-                if (details.length > 0) {
-                    await db.transaction().execute(async (trx: any) => {
-                        for (const d of details) {
-                            if (d.materials && d.materials.length > 0) {
-                                const materialInserts = d.materials.map((m: any) => ({
-                                    header_id: d.header_id,
-                                    material_id: m['ID MATERIAL'] || null,
-                                    material_desc: m['NAMA MATERIAL'] || null,
-                                    uom: m['SATUAN'] || null,
-                                    qty_pemakaian: Number(m['QTY PEMAKAIAN']) || null,
-                                }));
-                                await trx
-                                    .insertInto('inventory.wo_lensa_list')
-                                    .values(materialInserts)
-                                    .execute();
-                            }
-                        }
-                    });
+            const tasks = Object.keys(groupedHeaders)
+                .map((gudang) => {
+                    const normalized = gudang.replace(/\s+/g, '').toLowerCase();
+                    const wh = whs.find(
+                        (w) => (w.name || '').replace(/\s+/g, '').toLowerCase() === normalized
+                    );
+                    if (!wh) return null;
+                    const picNik = wh.pic_1 || wh.pic_2;
+                    if (!picNik) return null;
+                    const userObj = usersWithLensa.find((u) => u.nik === picNik);
+                    if (!userObj) return null;
+                    return {
+                        gudang,
+                        userObj,
+                        headers: groupedHeaders[gudang],
+                    };
+                })
+                .filter((t) => !!t);
+
+            const detailResults = await asyncPool(5, tasks, async (task: any) => {
+                const { userObj, headers } = task;
+                const lensaAcount = userObj.lensa_acount as any;
+                const customUsername = lensaAcount.username;
+                let customPassword = '';
+                try {
+                    customPassword = decrypt(lensaAcount.password);
+                } catch (_e) {
+                    return [];
                 }
+
+                if (customUsername && customPassword) {
+                    try {
+                        return await scrapeWOLensaDetails(
+                            headers.map((h: any) => ({
+                                id: Number(h.id),
+                                pemakaian_id: String(h.pemakaian_id),
+                            })),
+                            customUsername,
+                            customPassword
+                        );
+                    } catch (e: any) {
+                        console.error(
+                            `Failed to scrape details for WO gudang ${task.gudang}:`,
+                            e.message || e
+                        );
+                        return [];
+                    }
+                }
+                return [];
+            });
+
+            const allDetails = detailResults.flat();
+
+            if (allDetails.length > 0) {
+                await db.transaction().execute(async (trx: any) => {
+                    for (const d of allDetails) {
+                        if (d.materials && d.materials.length > 0) {
+                            const materialInserts = d.materials.map((m: any) => ({
+                                header_id: d.header_id,
+                                material_id: m['ID MATERIAL'] || null,
+                                material_desc: m['NAMA MATERIAL'] || null,
+                                uom: m['SATUAN'] || null,
+                                qty_pemakaian: Number(m['QTY PEMAKAIAN']) || null,
+                            }));
+                            await trx
+                                .insertInto('inventory.wo_lensa_list')
+                                .values(materialInserts)
+                                .execute();
+                        }
+                    }
+                });
             }
         }
 

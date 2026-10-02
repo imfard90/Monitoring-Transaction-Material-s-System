@@ -217,50 +217,78 @@ async function internalTriggerScraping() {
         const headersMissingDetails = await db
             .selectFrom('inventory.out_lensa_ref_header as h')
             .leftJoin('inventory.out_lensa_ref_list as l', 'l.header_id', 'h.id')
-            .select(['h.id', 'h.reservation_id', 'h.scraped_by_username' as any]) // Typecast for dynamic column
+            .select(['h.id', 'h.reservation_id', 'h.nama_gudang'])
             .where('l.id', 'is', null)
             .execute();
 
         if (headersMissingDetails.length > 0) {
-            // Group by scraped_by_username
+            const whs = await db
+                .selectFrom('inventory.mas_wh')
+                .select(['name', 'pic_1', 'pic_2'])
+                .execute();
+            const usersWithLensa = await db
+                .selectFrom('auth.user as u')
+                .where('u.lensa_acount', 'is not', null)
+                .select(['u.nik', 'u.lensa_acount'])
+                .execute();
+
+            // Group by nama_gudang
             const groupedHeaders: Record<string, any[]> = {};
             for (const h of headersMissingDetails) {
-                const username = h.scraped_by_username;
-                if (!groupedHeaders[username]) groupedHeaders[username] = [];
-                groupedHeaders[username].push(h);
+                const gudang = h.nama_gudang || 'UNKNOWN';
+                if (!groupedHeaders[gudang]) groupedHeaders[gudang] = [];
+                groupedHeaders[gudang].push(h);
             }
 
-            // Prepare tasks per user credential
+            // Prepare tasks per gudang credential
             const userDetailTasks = Object.keys(groupedHeaders)
-                .map((username) => {
-                    const u = validUsers.find(
-                        (vu: any) => (vu.lensa_acount as any).username === username
+                .map((gudang) => {
+                    const normalized = gudang.replace(/\s+/g, '').toLowerCase();
+                    const wh = whs.find(
+                        (w) => (w.name || '').replace(/\s+/g, '').toLowerCase() === normalized
                     );
+                    if (!wh) return null;
+                    const picNik = wh.pic_1 || wh.pic_2;
+                    if (!picNik) return null;
+                    const userObj = usersWithLensa.find((u) => u.nik === picNik);
+                    if (!userObj) return null;
                     return {
-                        username,
-                        userObj: u,
-                        headers: groupedHeaders[username],
+                        gudang,
+                        userObj,
+                        headers: groupedHeaders[gudang],
                     };
                 })
-                .filter((t) => !!t.userObj);
+                .filter((t) => !!t);
 
-            const detailResults = await asyncPool(5, userDetailTasks, async (task) => {
-                const { username, userObj, headers } = task;
+            const detailResults = await asyncPool(5, userDetailTasks, async (task: any) => {
+                const { userObj, headers, gudang } = task;
+                const lensaAcount = userObj.lensa_acount as any;
+                const customUsername = lensaAcount.username;
                 let customPassword = '';
                 try {
-                    customPassword = decrypt((userObj.lensa_acount as any).password);
+                    customPassword = decrypt(lensaAcount.password);
                 } catch (_e) {
                     return [];
                 }
 
-                try {
-                    const details = await scrapeLensaDetails(headers, username, customPassword);
-                    totalUsersScraped++;
-                    return details;
-                } catch (e: any) {
-                    console.error(`Failed to scrape details for user ${username}:`, e.message || e);
-                    return [];
+                if (customUsername && customPassword) {
+                    try {
+                        const details = await scrapeLensaDetails(
+                            headers,
+                            customUsername,
+                            customPassword
+                        );
+                        totalUsersScraped++;
+                        return details;
+                    } catch (e: any) {
+                        console.error(
+                            `Failed to scrape details for gudang ${gudang}:`,
+                            e.message || e
+                        );
+                        return [];
+                    }
                 }
+                return [];
             });
 
             const allDetails = detailResults.flat();
