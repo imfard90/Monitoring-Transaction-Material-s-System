@@ -148,6 +148,20 @@ const SidebarContent: MenuItem[] = [
         children: [
             {
                 id: uniqueId(),
+                name: 'Out Lensa Ref',
+                icon: 'solar:download-square-linear',
+                url: '/apps/out-lensa-ref',
+                isPro: false,
+            },
+            {
+                id: uniqueId(),
+                name: 'WO Lensa Ref',
+                icon: 'solar:clipboard-list-linear',
+                url: '/apps/wo-lensa-ref',
+                isPro: false,
+            },
+            {
+                id: uniqueId(),
                 name: 'Iconify Icons',
                 icon: 'solar:structure-linear',
                 url: '/icons/iconify',

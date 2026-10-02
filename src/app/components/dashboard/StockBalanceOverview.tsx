@@ -1,12 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import {
-    createColumnHelper,
-    flexRender,
-    getCoreRowModel,
-    useReactTable,
-} from '@tanstack/react-table';
+import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
 import { Check, ChevronsUpDown, Search } from 'lucide-react';
 import React, { useState } from 'react';
@@ -21,6 +16,7 @@ interface StockBalanceData {
 }
 
 import CardBox from '@/app/components/shared/CardBox';
+import { DataTable } from '@/app/components/shared/DataTable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,7 +30,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { DataTable } from '@/app/components/shared/DataTable';
 
 const columnHelper = createColumnHelper<StockBalanceData>();
 

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, HelpCircle, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -13,7 +14,6 @@ import {
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
-import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -148,220 +148,211 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
             className="sm:max-w-[900px]"
             preventOutsideClose
         >
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-4">
-                    {/* LEFT COLUMN */}
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>From WH</Label>
-                            <Popover open={openFrom} onOpenChange={setOpenFrom}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        className="w-full justify-between font-normal"
-                                    >
-                                        {fromWhId
-                                            ? warehouses.find((w) => w.id === fromWhId)?.name
-                                            : 'Select Source WH...'}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-0" align="start">
-                                    <Command>
-                                        <CommandInput placeholder="Search WH..." />
-                                        <CommandEmpty>No warehouse found.</CommandEmpty>
-                                        <CommandList>
-                                            <CommandGroup>
-                                                {warehouses.map((wh) => (
-                                                    <CommandItem
-                                                        key={wh.id}
-                                                        value={wh.name}
-                                                        onSelect={() => {
-                                                            setFromWhId(wh.id);
-                                                            setOpenFrom(false);
-                                                        }}
-                                                    >
-                                                        <Check
-                                                            className={cn(
-                                                                'mr-2 h-4 w-4',
-                                                                fromWhId === wh.id
-                                                                    ? 'opacity-100'
-                                                                    : 'opacity-0'
-                                                            )}
-                                                        />
-                                                        {wh.name} ({wh.branch})
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>To WH</Label>
-                            <Popover open={openTo} onOpenChange={setOpenTo}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        className="w-full justify-between font-normal"
-                                    >
-                                        {toWhId
-                                            ? warehouses.find((w) => w.id === toWhId)?.name
-                                            : 'Select Destination WH...'}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-0" align="start">
-                                    <Command>
-                                        <CommandInput placeholder="Search WH..." />
-                                        <CommandEmpty>No warehouse found.</CommandEmpty>
-                                        <CommandList>
-                                            <CommandGroup>
-                                                {warehouses.map((wh) => (
-                                                    <CommandItem
-                                                        key={wh.id}
-                                                        value={wh.name}
-                                                        onSelect={() => {
-                                                            setToWhId(wh.id);
-                                                            setOpenTo(false);
-                                                        }}
-                                                    >
-                                                        <Check
-                                                            className={cn(
-                                                                'mr-2 h-4 w-4',
-                                                                toWhId === wh.id
-                                                                    ? 'opacity-100'
-                                                                    : 'opacity-0'
-                                                            )}
-                                                        />
-                                                        {wh.name} ({wh.branch})
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-4">
+                {/* LEFT COLUMN */}
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>From WH</Label>
+                        <Popover open={openFrom} onOpenChange={setOpenFrom}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className="w-full justify-between font-normal"
+                                >
+                                    {fromWhId
+                                        ? warehouses.find((w) => w.id === fromWhId)?.name
+                                        : 'Select Source WH...'}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0" align="start">
+                                <Command>
+                                    <CommandInput placeholder="Search WH..." />
+                                    <CommandEmpty>No warehouse found.</CommandEmpty>
+                                    <CommandList>
+                                        <CommandGroup>
+                                            {warehouses.map((wh) => (
+                                                <CommandItem
+                                                    key={wh.id}
+                                                    value={wh.name}
+                                                    onSelect={() => {
+                                                        setFromWhId(wh.id);
+                                                        setOpenFrom(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            'mr-2 h-4 w-4',
+                                                            fromWhId === wh.id
+                                                                ? 'opacity-100'
+                                                                : 'opacity-0'
+                                                        )}
+                                                    />
+                                                    {wh.name} ({wh.branch})
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
-                    {/* RIGHT COLUMN */}
-                    <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>To WH</Label>
+                        <Popover open={openTo} onOpenChange={setOpenTo}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className="w-full justify-between font-normal"
+                                >
+                                    {toWhId
+                                        ? warehouses.find((w) => w.id === toWhId)?.name
+                                        : 'Select Destination WH...'}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0" align="start">
+                                <Command>
+                                    <CommandInput placeholder="Search WH..." />
+                                    <CommandEmpty>No warehouse found.</CommandEmpty>
+                                    <CommandList>
+                                        <CommandGroup>
+                                            {warehouses.map((wh) => (
+                                                <CommandItem
+                                                    key={wh.id}
+                                                    value={wh.name}
+                                                    onSelect={() => {
+                                                        setToWhId(wh.id);
+                                                        setOpenTo(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            'mr-2 h-4 w-4',
+                                                            toWhId === wh.id
+                                                                ? 'opacity-100'
+                                                                : 'opacity-0'
+                                                        )}
+                                                    />
+                                                    {wh.name} ({wh.branch})
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                </div>
+
+                {/* RIGHT COLUMN */}
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Label>Request ID</Label>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <HelpCircle
+                                            size={14}
+                                            className="text-gray-400 cursor-help"
+                                        />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Kosongkan jika belum ada</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                        <Input
+                            placeholder="e.g. REQ-2026-001"
+                            value={requestId}
+                            onChange={(e) => setRequestId(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                                <Label>Request ID</Label>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <HelpCircle
-                                                size={14}
-                                                className="text-gray-400 cursor-help"
-                                            />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Kosongkan jika belum ada</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </div>
+                            <Label>Vendor</Label>
                             <Input
-                                placeholder="e.g. REQ-2026-001"
-                                value={requestId}
-                                onChange={(e) => setRequestId(e.target.value)}
+                                placeholder="Swakelola"
+                                value={vendorName}
+                                onChange={(e) => setVendorName(e.target.value)}
                             />
                         </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Vendor</Label>
-                                <Input
-                                    placeholder="Swakelola"
-                                    value={vendorName}
-                                    onChange={(e) => setVendorName(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Cost (Rp)</Label>
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    value={cost}
-                                    onChange={(e) => setCost(Number(e.target.value))}
-                                />
-                            </div>
+                        <div className="space-y-2">
+                            <Label>Cost (Rp)</Label>
+                            <Input
+                                type="number"
+                                min="0"
+                                value={cost}
+                                onChange={(e) => setCost(Number(e.target.value))}
+                            />
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* MATERIALS SECTION */}
-                <div className="mt-6 space-y-4">
-                    <div className="flex justify-between items-center">
-                        <Label className="text-base font-semibold">Material List</Label>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleAddItem}
-                            className="gap-2"
-                        >
-                            <Plus size={14} /> Add Material
-                        </Button>
-                    </div>
+            {/* MATERIALS SECTION */}
+            <div className="mt-6 space-y-4">
+                <div className="flex justify-between items-center">
+                    <Label className="text-base font-semibold">Material List</Label>
+                    <Button size="sm" variant="outline" onClick={handleAddItem} className="gap-2">
+                        <Plus size={14} /> Add Material
+                    </Button>
+                </div>
 
-                    <div className="border rounded-md">
-                        <Table>
-                            <TableHeader className="bg-muted/50">
+                <div className="border rounded-md">
+                    <Table>
+                        <TableHeader className="bg-muted/50">
+                            <TableRow>
+                                <TableHead className="w-12 text-center">No</TableHead>
+                                <TableHead>Designator/Code</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead className="w-24">Unit</TableHead>
+                                <TableHead className="w-24">Stock</TableHead>
+                                <TableHead className="w-32">Qty</TableHead>
+                                <TableHead className="w-16 text-center">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {items.length === 0 ? (
                                 <TableRow>
-                                    <TableHead className="w-12 text-center">No</TableHead>
-                                    <TableHead>Designator/Code</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead className="w-24">Unit</TableHead>
-                                    <TableHead className="w-24">Stock</TableHead>
-                                    <TableHead className="w-32">Qty</TableHead>
-                                    <TableHead className="w-16 text-center">Action</TableHead>
+                                    <TableCell
+                                        colSpan={7}
+                                        className="text-center text-muted-foreground py-6"
+                                    >
+                                        No materials added. Click "Add Material" to start.
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {items.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={7}
-                                            className="text-center text-muted-foreground py-6"
-                                        >
-                                            No materials added. Click "Add Material" to start.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    items.map((item, index) => (
-                                        <MaterialRow
-                                            key={item.id}
-                                            item={item}
-                                            index={index}
-                                            materials={materials}
-                                            onItemChange={handleItemChange}
-                                            onRemoveItem={handleRemoveItem}
-                                        />
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                            ) : (
+                                items.map((item, index) => (
+                                    <MaterialRow
+                                        key={item.id}
+                                        item={item}
+                                        index={index}
+                                        materials={materials}
+                                        onItemChange={handleItemChange}
+                                        onRemoveItem={handleRemoveItem}
+                                    />
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
+            </div>
 
-                <div className="flex justify-end gap-3 mt-6 border-t pt-4">
-                    <Button variant="outline" onClick={onClose} disabled={createMutation.isPending}>
-                        Cancel
-                    </Button>
-                    <Button
-                        onClick={() => createMutation.mutate()}
-                        disabled={createMutation.isPending}
-                    >
-                        {createMutation.isPending ? 'Saving...' : 'Save Tag'}
-                    </Button>
-                </div>
+            <div className="flex justify-end gap-3 mt-6 border-t pt-4">
+                <Button variant="outline" onClick={onClose} disabled={createMutation.isPending}>
+                    Cancel
+                </Button>
+                <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
+                    {createMutation.isPending ? 'Saving...' : 'Save Tag'}
+                </Button>
+            </div>
         </ModalDialog>
     );
 }

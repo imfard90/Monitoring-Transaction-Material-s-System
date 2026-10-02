@@ -2,7 +2,6 @@
 
 import {
     createColumnHelper,
-    flexRender,
     getCoreRowModel,
     getFilteredRowModel,
     getPaginationRowModel,
@@ -12,13 +11,13 @@ import { motion } from 'framer-motion';
 import { Search, ShieldAlert, Trash2, X } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { DataTable } from '@/app/components/shared/DataTable';
+import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { deleteUser, toggleUserStatus } from './actions';
-import { DataTable } from '@/app/components/shared/DataTable';
-import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 
 interface UserTableProps {
     data: any[];
@@ -94,6 +93,22 @@ export default function UserTable({ data }: UserTableProps) {
                     {info.getValue() || 'Unknown'}
                 </Badge>
             ),
+        }),
+        columnHelper.accessor('lensa_acount', {
+            header: 'Lensa',
+            cell: (info) => {
+                const isLinked = !!info.getValue();
+                return isLinked ? (
+                    <Badge
+                        variant="outline"
+                        className="border-green-200 text-green-600 bg-green-50 dark:bg-green-950 dark:border-green-900"
+                    >
+                        Linked
+                    </Badge>
+                ) : (
+                    <span className="text-muted-foreground">-</span>
+                );
+            },
         }),
         columnHelper.accessor('is_active', {
             header: 'Active',

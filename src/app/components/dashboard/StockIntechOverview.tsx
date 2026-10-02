@@ -1,15 +1,12 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import {
-    createColumnHelper,
-    getCoreRowModel,
-    useReactTable,
-} from '@tanstack/react-table';
+import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
 import { Check, ChevronsUpDown, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { getDashboardStockIntech } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
+import { DataTable } from '@/app/components/shared/DataTable';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -23,7 +20,6 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import CardBox from '../shared/CardBox';
-import { DataTable } from '@/app/components/shared/DataTable';
 
 interface StockIntechItem {
     branch: string | null;
@@ -90,9 +86,7 @@ export const StockIntechOverview = () => {
         columnHelper.accessor('qty_intech', {
             header: () => <div className="text-center">Qty Intech</div>,
             cell: (info) => (
-                <div className="text-center font-bold text-blue-600">
-                    {info.getValue()}
-                </div>
+                <div className="text-center font-bold text-blue-600">{info.getValue()}</div>
             ),
         }),
     ];

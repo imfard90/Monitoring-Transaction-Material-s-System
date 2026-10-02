@@ -2,7 +2,6 @@
 
 import {
     createColumnHelper,
-    flexRender,
     getCoreRowModel,
     getPaginationRowModel,
     useReactTable,
@@ -11,6 +10,8 @@ import { motion } from 'framer-motion';
 import { Pencil, Plus, Search, X } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { DataTable } from '@/app/components/shared/DataTable';
+import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -23,8 +24,6 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { toggleTechnicianStatus } from './actions';
 import { TechnicianDialog } from './technician-dialog';
-import { DataTable } from '@/app/components/shared/DataTable';
-import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 
 interface TechnicianTableProps {
     data: any[];

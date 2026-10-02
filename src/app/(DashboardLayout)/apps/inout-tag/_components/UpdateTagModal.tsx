@@ -4,9 +4,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ban } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -101,11 +101,11 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
             setIdempotencyKey(idemKey, 'inventoryTx');
 
             if (isReturn) {
-                return acceptReturnTag(Number(row!.id), actionId, idemKey);
+                return acceptReturnTag(Number(row?.id), actionId, idemKey);
             }
 
             return updateTag({
-                headerId: Number(row!.id),
+                headerId: Number(row?.id),
                 actionType,
                 actionId,
                 items: materialItems.map((i) => ({
@@ -135,7 +135,7 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
 
     const cancelMutation = useMutation({
         mutationFn: async () => {
-            return cancelTag(Number(row!.id));
+            return cancelTag(Number(row?.id));
         },
         onSuccess: (res) => {
             if (res.success) {
@@ -171,149 +171,142 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
             className="sm:max-w-[700px]"
             preventOutsideClose
         >
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-4">
-                    <div className="space-y-4">
-                        <div className="space-y-1">
-                            <p className="text-sm text-gray-500">Transaction ID</p>
-                            <p className="font-medium">{row.id_trx}</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-sm text-gray-500">Warehouse</p>
-                            <p className="font-medium">
-                                {row.from_wh_name} ➔ {row.to_wh_name}
-                            </p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-sm text-gray-500">Current Status</p>
-                            <Badge variant="outline">{row.end_status}</Badge>
-                        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-4">
+                <div className="space-y-4">
+                    <div className="space-y-1">
+                        <p className="text-sm text-gray-500">Transaction ID</p>
+                        <p className="font-medium">{row.id_trx}</p>
                     </div>
-
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>{idLabel}</Label>
-                            <Input
-                                placeholder={`Enter ${idLabel}...`}
-                                value={actionId}
-                                onChange={(e) => setActionId(e.target.value)}
-                            />
-                        </div>
+                    <div className="space-y-1">
+                        <p className="text-sm text-gray-500">Warehouse</p>
+                        <p className="font-medium">
+                            {row.from_wh_name} ➔ {row.to_wh_name}
+                        </p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-sm text-gray-500">Current Status</p>
+                        <Badge variant="outline">{row.end_status}</Badge>
                     </div>
                 </div>
 
-                {/* Material list: editable for inout, read-only for return */}
-                {materialItems.length > 0 && (
-                    <div className="mt-4 space-y-4">
-                        <Label className="text-base font-semibold">
-                            {isReturn
-                                ? 'Daftar Material Dikembalikan'
-                                : `Material List (${actionType?.toUpperCase()})`}
-                        </Label>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>{idLabel}</Label>
+                        <Input
+                            placeholder={`Enter ${idLabel}...`}
+                            value={actionId}
+                            onChange={(e) => setActionId(e.target.value)}
+                        />
+                    </div>
+                </div>
+            </div>
 
-                        <div className="border rounded-md overflow-hidden">
-                            <Table>
-                                <TableHeader className="bg-muted/50">
-                                    <TableRow>
-                                        <TableHead className="w-12 text-center">No</TableHead>
-                                        <TableHead>Designator/Code</TableHead>
-                                        <TableHead>Description</TableHead>
-                                        <TableHead className="w-24">Unit</TableHead>
-                                        <TableHead className="w-32">Qty</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {materialItems.map((item, index) => (
-                                        <TableRow key={item.id}>
-                                            <TableCell className="text-center font-medium">
-                                                {index + 1}
-                                            </TableCell>
-                                            <TableCell className="font-medium">
-                                                {item.code}
-                                            </TableCell>
-                                            <TableCell
-                                                className="text-sm text-gray-600 truncate max-w-[200px]"
-                                                title={item.description}
-                                            >
-                                                {item.description}
-                                            </TableCell>
-                                            <TableCell className="text-sm">{item.unit}</TableCell>
-                                            <TableCell>
-                                                {isReturn ? (
-                                                    // Read-only for return material
-                                                    <span className="font-semibold text-blue-600">
-                                                        {item.qty}
-                                                    </span>
-                                                ) : (
-                                                    <Input
-                                                        type="number"
-                                                        min="1"
-                                                        className="h-8"
-                                                        placeholder="0"
-                                                        value={
-                                                            item.qty === 0 || item.qty === ''
+            {/* Material list: editable for inout, read-only for return */}
+            {materialItems.length > 0 && (
+                <div className="mt-4 space-y-4">
+                    <Label className="text-base font-semibold">
+                        {isReturn
+                            ? 'Daftar Material Dikembalikan'
+                            : `Material List (${actionType?.toUpperCase()})`}
+                    </Label>
+
+                    <div className="border rounded-md overflow-hidden">
+                        <Table>
+                            <TableHeader className="bg-muted/50">
+                                <TableRow>
+                                    <TableHead className="w-12 text-center">No</TableHead>
+                                    <TableHead>Designator/Code</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead className="w-24">Unit</TableHead>
+                                    <TableHead className="w-32">Qty</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {materialItems.map((item, index) => (
+                                    <TableRow key={item.id}>
+                                        <TableCell className="text-center font-medium">
+                                            {index + 1}
+                                        </TableCell>
+                                        <TableCell className="font-medium">{item.code}</TableCell>
+                                        <TableCell
+                                            className="text-sm text-gray-600 truncate max-w-[200px]"
+                                            title={item.description}
+                                        >
+                                            {item.description}
+                                        </TableCell>
+                                        <TableCell className="text-sm">{item.unit}</TableCell>
+                                        <TableCell>
+                                            {isReturn ? (
+                                                // Read-only for return material
+                                                <span className="font-semibold text-blue-600">
+                                                    {item.qty}
+                                                </span>
+                                            ) : (
+                                                <Input
+                                                    type="number"
+                                                    min="1"
+                                                    className="h-8"
+                                                    placeholder="0"
+                                                    value={
+                                                        item.qty === 0 || item.qty === ''
+                                                            ? ''
+                                                            : item.qty
+                                                    }
+                                                    onChange={(e) => {
+                                                        const val =
+                                                            e.target.value === ''
                                                                 ? ''
-                                                                : item.qty
-                                                        }
-                                                        onChange={(e) => {
-                                                            const val =
-                                                                e.target.value === ''
-                                                                    ? ''
-                                                                    : parseInt(e.target.value, 10);
-                                                            handleQtyChange(item.id, val as number);
-                                                        }}
-                                                    />
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </div>
-                )}
-
-                <div className="flex justify-between items-center mt-6 border-t pt-4">
-                    <div>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        onClick={handleCancelTag}
-                                        disabled={
-                                            cancelMutation.isPending || updateMutation.isPending
-                                        }
-                                    >
-                                        <Ban size={16} />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Cancel Transaction</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    </div>
-                    <div className="flex gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={onClose}
-                            disabled={updateMutation.isPending || cancelMutation.isPending}
-                        >
-                            Close
-                        </Button>
-                        <Button
-                            onClick={() => updateMutation.mutate()}
-                            disabled={
-                                updateMutation.isPending || cancelMutation.isPending || !actionId
-                            }
-                        >
-                            {updateMutation.isPending ? 'Saving...' : 'Update'}
-                        </Button>
+                                                                : parseInt(e.target.value, 10);
+                                                        handleQtyChange(item.id, val as number);
+                                                    }}
+                                                />
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </div>
                 </div>
+            )}
+
+            <div className="flex justify-between items-center mt-6 border-t pt-4">
+                <div>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    onClick={handleCancelTag}
+                                    disabled={cancelMutation.isPending || updateMutation.isPending}
+                                >
+                                    <Ban size={16} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Cancel Transaction</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
+                <div className="flex gap-3">
+                    <Button
+                        variant="outline"
+                        onClick={onClose}
+                        disabled={updateMutation.isPending || cancelMutation.isPending}
+                    >
+                        Close
+                    </Button>
+                    <Button
+                        onClick={() => updateMutation.mutate()}
+                        disabled={updateMutation.isPending || cancelMutation.isPending || !actionId}
+                    >
+                        {updateMutation.isPending ? 'Saving...' : 'Update'}
+                    </Button>
+                </div>
+            </div>
         </ModalDialog>
     );
 }

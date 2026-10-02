@@ -1,5 +1,6 @@
 'use server';
 
+import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
@@ -31,6 +32,7 @@ export async function getUsers() {
             'auth.user.email',
             'auth.user.nik',
             'auth.user.is_active',
+            sql<any>`auth.user.lensa_acount`.as('lensa_acount'),
             'hr.levels.level_name as role',
         ])
         .orderBy('auth.user.name', 'asc')

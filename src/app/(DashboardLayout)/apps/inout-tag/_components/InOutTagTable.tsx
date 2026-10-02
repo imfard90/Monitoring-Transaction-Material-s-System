@@ -1,17 +1,16 @@
 import {
     createColumnHelper,
-    flexRender,
     getCoreRowModel,
     getPaginationRowModel,
     useReactTable,
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { Check, ChevronsUpDown, Edit2, Eye, Plus, Search, FilterX } from 'lucide-react';
+import { Check, ChevronsUpDown, Edit2, Eye, FilterX, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import type { DateRange } from 'react-day-picker';
-import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { StatusBadge } from '@/app/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
 import {

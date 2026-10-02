@@ -11,8 +11,8 @@ import {
     saveLensaAccount,
 } from '@/app/(DashboardLayout)/user-profile/_actions/lensa-actions';
 import type { UserProfileData } from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
-import { Button } from '@/components/ui/button';
 import { ModalDialog } from '@/app/components/shared/ModalDialog';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authClient } from '@/lib/auth-client';
@@ -344,45 +344,45 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                 onClose={() => setIsLensaDialogOpen(false)}
                 title="Lensa Inventory Account"
             >
-                    <p className="text-sm text-gray-500">
-                            Masukkan kredensial akun Lensa Inventory kamu. Password akan dienkripsi
-                            secara aman.
-                    </p>
+                <p className="text-sm text-gray-500">
+                    Masukkan kredensial akun Lensa Inventory kamu. Password akan dienkripsi secara
+                    aman.
+                </p>
 
-                    <div className="flex flex-col gap-4 py-4">
-                        <div className="flex flex-col gap-2">
-                            <Label htmlFor="username">Username Lensa</Label>
-                            <Input
-                                id="username"
-                                value={lensaUsername}
-                                onChange={(e) => setLensaUsername(e.target.value)}
-                                placeholder="Misal: 16021537"
-                            />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <Label htmlFor="password">Password Lensa</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={lensaPassword}
-                                onChange={(e) => setLensaPassword(e.target.value)}
-                                placeholder="********"
-                            />
-                        </div>
+                <div className="flex flex-col gap-4 py-4">
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="username">Username Lensa</Label>
+                        <Input
+                            id="username"
+                            value={lensaUsername}
+                            onChange={(e) => setLensaUsername(e.target.value)}
+                            placeholder="Misal: 16021537"
+                        />
                     </div>
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="password">Password Lensa</Label>
+                        <Input
+                            id="password"
+                            type="password"
+                            value={lensaPassword}
+                            onChange={(e) => setLensaPassword(e.target.value)}
+                            placeholder="********"
+                        />
+                    </div>
+                </div>
 
-                    <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsLensaDialogOpen(false)}
-                            disabled={isPending}
-                        >
-                            Batal
-                        </Button>
-                        <Button onClick={handleSaveLensa} disabled={isPending}>
-                            {isPending ? 'Menyimpan...' : 'Simpan Kredensial'}
-                        </Button>
-                    </div>
+                <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsLensaDialogOpen(false)}
+                        disabled={isPending}
+                    >
+                        Batal
+                    </Button>
+                    <Button onClick={handleSaveLensa} disabled={isPending}>
+                        {isPending ? 'Menyimpan...' : 'Simpan Kredensial'}
+                    </Button>
+                </div>
             </ModalDialog>
         </>
     );

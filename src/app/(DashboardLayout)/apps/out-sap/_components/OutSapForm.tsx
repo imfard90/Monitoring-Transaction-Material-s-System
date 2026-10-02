@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/table';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import type { OutSapFormItem } from '@/lib/types/inventory';
+import { scrapeReservationAction } from '../../out-lensa-ref/_actions/out-lensa-actions';
 import {
     createOutSap,
     getBranches,
@@ -85,17 +86,18 @@ export default function OutSapForm() {
         }
         setIsScraping(true);
         try {
-            const res = await fetch(`/api/scrape-reservation?id=${formData.request_id}`);
-            const data = await res.json();
+            const data = await scrapeReservationAction(formData.request_id);
 
-            if (!res.ok) {
+            if ('error' in data && data.error) {
                 toast.error(data.error || 'Gagal mengambil data Lensa');
                 setIsScraping(false);
                 return;
             }
 
-            const scrapedListData = data.listData?.data?.[0];
-            const scrapedDetail = data.detailContent;
+            // Using type casting since we know it succeeded
+            const successData = data as any;
+            const scrapedListData = successData.listData?.data?.[0];
+            const scrapedDetail = successData.detailContent;
 
             if (scrapedListData && scrapedDetail) {
                 const resIdSap = scrapedListData.reservation_id_sap || '';

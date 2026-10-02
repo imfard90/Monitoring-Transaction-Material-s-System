@@ -6,8 +6,8 @@ import { useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
 import { ModalDialog } from '@/app/components/shared/ModalDialog';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getRekonEditData, submitEditRekon } from '../_actions/edit-rekon-actions';
 import type { HasilRekonData } from '../_actions/rekon-actions';
@@ -182,87 +182,86 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
             title={`Edit Rekon: ${rowData?.trx_id}`}
             className="max-w-3xl"
         >
-
-                {isLoading ? (
-                    <div className="py-8 flex justify-center">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                    </div>
-                ) : (
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                            {fields.map((field, index) => {
-                                const err = form.formState.errors.items?.[index]?.new_qty;
-                                return (
-                                    <div
-                                        key={field.id}
-                                        className="flex items-start gap-4 p-4 border rounded-lg bg-gray-50"
-                                    >
-                                        <div className="flex-1 space-y-2">
-                                            <div className="font-medium text-sm">
-                                                {field.material_code} - {field.material_name}
-                                            </div>
-                                            <div className="text-xs text-gray-500">
-                                                Maksimal Qty: {field.max_qty}
-                                            </div>
+            {isLoading ? (
+                <div className="py-8 flex justify-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                </div>
+            ) : (
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                        {fields.map((field, index) => {
+                            const err = form.formState.errors.items?.[index]?.new_qty;
+                            return (
+                                <div
+                                    key={field.id}
+                                    className="flex items-start gap-4 p-4 border rounded-lg bg-gray-50"
+                                >
+                                    <div className="flex-1 space-y-2">
+                                        <div className="font-medium text-sm">
+                                            {field.material_code} - {field.material_name}
                                         </div>
-
-                                        <div className="w-32 flex flex-col gap-1">
-                                            <Input
-                                                type="number"
-                                                {...form.register(`items.${index}.new_qty`, {
-                                                    valueAsNumber: true,
-                                                })}
-                                            />
-                                            {err && (
-                                                <span className="text-xs text-red-500">
-                                                    {err.message}
-                                                </span>
-                                            )}
+                                        <div className="text-xs text-gray-500">
+                                            Maksimal Qty: {field.max_qty}
                                         </div>
+                                    </div>
 
-                                        {!field.item_id && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-1"
-                                                onClick={() => remove(index)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
+                                    <div className="w-32 flex flex-col gap-1">
+                                        <Input
+                                            type="number"
+                                            {...form.register(`items.${index}.new_qty`, {
+                                                valueAsNumber: true,
+                                            })}
+                                        />
+                                        {err && (
+                                            <span className="text-xs text-red-500">
+                                                {err.message}
+                                            </span>
                                         )}
                                     </div>
-                                );
-                            })}
-                        </div>
 
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={addMaterial}
-                            className="w-full"
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Tambah Material
+                                    {!field.item_id && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-1"
+                                            onClick={() => remove(index)}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addMaterial}
+                        className="w-full"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Tambah Material
+                    </Button>
+
+                    <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                        <Button type="button" variant="ghost" onClick={onClose}>
+                            Batal
                         </Button>
-
-                        <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-                            <Button type="button" variant="ghost" onClick={onClose}>
-                                Batal
-                            </Button>
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Menyimpan...
-                                    </>
-                                ) : (
-                                    'Simpan Perubahan'
-                                )}
-                            </Button>
-                        </div>
-                    </form>
-                )}
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Menyimpan...
+                                </>
+                            ) : (
+                                'Simpan Perubahan'
+                            )}
+                        </Button>
+                    </div>
+                </form>
+            )}
         </ModalDialog>
     );
 }

@@ -10,9 +10,9 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import AuthCard from '@/app/auth/components/AuthCard';
 import AuthLayout from '@/app/auth/components/AuthLayout';
+import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -251,29 +251,29 @@ const LoginForm = () => {
                 onClose={() => setPendingLogin(null)}
                 title="Sesi Aktif Ditemukan"
             >
-                    <p className="text-sm text-gray-500">
-                            Akun Anda terdeteksi masih login di perangkat atau browser lain. Apakah
-                            Anda ingin memutuskan sesi tersebut dan login di sini?
-                    </p>
-                    <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-                        <Button
-                            variant="outline"
-                            onClick={() => setPendingLogin(null)}
-                            disabled={isRevoking}
-                        >
-                            Batal
-                        </Button>
-                        <Button onClick={handleRevokeAndLogin} disabled={isRevoking}>
-                            {isRevoking ? (
-                                <>
-                                    <Loader2 className="size-4 animate-spin mr-2" />
-                                    Memproses...
-                                </>
-                            ) : (
-                                'Ya, Putuskan Sesi'
-                            )}
-                        </Button>
-                    </div>
+                <p className="text-sm text-gray-500">
+                    Akun Anda terdeteksi masih login di perangkat atau browser lain. Apakah Anda
+                    ingin memutuskan sesi tersebut dan login di sini?
+                </p>
+                <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                    <Button
+                        variant="outline"
+                        onClick={() => setPendingLogin(null)}
+                        disabled={isRevoking}
+                    >
+                        Batal
+                    </Button>
+                    <Button onClick={handleRevokeAndLogin} disabled={isRevoking}>
+                        {isRevoking ? (
+                            <>
+                                <Loader2 className="size-4 animate-spin mr-2" />
+                                Memproses...
+                            </>
+                        ) : (
+                            'Ya, Putuskan Sesi'
+                        )}
+                    </Button>
+                </div>
             </ModalDialog>
         </AuthLayout>
     );

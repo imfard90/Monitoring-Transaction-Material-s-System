@@ -75,6 +75,7 @@ export interface AuthUser {
     is_active: boolean | null;
     name: string;
     nik: string;
+    lensa_acount?: any;
     updatedAt: Generated<Timestamp>;
 }
 
@@ -1007,7 +1008,59 @@ export interface UploadLogs {
     updated_by: number | null;
 }
 
+export interface InventoryOutLensaRefHeader {
+    id: Generated<string>;
+    reservation_id: string;
+    project_id: string | null;
+    mitra: string | null;
+    nik_pemakai: string | null;
+    tgl_entry: string | null;
+    nama_gudang: string | null;
+    regional: string | null;
+    reservation_id_sap: string | null;
+    scraped_by_username: string | null;
+    gi_number: string | null;
+    status_proses: string | null;
+    created_at: Generated<Timestamp>;
+    updated_at: Generated<Timestamp>;
+}
+
+export interface InventoryOutLensaRefList {
+    id: Generated<string>;
+    header_id: string | null;
+    material_id: string | null;
+    material_desc: string | null;
+    qty_approve: string | null;
+    created_at: Generated<Timestamp>;
+}
+
+
+export interface inventory_wo_lensa_header {
+  id: Generated<Int8>;
+  pemakaian_id: Int8 | null;
+  gi_number: string | null;
+  nama_gudang: string | null;
+  nik_pemakai: string | null;
+  tanggal_update: string | null;
+  type: string | null;
+  wbs: string | null;
+  wo_number: string | null;
+  created_at: Generated<Timestamp | null>;
+}
+
+export interface inventory_wo_lensa_list {
+  id: Generated<Int8>;
+  header_id: Int8 | null;
+  material_id: string | null;
+  material_desc: string | null;
+  qty_pemakaian: number | null;
+  uom: string | null;
+  created_at: Generated<Timestamp | null>;
+}
+
 export interface DB {
+  "inventory.wo_lensa_header": inventory_wo_lensa_header;
+  "inventory.wo_lensa_list": inventory_wo_lensa_list;
     'auth.account': AuthAccount;
     'auth.user': AuthUser;
     'auth.user_mfa_devices': AuthUserMfaDevices;
@@ -1080,4 +1133,6 @@ export interface DB {
     'project.workflow_approvals': ProjectWorkflowApprovals;
     'project.workflow_transitions': ProjectWorkflowTransitions;
     upload_logs: UploadLogs;
+    'inventory.out_lensa_ref_header': InventoryOutLensaRefHeader;
+    'inventory.out_lensa_ref_list': InventoryOutLensaRefList;
 }

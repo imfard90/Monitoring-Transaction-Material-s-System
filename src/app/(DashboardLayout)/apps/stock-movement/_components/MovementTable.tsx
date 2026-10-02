@@ -2,24 +2,21 @@
 
 import {
     createColumnHelper,
-    flexRender,
     getCoreRowModel,
     getPaginationRowModel,
     useReactTable,
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarIcon, FilterX, Search } from 'lucide-react';
+import { FilterX, Search } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
-import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
-import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
+import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 
 interface MovementTableProps {
     data: any[];

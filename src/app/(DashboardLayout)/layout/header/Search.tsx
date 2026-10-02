@@ -82,7 +82,11 @@ function Search() {
                                 className="  p-2 mb-1.5 last:mb-0 flex items-center bg-input/30 gap-2 text-sm font-medium rounded-md hover:bg-primary/20 hover:text-primary w-full"
                             >
                                 <div className="flex items-center">
-                                    <Icon icon="solar:square-bottom-down-linear" width={20} height={20} />
+                                    <Icon
+                                        icon="solar:square-bottom-down-linear"
+                                        width={20}
+                                        height={20}
+                                    />
                                     <div className="ps-3">
                                         <h5 className="mb-1 text-sm group-hover/link:text-primary">
                                             {item.name}
