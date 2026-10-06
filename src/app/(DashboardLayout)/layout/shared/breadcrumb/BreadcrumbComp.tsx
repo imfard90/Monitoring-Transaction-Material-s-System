@@ -26,7 +26,7 @@ const BreadcrumbComp = ({ items = [], title }: BreadCrumbType) => {
                             const isLast = index === items.length - 1;
 
                             return (
-                                <li key={index} className="flex items-center">
+                                <li key={item.title || index} className="flex items-center">
                                     {item.to && !isLast ? (
                                         <Link
                                             href={item.to}

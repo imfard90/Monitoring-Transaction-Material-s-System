@@ -329,7 +329,7 @@ export async function getWarehousePerformance() {
             .groupBy(['wh.id', 'wh.name'])
             .execute();
 
-        await encryptedCache.setGeneral('dashboard', data, cacheKey, 300);
+        await encryptedCache.setGeneral('dashboard', data, cacheKey, 10);
 
         return { success: true, data };
     } catch (error: unknown) {
@@ -392,5 +392,90 @@ export async function getStockWarnings() {
             error instanceof Error ? error : new Error(String(error))
         );
         return { success: false, data: [] };
+    }
+}
+
+export async function getDashboardKpis() {
+    try {
+        const cacheKey = `dashboard_kpis`;
+        const cached = await encryptedCache.getGeneral<any>('dashboard', cacheKey);
+        if (cached) {
+            return { success: true, data: cached };
+        }
+
+        const data = {
+            onlineUsers: 0,
+            requestTag: 0,
+            transitTag: 0,
+            closeTag: 0,
+            returnTek: 0,
+            intechOpen: 0,
+            intechClose: 0,
+        };
+
+        // 0. Online Users
+        try {
+            const { redis } = await import('@/lib/redis');
+            const keys = await redis.keys('presence:user:*');
+            data.onlineUsers = keys.length;
+        } catch (e) {
+            actionLogger.error('Failed to get online users count', e instanceof Error ? e : new Error(String(e)));
+        }
+
+        // 0.1 Intech Open (end_status = 'intech')
+        const intechOpen = await db
+            .selectFrom('inventory.sap_out_header')
+            .select(sql<number>`COUNT(id)`.as('total'))
+            .where('end_status', '=', 'intech')
+            .executeTakeFirst();
+        data.intechOpen = Number(intechOpen?.total || 0);
+
+        // 0.2 Intech Close (end_status = 'close')
+        const intechClose = await db
+            .selectFrom('inventory.sap_out_header')
+            .select(sql<number>`COUNT(id)`.as('total'))
+            .where('end_status', '=', 'close')
+            .executeTakeFirst();
+        data.intechClose = Number(intechClose?.total || 0);
+
+        // 1. Request Tag
+        const requestTag = await db
+            .selectFrom('inventory.inout_tag_header')
+            .select(sql<number>`COUNT(id)`.as('total'))
+            .where('end_status', '=', 'requested')
+            .executeTakeFirst();
+        data.requestTag = Number(requestTag?.total || 0);
+
+        // 2. Transit Tag
+        const transitTag = await db
+            .selectFrom('inventory.inout_tag_header')
+            .select(sql<number>`COUNT(id)`.as('total'))
+            .where('end_status', '=', 'in_transit')
+            .executeTakeFirst();
+        data.transitTag = Number(transitTag?.total || 0);
+
+        // 3. Close Tag
+        const closeTag = await db
+            .selectFrom('inventory.inout_tag_header')
+            .select(sql<number>`COUNT(id)`.as('total'))
+            .where('end_status', '=', 'closed')
+            .executeTakeFirst();
+        data.closeTag = Number(closeTag?.total || 0);
+
+        // 4. Return Tek
+        const returnTek = await db
+            .selectFrom('inventory.return_material_header')
+            .select(sql<number>`COUNT(id)`.as('total'))
+            .executeTakeFirst();
+        data.returnTek = Number(returnTek?.total || 0);
+
+        await encryptedCache.setGeneral('dashboard', data, cacheKey, 10);
+        return { success: true, data };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch dashboard KPIs:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return { success: false, data: null };
     }
 }

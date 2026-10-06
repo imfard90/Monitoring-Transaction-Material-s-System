@@ -33,32 +33,32 @@ function createLoggerWithLevels(parent: pino.Logger): {
     return {
         debug(message: string, context?: Record<string, unknown>) {
             if (context) {
-                parent.debug(message, context as any);
+                parent.debug(context as any, message);
             } else {
                 parent.debug(message);
             }
         },
         info(message: string, context?: Record<string, unknown>) {
             if (context) {
-                parent.info(message, context as any);
+                parent.info(context as any, message);
             } else {
                 parent.info(message);
             }
         },
         warn(message: string, context?: Record<string, unknown>) {
             if (context) {
-                parent.warn(message, context as any);
+                parent.warn(context as any, message);
             } else {
                 parent.warn(message);
             }
         },
         error(message: string, err?: Error, context?: Record<string, unknown>) {
             if (err && context) {
-                parent.error(message, { ...context, error: err } as any);
+                parent.error({ ...context, error: err } as any, message);
             } else if (err) {
-                parent.error(message, { error: err } as any);
+                parent.error({ error: err } as any, message);
             } else if (context) {
-                parent.error(message, context as any);
+                parent.error(context as any, message);
             } else {
                 parent.error(message);
             }

@@ -32,23 +32,28 @@ export async function getUsers() {
             'auth.user.email',
             'auth.user.nik',
             'auth.user.is_active',
-            sql<any>`auth.user.lensa_acount`.as('lensa_acount'),
+            sql<Record<string, unknown>>`auth.user.lensa_acount`.as('lensa_acount'),
             'hr.levels.level_name as role',
         ])
         .orderBy('auth.user.name', 'asc')
         .execute();
 
+    const usersWithPresence = users.map((u) => ({
+        ...u,
+        is_online: false,
+    }));
+
     // Map presence status from Redis
-    if (users.length > 0) {
-        const keys = users.map((u) => `presence:user:${u.nik}`);
+    if (usersWithPresence.length > 0) {
+        const keys = usersWithPresence.map((u) => `presence:user:${u.nik}`);
         const onlineStatuses = await redis.mget(keys);
 
-        users.forEach((u, i) => {
-            (u as any).is_online = !!onlineStatuses[i];
+        usersWithPresence.forEach((u, i) => {
+            u.is_online = !!onlineStatuses[i];
         });
     }
 
-    return users;
+    return usersWithPresence;
 }
 
 export async function toggleUserStatus(userId: string, isActive: boolean) {

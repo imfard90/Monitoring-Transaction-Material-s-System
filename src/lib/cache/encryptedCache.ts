@@ -69,12 +69,12 @@ function getKey(): Uint8Array {
 
 // ─── Encrypt / Decrypt ───────────────────────────────────────────────────────
 
-export async function encrypt<T>(data: T): Promise<string> {
+export async function encrypt<T>(data: T, ttlSeconds: number = 30): Promise<string> {
     const key = getKey();
 
     const token = await new EncryptJWT({ data })
         .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
-        .setExpirationTime('30s')
+        .setExpirationTime(`${ttlSeconds}s`)
         .encrypt(key);
 
     return token;
@@ -168,7 +168,7 @@ export class EncryptedCache {
     ): Promise<void> {
         try {
             const key = getUserCacheKey(userId, cacheType, identifier);
-            const encryptedData = await encrypt(data);
+            const encryptedData = await encrypt(data, ttl);
 
             await redis.set(key, encryptedData, 'EX', ttl);
             cacheLogger.debug(`[EncryptedCache] SET: ${key} (TTL: ${ttl}s)`);
@@ -243,7 +243,7 @@ export class EncryptedCache {
     ): Promise<void> {
         try {
             const key = getGeneralCacheKey(cacheType, identifier);
-            const encryptedData = await encrypt(data);
+            const encryptedData = await encrypt(data, ttl);
             await redis.set(key, encryptedData, 'EX', ttl);
         } catch (error) {
             cacheLogger.error(

@@ -35,7 +35,7 @@ export async function getRekonEditData(header_id: string, sap_out_id: string) {
                 'soi.qty_req',
                 'soi.qty_used',
             ])
-            .where('soi.header_id', '=', String(sap_out_id) as any) // Based on the db type, it might be string or number
+            .where('soi.header_id', '=', String(sap_out_id) as string) // Based on the db type, it might be string or number
             .execute();
 
         return { success: true, existingItems, sapItems };
@@ -64,81 +64,20 @@ export async function submitEditRekon(
 
         await db.transaction().execute(async (trx) => {
             for (const item of updatedItems) {
-                const diff = item.new_qty - item.old_qty;
-
-                if (diff !== 0) {
-                    // Update qty_used in sap_out_items
-                    await trx
-                        .updateTable('inventory.sap_out_items')
-                        .set((_eb) => ({
-                            qty_used: sql`COALESCE(qty_used, 0) + ${diff}`,
-                        }))
-                        .where('id', '=', item.sap_out_item_id)
-                        .execute();
-
-                    if (item.item_id) {
-                        // Update existing transaction_used_item
-                        await trx
-                            .updateTable('inventory.transaction_used_item')
-                            .set({ qty: item.new_qty })
-                            .where('id', '=', item.item_id)
-                            .execute();
-                    } else {
-                        // Insert new transaction_used_item
-                        await trx
-                            .insertInto('inventory.transaction_used_item')
-                            .values({
-                                used_id: header_id,
-                                designator_id: item.designator_id,
-                                qty: item.new_qty,
-                            })
-                            .execute();
-                    }
-
-                    // SP sp_record_material_used is generally for insertions, but since we are modifying,
-                    // we might need to adjust stock if stock balance is strictly bound to this.
-                    // Wait, the bispro says transaction_used decreases stock.
-                    // If we just updated transaction_used_item, we might need a specific SP for updating,
-                    // or just let it be if we only care about tracking SAP.
-                    // Let's call a compensation SP if exists, or re-run the record SP with the diff!
-                    // Wait, sp_record_material_used uses qty as an absolute decrease. So we can just pass the diff.
-
-                    const sap = await trx
-                        .selectFrom('inventory.sap_out_header')
-                        .select('warehouse_id')
-                        .where('id', '=', String(sap_out_id) as any)
-                        .executeTakeFirst();
-
-                    const warehouseId = sap?.warehouse_id || 0;
-
-                    // Pass diff to SP (if diff is negative, it will add stock back!)
-                    // We need to fetch id_trx to pass to the SP
-                    const header = await trx
-                        .selectFrom('inventory.transaction_used_header')
-                        .select('id_trx')
-                        .where('id', '=', header_id)
-                        .executeTakeFirst();
-
-                    if (header) {
-                        await sql`CALL inventory.sp_record_material_used(${warehouseId}, ${item.designator_id}, ${diff}, ${header.id_trx}, 'Edit Rekon Qty', ${createdBy})`.execute(
-                            trx
-                        );
-                    }
+                if (item.new_qty !== item.old_qty) {
+                    await sql`
+                        CALL inventory.sp_edit_transaction_used(
+                            ${header_id},
+                            ${sap_out_id},
+                            ${item.sap_out_item_id},
+                            ${item.designator_id},
+                            ${item.new_qty},
+                            ${item.item_id || null},
+                            ${createdBy}
+                        )
+                    `.execute(trx);
                 }
             }
-
-            // Check if SAP out needs to be un-closed or closed
-            const checkRes = await sql<{ all_closed: boolean }>`
-                SELECT bool_and(qty_req = COALESCE(qty_used, 0)) as all_closed
-                FROM inventory.sap_out_items
-                WHERE header_id = ${String(sap_out_id)}
-            `.execute(trx);
-
-            await trx
-                .updateTable('inventory.sap_out_header')
-                .set({ end_status: checkRes.rows[0]?.all_closed ? 'close' : 'intech' })
-                .where('id', '=', String(sap_out_id))
-                .execute();
         });
 
         revalidatePath('/apps/hasil-rekon');

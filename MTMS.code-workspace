@@ -1,41 +1,7 @@
 {
-  "folders": [
-    {
-      "name": "Monitoring Transaction Material's System (MTMS)",
-      "path": "."
-    },
-    {
-      "name": "ECC-main",
-      "path": "../../../Movies/ECC-main"
-    },
-    {
-      "name": "ui-ux-pro-max-skill-main",
-      "path": "../../../Movies/ui-ux-pro-max-skill-main"
-    },
-    {
-      "name": "ui-ux-hallmark-main",
-      "path": "../../../Movies/ui-ux-hallmark-main"
-    },
-    {
-      "name": "next.js-canary",
-      "path": "../../../Movies/next.js-canary"
-    },
-    {
-      "name": "agent-rules-books-main",
-      "path": "../../../Movies/agent-rules-books-main"
-    },
-    {
-      "name": "SecOpsAgentKit-main",
-      "path": "../../../Movies/SecOpsAgentKit-main"
-    },
-    {
-      "name": "claude-cybersecurity-main",
-      "path": "../../../Movies/claude-cybersecurity-main"
-    },
-    {
-      "name": "Anthropic-Cybersecurity-Skills-main",
-      "path": "../../../Movies/Anthropic-Cybersecurity-Skills-main"
-    }
-  ],
-  "settings": {}
+    "folders": [
+        {
+            "path": "."
+        }
+    ]
 }

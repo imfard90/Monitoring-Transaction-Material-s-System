@@ -76,7 +76,7 @@ export default function RekonIntechForm() {
     useEffect(() => {
         const mats = materialsData?.data;
         if (mats && mats.length > 0) {
-            const initial: Record<number, number | ''> = {};
+            const initial: Record<string, number | ''> = {};
             mats.forEach((m: any) => {
                 initial[m.sap_out_item_id] = '';
             });

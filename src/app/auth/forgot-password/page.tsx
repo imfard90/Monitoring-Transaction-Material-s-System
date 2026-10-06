@@ -32,6 +32,7 @@ export default function ForgotPasswordPage() {
         setError(null);
 
         try {
+            // biome-ignore lint/suspicious/noExplicitAny: authClient type doesn't include requestPasswordReset yet
             const result = await (authClient as any).requestPasswordReset({
                 email,
                 redirectTo: '/auth/reset-password',

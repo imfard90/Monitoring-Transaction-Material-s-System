@@ -19,11 +19,22 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { deleteUser, toggleUserStatus } from './actions';
 
-interface UserTableProps {
-    data: any[];
+export interface UserItem {
+    id: string;
+    name: string;
+    email: string;
+    nik: string;
+    is_active: boolean | null;
+    lensa_acount: Record<string, unknown>;
+    role: string | null;
+    is_online: boolean;
 }
 
-const columnHelper = createColumnHelper<any>();
+interface UserTableProps {
+    data: UserItem[];
+}
+
+const columnHelper = createColumnHelper<UserItem>();
 
 export default function UserTable({ data }: UserTableProps) {
     const [isPending, startTransition] = useTransition();

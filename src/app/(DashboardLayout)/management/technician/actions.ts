@@ -121,12 +121,17 @@ export async function upsertTechnician(data: {
 
         revalidatePath('/management/technician');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         actionLogger.error(
             'Failed to upsert technician:',
             error instanceof Error ? error : new Error(String(error))
         );
-        if (error.code === '23505') {
+        if (
+            typeof error === 'object' &&
+            error !== null &&
+            'code' in error &&
+            error.code === '23505'
+        ) {
             throw new Error('NIK tersebut sudah terdaftar pada teknisi lain.');
         }
         throw new Error('Failed to save technician');

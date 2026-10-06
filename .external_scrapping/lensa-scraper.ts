@@ -36,11 +36,11 @@ async function setupContext(username: string, password: string) {
             try {
                 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
                 return;
-            } catch (error: any) {
+            } catch (error: unknown) {
                 if (i === retries) throw error;
                 console.warn(
                     `Nav to ${url} failed, retrying... (${i + 1}/${retries})`,
-                    error.message
+                    error instanceof Error ? error.message : String(error)
                 );
                 await page.waitForTimeout(2000);
             }
@@ -103,12 +103,12 @@ export async function scrapeLensaHeaders(
         const listContent = await page.evaluate(
             () => document.body.innerText || document.body.textContent
         );
-        let listData: any = {};
+        let listData: Record<string, unknown> = {};
         try {
             listData = JSON.parse(listContent || '{}');
         } catch (_e) {}
 
-        const items = listData?.data || [];
+        const items = (listData?.data as Array<Record<string, unknown>>) || [];
         const newHeaders = [];
 
         for (const item of items) {
@@ -175,12 +175,12 @@ export async function scrapeWOLensaHeaders(
         const listContent = await page.evaluate(
             () => document.body.innerText || document.body.textContent
         );
-        let listData: any = {};
+        let listData: Record<string, unknown> = {};
         try {
             listData = JSON.parse(listContent || '{}');
         } catch (_e) {}
 
-        const items = listData?.data || [];
+        const items = (listData?.data as Array<Record<string, unknown>>) || [];
         const newHeaders = [];
 
         for (const item of items) {
@@ -214,7 +214,7 @@ export async function scrapeWOLensaHeaders(
 }
 
 export async function scrapeLensaDetails(
-    headersToScrape: any[],
+    headersToScrape: { id: number; reservation_id: string }[],
     customUsername?: string,
     customPassword?: string
 ) {
@@ -272,7 +272,7 @@ export async function scrapeLensaDetails(
                     });
                 });
 
-                const materials = tablesData.find((t: any) => t.type === 'materials')?.data || [];
+                const materials = tablesData.find((t) => t.type === 'materials')?.data || [];
 
                 const fullText = await page.evaluate(() => document.body.innerText || '');
                 const lines = fullText
@@ -356,12 +356,12 @@ export async function scrapeReservation(
         const listContent = await page.evaluate(
             () => document.body.innerText || document.body.textContent
         );
-        let listData: any = {};
+        let listData: Record<string, unknown> = {};
         try {
             listData = JSON.parse(listContent || '{}');
         } catch (_e) {}
 
-        const item = listData?.data?.[0];
+        const item = (listData?.data as Array<Record<string, unknown>>)?.[0];
         if (!item) {
             return { listData: { data: [] }, detailContent: null };
         }
@@ -403,7 +403,7 @@ export async function scrapeReservation(
             });
         });
 
-        const materials = tablesData.find((t: any) => t.type === 'materials')?.data || [];
+        const materials = tablesData.find((t) => t.type === 'materials')?.data || [];
 
         const fullText = await page.evaluate(() => document.body.innerText || '');
         const lines = fullText
@@ -508,7 +508,7 @@ export async function scrapeWOLensaDetails(
                     });
                 });
 
-                const materials = tablesData.find((t: any) => t.type === 'materials')?.data || [];
+                const materials = tablesData.find((t) => t.type === 'materials')?.data || [];
 
                 results.push({
                     header_id: header.id,

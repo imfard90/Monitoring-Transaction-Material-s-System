@@ -17,7 +17,7 @@ interface MFAPageProps {
     onSuccess?: () => void;
 }
 
-export default function MFAPage({ mode = 'verify', userId, onSuccess }: MFAPageProps) {
+export default function MFAPage({ mode = 'verify', onSuccess }: MFAPageProps) {
     const [otpCode, setOtpCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);

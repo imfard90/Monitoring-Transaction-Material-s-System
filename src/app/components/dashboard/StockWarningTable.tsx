@@ -83,7 +83,7 @@ export const StockWarningTable = () => {
                                     const isWarning = w.qty_stock < w.min_qty;
                                     return (
                                         <motion.tr
-                                            key={index}
+                                            key={`${w.warehouse_name}-${w.material_code}`}
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ duration: 0.2, delay: index * 0.03 }}

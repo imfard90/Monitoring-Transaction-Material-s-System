@@ -23,6 +23,7 @@ dist/
 # Coverage
 # --------------------------------------------------
 coverage/
+MTMS.code-workspace
 
 # --------------------------------------------------
 # Environment
@@ -70,6 +71,8 @@ next-env.d.ts
 .gemini/
 .prompt/
 .agents/
+.roo/
+.roomodes
 AGENTS.md
 bispro.md
 

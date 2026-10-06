@@ -7,7 +7,6 @@ import { useState } from 'react';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import FullLogo from '../shared/logo/FullLogo';
 import SidebarLayout from '../sidebar/Sidebar';
-import Notifications from './Notifications';
 import Profile from './Profile';
 import Search from './Search';
 
@@ -69,9 +68,6 @@ const Header = () => {
                                 )}
                             </span>
                         </button>
-
-                        {/* Notifications */}
-                        <Notifications />
 
                         {/* Profile Dropdown */}
                         <Profile />

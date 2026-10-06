@@ -39,7 +39,7 @@ const Profile = () => {
                 >
                     <SimpleBar>
                         {profileData.profileDD.map((item, index) => (
-                            <DropdownMenuItem key={index} asChild>
+                            <DropdownMenuItem key={item.title || index} asChild>
                                 <Link
                                     href={item.url}
                                     className="px-4 py-2 flex justify-between items-center group/link w-full hover:bg-lightprimary hover:text-primary"

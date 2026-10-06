@@ -74,13 +74,13 @@ const renderSidebarItems = (
             : `mt-0.5 text-sidebar-foreground dark:text-sidebar-foreground`;
 
         return (
+            // biome-ignore lint/a11y/noStaticElementInteractions: Sidebar menu item wrapper
             <div
                 onClick={onClose}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') onClose?.();
                 }}
-                role="presentation"
-                key={index}
+                key={item.id || index}
             >
                 <AMMenuItem
                     key={item.id}
@@ -157,7 +157,7 @@ const SidebarLayout = ({
             <SimpleBar className="h-[calc(100vh-100px)]">
                 <div className="px-4">
                     {filteredSidebarContent.map((section, index) => (
-                        <div key={index}>
+                        <div key={section.heading || index}>
                             {renderSidebarItems(
                                 [
                                     ...(section.heading ? [{ heading: section.heading }] : []),

@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation';
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
 import { Footer } from '@/app/components/dashboard/Footer';
 import { getSessionUser } from '@/lib/auth-server';

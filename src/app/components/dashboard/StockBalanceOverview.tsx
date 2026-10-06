@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
-import { Check, ChevronsUpDown, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import React, { useState } from 'react';
 import { getStockBalances } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 
@@ -17,19 +17,9 @@ interface StockBalanceData {
 
 import CardBox from '@/app/components/shared/CardBox';
 import { DataTable } from '@/app/components/shared/DataTable';
+import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 
 const columnHelper = createColumnHelper<StockBalanceData>();
 
@@ -141,66 +131,13 @@ export default function StockBalanceOverview() {
                                 size={16}
                             />
                         </div>
-                        <Popover open={openCombo} onOpenChange={setOpenCombo}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    aria-expanded={openCombo}
-                                    className="w-[200px] justify-between font-normal"
-                                >
-                                    {whFilter === 'all' ? 'All Warehouses' : whFilter}
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[200px] p-0" align="start">
-                                <Command>
-                                    <CommandInput placeholder="Search WH..." />
-                                    <CommandEmpty>No WH found.</CommandEmpty>
-                                    <CommandList>
-                                        <CommandGroup>
-                                            <CommandItem
-                                                value="all"
-                                                onSelect={() => {
-                                                    setWhFilter('all');
-                                                    setOpenCombo(false);
-                                                }}
-                                            >
-                                                <Check
-                                                    className={cn(
-                                                        'mr-2 h-4 w-4',
-                                                        whFilter === 'all'
-                                                            ? 'opacity-100'
-                                                            : 'opacity-0'
-                                                    )}
-                                                />
-                                                All Warehouses
-                                            </CommandItem>
-                                            {uniqueWhs.map((wh) => (
-                                                <CommandItem
-                                                    key={wh}
-                                                    value={wh}
-                                                    onSelect={(_currentValue) => {
-                                                        setWhFilter(wh);
-                                                        setOpenCombo(false);
-                                                    }}
-                                                >
-                                                    <Check
-                                                        className={cn(
-                                                            'mr-2 h-4 w-4',
-                                                            whFilter === wh
-                                                                ? 'opacity-100'
-                                                                : 'opacity-0'
-                                                        )}
-                                                    />
-                                                    {wh}
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
+                        <WarehouseCombobox
+                            value={whFilter}
+                            onValueChange={setWhFilter}
+                            warehouses={uniqueWhs}
+                            open={openCombo}
+                            onOpenChange={setOpenCombo}
+                        />
                     </div>
                 </div>
 

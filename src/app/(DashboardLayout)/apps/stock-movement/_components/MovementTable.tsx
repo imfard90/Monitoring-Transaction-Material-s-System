@@ -18,8 +18,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+export interface StockMovementItem {
+    created_at: string | Date;
+    reference_trx: string | null;
+    warehouse_name: string | null;
+    material_code: string | null;
+    material_name: string | null;
+    movement_type: string;
+    qty_delta: number;
+    qty_after: number;
+    notes: string | null;
+    created_by: string | null;
+    [key: string]: unknown;
+}
+
 interface MovementTableProps {
-    data: any[];
+    data: StockMovementItem[];
     searchQuery: string;
     onSearchChange: (val: string) => void;
     dateRange?: DateRange;
@@ -28,12 +42,15 @@ interface MovementTableProps {
     onWarehouseFilterChange?: (val: string) => void;
     materialFilter?: string;
     onMaterialFilterChange?: (val: string) => void;
+    typeFilter?: string;
+    onTypeFilterChange?: (val: string) => void;
     uniqueWarehouses?: string[];
     uniqueMaterials?: string[];
+    uniqueTypes?: string[];
     onClearFilters?: () => void;
 }
 
-const columnHelper = createColumnHelper<any>();
+const columnHelper = createColumnHelper<StockMovementItem>();
 
 export default function MovementTable({
     data,
@@ -45,8 +62,11 @@ export default function MovementTable({
     onWarehouseFilterChange,
     materialFilter,
     onMaterialFilterChange,
+    typeFilter,
+    onTypeFilterChange,
     uniqueWarehouses = [],
     uniqueMaterials = [],
+    uniqueTypes = [],
     onClearFilters,
 }: MovementTableProps) {
     const columns = [
@@ -183,6 +203,25 @@ export default function MovementTable({
                                     ...uniqueMaterials.map((mat) => ({ value: mat, label: mat })),
                                 ]}
                                 placeholder="All Materials"
+                            />
+                        </div>
+                    )}
+
+                    {onTypeFilterChange && (
+                        <div className="w-[200px]">
+                            <SearchableSelect
+                                value={typeFilter || ''}
+                                onValueChange={onTypeFilterChange}
+                                options={[
+                                    { value: 'all', label: 'All Types' },
+                                    ...uniqueTypes.map((type) => ({
+                                        value: type,
+                                        label: type
+                                            .replace(/_/g, ' ')
+                                            .replace(/\b\w/g, (l) => l.toUpperCase()),
+                                    })),
+                                ]}
+                                placeholder="All Types"
                             />
                         </div>
                     )}

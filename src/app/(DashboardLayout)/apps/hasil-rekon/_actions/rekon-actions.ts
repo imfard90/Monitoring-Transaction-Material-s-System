@@ -58,7 +58,7 @@ export async function getHasilRekon(offsetMonths = 0, limitMonths = 5): Promise<
 
         if (isStaff && warehouseIds.length > 0) {
             // Filter via sap_out_header warehouse_id
-            query = query.where('soh.warehouse_id', 'in', warehouseIds as any);
+            query = query.where('soh.warehouse_id', 'in', warehouseIds as readonly number[]);
         }
 
         const data = await query.execute();

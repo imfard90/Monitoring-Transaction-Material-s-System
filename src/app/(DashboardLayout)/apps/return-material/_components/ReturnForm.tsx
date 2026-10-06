@@ -398,7 +398,7 @@ export default function ReturnForm() {
                                                     item.sap_out_item_id
                                             );
                                             return (
-                                                <TableRow key={idx}>
+                                                <TableRow key={item.sap_out_item_id as string}>
                                                     <TableCell className="text-center">
                                                         {idx + 1}
                                                     </TableCell>

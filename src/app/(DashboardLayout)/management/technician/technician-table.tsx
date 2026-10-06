@@ -25,26 +25,33 @@ import { Switch } from '@/components/ui/switch';
 import { toggleTechnicianStatus } from './actions';
 import { TechnicianDialog } from './technician-dialog';
 
-interface TechnicianTableProps {
-    data: any[];
-    branches: any[];
-    mitras: any[];
+export interface TechnicianItem {
+    id: string | number;
+    service_area: string | null;
+    nik: string | null;
+    name: string | null;
+    mitra_name: string | null;
+    is_active: boolean;
 }
 
-const columnHelper = createColumnHelper<any>();
+interface TechnicianTableProps {
+    data: TechnicianItem[];
+    branches: { id: number; service_area: string; branch: string }[];
+    mitras: { id: number; mitra_name: string | null }[];
+}
+
+const columnHelper = createColumnHelper<TechnicianItem>();
 
 export default function TechnicianTable({ data, branches, mitras }: TechnicianTableProps) {
     const [isPending, startTransition] = useTransition();
     const [nikFilter, setNikFilter] = useState('');
     const [whFilter, setWhFilter] = useState<string>('all');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [selectedTechnician, setSelectedTechnician] = useState<Record<string, unknown> | null>(
-        null
-    );
+    const [selectedTechnician, setSelectedTechnician] = useState<TechnicianItem | null>(null);
 
     // Extract unique service areas for the filter
     const serviceAreas = useMemo(() => {
-        const areas = data.map((item) => item.service_area).filter(Boolean);
+        const areas = data.map((item) => item.service_area).filter(Boolean) as string[];
         return Array.from(new Set(areas)).sort();
     }, [data]);
 
@@ -57,7 +64,7 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
         });
     }, [data, nikFilter, whFilter]);
 
-    const handleToggleStatus = (id: number, currentStatus: boolean) => {
+    const handleToggleStatus = (id: string | number, currentStatus: boolean) => {
         startTransition(async () => {
             try {
                 await toggleTechnicianStatus(id, !currentStatus);
@@ -174,7 +181,7 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Service Areas</SelectItem>
-                                {serviceAreas.map((area: any) => (
+                                {serviceAreas.map((area) => (
                                     <SelectItem key={area} value={area}>
                                         {area}
                                     </SelectItem>
@@ -206,7 +213,7 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
             <TechnicianDialog
                 open={isDialogOpen}
                 onOpenChange={setIsDialogOpen}
-                initialData={selectedTechnician}
+                initialData={selectedTechnician as Record<string, unknown> | null}
                 branches={branches}
                 mitras={mitras}
             />

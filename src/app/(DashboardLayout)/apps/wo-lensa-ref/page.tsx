@@ -1,9 +1,8 @@
-import { redirect } from 'next/navigation';
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
 import { Footer } from '@/app/components/dashboard/Footer';
 import { getSessionUser } from '@/lib/auth-server';
 import { getWOLensaRefList } from './_actions/wo-lensa-actions';
-import WOLensaRefClient from './_components/WOLensaRefClient';
+import WOLensaRefClient, { type WOLensaHeader } from './_components/WOLensaRefClient';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
@@ -28,13 +27,13 @@ const BCrumb = [
 export default async function WOLensaRefPage() {
     const { isStaff } = await getSessionUser();
 
-    let initialData: any[] = [];
+    let initialData: WOLensaHeader[] = [];
     let errorMsg = '';
 
     try {
         const list = await getWOLensaRefList();
-        initialData = list;
-    } catch (e: any) {
+        initialData = list as WOLensaHeader[];
+    } catch (e: unknown) {
         console.error('Failed to load WO Lensa Ref List', e);
         errorMsg = 'Gagal memuat data WO Lensa Ref.';
     }

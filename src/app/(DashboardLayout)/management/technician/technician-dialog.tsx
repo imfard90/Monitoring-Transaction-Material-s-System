@@ -22,9 +22,16 @@ import { upsertTechnician } from './actions';
 interface TechnicianDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    initialData?: any;
-    branches: any[];
-    mitras: any[];
+    initialData?: {
+        id?: number;
+        nik?: string;
+        name?: string;
+        branch_id?: number;
+        mitra_id?: number;
+        is_active?: boolean;
+    } | null;
+    branches: { id: number; service_area: string; branch: string }[];
+    mitras: { id: number; mitra_name: string | null }[];
 }
 
 export function TechnicianDialog({

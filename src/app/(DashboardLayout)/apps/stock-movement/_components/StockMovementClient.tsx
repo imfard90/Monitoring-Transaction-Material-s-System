@@ -5,10 +5,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
 import { getStockMovements } from '../_actions/movement-actions';
+import type { StockMovementItem } from './MovementTable';
 import MovementTable from './MovementTable';
 
 interface StockMovementClientProps {
-    initialData: any[];
+    initialData: StockMovementItem[];
 }
 
 export default function StockMovementClient({ initialData }: StockMovementClientProps) {
@@ -21,6 +22,7 @@ export default function StockMovementClient({ initialData }: StockMovementClient
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [warehouseFilter, setWarehouseFilter] = useState('all');
     const [materialFilter, setMaterialFilter] = useState('all');
+    const [typeFilter, setTypeFilter] = useState('all');
 
     const uniqueWarehouses = useMemo(() => {
         const set = new Set(data.map((item) => item.warehouse_name).filter(Boolean));
@@ -32,11 +34,17 @@ export default function StockMovementClient({ initialData }: StockMovementClient
         return Array.from(set).sort() as string[];
     }, [data]);
 
+    const uniqueTypes = useMemo(() => {
+        const set = new Set(data.map((item) => item.movement_type).filter(Boolean));
+        return Array.from(set).sort() as string[];
+    }, [data]);
+
     const handleClearFilters = () => {
         setSearchQuery('');
         setDateRange(undefined);
         setWarehouseFilter('all');
         setMaterialFilter('all');
+        setTypeFilter('all');
     };
 
     const loadMore = useCallback(async () => {
@@ -94,6 +102,11 @@ export default function StockMovementClient({ initialData }: StockMovementClient
                 return false;
             }
 
+            // Type filter
+            if (typeFilter && typeFilter !== 'all' && item.movement_type !== typeFilter) {
+                return false;
+            }
+
             // Search filter
             const q = searchQuery.toLowerCase();
             return (
@@ -104,7 +117,7 @@ export default function StockMovementClient({ initialData }: StockMovementClient
                 item.movement_type?.toLowerCase().includes(q)
             );
         });
-    }, [data, searchQuery, dateRange, warehouseFilter, materialFilter]);
+    }, [data, searchQuery, dateRange, warehouseFilter, materialFilter, typeFilter]);
 
     useEffect(() => {
         if (searchQuery && filteredData.length === 0 && hasMoreData && !isLoadingMore) {
@@ -133,8 +146,11 @@ export default function StockMovementClient({ initialData }: StockMovementClient
                     onWarehouseFilterChange={setWarehouseFilter}
                     materialFilter={materialFilter}
                     onMaterialFilterChange={setMaterialFilter}
+                    typeFilter={typeFilter}
+                    onTypeFilterChange={setTypeFilter}
                     uniqueWarehouses={uniqueWarehouses}
                     uniqueMaterials={uniqueMaterials}
+                    uniqueTypes={uniqueTypes}
                     onClearFilters={handleClearFilters}
                 />
                 {isLoadingMore && (

@@ -48,8 +48,9 @@ const OtpInput: React.FC<OtpInputProps> = ({ length = 6, onComplete, disabled })
         e.preventDefault();
         const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, length);
         pasted.split('').forEach((char, i) => {
-            if (inputsRef.current[i]) {
-                inputsRef.current[i]!.value = char;
+            const input = inputsRef.current[i];
+            if (input) {
+                input.value = char;
             }
         });
         inputsRef.current[Math.min(pasted.length, length - 1)]?.focus();
@@ -60,6 +61,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ length = 6, onComplete, disabled })
         <div className="flex justify-center gap-2">
             {Array.from({ length }).map((_, i) => (
                 <Input
+                    // biome-ignore lint/suspicious/noArrayIndexKey: OTP inputs have fixed length and order
                     key={i}
                     ref={(el) => {
                         inputsRef.current[i] = el;

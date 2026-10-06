@@ -7,9 +7,9 @@ import {
     getSortedRowModel,
     useReactTable,
 } from '@tanstack/react-table';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Eye, Play } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
@@ -18,19 +18,46 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     checkWOScrapingStatus,
     getWOLensaRefDetails,
     triggerWOScraping,
 } from '../_actions/wo-lensa-actions';
 
-const columnHelper = createColumnHelper<any>();
+export interface WOLensaHeader {
+    id: number | string;
+    pemakaian_id: string | null;
+    tanggal_update: string | null;
+    type: string | null;
+    wo_number: string | null;
+    nik_pemakai: string | null;
+    nama_gudang: string | null;
+    gi_number: string | null;
+    wbs: string | null;
+}
+
+export interface WOLensaDetail {
+    material_id: string | null;
+    material_desc: string | null;
+    uom: string | null;
+    qty_pemakaian: number | null;
+}
+
+const columnHelper = createColumnHelper<WOLensaHeader>();
+const detailColumnHelper = createColumnHelper<WOLensaDetail>();
 
 export default function WOLensaRefClient({
     initialData,
     error,
     isStaff = false,
 }: {
-    initialData: any[];
+    initialData: WOLensaHeader[];
     error?: string;
     isStaff?: boolean;
 }) {
@@ -38,10 +65,22 @@ export default function WOLensaRefClient({
     const [isStarting, setIsStarting] = useState(false);
 
     // For detail view
-    const [detailData, setDetailData] = useState<any[]>([]);
-    const [selectedHeader, setSelectedHeader] = useState<any | null>(null);
+    const [detailData, setDetailData] = useState<WOLensaDetail[]>([]);
+    const [selectedHeader, setSelectedHeader] = useState<WOLensaHeader | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [loadingDetail, setLoadingDetail] = useState(false);
+
+    const [selectedGudang, setSelectedGudang] = useState<string>('all');
+
+    const uniqueGudang = useMemo(() => {
+        const list = new Set(initialData.map((d) => d.nama_gudang).filter(Boolean));
+        return Array.from(list).sort() as string[];
+    }, [initialData]);
+
+    const filteredData = useMemo(() => {
+        if (selectedGudang === 'all') return data;
+        return data.filter((d) => d.nama_gudang === selectedGudang);
+    }, [data, selectedGudang]);
 
     useEffect(() => {
         if (error) {
@@ -51,7 +90,7 @@ export default function WOLensaRefClient({
 
     const handleRunScraping = () => {
         setIsStarting(true);
-        const pollPromise = new Promise((resolve, reject) => {
+        const pollPromise = new Promise<Record<string, unknown>>((resolve, reject) => {
             (async () => {
                 try {
                     const res = await triggerWOScraping();
@@ -70,7 +109,7 @@ export default function WOLensaRefClient({
                                 clearInterval(interval);
                                 reject(new Error(status.error));
                             }
-                        } catch (err) {
+                        } catch (_err) {
                             // ignore network errors, keep polling
                         }
                     }, 3000);
@@ -83,17 +122,18 @@ export default function WOLensaRefClient({
 
         toast.promise(pollPromise, {
             loading: 'Scraping WO Lensa berjalan di latar belakang...',
-            success: (data: any) => data.message || 'Scraping berhasil diselesaikan!',
-            error: (err: any) => `Scraping gagal: ${err.message}`,
+            success: (data: Record<string, unknown>) =>
+                (data.message as string) || 'Scraping berhasil diselesaikan!',
+            error: (err: Error) => `Scraping gagal: ${err.message}`,
         });
     };
 
-    const handleViewDetail = async (row: any) => {
+    const handleViewDetail = async (row: WOLensaHeader) => {
         setIsDialogOpen(true);
         setLoadingDetail(true);
         setSelectedHeader(row);
 
-        const result = await getWOLensaRefDetails(row.id);
+        const result = await getWOLensaRefDetails(Number(row.id));
 
         setLoadingDetail(false);
         if (result.success && result.data) {
@@ -156,7 +196,7 @@ export default function WOLensaRefClient({
     ];
 
     const table = useReactTable({
-        data,
+        data: filteredData,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
@@ -169,19 +209,19 @@ export default function WOLensaRefClient({
     });
 
     const detailColumns = [
-        columnHelper.accessor('material_id', {
+        detailColumnHelper.accessor('material_id', {
             header: 'ID MATERIAL',
             cell: (info) => info.getValue() || '-',
         }),
-        columnHelper.accessor('material_desc', {
+        detailColumnHelper.accessor('material_desc', {
             header: 'NAMA MATERIAL',
             cell: (info) => info.getValue() || '-',
         }),
-        columnHelper.accessor('uom', {
+        detailColumnHelper.accessor('uom', {
             header: 'SATUAN',
             cell: (info) => info.getValue() || '-',
         }),
-        columnHelper.accessor('qty_pemakaian', {
+        detailColumnHelper.accessor('qty_pemakaian', {
             header: 'QTY PEMAKAIAN',
             cell: (info) => info.getValue() || '-',
         }),
@@ -194,23 +234,37 @@ export default function WOLensaRefClient({
     });
 
     return (
-        <>
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex flex-col gap-4"
-            >
-                <Card className="border-border shadow-sm">
-                    <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4">
-                        <div>
-                            <CardTitle className="text-xl font-bold">Daftar Ref WO Lensa</CardTitle>
-                            <CardDescription>
-                                Data referensi WO Provisioning & Maintenance yang ditarik secara
-                                otomatis dari aplikasi Lensa.
-                            </CardDescription>
-                        </div>
-                        {!isStaff && (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col gap-4"
+        >
+            <Card className="border-border shadow-sm">
+                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4">
+                    <div>
+                        <CardTitle className="text-xl font-bold">Daftar Ref WO Lensa</CardTitle>
+                        <CardDescription>
+                            Data referensi WO Provisioning & Maintenance yang ditarik secara
+                            otomatis dari aplikasi Lensa.
+                        </CardDescription>
+                    </div>
+                    {!isStaff && (
+                        <div className="flex items-center gap-2">
+                            <Select value={selectedGudang} onValueChange={setSelectedGudang}>
+                                <SelectTrigger className="w-[200px]">
+                                    <SelectValue placeholder="Pilih Gudang" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua Gudang</SelectItem>
+                                    {uniqueGudang.map((g) => (
+                                        <SelectItem key={g} value={g}>
+                                            {g}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
                             <Button
                                 onClick={handleRunScraping}
                                 disabled={isStarting}
@@ -223,45 +277,45 @@ export default function WOLensaRefClient({
                                 )}
                                 Run Scraping
                             </Button>
-                        )}
-                    </CardHeader>
-                    <CardContent>
-                        <div className="rounded-md border border-border">
-                            <DataTable table={table} emptyMessage="Tidak ada data." />
                         </div>
-                        <div className="mt-4">
-                            <DataTablePagination table={table} />
-                        </div>
-                    </CardContent>
-                </Card>
+                    )}
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-md border border-border">
+                        <DataTable table={table} emptyMessage="Tidak ada data." />
+                    </div>
+                    <div className="mt-4">
+                        <DataTablePagination table={table} />
+                    </div>
+                </CardContent>
+            </Card>
 
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Detail Material WO Lensa</DialogTitle>
-                        </DialogHeader>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Detail Material WO Lensa</DialogTitle>
+                    </DialogHeader>
 
-                        {selectedHeader && (
-                            <div className="mb-4 space-y-1">
-                                <div>
-                                    <span className="font-semibold">WO Number:</span>{' '}
-                                    {selectedHeader.wo_number || '-'}
-                                </div>
-                                <div>
-                                    <span className="font-semibold">GI Number:</span>{' '}
-                                    {selectedHeader.gi_number || '-'}
-                                </div>
+                    {selectedHeader && (
+                        <div className="mb-4 space-y-1">
+                            <div>
+                                <span className="font-semibold">WO Number:</span>{' '}
+                                {selectedHeader.wo_number || '-'}
                             </div>
-                        )}
+                            <div>
+                                <span className="font-semibold">GI Number:</span>{' '}
+                                {selectedHeader.gi_number || '-'}
+                            </div>
+                        </div>
+                    )}
 
-                        <DataTable
-                            table={detailTable}
-                            isLoading={loadingDetail}
-                            emptyMessage="Tidak ada detail material (Atau mungkin belum terscrape)."
-                        />
-                    </DialogContent>
-                </Dialog>
-            </motion.div>
-        </>
+                    <DataTable
+                        table={detailTable}
+                        isLoading={loadingDetail}
+                        emptyMessage="Tidak ada detail material (Atau mungkin belum terscrape)."
+                    />
+                </DialogContent>
+            </Dialog>
+        </motion.div>
     );
 }

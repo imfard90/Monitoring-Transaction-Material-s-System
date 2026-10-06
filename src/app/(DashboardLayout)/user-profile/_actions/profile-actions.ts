@@ -19,7 +19,7 @@ export interface UserProfileData {
     branch_name: string | null;
     area: string | null;
     regional: string | null;
-    lensa_acount: any | null;
+    lensa_acount: Record<string, unknown> | null;
 }
 
 export async function getProfileData(): Promise<{
@@ -47,7 +47,7 @@ export async function getProfileData(): Promise<{
                 'u.emailVerified',
                 'u.name',
                 'u.is_active',
-                sql<any>`u.lensa_acount`.as('lensa_acount'),
+                sql<Record<string, unknown>>`u.lensa_acount`.as('lensa_acount'),
                 'e.nama as employee_name',
                 'e.status',
                 'l.level_name',

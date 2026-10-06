@@ -64,8 +64,9 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
             } else {
                 toast.success('Link verifikasi berhasil dikirim ke email Anda');
             }
-        } catch (err: any) {
-            toast.error(err.message || 'Terjadi kesalahan saat mengirim email');
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast.error(error.message || 'Terjadi kesalahan saat mengirim email');
         } finally {
             setIsSendingVerification(false);
         }
@@ -153,7 +154,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                 <div className="flex items-center gap-2">
                                     {socialLinks.map((item, index) => (
                                         <Link
-                                            key={index}
+                                            key={item.href || index}
                                             href={item.href}
                                             target="_blank"
                                             className="flex h-11 w-11 items-center justify-center gap-2 rounded-full shadow-md border border-border hover:bg-gray-50 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
@@ -288,7 +289,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                         <span>Lensa Inventory Connected</span>
                                     </div>
                                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        Username: {profileData.lensa_acount.username}
+                                        Username: {String(profileData.lensa_acount.username)}
                                     </p>
                                     <div className="flex items-center gap-2 mt-2">
                                         <Button

@@ -7,9 +7,9 @@ import {
     getSortedRowModel,
     useReactTable,
 } from '@tanstack/react-table';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { CheckCircle2, Eye, Play } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
@@ -17,28 +17,70 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     checkScrapingStatus,
     getOutLensaRefDetails,
     triggerScraping,
 } from '../_actions/out-lensa-actions';
 
-const columnHelper = createColumnHelper<any>();
+export interface OutLensaHeader {
+    id: string;
+    reservation_id: string | null;
+    tgl_entry: string | null;
+    nama_gudang: string | null;
+    gi_number: string | null;
+    status_proses: string | null;
+    nik_pemakai: string | null;
+    reservation_id_sap: string | null;
+    sap_out_check: boolean | null;
+    mitra: string | null;
+}
+
+export interface OutLensaDetail {
+    id: string;
+    header_id: string | null;
+    material_id: string | null;
+    material_desc: string | null;
+    qty_approve: number | null;
+    sap_out_matched: boolean | null;
+}
+
+const columnHelper = createColumnHelper<OutLensaHeader>();
+const detailColumnHelper = createColumnHelper<OutLensaDetail>();
 
 export default function OutLensaRefClient({
     initialData,
     error,
     isStaff = false,
 }: {
-    initialData: any[];
+    initialData: OutLensaHeader[];
     error?: string;
     isStaff?: boolean;
 }) {
-    const [data, _setData] = useState(initialData);
+    const [data] = useState<OutLensaHeader[]>(initialData);
     const [isStarting, setIsStarting] = useState(false);
-    const [detailData, setDetailData] = useState<any[]>([]);
-    const [selectedHeader, setSelectedHeader] = useState<any | null>(null);
+    const [detailData, setDetailData] = useState<OutLensaDetail[]>([]);
+    const [selectedHeader, setSelectedHeader] = useState<OutLensaHeader | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [loadingDetail, setLoadingDetail] = useState(false);
+
+    const [selectedGudang, setSelectedGudang] = useState<string>('all');
+
+    const uniqueGudang = useMemo(() => {
+        const list = new Set(initialData.map((d) => d.nama_gudang).filter(Boolean));
+        return Array.from(list).sort() as string[];
+    }, [initialData]);
+
+    const filteredData = useMemo(() => {
+        if (selectedGudang === 'all') return data;
+        return data.filter((d) => d.nama_gudang === selectedGudang);
+    }, [data, selectedGudang]);
 
     useEffect(() => {
         if (error) {
@@ -67,7 +109,7 @@ export default function OutLensaRefClient({
                                 clearInterval(interval);
                                 reject(new Error(status.error));
                             }
-                        } catch (err) {
+                        } catch (_err) {
                             // ignore network errors, keep polling
                         }
                     }, 3000);
@@ -80,12 +122,14 @@ export default function OutLensaRefClient({
 
         toast.promise(pollPromise, {
             loading: 'Scraping berjalan di latar belakang...',
-            success: (data: any) => `Berhasil menarik ${data.newCount || 0} reservasi baru!`,
-            error: (err: any) => `Scraping gagal: ${err.message}`,
+            success: (data: unknown) =>
+                `Berhasil menarik ${(data as { newCount?: number }).newCount || 0} reservasi baru!`,
+            error: (err: unknown) =>
+                `Scraping gagal: ${err instanceof Error ? err.message : 'Unknown error'}`,
         });
     };
 
-    const handleViewDetail = async (row: any) => {
+    const handleViewDetail = async (row: OutLensaHeader) => {
         setIsDialogOpen(true);
         setLoadingDetail(true);
         setSelectedHeader(row);
@@ -157,7 +201,7 @@ export default function OutLensaRefClient({
     ];
 
     const table = useReactTable({
-        data,
+        data: filteredData,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
@@ -173,19 +217,19 @@ export default function OutLensaRefClient({
     });
 
     const detailColumns = [
-        columnHelper.accessor('material_id', {
+        detailColumnHelper.accessor('material_id', {
             header: 'ID MATERIAL',
             cell: (info) => info.getValue() || '-',
         }),
-        columnHelper.accessor('material_desc', {
+        detailColumnHelper.accessor('material_desc', {
             header: 'NAMA MATERIAL',
             cell: (info) => info.getValue() || '-',
         }),
-        columnHelper.accessor('qty_approve', {
+        detailColumnHelper.accessor('qty_approve', {
             header: 'QTY ACCEPTED',
             cell: (info) => info.getValue() || '-',
         }),
-        columnHelper.accessor('sap_out_matched', {
+        detailColumnHelper.accessor('sap_out_matched', {
             header: 'Match',
             cell: (info) => (
                 <div className="flex justify-center">
@@ -206,25 +250,36 @@ export default function OutLensaRefClient({
     });
 
     return (
-        <>
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex flex-col gap-4"
-            >
-                <Card className="border-border shadow-sm">
-                    <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4">
-                        <div>
-                            <CardTitle className="text-xl font-bold">
-                                Daftar Ref Out Lensa
-                            </CardTitle>
-                            <CardDescription>
-                                Data referensi Out SAP yang ditarik secara otomatis dari aplikasi
-                                Lensa.
-                            </CardDescription>
-                        </div>
-                        {!isStaff && (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col gap-4"
+        >
+            <Card className="border-border shadow-sm">
+                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4">
+                    <div>
+                        <CardTitle className="text-xl font-bold">Daftar Ref Out Lensa</CardTitle>
+                        <CardDescription>
+                            Data referensi Out SAP yang ditarik secara otomatis dari aplikasi Lensa.
+                        </CardDescription>
+                    </div>
+                    {!isStaff && (
+                        <div className="flex items-center gap-2">
+                            <Select value={selectedGudang} onValueChange={setSelectedGudang}>
+                                <SelectTrigger className="w-[200px]">
+                                    <SelectValue placeholder="Pilih Gudang" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua Gudang</SelectItem>
+                                    {uniqueGudang.map((g) => (
+                                        <SelectItem key={g} value={g}>
+                                            {g}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
                             <Button
                                 onClick={handleRunScraping}
                                 disabled={isStarting}
@@ -237,45 +292,45 @@ export default function OutLensaRefClient({
                                 )}
                                 Run Scraping
                             </Button>
-                        )}
-                    </CardHeader>
-                    <CardContent>
-                        <div className="rounded-md border border-border">
-                            <DataTable table={table} emptyMessage="Tidak ada data." />
                         </div>
-                        <div className="mt-4">
-                            <DataTablePagination table={table} />
-                        </div>
-                    </CardContent>
-                </Card>
+                    )}
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-md border border-border">
+                        <DataTable table={table} emptyMessage="Tidak ada data." />
+                    </div>
+                    <div className="mt-4">
+                        <DataTablePagination table={table} />
+                    </div>
+                </CardContent>
+            </Card>
 
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Detail Material Reservation</DialogTitle>
-                        </DialogHeader>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Detail Material Reservation</DialogTitle>
+                    </DialogHeader>
 
-                        {selectedHeader && (
-                            <div className="mb-4 space-y-1">
-                                <div>
-                                    <span className="font-semibold">NIK:</span>{' '}
-                                    {selectedHeader.nik_pemakai || '-'}
-                                </div>
-                                <div>
-                                    <span className="font-semibold">MITRA:</span>{' '}
-                                    {selectedHeader.mitra || '-'}
-                                </div>
+                    {selectedHeader && (
+                        <div className="mb-4 space-y-1">
+                            <div>
+                                <span className="font-semibold">NIK:</span>{' '}
+                                {selectedHeader.nik_pemakai || '-'}
                             </div>
-                        )}
+                            <div>
+                                <span className="font-semibold">MITRA:</span>{' '}
+                                {selectedHeader.mitra || '-'}
+                            </div>
+                        </div>
+                    )}
 
-                        <DataTable
-                            table={detailTable}
-                            isLoading={loadingDetail}
-                            emptyMessage="Tidak ada detail material."
-                        />
-                    </DialogContent>
-                </Dialog>
-            </motion.div>
-        </>
+                    <DataTable
+                        table={detailTable}
+                        isLoading={loadingDetail}
+                        emptyMessage="Tidak ada detail material."
+                    />
+                </DialogContent>
+            </Dialog>
+        </motion.div>
     );
 }

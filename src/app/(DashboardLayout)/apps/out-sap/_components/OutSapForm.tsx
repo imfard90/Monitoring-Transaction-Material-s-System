@@ -95,23 +95,25 @@ export default function OutSapForm() {
             }
 
             // Using type casting since we know it succeeded
-            const successData = data as any;
-            const scrapedListData = successData.listData?.data?.[0];
-            const scrapedDetail = successData.detailContent;
+            const successData = data as Record<string, unknown>;
+            const scrapedListData = (successData.listData as Record<string, unknown[]>)
+                ?.data?.[0] as Record<string, unknown>;
+            const scrapedDetail = successData.detailContent as Record<string, unknown>;
 
             if (scrapedListData && scrapedDetail) {
-                const resIdSap = scrapedListData.reservation_id_sap || '';
-                const giNumber = scrapedListData.gi_number || '';
-                const nik = (scrapedDetail.headerInfo?.nikPemakai || '').trim();
-                const namaGudang = scrapedListData.nama_gudang || '';
+                const resIdSap = (scrapedListData.reservation_id_sap as string) || '';
+                const giNumber = (scrapedListData.gi_number as string) || '';
+                const headerInfo = scrapedDetail.headerInfo as Record<string, string> | undefined;
+                const nik = (headerInfo?.nikPemakai || '').trim();
+                const namaGudang = (scrapedListData.nama_gudang as string) || '';
 
                 let name_sa = formData.name_sa;
                 let nik_teknisi = formData.nik_teknisi;
                 let warehouse_id = formData.warehouse_id;
 
                 if (namaGudang) {
-                    const matchedWh = warehouses.find((w: any) =>
-                        w.name.toLowerCase().includes(namaGudang.toLowerCase())
+                    const matchedWh = warehouses.find((w: Record<string, unknown>) =>
+                        (w.name as string).toLowerCase().includes(namaGudang.toLowerCase())
                     );
                     if (matchedWh) {
                         warehouse_id = matchedWh.id.toString();
@@ -138,12 +140,15 @@ export default function OutSapForm() {
 
                 const mappedItems: OutSapFormItem[] = [];
 
-                scrapedDetail.materials?.forEach((scrapedMat: any) => {
+                const materials = scrapedDetail.materials as Record<string, string>[];
+                materials?.forEach((scrapedMat: Record<string, string>) => {
                     const code = (scrapedMat['ID MATERIAL'] || '').trim();
                     const qty = parseInt(scrapedMat['QTY ACCEPTED'], 10) || 0;
 
                     if (code && qty > 0) {
-                        const matchedMat = allMaterials.find((m: any) => m.code.trim() === code);
+                        const matchedMat = allMaterials.find(
+                            (m: Record<string, unknown>) => (m.code as string).trim() === code
+                        );
                         if (matchedMat) {
                             mappedItems.push({
                                 id: crypto.randomUUID(),
@@ -156,11 +161,11 @@ export default function OutSapForm() {
 
                 setFormData((prev) => ({
                     ...prev,
-                    id_reservasi: resIdSap,
-                    sap_number: giNumber,
-                    name_sa: name_sa,
-                    nik_teknisi: nik_teknisi,
-                    warehouse_id: warehouse_id,
+                    id_reservasi: resIdSap as string,
+                    sap_number: giNumber as string,
+                    name_sa: name_sa as string,
+                    nik_teknisi: nik_teknisi as string,
+                    warehouse_id: warehouse_id as string,
                 }));
 
                 if (mappedItems.length > 0) {
@@ -201,7 +206,7 @@ export default function OutSapForm() {
         setItems(items.filter((_, i) => i !== index));
     };
 
-    const handleItemChange = (index: number, field: string, value: any) => {
+    const handleItemChange = (index: number, field: string, value: string | number | null) => {
         const newItems = [...items];
         newItems[index] = { ...newItems[index], [field]: value };
         setItems(newItems);
@@ -278,13 +283,19 @@ export default function OutSapForm() {
         setIsConfirmModalOpen(false);
     };
 
-    const selectedTech = technicians?.find((t: any) => t.nik === formData.nik_teknisi);
-    const selectedWh = warehouses?.find((w: any) => w.id.toString() === formData.warehouse_id);
+    const selectedTech = technicians?.find(
+        (t: Record<string, unknown>) => t.nik === formData.nik_teknisi
+    );
+    const selectedWh = warehouses?.find(
+        (w: Record<string, unknown>) => w.id?.toString() === formData.warehouse_id
+    );
 
-    const checkItemError = (item: any) => {
+    const checkItemError = (item: OutSapFormItem) => {
         if (isFetchingMaterials) return false;
         if (!item.designator_id) return true;
-        const selectedMat = materials.find((m: any) => m.id.toString() === item.designator_id);
+        const selectedMat = materials.find(
+            (m: Record<string, unknown>) => m.id?.toString() === item.designator_id
+        );
         if (!selectedMat) return true;
         if (item.qty_req > selectedMat.qty) return true;
         return false;
@@ -354,7 +365,7 @@ export default function OutSapForm() {
                                 <div className="space-y-2">
                                     <Label>Technician *</Label>
                                     <SearchableSelect
-                                        options={technicians.map((t: any) => ({
+                                        options={technicians.map((t: Record<string, unknown>) => ({
                                             value: String(t.nik),
                                             label: `${t.name} (${t.nik})`,
                                         }))}
@@ -372,9 +383,9 @@ export default function OutSapForm() {
                                 <div className="space-y-2">
                                     <Label>Area (SA)</Label>
                                     <SearchableSelect
-                                        options={branches.map((b: any) => ({
-                                            value: b.service_area,
-                                            label: b.service_area,
+                                        options={branches.map((b: Record<string, unknown>) => ({
+                                            value: b.service_area as string,
+                                            label: b.service_area as string,
                                         }))}
                                         value={formData.name_sa}
                                         onValueChange={(v) => {
@@ -392,9 +403,9 @@ export default function OutSapForm() {
                                 <div className="space-y-2">
                                     <Label>From Warehouse *</Label>
                                     <SearchableSelect
-                                        options={warehouses.map((w: any) => ({
-                                            value: w.id.toString(),
-                                            label: w.name,
+                                        options={warehouses.map((w: Record<string, unknown>) => ({
+                                            value: w.id?.toString() || '',
+                                            label: w.name as string,
                                         }))}
                                         value={formData.warehouse_id}
                                         onValueChange={(v) =>
@@ -482,11 +493,12 @@ export default function OutSapForm() {
                                         {items.map((item, index) => {
                                             const isError = checkItemError(item);
                                             const selectedMat = materials.find(
-                                                (m: any) => m.id.toString() === item.designator_id
+                                                (m: Record<string, unknown>) =>
+                                                    m.id?.toString() === item.designator_id
                                             );
                                             const errorReason = item.designator_id
                                                 ? selectedMat
-                                                    ? item.qty_req > selectedMat.qty
+                                                    ? item.qty_req > (selectedMat.qty as number)
                                                         ? `Insufficient stock (Available: ${selectedMat.qty})`
                                                         : ''
                                                     : 'Material not found in warehouse or zero stock'
@@ -549,10 +561,12 @@ export default function OutSapForm() {
                                                             </AnimatePresence>
                                                         </Label>
                                                         <SearchableSelect
-                                                            options={materials.map((m: any) => ({
-                                                                value: m.id.toString(),
-                                                                label: `${m.code} - ${m.description} (Stock: ${m.qty})`,
-                                                            }))}
+                                                            options={materials.map(
+                                                                (m: Record<string, unknown>) => ({
+                                                                    value: m.id?.toString() || '',
+                                                                    label: `${m.code} - ${m.description} (Stock: ${m.qty})`,
+                                                                })
+                                                            )}
                                                             value={item.designator_id.toString()}
                                                             onValueChange={(v) =>
                                                                 handleItemChange(
@@ -595,9 +609,10 @@ export default function OutSapForm() {
                                                                 if (
                                                                     typeof val === 'number' &&
                                                                     selectedMat &&
-                                                                    val > selectedMat.qty
+                                                                    val >
+                                                                        (selectedMat.qty as number)
                                                                 ) {
-                                                                    val = selectedMat.qty;
+                                                                    val = selectedMat.qty as number;
                                                                     toast.error(
                                                                         `Maximum quantity is ${selectedMat.qty}`
                                                                     );
@@ -745,16 +760,17 @@ export default function OutSapForm() {
                                         <TableBody>
                                             {items.map((item, idx) => {
                                                 const mat = materials?.find(
-                                                    (m: any) =>
-                                                        m.id.toString() === item.designator_id
+                                                    (m: Record<string, unknown>) =>
+                                                        m.id?.toString() === item.designator_id
                                                 );
                                                 return (
-                                                    <TableRow key={idx}>
+                                                    <TableRow key={item.id || idx}>
                                                         <TableCell className="text-center">
                                                             {idx + 1}
                                                         </TableCell>
                                                         <TableCell className="text-sm">
-                                                            {mat?.code} - {mat?.description}
+                                                            {mat?.code as string} -{' '}
+                                                            {mat?.description as string}
                                                         </TableCell>
                                                         <TableCell className="text-center font-bold text-blue-600">
                                                             {item.qty_req}

@@ -76,7 +76,7 @@ function Search() {
                     {results.length ? (
                         results.map((item, i) => (
                             <Link
-                                key={i}
+                                key={item.url || i}
                                 href={item.url}
                                 onClick={() => setQuery('')}
                                 className="  p-2 mb-1.5 last:mb-0 flex items-center bg-input/30 gap-2 text-sm font-medium rounded-md hover:bg-primary/20 hover:text-primary w-full"

@@ -100,67 +100,20 @@ export async function createReturnMaterial(payload: ReturnMaterialPayload) {
             payload,
             async (data) => {
                 return await db.transaction().execute(async (trx) => {
-                    // Get Warehouse initials
-                    const wh = await trx
-                        .selectFrom('inventory.mas_wh')
-                        .select('intls')
-                        .where('id', '=', data.warehouse_id)
-                        .executeTakeFirst();
-                    const intls = wh?.intls || 'UNKNOWN';
-
-                    // Generate YYMM
-                    const now = new Date();
-                    const yymm = `${now.getFullYear().toString().slice(2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-
-                    // Get Sequence
-                    const countRes = await sql<{ count: string | number }>`
-                        SELECT COUNT(*) + 1 as count 
-                        FROM inventory.return_material_header 
-                        WHERE to_char(created_at, 'YYMM') = ${yymm}
-                    `.execute(trx);
-                    const count = Number(countRes.rows[0].count);
-                    const sequence = count.toString().padStart(4, '0');
-
-                    const generatedIdTrx = `TRX-RETURN-${data.nik_teknisi}-${intls}-${yymm}${sequence}`;
-
                     const createdBy = await getSessionNik();
 
-                    // Create Header
-                    const headerResult = await trx
-                        .insertInto('inventory.return_material_header')
-                        .values({
-                            id_trx: generatedIdTrx,
-                            sap_out_id: data.sap_out_id,
-                            nik_teknisi: data.nik_teknisi,
-                            warehouse_id: data.warehouse_id,
-                            notes: data.notes,
-                            end_status: 'pending',
-                            created_by: createdBy,
-                        })
-                        .returning('id')
-                        .executeTakeFirstOrThrow();
+                    const resultId = await sql<{ header_id: string }>`
+                        SELECT inventory.sp_create_return_request(
+                            ${data.sap_out_id},
+                            ${data.nik_teknisi},
+                            ${data.warehouse_id},
+                            ${data.notes || null},
+                            ${JSON.stringify(data.items)}::jsonb,
+                            ${createdBy}
+                        ) as header_id
+                    `.execute(trx);
 
-                    if (data.items && data.items.length > 0) {
-                        const itemsToInsert = data.items.map(
-                            (item: {
-                                designator_id: number;
-                                sap_out_item_id: number;
-                                qty: number;
-                            }) => ({
-                                header_id: headerResult.id,
-                                designator_id: item.designator_id,
-                                sap_out_item_id: item.sap_out_item_id,
-                                qty: item.qty,
-                            })
-                        );
-
-                        await trx
-                            .insertInto('inventory.return_material_items')
-                            .values(itemsToInsert)
-                            .execute();
-                    }
-
-                    return headerResult.id;
+                    return resultId.rows[0]?.header_id;
                 });
             }
         );

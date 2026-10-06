@@ -1034,33 +1034,32 @@ export interface InventoryOutLensaRefList {
     created_at: Generated<Timestamp>;
 }
 
-
 export interface inventory_wo_lensa_header {
-  id: Generated<Int8>;
-  pemakaian_id: Int8 | null;
-  gi_number: string | null;
-  nama_gudang: string | null;
-  nik_pemakai: string | null;
-  tanggal_update: string | null;
-  type: string | null;
-  wbs: string | null;
-  wo_number: string | null;
-  created_at: Generated<Timestamp | null>;
+    id: Generated<Int8>;
+    pemakaian_id: Int8 | null;
+    gi_number: string | null;
+    nama_gudang: string | null;
+    nik_pemakai: string | null;
+    tanggal_update: string | null;
+    type: string | null;
+    wbs: string | null;
+    wo_number: string | null;
+    created_at: Generated<Timestamp | null>;
 }
 
 export interface inventory_wo_lensa_list {
-  id: Generated<Int8>;
-  header_id: Int8 | null;
-  material_id: string | null;
-  material_desc: string | null;
-  qty_pemakaian: number | null;
-  uom: string | null;
-  created_at: Generated<Timestamp | null>;
+    id: Generated<Int8>;
+    header_id: Int8 | null;
+    material_id: string | null;
+    material_desc: string | null;
+    qty_pemakaian: number | null;
+    uom: string | null;
+    created_at: Generated<Timestamp | null>;
 }
 
 export interface DB {
-  "inventory.wo_lensa_header": inventory_wo_lensa_header;
-  "inventory.wo_lensa_list": inventory_wo_lensa_list;
+    'inventory.wo_lensa_header': inventory_wo_lensa_header;
+    'inventory.wo_lensa_list': inventory_wo_lensa_list;
     'auth.account': AuthAccount;
     'auth.user': AuthUser;
     'auth.user_mfa_devices': AuthUserMfaDevices;
