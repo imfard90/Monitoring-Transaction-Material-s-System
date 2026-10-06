@@ -85,7 +85,7 @@ async function asyncPool<T, R>(
     return Promise.all(ret);
 }
 
-async function internalTriggerWOScraping() {
+export async function internalTriggerWOScraping() {
     try {
         const validUsers = await db
             .selectFrom('auth.user as u')

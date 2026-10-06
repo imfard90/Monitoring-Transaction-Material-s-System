@@ -108,7 +108,7 @@ async function asyncPool(poolLimit: number, array: any[], iteratorFn: (item: any
     return Promise.all(ret);
 }
 
-async function internalTriggerScraping() {
+export async function internalTriggerScraping() {
     try {
         const users = await db
             .selectFrom('auth.user')
