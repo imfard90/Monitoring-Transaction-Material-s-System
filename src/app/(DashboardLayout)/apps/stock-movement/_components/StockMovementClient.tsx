@@ -1,9 +1,10 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { getStockMovements } from '../_actions/movement-actions';
 import type { StockMovementItem } from './MovementTable';
 import MovementTable from './MovementTable';
@@ -129,36 +130,33 @@ export default function StockMovementClient({ initialData }: StockMovementClient
     }, [searchQuery, filteredData.length, hasMoreData, isLoadingMore, loadMore]);
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="flex flex-col flex-1 min-h-0"
-        >
-            <CardBox className="flex flex-col flex-1 min-h-0 overflow-hidden p-6">
-                <MovementTable
-                    data={filteredData}
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    dateRange={dateRange}
-                    onDateRangeChange={setDateRange}
-                    warehouseFilter={warehouseFilter}
-                    onWarehouseFilterChange={setWarehouseFilter}
-                    materialFilter={materialFilter}
-                    onMaterialFilterChange={setMaterialFilter}
-                    typeFilter={typeFilter}
-                    onTypeFilterChange={setTypeFilter}
-                    uniqueWarehouses={uniqueWarehouses}
-                    uniqueMaterials={uniqueMaterials}
-                    uniqueTypes={uniqueTypes}
-                    onClearFilters={handleClearFilters}
-                />
-                {isLoadingMore && (
-                    <div className="text-center text-sm text-gray-500 py-2">
-                        Mencari di 5 bulan sebelumnya...
-                    </div>
-                )}
-            </CardBox>
-        </motion.div>
+        <StaggerContainer className="flex flex-col flex-1 min-h-0">
+            <StaggerItem className="flex flex-col flex-1 min-h-0">
+                <CardBox className="flex flex-col flex-1 min-h-0 overflow-hidden p-6">
+                    <MovementTable
+                        data={filteredData}
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        dateRange={dateRange}
+                        onDateRangeChange={setDateRange}
+                        warehouseFilter={warehouseFilter}
+                        onWarehouseFilterChange={setWarehouseFilter}
+                        materialFilter={materialFilter}
+                        onMaterialFilterChange={setMaterialFilter}
+                        typeFilter={typeFilter}
+                        onTypeFilterChange={setTypeFilter}
+                        uniqueWarehouses={uniqueWarehouses}
+                        uniqueMaterials={uniqueMaterials}
+                        uniqueTypes={uniqueTypes}
+                        onClearFilters={handleClearFilters}
+                    />
+                    {isLoadingMore && (
+                        <div className="text-center text-sm text-gray-500 py-2">
+                            Mencari di 5 bulan sebelumnya...
+                        </div>
+                    )}
+                </CardBox>
+            </StaggerItem>
+        </StaggerContainer>
     );
 }

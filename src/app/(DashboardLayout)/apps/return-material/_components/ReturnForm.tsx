@@ -12,6 +12,8 @@ import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import {
     Select,
     SelectContent,
@@ -192,14 +194,10 @@ export default function ReturnForm() {
     );
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
+        <StaggerContainer>
             <CardBox className="p-6">
                 <form onSubmit={handleSubmit} className="space-y-8">
-                    <div>
+                    <StaggerItem>
                         <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
                             Return Transaction (Pengembalian Material)
                         </h2>
@@ -228,9 +226,9 @@ export default function ReturnForm() {
                                 />
                             </div>
                         </div>
-                    </div>
+                    </StaggerItem>
 
-                    <div>
+                    <StaggerItem>
                         <div className="flex justify-between items-center mb-4 border-b pb-2">
                             <h2 className="text-lg font-bold text-gray-900">Return Items</h2>
                             <Button
@@ -328,9 +326,9 @@ export default function ReturnForm() {
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </StaggerItem>
 
-                    <div className="flex justify-end pt-4 border-t">
+                    <StaggerItem className="flex justify-end pt-4 border-t">
                         <motion.div
                             whileHover={{ scale: items.length === 0 ? 1 : 1.02 }}
                             whileTap={{ scale: items.length === 0 ? 1 : 0.98 }}
@@ -344,7 +342,7 @@ export default function ReturnForm() {
                                 Review & Submit Return
                             </Button>
                         </motion.div>
-                    </div>
+                    </StaggerItem>
                 </form>
 
                 <ConfirmDialog
@@ -418,6 +416,6 @@ export default function ReturnForm() {
                     </div>
                 </ConfirmDialog>
             </CardBox>
-        </motion.div>
+        </StaggerContainer>
     );
 }

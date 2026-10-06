@@ -2,10 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { motion } from 'framer-motion';
 import { Search } from 'lucide-react';
 import React, { useState } from 'react';
 import { getStockBalances } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 
 interface StockBalanceData {
     warehouse_name: string | null;
@@ -104,49 +105,48 @@ export default function StockBalanceOverview() {
     });
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col flex-1 min-h-0"
-        >
-            <CardBox className="flex flex-col flex-1 min-h-0 p-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-4">
-                    <div>
-                        <h2 className="text-lg font-bold text-gray-900">Real-time Stock Balance</h2>
-                        <p className="text-sm text-gray-500">
-                            Monitoring material stock per warehouse
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <div className="relative w-full sm:w-64">
-                            <Input
-                                placeholder="Search material code/name..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9"
-                            />
-                            <Search
-                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                                size={16}
+        <StaggerContainer className="flex flex-col flex-1 min-h-0">
+            <StaggerItem className="flex flex-col flex-1 min-h-0">
+                <CardBox className="flex flex-col flex-1 min-h-0 p-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-4">
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900">
+                                Real-time Stock Balance
+                            </h2>
+                            <p className="text-sm text-gray-500">
+                                Monitoring material stock per warehouse
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <div className="relative w-full sm:w-64">
+                                <Input
+                                    placeholder="Search material code/name..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-9"
+                                />
+                                <Search
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                    size={16}
+                                />
+                            </div>
+                            <WarehouseCombobox
+                                value={whFilter}
+                                onValueChange={setWhFilter}
+                                warehouses={uniqueWhs}
+                                open={openCombo}
+                                onOpenChange={setOpenCombo}
                             />
                         </div>
-                        <WarehouseCombobox
-                            value={whFilter}
-                            onValueChange={setWhFilter}
-                            warehouses={uniqueWhs}
-                            open={openCombo}
-                            onOpenChange={setOpenCombo}
-                        />
                     </div>
-                </div>
 
-                <DataTable
-                    table={table}
-                    isLoading={isLoading}
-                    emptyMessage="No stock balance found."
-                />
-            </CardBox>
-        </motion.div>
+                    <DataTable
+                        table={table}
+                        isLoading={isLoading}
+                        emptyMessage="No stock balance found."
+                    />
+                </CardBox>
+            </StaggerItem>
+        </StaggerContainer>
     );
 }

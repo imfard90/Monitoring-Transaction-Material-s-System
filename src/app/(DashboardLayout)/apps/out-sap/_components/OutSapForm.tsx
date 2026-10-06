@@ -14,6 +14,8 @@ import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import {
     Table,
     TableBody,
@@ -309,11 +311,7 @@ export default function OutSapForm() {
                 isVisible={isScraping || loading}
                 text={isScraping ? 'Menarik Data Lensa...' : 'Memproses Transaksi...'}
             />
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
-            >
+            <StaggerContainer>
                 <CardBox className="p-6">
                     <form onSubmit={handleSubmit} className="space-y-8">
                         <div>
@@ -321,7 +319,7 @@ export default function OutSapForm() {
                                 Form Out SAP (Pengeluaran Material)
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
+                                <StaggerItem className="space-y-2">
                                     <Label>Request ID</Label>
                                     <div className="flex gap-2">
                                         <Input
@@ -360,9 +358,9 @@ export default function OutSapForm() {
                                             </Button>
                                         </motion.div>
                                     </div>
-                                </div>
+                                </StaggerItem>
 
-                                <div className="space-y-2">
+                                <StaggerItem className="space-y-2">
                                     <Label>Technician *</Label>
                                     <SearchableSelect
                                         options={technicians.map((t: Record<string, unknown>) => ({
@@ -378,9 +376,9 @@ export default function OutSapForm() {
                                         }
                                         disabled={!formData.name_sa || isScraped}
                                     />
-                                </div>
+                                </StaggerItem>
 
-                                <div className="space-y-2">
+                                <StaggerItem className="space-y-2">
                                     <Label>Area (SA)</Label>
                                     <SearchableSelect
                                         options={branches.map((b: Record<string, unknown>) => ({
@@ -398,9 +396,9 @@ export default function OutSapForm() {
                                         placeholder="Select Area"
                                         disabled={!formData.request_id || isScraped}
                                     />
-                                </div>
+                                </StaggerItem>
 
-                                <div className="space-y-2">
+                                <StaggerItem className="space-y-2">
                                     <Label>From Warehouse *</Label>
                                     <SearchableSelect
                                         options={warehouses.map((w: Record<string, unknown>) => ({
@@ -414,9 +412,9 @@ export default function OutSapForm() {
                                         placeholder="Select Warehouse"
                                         disabled={!formData.nik_teknisi || isScraped}
                                     />
-                                </div>
+                                </StaggerItem>
 
-                                <div className="space-y-2">
+                                <StaggerItem className="space-y-2">
                                     <Label>Reservasi ID *</Label>
                                     <Input
                                         value={formData.id_reservasi}
@@ -428,9 +426,9 @@ export default function OutSapForm() {
                                         }
                                         disabled={!formData.warehouse_id || isScraped}
                                     />
-                                </div>
+                                </StaggerItem>
 
-                                <div className="space-y-2">
+                                <StaggerItem className="space-y-2">
                                     <Label>SAP Number *</Label>
                                     <Input
                                         value={formData.sap_number}
@@ -439,12 +437,12 @@ export default function OutSapForm() {
                                         }
                                         disabled={!formData.warehouse_id || isScraped}
                                     />
-                                </div>
+                                </StaggerItem>
                             </div>
                         </div>
 
                         {/* Items Section */}
-                        <div className="space-y-4 pt-4 border-t">
+                        <StaggerItem className="space-y-4 pt-4 border-t">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-base font-semibold">Material Items</h3>
                                 <motion.div
@@ -648,9 +646,9 @@ export default function OutSapForm() {
                                     </AnimatePresence>
                                 </div>
                             )}
-                        </div>
+                        </StaggerItem>
 
-                        <div className="pt-6 border-t flex justify-end gap-3">
+                        <StaggerItem className="pt-6 border-t flex justify-end gap-3">
                             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }}>
                                 <Button
                                     type="button"
@@ -693,7 +691,7 @@ export default function OutSapForm() {
                                     {loading ? 'Processing...' : 'Review & Submit'}
                                 </Button>
                             </motion.div>
-                        </div>
+                        </StaggerItem>
                     </form>
 
                     <ConfirmDialog
@@ -785,7 +783,7 @@ export default function OutSapForm() {
                         </div>
                     </ConfirmDialog>
                 </CardBox>
-            </motion.div>
+            </StaggerContainer>
         </>
     );
 }

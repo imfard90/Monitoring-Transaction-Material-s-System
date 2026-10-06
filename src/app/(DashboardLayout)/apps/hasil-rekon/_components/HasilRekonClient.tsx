@@ -1,9 +1,10 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { getHasilRekon, type HasilRekonData } from '../_actions/rekon-actions';
 import EditRekonModal from './EditRekonModal';
 import HasilRekonTable from './HasilRekonTable';
@@ -131,46 +132,43 @@ export default function HasilRekonClient({ initialData }: HasilRekonClientProps)
     }, [searchQuery, filteredData.length, hasMoreData, isLoadingMore, loadMore]);
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="flex flex-col flex-1 min-h-0"
-        >
-            <CardBox className="flex flex-col flex-1 min-h-0 overflow-hidden p-6">
-                <HasilRekonTable
-                    data={filteredData}
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    dateRange={dateRange}
-                    onDateRangeChange={setDateRange}
-                    warehouseFilter={warehouseFilter}
-                    onWarehouseFilterChange={setWarehouseFilter}
-                    typeFilter={typeFilter}
-                    onTypeFilterChange={setTypeFilter}
-                    materialFilter={materialFilter}
-                    onMaterialFilterChange={setMaterialFilter}
-                    uniqueWarehouses={uniqueWarehouses}
-                    uniqueTypes={uniqueTypes}
-                    uniqueMaterials={uniqueMaterials}
-                    onClearFilters={handleClearFilters}
-                    onEditClick={(row) => {
-                        setEditRowData(row);
-                        setIsEditModalOpen(true);
-                    }}
-                />
-                {isLoadingMore && (
-                    <div className="text-center text-sm text-gray-500 py-2">
-                        Mencari di 5 bulan sebelumnya...
-                    </div>
-                )}
-            </CardBox>
+        <StaggerContainer className="flex flex-col flex-1 min-h-0">
+            <StaggerItem className="flex flex-col flex-1 min-h-0">
+                <CardBox className="flex flex-col flex-1 min-h-0 overflow-hidden p-6">
+                    <HasilRekonTable
+                        data={filteredData}
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        dateRange={dateRange}
+                        onDateRangeChange={setDateRange}
+                        warehouseFilter={warehouseFilter}
+                        onWarehouseFilterChange={setWarehouseFilter}
+                        typeFilter={typeFilter}
+                        onTypeFilterChange={setTypeFilter}
+                        materialFilter={materialFilter}
+                        onMaterialFilterChange={setMaterialFilter}
+                        uniqueWarehouses={uniqueWarehouses}
+                        uniqueTypes={uniqueTypes}
+                        uniqueMaterials={uniqueMaterials}
+                        onClearFilters={handleClearFilters}
+                        onEditClick={(row) => {
+                            setEditRowData(row);
+                            setIsEditModalOpen(true);
+                        }}
+                    />
+                    {isLoadingMore && (
+                        <div className="text-center text-sm text-gray-500 py-2">
+                            Mencari di 5 bulan sebelumnya...
+                        </div>
+                    )}
+                </CardBox>
 
-            <EditRekonModal
-                isOpen={isEditModalOpen}
-                onClose={() => setIsEditModalOpen(false)}
-                rowData={editRowData}
-            />
-        </motion.div>
+                <EditRekonModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    rowData={editRowData}
+                />
+            </StaggerItem>
+        </StaggerContainer>
     );
 }

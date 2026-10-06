@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import StockBalanceOverview from '../../components/dashboard/StockBalanceOverview';
 
 export const metadata: Metadata = {
@@ -18,11 +20,13 @@ const BCrumb = [
 
 export default function StockInventoryPage() {
     return (
-        <div className="flex flex-col flex-1 h-full min-h-0">
-            <div className="shrink-0">
+        <StaggerContainer className="flex flex-col flex-1 h-full min-h-0">
+            <StaggerItem className="shrink-0">
                 <BreadcrumbComp title="Stock Inventory" items={BCrumb} />
-            </div>
-            <StockBalanceOverview />
-        </div>
+            </StaggerItem>
+            <StaggerItem className="flex flex-col flex-1 min-h-0">
+                <StockBalanceOverview />
+            </StaggerItem>
+        </StaggerContainer>
     );
 }

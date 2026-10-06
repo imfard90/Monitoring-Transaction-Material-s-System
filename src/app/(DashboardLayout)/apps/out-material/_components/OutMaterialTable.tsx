@@ -22,6 +22,8 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { OutMaterialRow } from '@/lib/types/inventory';
@@ -140,8 +142,8 @@ export default function OutMaterialTable({
     });
 
     return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center gap-4 mb-4">
+        <StaggerContainer className="space-y-4">
+            <StaggerItem className="flex justify-between items-center gap-4 mb-4">
                 <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
                     <div className="relative w-full md:w-80">
                         <Input
@@ -240,10 +242,14 @@ export default function OutMaterialTable({
                         </Tooltip>
                     </TooltipProvider>
                 )}
-            </div>
+            </StaggerItem>
 
-            <DataTable table={table} isLoading={isLoading} emptyMessage="No materials found." />
-            <DataTablePagination table={table} />
-        </div>
+            <StaggerItem>
+                <DataTable table={table} isLoading={isLoading} emptyMessage="No materials found." />
+            </StaggerItem>
+            <StaggerItem>
+                <DataTablePagination table={table} />
+            </StaggerItem>
+        </StaggerContainer>
     );
 }

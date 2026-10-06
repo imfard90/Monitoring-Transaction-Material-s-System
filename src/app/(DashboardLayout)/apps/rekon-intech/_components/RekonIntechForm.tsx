@@ -13,6 +13,8 @@ import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import {
     Select,
     SelectContent,
@@ -183,14 +185,10 @@ export default function RekonIntechForm() {
     const selectedTechName = techOptions.find((t) => t.value === selectedNik)?.label || '';
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
+        <StaggerContainer>
             <CardBox className="p-6">
                 <form onSubmit={handlePreSubmit} className="space-y-8">
-                    <div>
+                    <StaggerItem>
                         <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
                             Form Rekon Intech (Pemakaian Material)
                         </h2>
@@ -249,10 +247,10 @@ export default function RekonIntechForm() {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </StaggerItem>
 
                     {/* Items Section */}
-                    <div className="space-y-4 pt-4 border-t">
+                    <StaggerItem className="space-y-4 pt-4 border-t">
                         <h3 className="text-base font-semibold">Material Di Tangan Teknisi</h3>
 
                         {selectedNik ? (
@@ -389,9 +387,9 @@ export default function RekonIntechForm() {
                                 Silakan pilih teknisi terlebih dahulu.
                             </div>
                         )}
-                    </div>
+                    </StaggerItem>
 
-                    <div className="pt-6 border-t flex justify-end gap-3">
+                    <StaggerItem className="pt-6 border-t flex justify-end gap-3">
                         <Button
                             type="button"
                             variant="outline"
@@ -414,7 +412,7 @@ export default function RekonIntechForm() {
                             <FileText size={16} />
                             Review Rekon
                         </Button>
-                    </div>
+                    </StaggerItem>
                 </form>
 
                 {/* Confirmation Modal */}
@@ -490,6 +488,6 @@ export default function RekonIntechForm() {
                     </div>
                 </ConfirmDialog>
             </CardBox>
-        </motion.div>
+        </StaggerContainer>
     );
 }

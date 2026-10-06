@@ -16,6 +16,8 @@ import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { HasilRekonData } from '../_actions/rekon-actions';
 
@@ -123,29 +125,33 @@ export default function HasilRekonTable({
         columnHelper.display({
             id: 'actions',
             header: () => <div className="text-center">Action</div>,
-            cell: (info) => (
-                <div className="flex justify-center">
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                                    onClick={() => {
-                                        if (onEditClick) onEditClick(info.row.original);
-                                    }}
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Edit Rekon</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                </div>
-            ),
+            cell: (info) => {
+                const isLensa = info.row.original.type === 'lensa';
+                return (
+                    <div className="flex justify-center">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                        onClick={() => {
+                                            if (onEditClick) onEditClick(info.row.original);
+                                        }}
+                                        disabled={isLensa}
+                                    >
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{isLensa ? 'Rekon Lensa cannot be edited' : 'Edit Rekon'}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                );
+            },
         }),
     ];
 
@@ -162,9 +168,9 @@ export default function HasilRekonTable({
     });
 
     return (
-        <div className="space-y-4 flex flex-col flex-1 min-h-0">
+        <StaggerContainer className="space-y-4 flex flex-col flex-1 min-h-0">
             {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4">
+            <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4">
                 <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
                     <div className="relative w-full sm:w-72">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
@@ -250,15 +256,17 @@ export default function HasilRekonTable({
                         </Tooltip>
                     </TooltipProvider>
                 )}
-            </div>
+            </StaggerItem>
 
             {/* Table */}
-            <DataTable table={table} emptyMessage="No records found." />
+            <StaggerItem className="flex-1 min-h-0 overflow-hidden">
+                <DataTable table={table} emptyMessage="No records found." />
+            </StaggerItem>
 
             {/* Pagination */}
-            <div className="py-4 px-4">
+            <StaggerItem className="py-4 px-4">
                 <DataTablePagination table={table} />
-            </div>
-        </div>
+            </StaggerItem>
+        </StaggerContainer>
     );
 }

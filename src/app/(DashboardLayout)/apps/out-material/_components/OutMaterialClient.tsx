@@ -2,10 +2,11 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { endOfDay, isWithinInterval, startOfDay } from 'date-fns';
-import { motion } from 'framer-motion';
 import React, { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import type { OutMaterialRow } from '@/lib/types/inventory';
 import { getOutMaterials } from '../_actions/out-material-actions';
 import OutMaterialCards from './OutMaterialCards';
@@ -131,29 +132,16 @@ export default function OutMaterialClient() {
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="flex flex-col space-y-6"
-        >
-            <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-            >
+        <StaggerContainer className="flex flex-col space-y-6">
+            <StaggerItem>
                 <OutMaterialCards
                     counts={counts}
                     activeFilter={filterStatus}
                     onFilterChange={setFilterStatus}
                 />
-            </motion.div>
+            </StaggerItem>
 
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-            >
+            <StaggerItem>
                 <CardBox className="p-4 w-full overflow-hidden">
                     <OutMaterialTable
                         data={filteredData}
@@ -174,13 +162,13 @@ export default function OutMaterialClient() {
                         </div>
                     )}
                 </CardBox>
-            </motion.div>
+            </StaggerItem>
 
             <OutMaterialDetailModal
                 row={detailRow as OutMaterialRow}
                 isOpen={detailRow !== null}
                 onClose={() => setDetailRow(null)}
             />
-        </motion.div>
+        </StaggerContainer>
     );
 }

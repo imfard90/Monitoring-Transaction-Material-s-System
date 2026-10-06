@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { getSessionUser } from '@/lib/auth-server';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
 import { getUsers } from './actions';
@@ -31,14 +33,14 @@ export default async function UserManagementPage() {
     const users = await getUsers();
 
     return (
-        <div className="flex flex-col flex-1 h-full min-h-0">
-            <div className="shrink-0">
+        <StaggerContainer className="flex flex-col flex-1 h-full min-h-0">
+            <StaggerItem className="shrink-0">
                 <BreadcrumbComp title="User Management" items={BCrumb} />
-            </div>
+            </StaggerItem>
 
-            <div className="bg-card rounded-lg border shadow-sm mt-4 overflow-hidden">
+            <StaggerItem className="bg-card rounded-lg border shadow-sm mt-4 overflow-hidden flex-1 flex flex-col">
                 <UserTable data={users} />
-            </div>
-        </div>
+            </StaggerItem>
+        </StaggerContainer>
     );
 }

@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { StockIntechOverview } from '../../components/dashboard/StockIntechOverview';
 import BreadcrumbComp from '../layout/shared/breadcrumb/BreadcrumbComp';
 
@@ -19,12 +21,14 @@ const BCrumb = [
 
 const StockIntechPage = () => {
     return (
-        <div className="flex flex-col flex-1 h-full min-h-0">
-            <div className="shrink-0">
+        <StaggerContainer className="flex flex-col flex-1 h-full min-h-0">
+            <StaggerItem className="shrink-0">
                 <BreadcrumbComp title="Stock Intech" items={BCrumb} />
-            </div>
-            <StockIntechOverview />
-        </div>
+            </StaggerItem>
+            <StaggerItem className="flex flex-col flex-1 min-h-0">
+                <StockIntechOverview />
+            </StaggerItem>
+        </StaggerContainer>
     );
 };
 

@@ -1,11 +1,9 @@
 'use client';
 import { Icon } from '@iconify/react/dist/iconify.js';
-import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
 import {
     deleteLensaAccount,
     saveLensaAccount,
@@ -15,20 +13,12 @@ import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { authClient } from '@/lib/auth-client';
 import CardBox from '../shared/CardBox';
 
 const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
-    const BCrumb = [
-        {
-            to: '/',
-            title: 'Home',
-        },
-        {
-            title: 'User Profile',
-        },
-    ];
-
     const socialLinks = [
         {
             href: 'https://www.facebook.com/wrappixel',
@@ -50,6 +40,24 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
     const [lensaPassword, setLensaPassword] = useState('');
     const [isPending, startTransition] = useTransition();
     const [isSendingVerification, setIsSendingVerification] = useState(false);
+    const [imgSrc, setImgSrc] = useState('/images/profile/user-1.jpg');
+    const [imgErrorCount, setImgErrorCount] = useState(0);
+
+    useEffect(() => {
+        if (profileData?.nik) {
+            setImgSrc(`/images/profile/${profileData.nik}.jpg`);
+            setImgErrorCount(0);
+        }
+    }, [profileData?.nik]);
+
+    const handleImageError = () => {
+        if (imgErrorCount === 0 && profileData?.nik) {
+            setImgSrc(`/images/profile/${profileData.nik}.png`);
+            setImgErrorCount(1);
+        } else {
+            setImgSrc('/images/profile/user-1.jpg');
+        }
+    };
 
     const handleSendVerification = async () => {
         if (!profileData?.email) return;
@@ -111,84 +119,95 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
 
     return (
         <>
-            <BreadcrumbComp title="User Profile" items={BCrumb} />
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, staggerChildren: 0.1 }}
-                className="flex flex-col gap-6"
-            >
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4 }}
-                >
-                    <CardBox className="p-6 overflow-hidden">
-                        <div className="flex flex-col sm:flex-row items-center gap-6 rounded-xl relative w-full break-words">
-                            <div>
-                                <Image
-                                    src={'/images/profile/user-1.jpg'}
-                                    alt="image"
-                                    width={80}
-                                    height={80}
-                                    className="rounded-full"
-                                />
-                            </div>
-                            <div className="flex flex-wrap gap-4 justify-center sm:justify-between items-center w-full">
-                                <div className="flex flex-col sm:text-left text-center gap-1.5">
-                                    <h5 className="card-title">
-                                        {profileData?.employee_name ||
-                                            profileData?.name ||
-                                            'Unknown User'}
-                                    </h5>
-                                    <div className="flex flex-wrap items-center gap-1 md:gap-3">
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            {profileData?.position_name || 'No Position'}
-                                        </p>
-                                        <div className="hidden h-4 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            {profileData?.area || 'No Area'}
-                                        </p>
-                                    </div>
+            <StaggerContainer className="flex flex-col gap-6">
+                <StaggerItem>
+                    <CardBox className="overflow-hidden p-0 border-none shadow-sm">
+                        <div className="relative w-full h-32 sm:h-48 bg-gradient-to-r from-primary/80 to-primary/40">
+                            {/* Banner Background */}
+                            <div className="absolute inset-0 bg-[url('/images/backgrounds/profile-bg.jpg')] bg-cover bg-center opacity-20 mix-blend-overlay"></div>
+                        </div>
+                        <div className="px-6 pb-6 relative">
+                            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-12 sm:-mt-16 relative z-10 w-full break-words">
+                                <div className="relative">
+                                    <Image
+                                        src={imgSrc}
+                                        alt="Profile Picture"
+                                        width={120}
+                                        height={120}
+                                        className="rounded-full object-cover object-top border-4 border-background shadow-lg bg-background"
+                                        onError={handleImageError}
+                                    />
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    {socialLinks.map((item, index) => (
-                                        <Link
-                                            key={item.href || index}
-                                            href={item.href}
-                                            target="_blank"
-                                            className="flex h-11 w-11 items-center justify-center gap-2 rounded-full shadow-md border border-border hover:bg-gray-50 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
-                                        >
-                                            <Icon icon={item.icon} width="20" height="20" />
-                                        </Link>
-                                    ))}
+                                <div className="flex flex-wrap gap-4 justify-center sm:justify-between items-center w-full mt-2 sm:mt-0">
+                                    <div className="flex flex-col sm:text-left text-center gap-1.5">
+                                        <h5 className="text-2xl font-semibold text-foreground">
+                                            {profileData?.employee_name ||
+                                                profileData?.name ||
+                                                'Unknown User'}
+                                        </h5>
+                                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 md:gap-3">
+                                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                                <Icon icon="lucide:briefcase" width="16" />
+                                                <span>
+                                                    {profileData?.position_name || 'No Position'}
+                                                </span>
+                                            </div>
+                                            <div className="hidden h-4 w-px bg-border xl:block"></div>
+                                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                                <Icon icon="lucide:map-pin" width="16" />
+                                                <span>{profileData?.area || 'No Area'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {socialLinks.map((item, index) => (
+                                            <Link
+                                                key={item.href || index}
+                                                href={item.href}
+                                                target="_blank"
+                                                className="flex h-10 w-10 items-center justify-center gap-2 rounded-full shadow-sm border border-border bg-background hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                                            >
+                                                <Icon icon={item.icon} width="18" height="18" />
+                                            </Link>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </CardBox>
-                </motion.div>
+                </StaggerItem>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.1 }}
-                        className="space-y-6 rounded-xl border border-border  md:p-6 p-4 relative w-full break-words"
-                    >
-                        <h5 className="card-title">Personal Information</h5>
+                    <StaggerItem className="space-y-6 rounded-xl border border-border bg-card md:p-6 p-4 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
+                        <h5 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                            <Icon icon="lucide:user" className="text-primary" width="20" /> Personal
+                            Information
+                        </h5>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-7 2xl:gap-x-32">
                             <div>
-                                <p className="text-xs text-gray-500">Name</p>
-                                <p>{profileData?.employee_name || profileData?.name || '-'}</p>
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                                    Name
+                                </p>
+                                <p className="text-sm font-medium text-foreground">
+                                    {profileData?.employee_name || profileData?.name || '-'}
+                                </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">NIK</p>
-                                <p>{profileData?.nik || '-'}</p>
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                                    NIK
+                                </p>
+                                <p className="text-sm font-medium text-foreground">
+                                    {profileData?.nik || '-'}
+                                </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">Email</p>
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                                    Email
+                                </p>
                                 <div className="flex items-center gap-2">
-                                    <p>{profileData?.email || '-'}</p>
+                                    <p className="text-sm font-medium text-foreground">
+                                        {profileData?.email || '-'}
+                                    </p>
                                     {profileData?.email &&
                                         (profileData.emailVerified ? (
                                             <span
@@ -221,7 +240,9 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                 </div>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">Account Status</p>
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                                    Account Status
+                                </p>
                                 <p>
                                     {profileData?.is_active ? (
                                         <span className="text-success">Active</span>
@@ -231,38 +252,58 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">Employee Status</p>
-                                <p>{profileData?.status || '-'}</p>
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                                    Employee Status
+                                </p>
+                                <p className="text-sm font-medium text-foreground">
+                                    {profileData?.status || '-'}
+                                </p>
                             </div>
                         </div>
-                    </motion.div>
+                    </StaggerItem>
 
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.2 }}
-                        className="space-y-6 rounded-xl border border-border  md:p-6 p-4 relative w-full break-words"
-                    >
-                        <h5 className="card-title">Work Details</h5>
+                    <StaggerItem className="space-y-6 rounded-xl border border-border bg-card md:p-6 p-4 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
+                        <h5 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                            <Icon icon="lucide:briefcase" className="text-primary" width="20" />{' '}
+                            Work Details
+                        </h5>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-7 2xl:gap-x-32">
                             <div>
-                                <p className="text-xs text-gray-500">Position</p>
-                                <p>{profileData?.position_name || '-'}</p>
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                                    Position
+                                </p>
+                                <p className="text-sm font-medium text-foreground">
+                                    {profileData?.position_name || '-'}
+                                </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">Level</p>
-                                <p>{profileData?.level_name || '-'}</p>
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                                    Level
+                                </p>
+                                <p className="text-sm font-medium text-foreground">
+                                    {profileData?.level_name || '-'}
+                                </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">Mitra</p>
-                                <p>{profileData?.mitra_name || '-'}</p>
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                                    Mitra
+                                </p>
+                                <p className="text-sm font-medium text-foreground">
+                                    {profileData?.mitra_name || '-'}
+                                </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">Branch</p>
-                                <p>{profileData?.branch_name || '-'}</p>
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                                    Branch
+                                </p>
+                                <p className="text-sm font-medium text-foreground">
+                                    {profileData?.branch_name || '-'}
+                                </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">Area & Regional</p>
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                                    Area & Regional
+                                </p>
                                 <p>
                                     {profileData?.area && profileData?.regional
                                         ? `${profileData.area} / ${profileData.regional}`
@@ -270,16 +311,14 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                 </p>
                             </div>
                         </div>
-                    </motion.div>
+                    </StaggerItem>
 
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.3 }}
-                        className="space-y-6 rounded-xl border border-border md:p-6 p-4 relative w-full break-words"
-                    >
+                    <StaggerItem className="space-y-6 rounded-xl border border-border bg-card md:p-6 p-4 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
                         <div className="flex justify-between items-center">
-                            <h5 className="card-title">Lensa Inventory Account</h5>
+                            <h5 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                                <Icon icon="lucide:database" className="text-primary" width="20" />{' '}
+                                Lensa Inventory Account
+                            </h5>
                         </div>
                         <div className="flex flex-col gap-4">
                             {profileData?.lensa_acount ? (
@@ -336,9 +375,9 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                 </div>
                             )}
                         </div>
-                    </motion.div>
+                    </StaggerItem>
                 </div>
-            </motion.div>
+            </StaggerContainer>
 
             <ModalDialog
                 isOpen={isLensaDialogOpen}

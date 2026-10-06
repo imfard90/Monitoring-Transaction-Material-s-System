@@ -77,6 +77,13 @@ const SidebarContent: MenuItem[] = [
             },
             {
                 id: uniqueId(),
+                name: 'Rekon Lensa',
+                icon: 'solar:clipboard-check-linear',
+                url: '/apps/rekon-lensa',
+                isPro: false,
+            },
+            {
+                id: uniqueId(),
                 name: 'Return',
                 icon: 'solar:refresh-circle-linear',
                 url: '/apps/return-material',

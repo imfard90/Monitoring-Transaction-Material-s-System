@@ -1,4 +1,5 @@
 import { Icon } from '@iconify/react';
+import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -38,18 +39,6 @@ const renderSidebarItems = (
             <Icon icon={'ri:checkbox-blank-circle-line'} height={9} width={9} />
         );
 
-        // Heading
-        if (item.heading) {
-            return (
-                <div className="mb-1" key={item.heading}>
-                    <AMMenu
-                        subHeading={item.heading}
-                        ClassName="hide-menu leading-21 text-sidebar-foreground dark:text-sidebar-foreground font-bold uppercase text-xs"
-                    />
-                </div>
-            );
-        }
-
         // Submenu
         if (item.children?.length) {
             return (
@@ -57,7 +46,7 @@ const renderSidebarItems = (
                     key={item.id}
                     icon={iconElement}
                     title={item.name}
-                    ClassName="mt-0.5 text-sidebar-foreground dark:text-sidebar-foreground"
+                    ClassName="mt-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 rounded-md px-3 py-1.5"
                 >
                     {renderSidebarItems(item.children, currentPath, onClose, true)}
                 </AMSubmenu>
@@ -68,10 +57,12 @@ const renderSidebarItems = (
         const linkTarget = item.url?.startsWith('https') ? '_blank' : '_self';
 
         const itemClassNames = isSubItem
-            ? `mt-0.5 text-sidebar-foreground dark:text-sidebar-foreground !hover:bg-transparent ${
-                  isSelected ? '!bg-transparent !text-primary' : ''
-              } !px-1.5`
-            : `mt-0.5 text-sidebar-foreground dark:text-sidebar-foreground`;
+            ? `mt-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 rounded-md ${
+                  isSelected ? 'bg-primary/10 text-primary font-medium shadow-sm' : ''
+              } px-3 py-1.5`
+            : `mt-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 rounded-md ${
+                  isSelected ? 'bg-primary text-primary-foreground font-medium shadow-md' : ''
+              } px-3 py-1.5`;
 
         return (
             // biome-ignore lint/a11y/noStaticElementInteractions: Sidebar menu item wrapper
@@ -101,6 +92,65 @@ const renderSidebarItems = (
             </div>
         );
     });
+};
+
+const SidebarSection = ({
+    section,
+    pathname,
+    onClose,
+}: {
+    section: SidebarItemType;
+    pathname: string;
+    onClose?: () => void;
+}) => {
+    const [isHovered, setIsHovered] = useState(false);
+
+    // Check if any child is active
+    const isActive = section.children?.some((child) => {
+        if (child.url === pathname) return true;
+        if (child.children) {
+            return child.children.some((subChild) => subChild.url === pathname);
+        }
+        return false;
+    });
+
+    const isOpen = isActive || isHovered;
+
+    return (
+        // biome-ignore lint/a11y/noStaticElementInteractions: Sidebar section wrapper
+        <div
+            className="mb-2"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            {/* Heading */}
+            {section.heading && (
+                <div className="mb-0 cursor-pointer">
+                    <AMMenu
+                        subHeading={section.heading}
+                        ClassName={`hide-menu leading-21 font-semibold uppercase text-[11px] tracking-wider mt-4 mb-1 px-3 transition-colors duration-200 ${
+                            isOpen ? 'text-primary' : 'text-muted-foreground'
+                        }`}
+                    />
+                </div>
+            )}
+
+            {/* Children */}
+            <AnimatePresence initial={false}>
+                {isOpen && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                    >
+                        {renderSidebarItems(section.children || [], pathname, onClose)}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
 };
 
 const SidebarLayout = ({
@@ -142,7 +192,7 @@ const SidebarLayout = ({
             className={
                 isMobile
                     ? 'bg-sidebar dark:bg-sidebar w-full h-full'
-                    : 'fixed left-0 top-0 border-r border-border bg-sidebar dark:bg-sidebar z-10 h-screen'
+                    : 'fixed left-0 top-0 border-r border-border bg-card dark:bg-card z-10 h-screen shadow-lg'
             }
         >
             {/* Logo */}
@@ -157,16 +207,12 @@ const SidebarLayout = ({
             <SimpleBar className="h-[calc(100vh-100px)]">
                 <div className="px-4">
                     {filteredSidebarContent.map((section, index) => (
-                        <div key={section.heading || index}>
-                            {renderSidebarItems(
-                                [
-                                    ...(section.heading ? [{ heading: section.heading }] : []),
-                                    ...(section.children || []),
-                                ],
-                                pathname,
-                                onClose
-                            )}
-                        </div>
+                        <SidebarSection
+                            key={section.heading || index}
+                            section={section}
+                            pathname={pathname}
+                            onClose={onClose}
+                        />
                     ))}
 
                     {/* Promo Section Removed */}

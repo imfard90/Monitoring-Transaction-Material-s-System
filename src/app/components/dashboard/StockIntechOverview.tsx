@@ -2,13 +2,14 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { motion } from 'framer-motion';
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { getDashboardStockIntech } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { Input } from '@/components/ui/input';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import CardBox from '../shared/CardBox';
 
 interface StockIntechItem {
@@ -88,49 +89,46 @@ export const StockIntechOverview = () => {
     });
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col flex-1 min-h-0"
-        >
-            <CardBox className="flex flex-col flex-1 min-h-0 p-6">
-                <div
-                    id="stock-intech"
-                    className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                    <div>
-                        <h5 className="card-title">Stock Intech Overview</h5>
-                        <p className="text-sm text-muted-foreground font-normal">
-                            Sisa material yang masih di tangan teknisi (Status: Intech)
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <div className="relative w-full sm:w-64">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                            <Input
-                                type="search"
-                                placeholder="Cari NIK/Teknisi..."
-                                className="pl-9 bg-white"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+        <StaggerContainer className="flex flex-col flex-1 min-h-0">
+            <StaggerItem className="flex flex-col flex-1 min-h-0">
+                <CardBox className="flex flex-col flex-1 min-h-0 p-6">
+                    <div
+                        id="stock-intech"
+                        className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                        <div>
+                            <h5 className="card-title">Stock Intech Overview</h5>
+                            <p className="text-sm text-muted-foreground font-normal">
+                                Sisa material yang masih di tangan teknisi (Status: Intech)
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <div className="relative w-full sm:w-64">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                                <Input
+                                    type="search"
+                                    placeholder="Cari NIK/Teknisi..."
+                                    className="pl-9 bg-white"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <WarehouseCombobox
+                                value={whFilter}
+                                onValueChange={setWhFilter}
+                                warehouses={uniqueWhs}
+                                open={openCombo}
+                                onOpenChange={setOpenCombo}
                             />
                         </div>
-                        <WarehouseCombobox
-                            value={whFilter}
-                            onValueChange={setWhFilter}
-                            warehouses={uniqueWhs}
-                            open={openCombo}
-                            onOpenChange={setOpenCombo}
-                        />
                     </div>
-                </div>
-                <DataTable
-                    table={table}
-                    isLoading={isLoading}
-                    emptyMessage="Tidak ada material Intech."
-                />
-            </CardBox>
-        </motion.div>
+                    <DataTable
+                        table={table}
+                        isLoading={isLoading}
+                        emptyMessage="Tidak ada material Intech."
+                    />
+                </CardBox>
+            </StaggerItem>
+        </StaggerContainer>
     );
 };

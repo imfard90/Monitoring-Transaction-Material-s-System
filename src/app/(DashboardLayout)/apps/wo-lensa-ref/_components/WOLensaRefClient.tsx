@@ -7,7 +7,6 @@ import {
     getSortedRowModel,
     useReactTable,
 } from '@tanstack/react-table';
-import { motion } from 'framer-motion';
 import { Eye, Play } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -17,6 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import {
     Select,
     SelectContent,
@@ -234,61 +235,58 @@ export default function WOLensaRefClient({
     });
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col gap-4"
-        >
-            <Card className="border-border shadow-sm">
-                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4">
-                    <div>
-                        <CardTitle className="text-xl font-bold">Daftar Ref WO Lensa</CardTitle>
-                        <CardDescription>
-                            Data referensi WO Provisioning & Maintenance yang ditarik secara
-                            otomatis dari aplikasi Lensa.
-                        </CardDescription>
-                    </div>
-                    {!isStaff && (
-                        <div className="flex items-center gap-2">
-                            <Select value={selectedGudang} onValueChange={setSelectedGudang}>
-                                <SelectTrigger className="w-[200px]">
-                                    <SelectValue placeholder="Pilih Gudang" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Semua Gudang</SelectItem>
-                                    {uniqueGudang.map((g) => (
-                                        <SelectItem key={g} value={g}>
-                                            {g}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-
-                            <Button
-                                onClick={handleRunScraping}
-                                disabled={isStarting}
-                                className="shrink-0 shadow-sm"
-                            >
-                                {isStarting ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                ) : (
-                                    <Play className="h-4 w-4 mr-2" />
-                                )}
-                                Run Scraping
-                            </Button>
+        <StaggerContainer className="flex flex-col gap-4">
+            <StaggerItem>
+                <Card className="border-border shadow-sm">
+                    <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4">
+                        <div>
+                            <CardTitle className="text-xl font-bold">Daftar Ref WO Lensa</CardTitle>
+                            <CardDescription>
+                                Data referensi WO Provisioning & Maintenance yang ditarik secara
+                                otomatis dari aplikasi Lensa.
+                            </CardDescription>
                         </div>
-                    )}
-                </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border border-border">
-                        <DataTable table={table} emptyMessage="Tidak ada data." />
-                    </div>
-                    <div className="mt-4">
-                        <DataTablePagination table={table} />
-                    </div>
-                </CardContent>
-            </Card>
+                        {!isStaff && (
+                            <div className="flex items-center gap-2">
+                                <Select value={selectedGudang} onValueChange={setSelectedGudang}>
+                                    <SelectTrigger className="w-[200px]">
+                                        <SelectValue placeholder="Pilih Gudang" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Semua Gudang</SelectItem>
+                                        {uniqueGudang.map((g) => (
+                                            <SelectItem key={g} value={g}>
+                                                {g}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                <Button
+                                    onClick={handleRunScraping}
+                                    disabled={isStarting}
+                                    className="shrink-0 shadow-sm"
+                                >
+                                    {isStarting ? (
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    ) : (
+                                        <Play className="h-4 w-4 mr-2" />
+                                    )}
+                                    Run Scraping
+                                </Button>
+                            </div>
+                        )}
+                    </CardHeader>
+                    <CardContent>
+                        <div className="rounded-md border border-border">
+                            <DataTable table={table} emptyMessage="Tidak ada data." />
+                        </div>
+                        <div className="mt-4">
+                            <DataTablePagination table={table} />
+                        </div>
+                    </CardContent>
+                </Card>
+            </StaggerItem>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -316,6 +314,6 @@ export default function WOLensaRefClient({
                     />
                 </DialogContent>
             </Dialog>
-        </motion.div>
+        </StaggerContainer>
     );
 }
