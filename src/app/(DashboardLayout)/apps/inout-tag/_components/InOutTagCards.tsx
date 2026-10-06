@@ -1,5 +1,7 @@
 import { CheckCircle, FileEdit, Truck, Warehouse, XCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { cn } from '@/lib/utils';
 
 interface InOutTagCardsProps {
@@ -57,26 +59,29 @@ export default function InOutTagCards({
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-1">
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-5 gap-4 p-1">
             {cards.map((card) => (
-                <Card
-                    key={card.id}
-                    className={cn(
-                        'cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg border-none',
-                        card.color,
-                        activeFilter === card.id ? 'ring-2 ring-primary shadow-md' : ''
-                    )}
-                    onClick={() => onFilterChange(card.id)}
-                >
-                    <CardContent className="p-4 flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-700 mb-1">{card.title}</p>
-                            <h3 className="text-2xl font-bold text-gray-900">{card.value}</h3>
-                        </div>
-                        <div className="p-3 bg-white/50 rounded-full">{card.icon}</div>
-                    </CardContent>
-                </Card>
+                <StaggerItem key={card.id}>
+                    <Card
+                        className={cn(
+                            'cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg border-none h-full',
+                            card.color,
+                            activeFilter === card.id ? 'ring-2 ring-primary shadow-md' : ''
+                        )}
+                        onClick={() => onFilterChange(card.id)}
+                    >
+                        <CardContent className="p-4 flex items-center justify-between h-full">
+                            <div>
+                                <p className="text-sm font-medium text-gray-700 mb-1">
+                                    {card.title}
+                                </p>
+                                <h3 className="text-2xl font-bold text-gray-900">{card.value}</h3>
+                            </div>
+                            <div className="p-3 bg-white/50 rounded-full">{card.icon}</div>
+                        </CardContent>
+                    </Card>
+                </StaggerItem>
             ))}
-        </div>
+        </StaggerContainer>
     );
 }

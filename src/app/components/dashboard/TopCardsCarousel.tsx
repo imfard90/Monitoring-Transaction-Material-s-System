@@ -25,7 +25,7 @@ const kpiConfig = [
     {
         key: 'onlineUsers',
         title: 'Online Users',
-        icon: 'solar:users-group-rounded-linear',
+        icon: 'solar:users-group-rounded-bold-duotone',
         bgcolor: 'bg-primary/10 dark:bg-primary/10',
         iconColor: 'text-primary',
         url: '#',
@@ -33,7 +33,7 @@ const kpiConfig = [
     {
         key: 'requestTag',
         title: 'Request Tag',
-        icon: 'solar:document-add-linear',
+        icon: 'solar:document-add-bold-duotone',
         bgcolor: 'bg-info/10 dark:bg-info/10',
         iconColor: 'text-info',
         url: '/apps/inout-tag',
@@ -41,7 +41,7 @@ const kpiConfig = [
     {
         key: 'transitTag',
         title: 'Transit Tag',
-        icon: 'solar:routing-2-linear',
+        icon: 'solar:routing-2-bold-duotone',
         bgcolor: 'bg-warning/10 dark:bg-warning/10',
         iconColor: 'text-warning',
         url: '/apps/inout-tag',
@@ -49,7 +49,7 @@ const kpiConfig = [
     {
         key: 'closeTag',
         title: 'Close Tag',
-        icon: 'solar:check-read-linear',
+        icon: 'solar:check-read-bold-duotone',
         bgcolor: 'bg-success/10 dark:bg-success/10',
         iconColor: 'text-success',
         url: '/apps/inout-tag',
@@ -57,7 +57,7 @@ const kpiConfig = [
     {
         key: 'returnTek',
         title: 'Return Tek',
-        icon: 'solar:refresh-circle-linear',
+        icon: 'solar:refresh-circle-bold-duotone',
         bgcolor: 'bg-secondary/10 dark:bg-secondary/10',
         iconColor: 'text-secondary',
         url: '/apps/return-material',
@@ -65,7 +65,7 @@ const kpiConfig = [
     {
         key: 'intechOpen',
         title: 'Intech Open',
-        icon: 'solar:box-linear',
+        icon: 'solar:box-bold-duotone',
         bgcolor: 'bg-warning/10 dark:bg-warning/10',
         iconColor: 'text-warning',
         url: '/apps/out-sap',
@@ -73,7 +73,7 @@ const kpiConfig = [
     {
         key: 'intechClose',
         title: 'Intech Close',
-        icon: 'solar:check-circle-linear',
+        icon: 'solar:check-circle-bold-duotone',
         bgcolor: 'bg-success/10 dark:bg-success/10',
         iconColor: 'text-success',
         url: '/apps/out-sap',
@@ -83,11 +83,11 @@ const kpiConfig = [
 type KpiKey = (typeof kpiConfig)[number]['key'];
 
 export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
-    const { data } = useQuery({
+    const { data } = useQuery<TopCardsCarouselProps['kpis']>({
         queryKey: ['dashboardKpis'],
         queryFn: async () => {
             const res = await getDashboardKpis();
-            if (res.success && res.data) return res.data;
+            if (res.success && res.data) return res.data as TopCardsCarouselProps['kpis'];
             return initialKpis;
         },
         initialData: initialKpis,
@@ -135,23 +135,32 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
                 className="mySwiper"
             >
                 {kpiConfig.map((item) => (
-                    <SwiperSlide key={item.key}>
-                        <Link href={item.url}>
-                            <CardBox className={`shadow-none ${item.bgcolor} w-full border-none!`}>
-                                <div className="flex items-center gap-3 hover:scale-105 transition-all ease-in-out">
-                                    <div className={`rounded-full p-2.5 ${item.bgcolor}`}>
+                    <SwiperSlide key={item.key} className="py-2">
+                        <Link href={item.url} className="block group">
+                            <CardBox
+                                className={`relative overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${item.bgcolor} w-full border border-white/20 dark:border-white/5 py-6 group-hover:-translate-y-1`}
+                            >
+                                {/* Decorative gradient blob */}
+                                <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/20 dark:bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+
+                                <div className="relative z-10 flex items-center gap-4">
+                                    <div
+                                        className={`rounded-2xl p-3 bg-white/50 dark:bg-black/20 backdrop-blur-sm shadow-sm border border-white/40 dark:border-white/10 group-hover:scale-110 transition-transform duration-300`}
+                                    >
                                         <Icon
                                             icon={item.icon}
-                                            width={28}
-                                            height={28}
+                                            width={32}
+                                            height={32}
                                             className={item.iconColor}
                                         />
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground font-medium">
+                                    <div className="flex flex-col">
+                                        <p className="text-sm text-muted-foreground font-medium mb-0.5">
                                             {item.title}
                                         </p>
-                                        <h4 className={`text-xl font-bold ${item.iconColor}`}>
+                                        <h4
+                                            className={`text-2xl font-bold tracking-tight ${item.iconColor}`}
+                                        >
                                             {kpis[item.key as KpiKey]?.toLocaleString() ?? 0}
                                         </h4>
                                     </div>

@@ -7,13 +7,15 @@ export async function rateLimit(
 ): Promise<{ success: boolean; limit: number; remaining: number }> {
     const key = `ratelimit:${identifier}`;
 
-    // Increment the count
-    const count = await redis.incr(key);
+    // Execute an atomic transaction via a pipeline (multi/exec)
+    const [current] =
+        (await redis
+            .multi()
+            .incr(key)
+            .expire(key, windowSec, 'NX') // set expiration only if it doesn't exist
+            .exec()) || [];
 
-    // If it's the first time, set the expiration
-    if (count === 1) {
-        await redis.expire(key, windowSec);
-    }
+    const count = current && current[1] !== null ? Number(current[1]) : 1;
 
     const success = count <= limit;
     const remaining = Math.max(0, limit - count);

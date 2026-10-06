@@ -22,6 +22,8 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { InOutTagRow } from '@/lib/types/inventory';
@@ -162,8 +164,8 @@ export default function InOutTagTable({
     });
 
     return (
-        <div className="space-y-4">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <StaggerContainer className="space-y-4">
+            <StaggerItem className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="flex flex-wrap items-center gap-3 flex-1 w-full">
                     <div className="relative w-full md:w-64">
                         <Input
@@ -273,10 +275,14 @@ export default function InOutTagTable({
                 >
                     <Plus size={16} /> Create Tag
                 </Button>
-            </div>
+            </StaggerItem>
 
-            <DataTable table={table} isLoading={isLoading} emptyMessage="No tags found." />
-            <DataTablePagination table={table} />
-        </div>
+            <StaggerItem>
+                <DataTable table={table} isLoading={isLoading} emptyMessage="No tags found." />
+            </StaggerItem>
+            <StaggerItem>
+                <DataTablePagination table={table} />
+            </StaggerItem>
+        </StaggerContainer>
     );
 }

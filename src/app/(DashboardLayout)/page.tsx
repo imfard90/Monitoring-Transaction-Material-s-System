@@ -1,4 +1,6 @@
 import { Suspense } from 'react';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Footer } from '../components/dashboard/Footer';
 import OutMaterialLineChart from '../components/dashboard/OutMaterialLineChart';
@@ -34,33 +36,39 @@ function KpiSkeleton() {
 export default function Page() {
     return (
         <div className="flex flex-col flex-1 h-full gap-6">
-            <div className="grid grid-cols-12 gap-6">
-                <div className="col-span-12">
+            <StaggerContainer className="grid grid-cols-12 gap-6">
+                <StaggerItem className="col-span-12">
                     <Suspense fallback={<ProfileSkeleton />}>
                         <ProfileWelcome />
                     </Suspense>
-                </div>
-                <div className="col-span-12">
+                </StaggerItem>
+
+                <StaggerItem className="col-span-12">
                     <Suspense fallback={<KpiSkeleton />}>
                         <TopCards />
                     </Suspense>
-                </div>
-                <div className="lg:col-span-8 col-span-12">
+                </StaggerItem>
+
+                <StaggerItem className="col-span-12 lg:col-span-8">
                     <SalesOverview />
-                </div>
-                <div className="lg:col-span-4 col-span-12">
+                </StaggerItem>
+
+                <StaggerItem className="col-span-12 lg:col-span-4">
                     <RecentTransaction />
-                </div>
-                <div className="col-span-12">
+                </StaggerItem>
+
+                <StaggerItem className="col-span-12">
                     <OutMaterialLineChart />
-                </div>
-                <div className="col-span-12 lg:col-span-8 flex">
+                </StaggerItem>
+
+                <StaggerItem className="col-span-12 lg:col-span-8 flex">
                     <StockWarningTable />
-                </div>
-                <div className="col-span-12 lg:col-span-4 flex">
+                </StaggerItem>
+
+                <StaggerItem className="col-span-12 lg:col-span-4 flex">
                     <ProductPerformance />
-                </div>
-            </div>
+                </StaggerItem>
+            </StaggerContainer>
             <Footer />
         </div>
     );

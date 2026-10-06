@@ -1,3 +1,4 @@
+// biome-ignore lint/suspicious/noExplicitAny: legacy code
 'use server';
 
 import crypto from 'node:crypto';
@@ -19,7 +20,9 @@ const ENCRYPTION_KEY = (process.env.MFA_ENCRYPTION_SECRET || '').slice(0, 32);
 function decrypt(text: string) {
     if (ENCRYPTION_KEY?.length !== 32) throw new Error('Invalid MFA_ENCRYPTION_SECRET');
     const textParts = text.split(':');
-    const iv = Buffer.from(textParts.shift()!, 'hex');
+    const shifted = textParts.shift();
+    if (!shifted) throw new Error('Invalid encrypted text format');
+    const iv = Buffer.from(shifted, 'hex');
     const encryptedText = Buffer.from(textParts.join(':'), 'hex');
     const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
     let decrypted = decipher.update(encryptedText);
@@ -445,7 +448,8 @@ export async function getOutLensaRefDetails(headerId: string) {
 export async function scrapeReservationAction(id: string) {
     try {
         const session = await auth.api.getSession({ headers: await headers() });
-        let customUsername, customPassword;
+        let customUsername = '';
+        let customPassword = '';
 
         if (session?.user?.id) {
             const userObj = await db

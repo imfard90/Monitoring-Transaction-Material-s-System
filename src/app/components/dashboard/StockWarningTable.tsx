@@ -41,17 +41,21 @@ export const StockWarningTable = () => {
     }, []);
 
     return (
-        <CardBox>
-            <div className="mb-2">
+        <CardBox className="h-full w-full relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-warning/5 to-transparent pointer-events-none" />
+
+            <div className="relative z-10 mb-6">
                 <div>
-                    <h5 className="card-title">Stock Minimum Warning</h5>
-                    <p className="text-sm text-muted-foreground font-normal">
+                    <h5 className="text-xl font-bold tracking-tight text-foreground">
+                        Stock Minimum Warning
+                    </h5>
+                    <p className="text-sm text-muted-foreground font-medium mt-1">
                         Daftar material yang memerlukan isi ulang stok
                     </p>
                 </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="relative z-10 overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>

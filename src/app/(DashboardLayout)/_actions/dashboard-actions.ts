@@ -307,7 +307,7 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
 export async function getWarehousePerformance() {
     try {
         const cacheKey = `warehouse_perf`;
-        const cached = await encryptedCache.getGeneral<any>('dashboard', cacheKey);
+        const cached = await encryptedCache.getGeneral<unknown>('dashboard', cacheKey);
         if (cached) {
             actionLogger.debug(`Cache hit for ${cacheKey}`);
             return { success: true, data: cached };
@@ -398,7 +398,7 @@ export async function getStockWarnings() {
 export async function getDashboardKpis() {
     try {
         const cacheKey = `dashboard_kpis`;
-        const cached = await encryptedCache.getGeneral<any>('dashboard', cacheKey);
+        const cached = await encryptedCache.getGeneral<unknown>('dashboard', cacheKey);
         if (cached) {
             return { success: true, data: cached };
         }
@@ -419,7 +419,10 @@ export async function getDashboardKpis() {
             const keys = await redis.keys('presence:user:*');
             data.onlineUsers = keys.length;
         } catch (e) {
-            actionLogger.error('Failed to get online users count', e instanceof Error ? e : new Error(String(e)));
+            actionLogger.error(
+                'Failed to get online users count',
+                e instanceof Error ? e : new Error(String(e))
+            );
         }
 
         // 0.1 Intech Open (end_status = 'intech')

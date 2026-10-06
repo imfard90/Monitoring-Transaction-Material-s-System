@@ -43,7 +43,16 @@ interface EditRekonModalProps {
 export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonModalProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [availableSapItems, setAvailableSapItems] = useState<any[]>([]);
+    const [availableSapItems, setAvailableSapItems] = useState<
+        {
+            designator_id: string | number;
+            sap_out_item_id: string | number;
+            qty_req: number;
+            qty_used: number | null;
+            code: string | null;
+            description: string | null;
+        }[]
+    >([]);
 
     const form = useForm<EditRekonFormValues>({
         resolver: zodResolver(editRekonSchema),
@@ -152,7 +161,8 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
         // Filter out items already in the form
         const currentItems = form.getValues('items');
         const availableToAdd = availableSapItems.filter(
-            (sap) => !currentItems.some((i) => i.designator_id === sap.designator_id)
+            (sap) =>
+                !currentItems.some((i) => Number(i.designator_id) === Number(sap.designator_id))
         );
 
         if (availableToAdd.length === 0) {
@@ -165,13 +175,13 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
 
         append({
             item_id: undefined,
-            designator_id: firstAvailable.designator_id,
+            designator_id: Number(firstAvailable.designator_id),
             sap_out_item_id: String(firstAvailable.sap_out_item_id),
             new_qty: 1,
             old_qty: 0,
             max_qty: max_qty,
-            material_code: firstAvailable.code,
-            material_name: firstAvailable.description,
+            material_code: firstAvailable.code || '',
+            material_name: firstAvailable.description || '',
         });
     };
 

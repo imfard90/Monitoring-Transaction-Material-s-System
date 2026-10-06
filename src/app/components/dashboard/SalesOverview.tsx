@@ -137,17 +137,21 @@ const SalesOverview: React.FC = () => {
     }, []);
 
     return (
-        <CardBox className="pb-0 h-full w-full">
-            <div className="sm:flex items-center justify-between mb-2">
+        <CardBox className="pb-0 h-full w-full relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+
+            <div className="relative z-10 sm:flex items-center justify-between mb-6">
                 <div>
-                    <h5 className="card-title">Out Material vs Hasil Rekon</h5>
-                    <p className="text-sm text-muted-foreground font-normal">
+                    <h5 className="text-xl font-bold tracking-tight text-foreground">
+                        Out Material vs Hasil Rekon
+                    </h5>
+                    <p className="text-sm text-muted-foreground font-medium mt-1">
                         Perbandingan per hari
                     </p>
                 </div>
                 <div className="sm:mt-0 mt-4 flex gap-3">
                     <Select value={selectedWh} onValueChange={setSelectedWh}>
-                        <SelectTrigger className="w-[140px]">
+                        <SelectTrigger className="w-[140px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
                             <SelectValue placeholder="Select WH" />
                         </SelectTrigger>
                         <SelectContent>
@@ -161,7 +165,7 @@ const SalesOverview: React.FC = () => {
                     </Select>
 
                     <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                        <SelectTrigger className="w-[160px]">
+                        <SelectTrigger className="w-[160px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
                             <SelectValue placeholder="Select Period" />
                         </SelectTrigger>
                         <SelectContent>
@@ -176,7 +180,15 @@ const SalesOverview: React.FC = () => {
                 </div>
             </div>
 
-            <Chart options={ChartOptions} series={series} type="bar" height={316} width="100%" />
+            <div className="relative z-10 -mx-2">
+                <Chart
+                    options={ChartOptions}
+                    series={series}
+                    type="bar"
+                    height={316}
+                    width="100%"
+                />
+            </div>
         </CardBox>
     );
 };

@@ -2,10 +2,11 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { endOfDay, isWithinInterval, startOfDay } from 'date-fns';
-import { motion } from 'framer-motion';
 import React, { useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
 import {
     getInOutTags,
@@ -152,29 +153,16 @@ export default function InOutTagClient() {
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="flex flex-col space-y-6"
-        >
-            <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-            >
+        <StaggerContainer className="flex flex-col space-y-6">
+            <StaggerItem>
                 <InOutTagCards
                     counts={counts}
                     activeFilter={filterStatus}
                     onFilterChange={setFilterStatus}
                 />
-            </motion.div>
+            </StaggerItem>
 
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-            >
+            <StaggerItem>
                 <CardBox className="p-4 w-full overflow-hidden">
                     <InOutTagTable
                         data={filteredTags as InOutTagRow[]}
@@ -197,7 +185,7 @@ export default function InOutTagClient() {
                         </div>
                     )}
                 </CardBox>
-            </motion.div>
+            </StaggerItem>
 
             <CreateTagModal
                 isOpen={isCreateModalOpen}
@@ -216,6 +204,6 @@ export default function InOutTagClient() {
                 isOpen={updateRow !== null}
                 onClose={() => setUpdateRow(null)}
             />
-        </motion.div>
+        </StaggerContainer>
     );
 }

@@ -77,12 +77,16 @@ const RecentTransaction: React.FC = () => {
     ];
 
     return (
-        <CardBox className="h-full w-full">
-            <div className="flex flex-col mb-2">
-                <h5 className="card-title">Top Out Material</h5>
-                <p className="text-sm text-muted-foreground font-normal">30 Hari Terakhir</p>
+        <CardBox className="h-full w-full relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary/5 to-transparent pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col mb-6">
+                <h5 className="text-xl font-bold tracking-tight text-foreground">
+                    Top Out Material
+                </h5>
+                <p className="text-sm text-muted-foreground font-medium mt-1">30 Hari Terakhir</p>
             </div>
-            <div className="mt-2">
+            <div className="relative z-10 -mx-2">
                 <Chart
                     options={ChartOptions}
                     series={series}

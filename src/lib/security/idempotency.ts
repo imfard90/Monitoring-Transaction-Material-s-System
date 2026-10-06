@@ -110,23 +110,40 @@ export async function checkAndStoreIdempotency<TInput, TResult>(
     operation: (data: TInput) => Promise<TResult>,
     config: IdempotencyConfig = IDEMPOTENCY_CONFIGS.inventoryTx
 ): Promise<{ result: TResult; isDuplicate: boolean }> {
-    // Check first
-    const checkResult = await checkIdempotency<TResult>(key, config);
+    const redisKey = `${config.prefix}:${key}`;
 
-    if (checkResult.isDuplicate && checkResult.cachedResult) {
-        return {
-            result: checkResult.cachedResult,
-            isDuplicate: true,
-        };
+    // Try to reserve the key to prevent race conditions (TOCTOU)
+    const reserved = await redis.set(redisKey, 'PENDING', 'EX', config.ttl, 'NX');
+
+    if (!reserved) {
+        // Key already exists, it's a duplicate
+        const existing = await redis.get(redisKey);
+        if (existing && existing !== 'PENDING') {
+            try {
+                return {
+                    result: JSON.parse(existing) as TResult,
+                    isDuplicate: true,
+                };
+            } catch {
+                // Ignore parse error and fall through to throw
+            }
+        }
+        throw new Error('Concurrent request in progress or invalid cached result');
     }
 
-    // Execute operation
-    const result = await operation(input);
+    try {
+        // Execute operation
+        const result = await operation(input);
 
-    // Store result
-    await storeIdempotencyResult(key, result, config);
+        // Store result
+        await redis.set(redisKey, JSON.stringify(result), 'EX', config.ttl);
 
-    return { result, isDuplicate: false };
+        return { result, isDuplicate: false };
+    } catch (error) {
+        // If operation fails, delete the pending key so it can be retried
+        await redis.del(redisKey);
+        throw error;
+    }
 }
 
 /**

@@ -28,7 +28,7 @@ export const ProductPerformance = () => {
                 '@/app/(DashboardLayout)/_actions/dashboard-actions'
             );
             const result = await getWarehousePerformance();
-            if (result.success && result.data) {
+            if (result.success && Array.isArray(result.data)) {
                 setWarehouseData(
                     result.data.map(
                         (d: { key: number; name: string; trxOut: number; trxClose: number }) => ({
@@ -62,16 +62,20 @@ export const ProductPerformance = () => {
         .sort((a, b) => b.percentage - a.percentage);
 
     return (
-        <CardBox className="w-full">
-            <div id="product" className="mb-2">
+        <CardBox className="w-full relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-success/5 to-transparent pointer-events-none" />
+
+            <div id="product" className="relative z-10 mb-6">
                 <div>
-                    <h5 className="card-title">Warehouse Performance</h5>
-                    <p className="text-sm text-muted-foreground font-normal">
+                    <h5 className="text-xl font-bold tracking-tight text-foreground">
+                        Warehouse Performance
+                    </h5>
+                    <p className="text-sm text-muted-foreground font-medium mt-1">
                         Overview of warehouse out material completion
                     </p>
                 </div>
             </div>
-            <div className="flex flex-col">
+            <div className="relative z-10 flex flex-col">
                 <div className="-m-1.5 overflow-x-auto">
                     <div className="p-1.5 min-w-full inline-block align-middle">
                         <div className="overflow-x-auto">
