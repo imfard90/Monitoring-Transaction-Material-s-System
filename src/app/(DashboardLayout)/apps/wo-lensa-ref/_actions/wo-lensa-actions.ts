@@ -3,6 +3,7 @@
 import crypto from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth-server';
+import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
 import { redis } from '@/lib/redis';
 import {
@@ -51,7 +52,7 @@ export async function getWOLensaRefList() {
     let query = db
         .selectFrom('inventory.wo_lensa_header')
         .selectAll()
-        .orderBy('pemakaian_id', 'desc');
+        .orderBy(sql<number>`CAST(pemakaian_id AS BIGINT)`, 'desc');
 
     if (isStaff && whNames.length > 0) {
         query = query.where('nama_gudang', 'in', whNames);
