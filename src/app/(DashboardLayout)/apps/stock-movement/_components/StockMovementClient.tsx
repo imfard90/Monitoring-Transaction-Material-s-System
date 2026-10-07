@@ -130,9 +130,9 @@ export default function StockMovementClient({ initialData }: StockMovementClient
     }, [searchQuery, filteredData.length, hasMoreData, isLoadingMore, loadMore]);
 
     return (
-        <StaggerContainer className="flex flex-col flex-1 min-h-0">
-            <StaggerItem className="flex flex-col flex-1 min-h-0">
-                <CardBox className="flex flex-col flex-1 min-h-0 overflow-hidden p-6">
+        <StaggerContainer className="flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
+            <StaggerItem className="flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
+                <CardBox className="flex flex-col flex-1 p-6 md:h-full md:min-h-0 md:overflow-hidden">
                     <MovementTable
                         data={filteredData}
                         searchQuery={searchQuery}

@@ -142,7 +142,7 @@ export default function OutMaterialClient() {
             </StaggerItem>
 
             <StaggerItem>
-                <CardBox className="p-4 w-full overflow-hidden">
+                <CardBox className="p-4 w-full ">
                     <OutMaterialTable
                         data={filteredData}
                         isLoading={isLoading}

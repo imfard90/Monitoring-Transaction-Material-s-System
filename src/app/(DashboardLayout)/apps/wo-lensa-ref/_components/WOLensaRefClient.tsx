@@ -163,7 +163,11 @@ export default function WOLensaRefClient({
         }),
         columnHelper.accessor('wo_number', {
             header: 'WO Number',
-            cell: (info) => info.getValue() || '-',
+            cell: (info) => (
+                <div className="min-w-[100px] whitespace-normal break-words">
+                    {info.getValue() || '-'}
+                </div>
+            ),
         }),
         columnHelper.accessor('nik_pemakai', {
             header: 'NIK Pemakai',
@@ -204,7 +208,7 @@ export default function WOLensaRefClient({
         getSortedRowModel: getSortedRowModel(),
         initialState: {
             pagination: {
-                pageSize: 10,
+                pageSize: 12,
             },
         },
     });
@@ -235,10 +239,10 @@ export default function WOLensaRefClient({
     });
 
     return (
-        <StaggerContainer className="flex flex-col gap-4">
-            <StaggerItem>
-                <Card className="border-border shadow-sm">
-                    <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4">
+        <StaggerContainer className="flex flex-col gap-4 md:h-full md:min-h-0 md:overflow-hidden">
+            <StaggerItem className="md:h-full md:min-h-0 md:overflow-hidden">
+                <Card className="border-border shadow-sm flex flex-col md:h-full md:min-h-0 md:overflow-hidden">
+                    <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 shrink-0">
                         <div>
                             <CardTitle className="text-xl font-bold">Daftar Ref WO Lensa</CardTitle>
                             <CardDescription>
@@ -277,11 +281,11 @@ export default function WOLensaRefClient({
                             </div>
                         )}
                     </CardHeader>
-                    <CardContent>
-                        <div className="rounded-md border border-border">
+                    <CardContent className="flex flex-col md:min-h-0 md:overflow-hidden gap-4">
+                        <div className="rounded-md border border-border md:min-h-0 md:overflow-y-auto">
                             <DataTable table={table} emptyMessage="Tidak ada data." />
                         </div>
-                        <div className="mt-4">
+                        <div className="shrink-0">
                             <DataTablePagination table={table} />
                         </div>
                     </CardContent>

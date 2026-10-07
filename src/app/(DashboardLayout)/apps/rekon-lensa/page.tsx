@@ -24,7 +24,7 @@ const BCrumb = [
 
 export default function RekonLensaPage() {
     return (
-        <div className="flex flex-col flex-1 h-full gap-6">
+        <div className="flex flex-col flex-1  gap-6">
             <div className="shrink-0">
                 <BreadcrumbComp title="Rekon Lensa" items={BCrumb} />
             </div>

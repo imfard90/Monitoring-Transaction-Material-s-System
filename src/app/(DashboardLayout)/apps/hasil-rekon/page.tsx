@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
-import { getHasilRekon } from './_actions/rekon-actions';
+import { getHasilRekon, getNewHasilRekon } from './_actions/rekon-actions';
 import HasilRekonClient from './_components/HasilRekonClient';
 
 export const metadata: Metadata = {
@@ -25,14 +25,14 @@ const BCrumb = [
 ];
 
 export default async function HasilRekonPage() {
-    const data = await getHasilRekon();
+    const [legacyData, newData] = await Promise.all([getHasilRekon(), getNewHasilRekon()]);
 
     return (
-        <div className="flex flex-col flex-1 h-full min-h-0">
+        <div className="flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
             <div className="shrink-0">
                 <BreadcrumbComp title="Hasil Rekon" items={BCrumb} />
             </div>
-            <HasilRekonClient initialData={data} />
+            <HasilRekonClient initialLegacyData={legacyData} initialNewData={newData} />
         </div>
     );
 }

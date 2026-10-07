@@ -64,60 +64,80 @@ export default function HasilRekonTable({
         columnHelper.accessor('created_at', {
             header: 'Timestamp',
             cell: (info) => (
-                <span className="text-sm">
+                <div className="whitespace-nowrap text-sm">
                     {info.getValue()
                         ? format(new Date(info.getValue() as string), 'dd MMM yyyy, HH:mm')
                         : '-'}
-                </span>
+                </div>
             ),
         }),
         columnHelper.accessor('trx_id', {
             header: 'TRX ID',
             cell: (info) => (
-                <div className="max-w-[160px] whitespace-normal break-all text-sm font-medium">
+                <div className="min-w-[160px] max-w-[160px] whitespace-normal break-all text-sm font-medium">
                     {info.getValue() || '-'}
                 </div>
             ),
         }),
         columnHelper.accessor('sap_number', {
             header: 'SAP Number',
-            cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
+            cell: (info) => (
+                <div className="whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
+            ),
         }),
         columnHelper.accessor('warehouse_name', {
             header: 'Warehouse',
-            cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
+            cell: (info) => (
+                <div className="whitespace-nowrap min-w-[150px] text-sm">
+                    {info.getValue() || '-'}
+                </div>
+            ),
         }),
         columnHelper.accessor('nik', {
             header: 'NIK Teknisi',
-            cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
+            cell: (info) => (
+                <div className="whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
+            ),
         }),
         columnHelper.accessor('type', {
             header: 'Type',
             cell: (info) => {
                 const val = info.getValue();
                 return (
-                    <Badge className="bg-blue-100 text-blue-800 hover:bg-transparent uppercase">
-                        {val || '-'}
-                    </Badge>
+                    <div className="whitespace-nowrap">
+                        <Badge className="bg-blue-100 text-blue-800 hover:bg-transparent uppercase">
+                            {val || '-'}
+                        </Badge>
+                    </div>
                 );
             },
         }),
         columnHelper.accessor('workorder', {
-            header: 'Workorder',
-            cell: (info) => <span className="text-sm font-medium">{info.getValue() || '-'}</span>,
+            header: () => <div className="whitespace-nowrap">Work Order</div>,
+            cell: (info) => (
+                <div className="min-w-[120px] max-w-[150px] whitespace-normal break-words text-sm font-medium">
+                    {info.getValue() || '-'}
+                </div>
+            ),
         }),
         columnHelper.accessor('material_code', {
             header: 'Material Code',
-            cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
+            cell: (info) => (
+                <div className="whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
+            ),
         }),
         columnHelper.accessor('material_name', {
             header: 'Description',
-            cell: (info) => <span className="text-sm text-gray-500">{info.getValue() || '-'}</span>,
+            cell: (info) => (
+                <div className="min-w-[150px] max-w-[180px] whitespace-normal break-words text-sm text-gray-500">
+                    {info.getValue() || '-'}
+                </div>
+            ),
         }),
         columnHelper.accessor('qty', {
-            header: () => <div className="text-right">Qty</div>,
+            header: () => <div className="text-right whitespace-nowrap">Qty</div>,
             cell: (info) => (
-                <div className="text-right text-sm font-bold text-gray-900">
+                <div className="text-right whitespace-nowrap text-sm font-bold text-gray-900">
                     {info.getValue() || 0}
                 </div>
             ),
@@ -127,6 +147,9 @@ export default function HasilRekonTable({
             header: () => <div className="text-center">Action</div>,
             cell: (info) => {
                 const isLensa = info.row.original.type === 'lensa';
+                const isNewRekon = info.row.original.isNewRekon;
+                const isDisabled = isLensa || isNewRekon;
+
                 return (
                     <div className="flex justify-center">
                         <TooltipProvider>
@@ -139,13 +162,19 @@ export default function HasilRekonTable({
                                         onClick={() => {
                                             if (onEditClick) onEditClick(info.row.original);
                                         }}
-                                        disabled={isLensa}
+                                        disabled={isDisabled}
                                     >
                                         <Pencil className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>{isLensa ? 'Rekon Lensa cannot be edited' : 'Edit Rekon'}</p>
+                                    <p>
+                                        {isNewRekon
+                                            ? 'New Rekon cannot be edited'
+                                            : isLensa
+                                              ? 'Rekon Lensa cannot be edited'
+                                              : 'Edit Rekon'}
+                                    </p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -168,9 +197,9 @@ export default function HasilRekonTable({
     });
 
     return (
-        <StaggerContainer className="space-y-4 flex flex-col flex-1 min-h-0">
+        <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
             {/* Toolbar */}
-            <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4">
+            <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4 shrink-0">
                 <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
                     <div className="relative w-full sm:w-72">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
@@ -259,12 +288,12 @@ export default function HasilRekonTable({
             </StaggerItem>
 
             {/* Table */}
-            <StaggerItem className="flex-1 min-h-0 overflow-hidden">
+            <StaggerItem className="flex-1 md:min-h-0 md:overflow-y-auto">
                 <DataTable table={table} emptyMessage="No records found." />
             </StaggerItem>
 
             {/* Pagination */}
-            <StaggerItem className="py-4 px-4">
+            <StaggerItem className="py-4 px-4 shrink-0">
                 <DataTablePagination table={table} />
             </StaggerItem>
         </StaggerContainer>

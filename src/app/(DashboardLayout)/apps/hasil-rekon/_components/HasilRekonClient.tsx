@@ -5,16 +5,50 @@ import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
-import { getHasilRekon, type HasilRekonData } from '../_actions/rekon-actions';
+import {
+    getHasilRekon,
+    getNewHasilRekon,
+    type HasilRekonData,
+    type NewHasilRekonData,
+} from '../_actions/rekon-actions';
 import EditRekonModal from './EditRekonModal';
 import HasilRekonTable from './HasilRekonTable';
 
 interface HasilRekonClientProps {
-    initialData: HasilRekonData[];
+    initialLegacyData: HasilRekonData[];
+    initialNewData: NewHasilRekonData[];
 }
 
-export default function HasilRekonClient({ initialData }: HasilRekonClientProps) {
-    const [data, setData] = useState(initialData);
+export default function HasilRekonClient({
+    initialLegacyData,
+    initialNewData,
+}: HasilRekonClientProps) {
+    const mapNewDataToLegacy = (newData: NewHasilRekonData[]): HasilRekonData[] => {
+        return newData.map((item) => ({
+            header_id: item.header_id,
+            item_id: item.item_id,
+            created_at: item.created_at,
+            trx_id: item.trx_id,
+            sap_number: item.sap_number,
+            warehouse_name: item.warehouse_name,
+            nik: item.nik,
+            type: item.type,
+            workorder: item.workorder,
+            material_code: item.material_code,
+            material_name: item.material_name,
+            qty: item.qty,
+            isNewRekon: true,
+        }));
+    };
+
+    const [data, setData] = useState<HasilRekonData[]>(() => {
+        const combined = [...initialLegacyData, ...mapNewDataToLegacy(initialNewData)];
+        return combined.sort((a, b) => {
+            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return dateB - dateA;
+        });
+    });
     const [monthsOffset, setMonthsOffset] = useState(0);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMoreData, setHasMoreData] = useState(true);
@@ -56,11 +90,26 @@ export default function HasilRekonClient({ initialData }: HasilRekonClientProps)
         setIsLoadingMore(true);
         try {
             const nextOffset = monthsOffset + 5;
-            const newData = await getHasilRekon(nextOffset, 5);
-            if (newData.length === 0) {
+            const [moreLegacyData, moreNewData] = await Promise.all([
+                getHasilRekon(nextOffset, 5),
+                getNewHasilRekon(nextOffset, 5),
+            ]);
+
+            if (moreLegacyData.length === 0 && moreNewData.length === 0) {
                 setHasMoreData(false);
             } else {
-                setData((prev) => [...prev, ...newData]);
+                setData((prev) => {
+                    const combined = [
+                        ...prev,
+                        ...moreLegacyData,
+                        ...mapNewDataToLegacy(moreNewData),
+                    ];
+                    return combined.sort((a, b) => {
+                        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                        return dateB - dateA;
+                    });
+                });
                 setMonthsOffset(nextOffset);
             }
         } catch (e) {
@@ -132,9 +181,9 @@ export default function HasilRekonClient({ initialData }: HasilRekonClientProps)
     }, [searchQuery, filteredData.length, hasMoreData, isLoadingMore, loadMore]);
 
     return (
-        <StaggerContainer className="flex flex-col flex-1 min-h-0">
-            <StaggerItem className="flex flex-col flex-1 min-h-0">
-                <CardBox className="flex flex-col flex-1 min-h-0 overflow-hidden p-6">
+        <StaggerContainer className="flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
+            <StaggerItem className="flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
+                <CardBox className="flex flex-col flex-1 p-6 md:h-full md:min-h-0 md:overflow-hidden">
                     <HasilRekonTable
                         data={filteredData}
                         searchQuery={searchQuery}

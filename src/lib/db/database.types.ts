@@ -1057,6 +1057,30 @@ export interface inventory_wo_lensa_list {
     created_at: Generated<Timestamp | null>;
 }
 
+export interface InventoryRekonUsedHeader {
+    id: Generated<Int8>;
+    id_trx: string;
+    id_pemakaian: string;
+    wo_number: string | null;
+    wo_type: string | null;
+    nik_teknisi: string | null;
+    name_gudang: string | null;
+    name_sa: string | null;
+    notes: string | null;
+    create_at: Generated<Timestamp | null>;
+    create_by: string | null;
+}
+
+export interface InventoryRekonUsedList {
+    id: Generated<Int8>;
+    rekon_used_id: Int8 | null;
+    out_sap: string | null;
+    designator_id: string | null;
+    qty: number | null;
+    unit_price: number | null;
+    create_at: Generated<Timestamp | null>;
+}
+
 export interface DB {
     'inventory.wo_lensa_header': inventory_wo_lensa_header;
     'inventory.wo_lensa_list': inventory_wo_lensa_list;
@@ -1134,4 +1158,6 @@ export interface DB {
     upload_logs: UploadLogs;
     'inventory.out_lensa_ref_header': InventoryOutLensaRefHeader;
     'inventory.out_lensa_ref_list': InventoryOutLensaRefList;
+    'inventory.rekon_used_header': InventoryRekonUsedHeader;
+    'inventory.rekon_used_list': InventoryRekonUsedList;
 }

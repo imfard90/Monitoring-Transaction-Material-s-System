@@ -157,20 +157,46 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
     }
 }
 
-export async function getInOutTagItems(headerId: number) {
+export async function getInOutTagItems(headerId: number, type?: string) {
     try {
-        const items = await db
-            .selectFrom('inventory.inout_tag_items as i')
-            .leftJoin('inventory.materials as m', 'm.id', 'i.designator_id')
-            .select([
-                'i.id',
-                'i.action',
-                'i.qty',
-                'm.code as designator_code',
-                'm.description as material_description',
-            ])
-            .where('i.header_id', '=', String(headerId))
-            .execute();
+        let items: any[];
+        if (type === 'return') {
+            items = await db
+                .selectFrom('inventory.return_material_items as i')
+                .leftJoin('inventory.materials as m', 'm.id', 'i.designator_id')
+                .select([
+                    'i.id',
+                    'i.qty',
+                    'm.code as designator_code',
+                    'm.description as material_description',
+                ])
+                .where('i.header_id', '=', String(headerId))
+                .execute();
+
+            // Map to match InOutTagItem structure
+            items = items.map((item) => ({
+                ...item,
+                action: 'request' as const, // Return material items are considered 'request' in this context
+            }));
+        } else {
+            const rawItems = await db
+                .selectFrom('inventory.inout_tag_items as i')
+                .leftJoin('inventory.materials as m', 'm.id', 'i.designator_id')
+                .select([
+                    'i.id',
+                    'i.action',
+                    'i.qty',
+                    'm.code as designator_code',
+                    'm.description as material_description',
+                ])
+                .where('i.header_id', '=', String(headerId))
+                .execute();
+
+            items = rawItems.map((item) => ({
+                ...item,
+                action: item.action as 'request' | 'send' | 'accept',
+            }));
+        }
 
         return { success: true, data: items };
     } catch (error) {
@@ -330,9 +356,9 @@ export async function getInoutTagItemsByHeaderId(headerId: number) {
                 'items.action_id',
                 'items.designator_id',
                 'items.qty',
-                'mat.code',
-                'mat.description',
-                'mat.unit',
+                'mat.code as material_code',
+                'mat.description as material_description',
+                'mat.unit as material_unit',
             ])
             .where('items.header_id', '=', String(headerId))
             .execute();
@@ -413,15 +439,25 @@ export async function updateTag(payload: {
     }
 }
 
-export async function cancelTag(headerId: number) {
+export async function cancelTag(headerId: number, type?: string) {
     try {
-        await db
-            .updateTable('inventory.inout_tag_header')
-            .set({ end_status: 'cancel' })
-            .where('id', '=', String(headerId))
-            .where('end_status', '!=', 'closed')
-            .where('end_status', '!=', 'cancel')
-            .execute();
+        if (type === 'return') {
+            await db
+                .updateTable('inventory.return_material_header')
+                .set({ end_status: 'cancel' })
+                .where('id', '=', String(headerId))
+                .where('end_status', '!=', 'closed')
+                .where('end_status', '!=', 'cancel')
+                .execute();
+        } else {
+            await db
+                .updateTable('inventory.inout_tag_header')
+                .set({ end_status: 'cancel' })
+                .where('id', '=', String(headerId))
+                .where('end_status', '!=', 'closed')
+                .where('end_status', '!=', 'cancel')
+                .execute();
+        }
 
         revalidatePath('/apps/inout-tag');
         revalidatePath('/stock-inventory');
@@ -483,7 +519,14 @@ export async function getReturnMaterialItemsByHeaderId(headerId: number) {
         const items = await db
             .selectFrom('inventory.return_material_items as ri')
             .innerJoin('inventory.materials as m', 'm.id', 'ri.designator_id')
-            .select(['ri.id', 'ri.designator_id', 'ri.qty', 'm.code', 'm.description', 'm.unit'])
+            .select([
+                'ri.id',
+                'ri.designator_id',
+                'ri.qty',
+                'm.code as material_code',
+                'm.description as material_description',
+                'm.unit as material_unit',
+            ])
             .where('ri.header_id', '=', String(headerId))
             .execute();
 

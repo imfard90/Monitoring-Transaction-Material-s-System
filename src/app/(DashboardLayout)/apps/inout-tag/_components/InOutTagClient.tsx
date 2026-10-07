@@ -163,7 +163,7 @@ export default function InOutTagClient() {
             </StaggerItem>
 
             <StaggerItem>
-                <CardBox className="p-4 w-full overflow-hidden">
+                <CardBox className="p-4 w-full ">
                     <InOutTagTable
                         data={filteredTags as InOutTagRow[]}
                         isLoading={isLoading}

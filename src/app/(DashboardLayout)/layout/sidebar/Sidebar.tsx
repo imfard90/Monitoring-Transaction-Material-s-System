@@ -192,7 +192,7 @@ const SidebarLayout = ({
             className={
                 isMobile
                     ? 'bg-sidebar dark:bg-sidebar w-full h-full'
-                    : 'fixed left-0 top-0 border-r border-border bg-card dark:bg-card z-10 h-screen shadow-lg'
+                    : 'fixed left-0 top-0 border-r border-border bg-card dark:bg-card z-10 h-[100dvh] shadow-lg'
             }
         >
             {/* Logo */}

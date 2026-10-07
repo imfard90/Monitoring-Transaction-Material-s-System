@@ -135,7 +135,7 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
 
     const cancelMutation = useMutation({
         mutationFn: async () => {
-            return cancelTag(Number(row?.id));
+            return cancelTag(Number(row?.id), row?.type);
         },
         onSuccess: (res) => {
             if (res.success) {

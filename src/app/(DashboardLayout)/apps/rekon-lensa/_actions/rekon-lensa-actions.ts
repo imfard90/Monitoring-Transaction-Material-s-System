@@ -204,11 +204,6 @@ export async function submitRekonLensa(
                     `.execute(trx);
                     let count = Number(countRes.rows[0].count);
 
-                    // We need to generate ONE id_trx per WO, even if it spans multiple SAPs.
-                    // Or one id_trx per submit? The prompt says:
-                    // "Generate ID Transaksi sesuai format (simpan multiple SAP Number dipisah koma)."
-                    // Format: TRX-USED-'NIK'-'SAP_NUMBER_1'-'SAP_NUMBER_2'-'ID_PEMAKAIAN'-thbnxxxx
-
                     // Group by WO to generate one ID per WO
                     const woGroups: Record<string, RekonLensaItemPayload[]> = {};
                     for (const item of data.items) {
@@ -226,87 +221,51 @@ export async function submitRekonLensa(
 
                         count++;
                         const sequence = count.toString().padStart(4, '0');
-                        const generatedIdTrx = `TRX-USED-${data.nik}-${sapString}-${pemakaianId}-${yymm}${sequence}`;
+                        const generatedIdTrx = `TRX-USED-LENSA-${data.nik}-${pemakaianId}-${yymm}${sequence}`;
 
-                        // Now group by sap_out_id within this WO to create headers
-                        const sapGroups: Record<string, RekonLensaItemPayload[]> = {};
-                        for (const item of woItems) {
-                            if (!sapGroups[item.sap_out_id]) sapGroups[item.sap_out_id] = [];
-                            sapGroups[item.sap_out_id].push(item);
-                        }
+                        const first = woItems[0];
+                        const materialsJson = JSON.stringify(
+                            woItems.map((item) => ({
+                                out_sap: item.sap_number,
+                                designator_id: item.designator_id.toString(), // SP expects code, wait, designator_id is number in schema but SP expects code?
+                                qty: item.qty,
+                                unit_price: 0, // Not provided in payload
+                            }))
+                        );
 
-                        for (const sapOutId in sapGroups) {
-                            const groupItems = sapGroups[sapOutId];
-                            const first = groupItems[0];
+                        // Wait, the SP expects designator_id as VARCHAR (code). Let's fetch codes first.
+                        const designatorIds = Array.from(
+                            new Set(woItems.map((i) => i.designator_id))
+                        );
+                        const materials = await trx
+                            .selectFrom('inventory.materials')
+                            .select(['id', 'code'])
+                            .where('id', 'in', designatorIds)
+                            .execute();
 
-                            // Insert Header
-                            const headerResult = await trx
-                                .insertInto('inventory.transaction_used_header')
-                                .values({
-                                    id_trx: generatedIdTrx,
-                                    sap_out_id: BigInt(first.sap_out_id),
-                                    nik_teknisi: data.nik,
-                                    name_sa: first.name_sa,
-                                    name_wh: first.name_wh || '',
-                                    wo_number: first.wo_number,
-                                    wo_type: (first.wo_type === 'provisioning'
-                                        ? 'psb'
-                                        : first.wo_type) as any,
-                                    created_by: createdBy,
-                                })
-                                .returning('id')
-                                .executeTakeFirstOrThrow();
+                        const codeMap = new Map(materials.map((m) => [m.id, m.code]));
 
-                            const headerId = headerResult.id;
+                        const materialsJsonWithCode = JSON.stringify(
+                            woItems.map((item) => ({
+                                out_sap: item.sap_number,
+                                designator_id: codeMap.get(item.designator_id),
+                                qty: item.qty,
+                                unit_price: 0,
+                            }))
+                        );
 
-                            // Insert Items, Update sap_out_items, and call SP
-                            for (const item of groupItems) {
-                                await trx
-                                    .insertInto('inventory.transaction_used_item')
-                                    .values({
-                                        used_id: headerId,
-                                        designator_id: item.designator_id,
-                                        qty: item.qty,
-                                        notes: item.notes || null,
-                                    })
-                                    .execute();
-
-                                await trx
-                                    .updateTable('inventory.sap_out_items')
-                                    .set((_eb) => ({
-                                        qty_used: sql`COALESCE(qty_used, 0) + ${item.qty}`,
-                                    }))
-                                    .where('id', '=', BigInt(item.sap_out_item_id) as any)
-                                    .execute();
-
-                                // Fetch warehouse_id from sap_out_header
-                                const sap = await trx
-                                    .selectFrom('inventory.sap_out_header')
-                                    .select('warehouse_id')
-                                    .where('id', '=', BigInt(item.sap_out_id) as any)
-                                    .executeTakeFirst();
-                                const warehouseId = sap?.warehouse_id || 0;
-
-                                await sql`CALL inventory.sp_record_material_used(${warehouseId}, ${item.designator_id}, ${item.qty}, ${generatedIdTrx}, ${item.notes || null}, ${createdBy})`.execute(
-                                    trx
-                                );
-                            }
-
-                            // Check if sap_out_header can be closed
-                            const checkRes = await sql<{ all_closed: boolean }>`
-                                SELECT bool_and(qty_req = COALESCE(qty_used, 0)) as all_closed
-                                FROM inventory.sap_out_items
-                                WHERE header_id = ${BigInt(first.sap_out_id) as any}
-                            `.execute(trx);
-
-                            if (checkRes.rows[0]?.all_closed) {
-                                await trx
-                                    .updateTable('inventory.sap_out_header')
-                                    .set({ end_status: 'close' })
-                                    .where('id', '=', BigInt(first.sap_out_id) as any)
-                                    .execute();
-                            }
-                        }
+                        await sql`CALL inventory.sp_record_rekon_lensa_v2(
+                            ${generatedIdTrx},
+                            ${pemakaianId},
+                            ${first.wo_number},
+                            ${first.wo_type === 'provisioning' ? 'psb' : first.wo_type},
+                            ${data.nik},
+                            ${first.name_wh || ''},
+                            ${first.name_sa},
+                            ${first.notes || null},
+                            ${createdBy},
+                            ${materialsJsonWithCode}::json
+                        )`.execute(trx);
                     }
                 });
 

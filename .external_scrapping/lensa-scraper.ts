@@ -16,7 +16,7 @@ async function getBrowserInstance() {
 const LENSA_URL = 'https://lensa-inventory.telkomakses.co.id';
 const SESSION_TTL = 60 * 60 * 2;
 
-async function setupContext(username: string, password: string) {
+export async function setupContext(username: string, password: string) {
     const browser = await getBrowserInstance();
     const context = await browser.newContext();
     const sessionKey = `lensa_session:${username}`;
@@ -72,7 +72,8 @@ async function setupContext(username: string, password: string) {
 export async function scrapeLensaHeaders(
     existingHeaderIds: string[],
     customUsername?: string,
-    customPassword?: string
+    customPassword?: string,
+    perpage: number = 20
 ) {
     const username = customUsername || process.env.LENSA_USERNAME;
     const password = customPassword || process.env.LENSA_PASSWORD;
@@ -84,7 +85,7 @@ export async function scrapeLensaHeaders(
     );
 
     try {
-        const listUrl = `${LENSA_URL}/resevation_list_data?page=1&perpage=50&search=&orderBy=reservation_id&orderDirection=desc`;
+        const listUrl = `${LENSA_URL}/resevation_list_data?page=1&perpage=${perpage}&search=&orderBy=reservation_id&orderDirection=desc`;
         await safeGoto(listUrl);
 
         if (page.url().includes('login')) {
@@ -151,7 +152,8 @@ export async function scrapeLensaHeaders(
 export async function scrapeWOLensaHeaders(
     existingPemakaianIds: string[],
     customUsername?: string,
-    customPassword?: string
+    customPassword?: string,
+    perpage: number = 20
 ) {
     const username = customUsername || process.env.LENSA_USERNAME;
     const password = customPassword || process.env.LENSA_PASSWORD;
@@ -160,48 +162,59 @@ export async function scrapeWOLensaHeaders(
     const { context, page, safeGoto, performLogin } = await setupContext(username, password);
 
     try {
-        const url =
-            'https://lensa-inventory.telkomakses.co.id/teknisi/wo-data?page=1&perpage=20&search=&orderBy=gi_number&orderDirection=desc';
-        await safeGoto(url);
+        const newHeaders: any[] = [];
+        const seenPemakaianIds = new Set<string>(existingPemakaianIds);
 
-        if (page.url().includes('login')) {
-            await performLogin();
+        const fetchAndProcess = async (url: string) => {
             await safeGoto(url);
+
             if (page.url().includes('login')) {
-                throw new Error('Sesi terputus atau login gagal');
+                await performLogin();
+                await safeGoto(url);
+                if (page.url().includes('login')) {
+                    throw new Error('Sesi terputus atau login gagal');
+                }
             }
-        }
 
-        const listContent = await page.evaluate(
-            () => document.body.innerText || document.body.textContent
-        );
-        let listData: Record<string, unknown> = {};
-        try {
-            listData = JSON.parse(listContent || '{}');
-        } catch (_e) {}
+            const listContent = await page.evaluate(
+                () => document.body.innerText || document.body.textContent
+            );
+            let listData: Record<string, unknown> = {};
+            try {
+                listData = JSON.parse(listContent || '{}');
+            } catch (_e) {}
 
-        const items = (listData?.data as Array<Record<string, unknown>>) || [];
-        const newHeaders = [];
+            const items = (listData?.data as Array<Record<string, unknown>>) || [];
 
-        for (const item of items) {
-            const pemakaianId = String(item.pemakaian_id);
-            if (!pemakaianId || pemakaianId === 'undefined') continue;
+            for (const item of items) {
+                const pemakaianId = String(item.pemakaian_id);
+                if (!pemakaianId || pemakaianId === 'undefined') continue;
 
-            // Optional filters based on requirements
-            // removed: if (!item.gi_number) continue;
+                if (seenPemakaianIds.has(pemakaianId)) continue;
+                seenPemakaianIds.add(pemakaianId);
 
-            if (existingPemakaianIds.includes(pemakaianId)) continue;
+                newHeaders.push({
+                    pemakaian_id: pemakaianId,
+                    gi_number: item.gi_number?.toString() || null,
+                    nama_gudang: item.nama_gudang?.toString() || null,
+                    nik_pemakai: item.nik_pemakai?.toString() || null,
+                    tanggal_update: item.tanggal_update?.toString() || null,
+                    type: item.type?.toString() || null,
+                    wbs: item.wbs?.toString() || null,
+                    wo_number: item.wo_number?.toString() || null,
+                });
+            }
+        };
 
-            newHeaders.push({
-                pemakaian_id: pemakaianId,
-                gi_number: item.gi_number?.toString() || null,
-                nama_gudang: item.nama_gudang?.toString() || null,
-                nik_pemakai: item.nik_pemakai?.toString() || null,
-                tanggal_update: item.tanggal_update?.toString() || null,
-                type: item.type?.toString() || null,
-                wbs: item.wbs?.toString() || null,
-                wo_number: item.wo_number?.toString() || null,
-            });
+        // Step 1: Run original query
+        const originalUrl = `https://lensa-inventory.telkomakses.co.id/teknisi/wo-data?page=1&perpage=${perpage}&search=&orderBy=gi_number&orderDirection=desc`;
+        await fetchAndProcess(originalUrl);
+
+        // Step 2: Run prefix loop
+        const prefixes = ['DGPS', 'SC', 'INC', 'LP', 'WO', 'FMC'];
+        for (const prefix of prefixes) {
+            const prefixUrl = `https://lensa-inventory.telkomakses.co.id/teknisi/wo-data?page=1&perpage=${perpage}&search=${prefix}`;
+            await fetchAndProcess(prefixUrl);
         }
 
         return newHeaders;

@@ -21,29 +21,31 @@ export async function register() {
         // We can use the timezone option in node-cron to specify 'Asia/Jakarta'
         // so we don't have to convert to UTC manually.
 
-        const scheduleTimes = [
-            '0 4 * * *', // 04:00
-            '30 9 * * *', // 09:30
-            '30 12 * * *', // 12:30
-            '0 15 * * *', // 15:00
-            '0 18 * * *', // 18:00
-            '0 21 * * *', // 21:00
-            '0 23 * * *', // 23:00
+        const schedules = [
+            { time: '0 4 * * *', perpage: 100 }, // 04:00
+            { time: '30 9 * * *', perpage: 20 }, // 09:30
+            { time: '30 12 * * *', perpage: 20 }, // 12:30
+            { time: '0 15 * * *', perpage: 20 }, // 15:00
+            { time: '0 18 * * *', perpage: 20 }, // 18:00
+            { time: '0 21 * * *', perpage: 100 }, // 21:00
+            { time: '0 23 * * *', perpage: 100 }, // 23:00
         ];
 
         let isRunning = false;
 
-        const runScrapers = async () => {
+        const runScrapers = async (perpage: number) => {
             if (isRunning) {
                 console.log('[CRON] Scraper is already running, skipping this schedule.');
                 return;
             }
             isRunning = true;
             try {
-                console.log('[CRON] Starting Out Lensa Scraper...');
-                await internalTriggerScraping();
-                console.log('[CRON] Out Lensa Scraper finished. Starting WO Lensa Scraper...');
-                await internalTriggerWOScraping();
+                console.log(`[CRON] Starting Out Lensa Scraper with perpage=${perpage}...`);
+                await internalTriggerScraping(perpage);
+                console.log(
+                    `[CRON] Out Lensa Scraper finished. Starting WO Lensa Scraper with perpage=${perpage}...`
+                );
+                await internalTriggerWOScraping(perpage);
                 console.log('[CRON] WO Lensa Scraper finished.');
             } catch (error) {
                 console.error('[CRON] Error running scrapers:', error);
@@ -57,8 +59,8 @@ export async function register() {
         if (!globalAny.__cronRegistered) {
             globalAny.__cronRegistered = true;
 
-            for (const schedule of scheduleTimes) {
-                cron.schedule(schedule, runScrapers, {
+            for (const schedule of schedules) {
+                cron.schedule(schedule.time, () => runScrapers(schedule.perpage), {
                     timezone: 'Asia/Jakarta',
                 });
             }

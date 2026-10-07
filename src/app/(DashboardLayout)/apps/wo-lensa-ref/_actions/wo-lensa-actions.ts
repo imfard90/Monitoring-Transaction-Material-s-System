@@ -85,7 +85,7 @@ async function asyncPool<T, R>(
     return Promise.all(ret);
 }
 
-export async function internalTriggerWOScraping() {
+export async function internalTriggerWOScraping(perpage: number = 20) {
     try {
         const validUsers = await db
             .selectFrom('auth.user as u')
@@ -126,7 +126,8 @@ export async function internalTriggerWOScraping() {
                 const newHeaders = await scrapeWOLensaHeaders(
                     existingPemakaianIds,
                     customUsername,
-                    customPassword
+                    customPassword,
+                    perpage
                 );
                 return newHeaders;
             } catch (e: unknown) {

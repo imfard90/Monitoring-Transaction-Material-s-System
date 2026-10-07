@@ -158,9 +158,9 @@ export default function MovementTable({
     });
 
     return (
-        <StaggerContainer className="space-y-4 flex flex-col flex-1 min-h-0">
+        <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
             {/* Toolbar */}
-            <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4">
+            <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4 shrink-0">
                 <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
                     <div className="relative w-full sm:w-72">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
@@ -251,12 +251,12 @@ export default function MovementTable({
             </StaggerItem>
 
             {/* Table */}
-            <StaggerItem className="flex-1 min-h-0 overflow-hidden">
+            <StaggerItem className="flex-1 md:min-h-0 md:overflow-y-auto">
                 <DataTable table={table} emptyMessage="No movements found." />
             </StaggerItem>
 
             {/* Pagination */}
-            <StaggerItem className="py-4 px-4">
+            <StaggerItem className="py-4 px-4 shrink-0">
                 <DataTablePagination table={table} />
             </StaggerItem>
         </StaggerContainer>

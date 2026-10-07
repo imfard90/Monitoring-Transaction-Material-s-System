@@ -30,7 +30,7 @@ export default async function OutLensaRefPage() {
     const { success, data, error } = await getOutLensaRefList();
 
     return (
-        <div className="flex flex-col flex-1 h-full gap-6">
+        <div className="flex flex-col flex-1 gap-6 md:h-full md:min-h-0 md:overflow-hidden">
             <div className="shrink-0">
                 <BreadcrumbComp title="Out Lensa Ref" items={BCrumb} />
             </div>
@@ -40,8 +40,6 @@ export default async function OutLensaRefPage() {
                 error={error}
                 isStaff={isStaff}
             />
-
-            <Footer />
         </div>
     );
 }

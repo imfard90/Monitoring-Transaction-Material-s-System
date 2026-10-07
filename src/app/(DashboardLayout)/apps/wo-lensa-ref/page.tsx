@@ -39,14 +39,12 @@ export default async function WOLensaRefPage() {
     }
 
     return (
-        <div className="flex flex-col flex-1 h-full gap-6">
+        <div className="flex flex-col flex-1 gap-6 md:h-full md:min-h-0 md:overflow-hidden">
             <div className="shrink-0">
                 <BreadcrumbComp title="WO Lensa Ref" items={BCrumb} />
             </div>
 
             <WOLensaRefClient initialData={initialData} error={errorMsg} isStaff={isStaff} />
-
-            <Footer />
         </div>
     );
 }

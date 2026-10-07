@@ -108,7 +108,7 @@ async function asyncPool(poolLimit: number, array: any[], iteratorFn: (item: any
     return Promise.all(ret);
 }
 
-export async function internalTriggerScraping() {
+export async function internalTriggerScraping(perpage: number = 20) {
     try {
         const users = await db
             .selectFrom('auth.user')
@@ -154,7 +154,8 @@ export async function internalTriggerScraping() {
                 const newHeaders = await scrapeLensaHeaders(
                     existingHeaderIds,
                     customUsername,
-                    customPassword
+                    customPassword,
+                    perpage
                 );
                 return newHeaders.map((h: any) => ({ ...h, scraped_by_username: customUsername }));
             } catch (e: any) {

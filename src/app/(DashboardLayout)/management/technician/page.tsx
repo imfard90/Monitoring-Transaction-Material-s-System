@@ -28,12 +28,12 @@ export default async function TechnicianManagementPage() {
     ]);
 
     return (
-        <StaggerContainer className="flex flex-col flex-1 h-full min-h-0">
+        <StaggerContainer className="flex flex-col flex-1 ">
             <StaggerItem className="shrink-0">
                 <BreadcrumbComp title="Technician Management" items={BCrumb} />
             </StaggerItem>
 
-            <StaggerItem className="bg-card rounded-lg border shadow-sm mt-4 overflow-hidden flex-1 flex flex-col">
+            <StaggerItem className="bg-card rounded-lg border shadow-sm mt-4  flex-1 flex flex-col">
                 <TechnicianTable data={technicians} branches={branches} mitras={mitras} />
             </StaggerItem>
         </StaggerContainer>

@@ -10,14 +10,14 @@ export default function Layout({
     children: React.ReactNode;
 }>) {
     return (
-        <div className="flex w-full h-screen overflow-hidden">
+        <div className="flex w-full h-[100dvh] overflow-hidden">
             <PresenceHeartbeat />
             <div className="page-wrapper flex w-full">
                 {/* Header/sidebar */}
                 <div className="xl:block hidden">
                     <Sidebar />
                 </div>
-                <div className="body-wrapper w-full bg-background flex flex-col h-screen overflow-hidden">
+                <div className="body-wrapper w-full bg-background flex flex-col h-[100dvh] overflow-hidden">
                     {/* Top Header  */}
                     <Header />
                     {/* Body Content  */}
