@@ -153,6 +153,7 @@ export default function WOLensaRefClient({
         }),
         columnHelper.accessor('formatted_date', {
             header: 'Tgl Update',
+            sortingFn: 'datetime',
             cell: (info) => {
                 const val = info.getValue();
                 if (!val) return '-';
@@ -217,6 +218,10 @@ export default function WOLensaRefClient({
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         initialState: {
+            sorting: [
+                { id: 'formatted_date', desc: true },
+                { id: 'pemakaian_id', desc: true },
+            ],
             pagination: {
                 pageSize: 12,
             },

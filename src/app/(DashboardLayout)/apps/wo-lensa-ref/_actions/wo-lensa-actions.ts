@@ -56,6 +56,7 @@ export async function getWOLensaRefList() {
         )
         .selectAll('wlh')
         .where('ruh.id_pemakaian', 'is', null)
+        .orderBy('wlh.formatted_date', 'desc')
         .orderBy(sql<number>`CAST(wlh.pemakaian_id AS BIGINT)`, 'desc');
 
     if (isStaff && whNames.length > 0) {
