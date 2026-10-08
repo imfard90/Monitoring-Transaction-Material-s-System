@@ -10,7 +10,7 @@ async function runMigration() {
 
     const migrationPath = path.join(
         process.cwd(),
-        'src/lib/db/migrations/008_add_formatted_date_to_wo_lensa.sql'
+        'src/lib/db/migrations/009_fix_inout_tag_status.sql'
     );
     const sql = fs.readFileSync(migrationPath, 'utf8');
 
