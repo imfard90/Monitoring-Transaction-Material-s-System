@@ -1,0 +1,1 @@
+ALTER TABLE inventory.wo_lensa_header ADD COLUMN formatted_date DATE;

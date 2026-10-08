@@ -1,3 +1,4 @@
+import { format, isAfter, isEqual, parse } from 'date-fns';
 import { type Browser, chromium } from 'playwright';
 import { redis } from '../src/lib/redis';
 
@@ -11,6 +12,17 @@ async function getBrowserInstance() {
         });
     }
     return globalBrowser;
+}
+
+function parseLensaDate(dateStr: string | null | undefined): Date | null {
+    if (!dateStr) return null;
+    try {
+        const parsed = parse(dateStr.split(' ')[0], 'dd/MM/yyyy', new Date());
+        if (Number.isNaN(parsed.getTime())) return null;
+        return parsed;
+    } catch (_e) {
+        return null;
+    }
 }
 
 const LENSA_URL = 'https://lensa-inventory.telkomakses.co.id';
@@ -153,7 +165,7 @@ export async function scrapeWOLensaHeaders(
     existingPemakaianIds: string[],
     customUsername?: string,
     customPassword?: string,
-    perpage: number = 20
+    perpage: number = 100
 ) {
     const username = customUsername || process.env.LENSA_USERNAME;
     const password = customPassword || process.env.LENSA_PASSWORD;
@@ -164,62 +176,94 @@ export async function scrapeWOLensaHeaders(
     try {
         const newHeaders: any[] = [];
         const seenPemakaianIds = new Set<string>(existingPemakaianIds);
+        const cutoffDate = new Date('2026-10-01');
 
-        const fetchAndProcess = async (url: string) => {
-            await safeGoto(url);
+        const fetchAndProcess = async (url: string, maxRetries = 3) => {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    await safeGoto(url);
 
-            if (page.url().includes('login')) {
-                await performLogin();
-                await safeGoto(url);
-                if (page.url().includes('login')) {
-                    throw new Error('Sesi terputus atau login gagal');
+                    if (page.url().includes('login')) {
+                        await performLogin();
+                        await safeGoto(url);
+                        if (page.url().includes('login')) {
+                            throw new Error('Sesi terputus atau login gagal');
+                        }
+                    }
+
+                    const listContent = await page.evaluate(
+                        () => document.body.innerText || document.body.textContent
+                    );
+                    let listData: Record<string, unknown> = {};
+                    try {
+                        listData = JSON.parse(listContent || '{}');
+                    } catch (_e) {
+                        throw new Error('Failed to parse JSON response');
+                    }
+
+                    const items = (listData?.data as Array<Record<string, unknown>>) || [];
+                    let foundItems = 0;
+
+                    for (const item of items) {
+                        const pemakaianId = String(item.pemakaian_id);
+                        if (!pemakaianId || pemakaianId === 'undefined') continue;
+
+                        const rawDate = item.tanggal_update?.toString() || null;
+                        const parsedDate = parseLensaDate(rawDate);
+                        const formattedDate = parsedDate ? format(parsedDate, 'yyyy-MM-dd') : null;
+
+                        if (
+                            !parsedDate ||
+                            (!isAfter(parsedDate, cutoffDate) && !isEqual(parsedDate, cutoffDate))
+                        ) {
+                            continue;
+                        }
+
+                        foundItems++;
+
+                        if (seenPemakaianIds.has(pemakaianId)) continue;
+                        seenPemakaianIds.add(pemakaianId);
+
+                        newHeaders.push({
+                            pemakaian_id: pemakaianId,
+                            gi_number: item.gi_number?.toString() || null,
+                            nama_gudang: item.nama_gudang?.toString() || null,
+                            nik_pemakai: item.nik_pemakai?.toString() || null,
+                            tanggal_update: rawDate,
+                            formatted_date: formattedDate,
+                            type: item.type?.toString() || null,
+                            wbs: item.wbs?.toString() || null,
+                            wo_number: item.wo_number?.toString() || null,
+                        });
+                    }
+                    return foundItems > 0; // Return true if we found items to process
+                } catch (_error) {
+                    if (attempt === maxRetries) {
+                        console.error(`Max retries reached for ${url}. Giving up.`);
+                        return false;
+                    }
+                    await new Promise((resolve) => setTimeout(resolve, 2000));
                 }
             }
-
-            const listContent = await page.evaluate(
-                () => document.body.innerText || document.body.textContent
-            );
-            let listData: Record<string, unknown> = {};
-            try {
-                listData = JSON.parse(listContent || '{}');
-            } catch (_e) {}
-
-            const items = (listData?.data as Array<Record<string, unknown>>) || [];
-
-            for (const item of items) {
-                const pemakaianId = String(item.pemakaian_id);
-                if (!pemakaianId || pemakaianId === 'undefined') continue;
-
-                const lensaLastId = process.env.LENSA_LAST_ID
-                    ? parseInt(process.env.LENSA_LAST_ID, 10)
-                    : 0;
-                if (parseInt(pemakaianId, 10) <= lensaLastId) continue;
-
-                if (seenPemakaianIds.has(pemakaianId)) continue;
-                seenPemakaianIds.add(pemakaianId);
-
-                newHeaders.push({
-                    pemakaian_id: pemakaianId,
-                    gi_number: item.gi_number?.toString() || null,
-                    nama_gudang: item.nama_gudang?.toString() || null,
-                    nik_pemakai: item.nik_pemakai?.toString() || null,
-                    tanggal_update: item.tanggal_update?.toString() || null,
-                    type: item.type?.toString() || null,
-                    wbs: item.wbs?.toString() || null,
-                    wo_number: item.wo_number?.toString() || null,
-                });
-            }
+            return false;
         };
 
         // Step 1: Run original query
-        const originalUrl = `https://lensa-inventory.telkomakses.co.id/teknisi/wo-data?page=1&perpage=${perpage}&search=&orderBy=gi_number&orderDirection=desc`;
+        const originalUrl = `${LENSA_URL}/teknisi/wo-data?page=1&perpage=${perpage}&search=&orderBy=gi_number&orderDirection=desc`;
         await fetchAndProcess(originalUrl);
 
         // Step 2: Run prefix loop
         const prefixes = ['DGPS', 'SC', 'INC', 'LP', 'WO', 'FMC'];
+        const maxPages = 10;
+
         for (const prefix of prefixes) {
-            const prefixUrl = `https://lensa-inventory.telkomakses.co.id/teknisi/wo-data?page=1&perpage=${perpage}&search=${prefix}`;
-            await fetchAndProcess(prefixUrl);
+            for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+                const prefixUrl = `${LENSA_URL}/teknisi/wo-data?page=${pageNum}&perpage=${perpage}&search=${prefix}&orderDirection=desc`;
+                const hasItems = await fetchAndProcess(prefixUrl);
+                if (!hasItems) {
+                    break;
+                }
+            }
         }
 
         return newHeaders;

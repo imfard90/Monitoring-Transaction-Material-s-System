@@ -7,6 +7,7 @@ import {
     getSortedRowModel,
     useReactTable,
 } from '@tanstack/react-table';
+import { format, parseISO } from 'date-fns';
 import { Eye, Play } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -35,6 +36,7 @@ export interface WOLensaHeader {
     id: number | string;
     pemakaian_id: string | null;
     tanggal_update: string | null;
+    formatted_date: string | null;
     type: string | null;
     wo_number: string | null;
     nik_pemakai: string | null;
@@ -149,9 +151,17 @@ export default function WOLensaRefClient({
             header: 'Pemakaian ID',
             cell: (info) => info.getValue(),
         }),
-        columnHelper.accessor('tanggal_update', {
+        columnHelper.accessor('formatted_date', {
             header: 'Tgl Update',
-            cell: (info) => info.getValue() || '-',
+            cell: (info) => {
+                const val = info.getValue();
+                if (!val) return '-';
+                try {
+                    return format(new Date(val), 'dd/MM/yyyy');
+                } catch (e) {
+                    return val;
+                }
+            },
         }),
         columnHelper.accessor('type', {
             header: 'Type',

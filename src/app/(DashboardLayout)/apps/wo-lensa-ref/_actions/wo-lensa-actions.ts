@@ -163,6 +163,7 @@ export async function internalTriggerWOScraping(perpage: number = 20) {
                             nama_gudang: h.nama_gudang,
                             nik_pemakai: h.nik_pemakai,
                             tanggal_update: h.tanggal_update,
+                            formatted_date: h.formatted_date,
                             type: h.type,
                             wbs: h.wbs,
                             wo_number: h.wo_number,
