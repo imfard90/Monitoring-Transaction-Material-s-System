@@ -45,7 +45,7 @@ export async function register() {
                 console.log(
                     `[CRON] Out Lensa Scraper finished. Starting WO Lensa Scraper with perpage=${perpage}...`
                 );
-                await internalTriggerWOScraping(perpage);
+                await internalTriggerWOScraping(perpage, true);
                 console.log('[CRON] WO Lensa Scraper finished.');
             } catch (error) {
                 console.error('[CRON] Error running scrapers:', error);

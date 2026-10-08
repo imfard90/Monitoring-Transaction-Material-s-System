@@ -91,7 +91,7 @@ async function asyncPool<T, R>(
     return Promise.all(ret);
 }
 
-export async function internalTriggerWOScraping(perpage: number = 20) {
+export async function internalTriggerWOScraping(perpage: number = 20, fullLoop: boolean = false) {
     try {
         const validUsers = await db
             .selectFrom('auth.user as u')
@@ -133,7 +133,8 @@ export async function internalTriggerWOScraping(perpage: number = 20) {
                     existingPemakaianIds,
                     customUsername,
                     customPassword,
-                    perpage
+                    perpage,
+                    fullLoop
                 );
                 return newHeaders;
             } catch (e: unknown) {
@@ -302,7 +303,7 @@ export async function triggerWOScraping(): Promise<
 
     Promise.resolve().then(async () => {
         try {
-            const result = await internalTriggerWOScraping();
+            const result = await internalTriggerWOScraping(100, true);
             if (result.success) {
                 await redis.set(
                     `job:${jobId}`,

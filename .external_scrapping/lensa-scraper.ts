@@ -165,7 +165,8 @@ export async function scrapeWOLensaHeaders(
     existingPemakaianIds: string[],
     customUsername?: string,
     customPassword?: string,
-    perpage: number = 100
+    perpage: number = 100,
+    fullLoop: boolean = false
 ) {
     const username = customUsername || process.env.LENSA_USERNAME;
     const password = customPassword || process.env.LENSA_PASSWORD;
@@ -252,16 +253,18 @@ export async function scrapeWOLensaHeaders(
         const originalUrl = `${LENSA_URL}/teknisi/wo-data?page=1&perpage=${perpage}&search=&orderBy=gi_number&orderDirection=desc`;
         await fetchAndProcess(originalUrl);
 
-        // Step 2: Run prefix loop
-        const prefixes = ['DGPS', 'SC', 'INC', 'LP', 'WO', 'FMC'];
-        const maxPages = 10;
+        // Step 2: Run prefix loop if requested
+        if (fullLoop) {
+            const prefixes = ['SC', 'INC', 'LP', 'WO', 'FMC'];
+            const maxPages = 100; // Safe high limit, will break when empty
 
-        for (const prefix of prefixes) {
-            for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-                const prefixUrl = `${LENSA_URL}/teknisi/wo-data?page=${pageNum}&perpage=${perpage}&search=${prefix}&orderDirection=desc`;
-                const hasItems = await fetchAndProcess(prefixUrl);
-                if (!hasItems) {
-                    break;
+            for (const prefix of prefixes) {
+                for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+                    const prefixUrl = `${LENSA_URL}/teknisi/wo-data?page=${pageNum}&perpage=${perpage}&search=${prefix}&orderBy=tanggal_update&orderDirection=desc`;
+                    const hasItems = await fetchAndProcess(prefixUrl);
+                    if (!hasItems) {
+                        break;
+                    }
                 }
             }
         }
