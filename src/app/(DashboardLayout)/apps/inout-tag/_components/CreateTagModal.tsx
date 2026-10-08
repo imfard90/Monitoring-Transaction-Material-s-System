@@ -94,6 +94,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
     const createMutation = useMutation({
         mutationFn: async () => {
             if (!fromWhId || !toWhId) throw new Error('From WH and To WH are required');
+            if (fromWhId === toWhId) throw new Error('From WH and To WH cannot be the same');
             if (items.length === 0) throw new Error('At least one material is required');
             if (items.some((i) => !i.designator_id || Number(i.qty) <= 0))
                 throw new Error('All materials must be selected and have quantity > 0');

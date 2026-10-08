@@ -6,22 +6,27 @@ import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
-const createTagSchema = z.object({
-    fromWhId: z.number().int().positive(),
-    toWhId: z.number().int().positive(),
-    requestId: z.string().optional().nullable(),
-    vendorName: z.string().optional().nullable(),
-    cost: z.number().nonnegative(),
-    items: z
-        .array(
-            z.object({
-                designator_id: z.number().int().positive(),
-                qty: z.number().positive(),
-            })
-        )
-        .min(1),
-    idemKey: z.string().min(1),
-});
+const createTagSchema = z
+    .object({
+        fromWhId: z.number().int().positive(),
+        toWhId: z.number().int().positive(),
+        requestId: z.string().optional().nullable(),
+        vendorName: z.string().optional().nullable(),
+        cost: z.number().nonnegative(),
+        items: z
+            .array(
+                z.object({
+                    designator_id: z.number().int().positive(),
+                    qty: z.number().positive(),
+                })
+            )
+            .min(1),
+        idemKey: z.string().min(1),
+    })
+    .refine((data) => data.fromWhId !== data.toWhId, {
+        message: 'From WH and To WH cannot be the same',
+        path: ['toWhId'],
+    });
 
 const updateTagSchema = z.object({
     headerId: z.number().int().positive(),

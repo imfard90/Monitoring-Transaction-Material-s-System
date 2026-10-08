@@ -190,6 +190,11 @@ export async function scrapeWOLensaHeaders(
                 const pemakaianId = String(item.pemakaian_id);
                 if (!pemakaianId || pemakaianId === 'undefined') continue;
 
+                const lensaLastId = process.env.LENSA_LAST_ID
+                    ? parseInt(process.env.LENSA_LAST_ID, 10)
+                    : 0;
+                if (parseInt(pemakaianId, 10) <= lensaLastId) continue;
+
                 if (seenPemakaianIds.has(pemakaianId)) continue;
                 seenPemakaianIds.add(pemakaianId);
 

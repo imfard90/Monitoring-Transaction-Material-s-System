@@ -1,9 +1,9 @@
 'use server';
 
 import crypto from 'node:crypto';
+import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth-server';
-import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
 import { redis } from '@/lib/redis';
 import {
@@ -50,12 +50,16 @@ export async function getWOLensaRefList() {
     }
 
     let query = db
-        .selectFrom('inventory.wo_lensa_header')
-        .selectAll()
-        .orderBy(sql<number>`CAST(pemakaian_id AS BIGINT)`, 'desc');
+        .selectFrom('inventory.wo_lensa_header as wlh')
+        .leftJoin('inventory.rekon_used_header as ruh', (join) =>
+            join.onRef('ruh.id_pemakaian', '=', sql`CAST(wlh.pemakaian_id AS VARCHAR)`)
+        )
+        .selectAll('wlh')
+        .where('ruh.id_pemakaian', 'is', null)
+        .orderBy(sql<number>`CAST(wlh.pemakaian_id AS BIGINT)`, 'desc');
 
     if (isStaff && whNames.length > 0) {
-        query = query.where('nama_gudang', 'in', whNames);
+        query = query.where('wlh.nama_gudang', 'in', whNames);
     }
 
     const list = await query.execute();
