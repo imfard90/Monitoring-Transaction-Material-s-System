@@ -1,0 +1,19 @@
+{
+  "_comment": "DefectDojo CI/CD Engagement Template. Replace placeholder values before use. Remove this _comment field.",
+  "name": "CI/CD Security Scan",
+  "description": "Automated security scanning engagement for continuous integration pipeline",
+  "product": 1,
+  "target_start": "2026-01-01",
+  "target_end": "2026-12-31",
+  "engagement_type": "CI/CD",
+  "status": "In Progress",
+  "deduplication_on_engagement": false,
+  "build_id": "",
+  "commit_hash": "",
+  "branch_tag": "main",
+  "source_code_management_uri": "https://github.com/your-org/your-repo",
+  "build_server": null,
+  "source_code_management_server": null,
+  "orchestration_engine": null,
+  "tags": ["ci-cd", "automated"]
+}

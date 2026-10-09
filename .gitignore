@@ -67,14 +67,20 @@ next-env.d.ts
 # --------------------------------------------------
 .kilo/
 .cursor/
-.claude/
-.gemini/
-.prompt/
-.agents/
-.roo/
-.roomodes
-AGENTS.md
-bispro.md
+
+# Cline AI agent configuration (COMMIT THESE for team collaboration)
+# .cline/rules/       - Coding standards
+# .cline/workflows/   - Slash commands
+# .agents/            - Skills library
+# CLINE.md            - Main documentation
+# MIGRATION.md        - Migration guide
+# bispro.md           - Business process (MANDATORY)
+
+# Ignore Cline local/session data
+.cline/data/
+
+# Archive of old configurations (backed up)
+.archive/
 
 # --------------------------------------------------
 # Deployment
