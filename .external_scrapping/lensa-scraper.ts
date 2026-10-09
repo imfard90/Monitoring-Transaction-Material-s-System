@@ -25,7 +25,7 @@ function parseLensaDate(dateStr: string | null | undefined): Date | null {
     }
 }
 
-const LENSA_URL = 'https://lensa-inventory.telkomakses.co.id';
+const LENSA_URL = process.env.LENSA_URL; //'https://lensa-inventory.telkomakses.co.id';
 const SESSION_TTL = 60 * 60 * 2;
 
 export async function setupContext(username: string, password: string) {
