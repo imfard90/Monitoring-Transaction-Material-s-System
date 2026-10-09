@@ -1,40 +1,82 @@
 ---
-description: "Scaffold a new MTMS dashboard page and wire it into the sidebar"
+description: "Scaffold full CRUD page with production-ready boilerplate"
 argument-hint: "<page-name> [description]"
 ---
 
-# New Page Workflow
+# New Page Workflow (Full CRUD)
 
-> Loads `mtms-create-page` skill automatically. Follow its workflow exactly.
+> **Generates:** Complete production-ready page with all MTMS conventions
 
-1. Parse arguments:
-   - First word = page slug (kebab-case), e.g. `stock-report`
-   - Remaining words = brief description of the page purpose
+## Parse Arguments
 
-2. Load `mtms-create-page` skill — it defines the exact file structure and sidebar wiring steps for MTMS.
+- **First word:** page slug (kebab-case), e.g. `material-request`
+- **Remaining words:** brief description, e.g. "Material request management"
 
-3. Before creating any files, read `bispro.md` if the page involves:
-   - Inventory, stock, transactions, materials, warehouse, or technician data
+## Pre-Generation Checks
 
-4. Check existing shared components BEFORE building custom UI:
-   - `src/app/components/shared/DataTable.tsx`
-   - `src/app/components/shared/DataTablePagination.tsx`
-   - `src/app/components/shared/DateRangePicker.tsx`
-   - `src/app/components/shared/StatusBadge.tsx`
-   - `src/app/components/shared/ModalDialog.tsx`
-   - `src/app/components/shared/ConfirmDialog.tsx`
-   - `src/app/components/shared/SearchableSelect.tsx`
+### 1. Business Rules Check
 
-5. Scaffold the page following MTMS conventions:
-   - Route: `src/app/(DashboardLayout)/apps/<page-slug>/page.tsx`
-   - Server Action: `src/app/(DashboardLayout)/apps/<page-slug>/_actions/<page-slug>-actions.ts`
-   - Components: `src/app/(DashboardLayout)/apps/<page-slug>/_components/`
-   - Use Server Actions (not TanStack Query) unless the page needs real-time polling or infinite scroll
+**If page involves:**
+- `stock`, `inventory`, `warehouse`, `transaction`, `material`, `technician`
 
-6. Wire sidebar: add entry to `src/app/(DashboardLayout)/layout/sidebar/sidebaritems.ts`
+**Then:** Read relevant sections from `bispro.md`.
 
-7. Run quality checks:
-   ```bash
-   pnpm tsc --noEmit
-   pnpm dlx @biomejs/biome check --write .
-   ```
+### 2. Reusable Components Check
+
+**Always check BEFORE generating custom UI:**
+- DataTable, DateRangePicker, StatusBadge
+- ModalDialog, ConfirmDialog, SearchableSelect
+- EmptyState, LoadingSkeleton, ErrorBoundary
+
+## Generated Structure
+
+```
+src/app/(DashboardLayout)/apps/<page-name>/
+├── page.tsx                    # Server Component
+├── _actions/
+│   ├── <page>-actions.ts       # CRUD operations
+│   └── bulk-actions.ts         # Bulk operations
+├── _components/
+│   ├── <Page>Table.tsx         # Data table
+│   ├── <Page>Form.tsx          # Create/Edit form
+│   ├── <Page>Filters.tsx       # Filter bar
+│   └── <Page>Actions.tsx       # Bulk actions
+├── _types/
+│   └── <page>.types.ts         # TypeScript types
+└── _lib/
+    ├── schema.ts               # Zod validation
+    ├── columns.tsx             # Table columns
+    └── utils.ts                # Utilities
+```
+
+## Wire Sidebar
+
+Add entry to `src/app/(DashboardLayout)/layout/sidebar/sidebaritems.ts`
+
+## Run Quality Checks
+
+```bash
+# Incremental type check
+pnpm tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc-hook.tsbuildinfo
+
+# Lint + format
+pnpm dlx @biomejs/biome check --write .
+```
+
+## Summary Report
+
+```
+✅ New Page Created: [Page Name]
+
+📁 Generated Files: 9-12 files
+🔗 Sidebar: Wired
+✓ TypeScript: 0 errors
+✓ Biome: 0 issues
+✓ Reused: DataTable, StatusBadge, etc.
+
+🚀 Page ready at: /apps/<page>
+```
+
+## Performance Target
+
+**Full CRUD generation:** < 60 seconds
