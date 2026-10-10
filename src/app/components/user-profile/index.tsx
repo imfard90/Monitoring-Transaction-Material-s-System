@@ -327,7 +327,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                         <Icon icon="lucide:check-circle" width="20" />
                                         <span>Lensa Inventory Connected</span>
                                     </div>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    <p className="text-sm text-muted-foreground">
                                         Username: {String(profileData.lensa_acount.username)}
                                     </p>
                                     <div className="flex items-center gap-2 mt-2">
@@ -361,7 +361,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                         <Icon icon="lucide:alert-circle" width="20" />
                                         <span>Not Connected</span>
                                     </div>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    <p className="text-sm text-muted-foreground">
                                         Hubungkan akun Lensa kamu agar sistem dapat mengambil detail
                                         reservasi secara otomatis.
                                     </p>
@@ -384,7 +384,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                 onClose={() => setIsLensaDialogOpen(false)}
                 title="Lensa Inventory Account"
             >
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                     Masukkan kredensial akun Lensa Inventory kamu. Password akan dienkripsi secara
                     aman.
                 </p>

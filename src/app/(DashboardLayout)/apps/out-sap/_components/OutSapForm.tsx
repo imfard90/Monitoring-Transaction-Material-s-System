@@ -482,7 +482,7 @@ export default function OutSapForm() {
                             </div>
 
                             {items.length === 0 ? (
-                                <div className="text-center p-8 border border-dashed rounded-md text-gray-500 bg-gray-50/50">
+                                <div className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50" role="status">
                                     No items added. Click Add Item to start adding materials.
                                 </div>
                             ) : (
@@ -528,8 +528,8 @@ export default function OutSapForm() {
                                                     transition={{ duration: 0.3 }}
                                                     className={`flex flex-col sm:flex-row sm:items-end gap-3 p-4 border rounded-md transition-colors ${
                                                         isError && !isFetchingMaterials
-                                                            ? 'bg-red-50 border-red-300'
-                                                            : 'bg-gray-50/50'
+                                                            ? 'bg-error/10 border-error/50'
+                                                            : 'bg-muted/50'
                                                     }`}
                                                 >
                                                     <div className="flex-1 space-y-2">

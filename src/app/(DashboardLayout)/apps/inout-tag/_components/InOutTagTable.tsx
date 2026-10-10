@@ -175,10 +175,10 @@ export default function InOutTagTable({
                             placeholder="Search request, send, accept id..."
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
-                            className="pl-9 bg-white"
+                            className="pl-9 bg-background"
                         />
                         <Search
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                             size={16}
                         />
                     </div>
@@ -259,9 +259,9 @@ export default function InOutTagTable({
                                         variant="outline"
                                         size="icon"
                                         onClick={onClearFilters}
-                                        className="bg-white ml-auto"
+                                        className="bg-background ml-auto"
                                     >
-                                        <FilterX className="h-4 w-4 text-gray-500" />
+                                        <FilterX className="h-4 w-4 text-muted-foreground" />
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>

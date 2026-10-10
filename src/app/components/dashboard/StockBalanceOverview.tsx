@@ -110,10 +110,10 @@ export default function StockBalanceOverview() {
                 <CardBox className="flex flex-col flex-1 min-h-0 p-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-4">
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900">
+                            <h2 className="text-lg font-bold text-foreground">
                                 Real-time Stock Balance
                             </h2>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-muted-foreground">
                                 Monitoring material stock per warehouse
                             </p>
                         </div>
@@ -126,7 +126,7 @@ export default function StockBalanceOverview() {
                                     className="pl-9"
                                 />
                                 <Search
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                                     size={16}
                                 />
                             </div>

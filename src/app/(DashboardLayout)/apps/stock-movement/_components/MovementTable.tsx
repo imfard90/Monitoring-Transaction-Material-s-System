@@ -223,7 +223,7 @@ export default function MovementTable({
                                 <DropdownMenuTrigger asChild>
                                     <Button
                                         variant="outline"
-                                        className="w-full justify-between bg-white font-normal"
+                                        className="w-full justify-between bg-background font-normal"
                                     >
                                         {typeFilter && typeFilter.length > 0
                                             ? `${typeFilter.length} Type${typeFilter.length > 1 ? 's' : ''} selected`
@@ -269,9 +269,9 @@ export default function MovementTable({
                                     variant="outline"
                                     size="icon"
                                     onClick={onClearFilters}
-                                    className="bg-white ml-auto"
+                                    className="bg-background ml-auto"
                                 >
-                                    <FilterX className="h-4 w-4 text-gray-500" />
+                                    <FilterX className="h-4 w-4 text-muted-foreground" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>

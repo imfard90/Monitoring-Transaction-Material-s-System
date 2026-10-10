@@ -213,17 +213,17 @@ export default function UpdateTagModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-4">
                 <div className="space-y-4">
                     <div className="space-y-1">
-                        <p className="text-sm text-gray-500">Transaction ID</p>
+                        <p className="text-sm text-muted-foreground">Transaction ID</p>
                         <p className="font-medium">{row.id_trx}</p>
                     </div>
                     <div className="space-y-1">
-                        <p className="text-sm text-gray-500">Warehouse</p>
+                        <p className="text-sm text-muted-foreground">Warehouse</p>
                         <p className="font-medium">
                             {row.from_wh_name} ➔ {row.to_wh_name}
                         </p>
                     </div>
                     <div className="space-y-1">
-                        <p className="text-sm text-gray-500">Current Status</p>
+                        <p className="text-sm text-muted-foreground">Current Status</p>
                         <Badge variant="outline">{row.end_status}</Badge>
                     </div>
                 </div>

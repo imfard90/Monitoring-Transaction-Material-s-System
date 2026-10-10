@@ -63,7 +63,7 @@ export const StockIntechOverview = () => {
         }),
         columnHelper.accessor('wh_name', {
             header: 'Warehouse',
-            cell: (info) => <span className="text-gray-500">{info.getValue() || '-'}</span>,
+            cell: (info) => <span className="text-muted-foreground">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('nik', {
             header: 'NIK',
@@ -111,11 +111,11 @@ export const StockIntechOverview = () => {
                         </div>
                         <div className="flex items-center gap-3 w-full sm:w-auto">
                             <div className="relative w-full sm:w-64">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type="search"
                                     placeholder="Cari NIK/Teknisi/Material..."
-                                    className="pl-9 bg-white"
+                                    className="pl-9 bg-background"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />

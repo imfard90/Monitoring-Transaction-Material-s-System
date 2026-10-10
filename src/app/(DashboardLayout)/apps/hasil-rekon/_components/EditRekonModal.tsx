@@ -204,13 +204,13 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
                             return (
                                 <div
                                     key={field.id}
-                                    className="flex items-start gap-4 p-4 border rounded-lg bg-gray-50"
+                                    className="flex items-start gap-4 p-4 border rounded-lg bg-muted/50"
                                 >
                                     <div className="flex-1 space-y-2">
                                         <div className="font-medium text-sm">
                                             {field.material_code} - {field.material_name}
                                         </div>
-                                        <div className="text-xs text-gray-500">
+                                        <div className="text-xs text-muted-foreground">
                                             Maksimal Qty: {field.max_qty}
                                         </div>
                                     </div>

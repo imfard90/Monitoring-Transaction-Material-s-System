@@ -78,7 +78,7 @@ export default function UserTable({ data }: UserTableProps) {
                 return (
                     <div className="flex items-center gap-2">
                         <div
-                            className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-gray-300 dark:bg-gray-600'}`}
+                            className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-success shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-muted-foreground/30'}`}
                             title={isOnline ? 'Online' : 'Offline'}
                         />
                         <span className="font-medium">{info.getValue() || '-'}</span>
@@ -99,7 +99,7 @@ export default function UserTable({ data }: UserTableProps) {
             cell: (info) => (
                 <Badge
                     variant="outline"
-                    className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                    className="bg-muted text-foreground"
                 >
                     {info.getValue() || 'Unknown'}
                 </Badge>

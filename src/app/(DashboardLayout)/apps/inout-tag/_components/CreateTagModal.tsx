@@ -259,7 +259,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                                     <TooltipTrigger asChild>
                                         <HelpCircle
                                             size={14}
-                                            className="text-gray-400 cursor-help"
+                                            className="text-muted-foreground cursor-help"
                                         />
                                     </TooltipTrigger>
                                     <TooltipContent>
@@ -426,7 +426,7 @@ function MaterialRow({
                 </Popover>
             </TableCell>
             <TableCell
-                className="text-sm text-gray-600 truncate max-w-[200px]"
+                className="text-sm text-muted-foreground truncate max-w-[200px]"
                 title={selectedMat?.description || '-'}
             >
                 {selectedMat?.description || '-'}

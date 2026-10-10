@@ -231,9 +231,9 @@ export default function OutMaterialTable({
                                     variant="outline"
                                     size="icon"
                                     onClick={onClearFilters}
-                                    className="bg-white ml-auto"
+                                    className="bg-background ml-auto"
                                 >
-                                    <FilterX className="h-4 w-4 text-gray-500" />
+                                    <FilterX className="h-4 w-4 text-muted-foreground" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>

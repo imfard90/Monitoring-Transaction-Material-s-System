@@ -129,7 +129,7 @@ export default function HasilRekonTable({
         columnHelper.accessor('material_name', {
             header: 'Description',
             cell: (info) => (
-                <div className="min-w-[150px] max-w-[180px] whitespace-normal break-words text-sm text-gray-500">
+                <div className="min-w-[150px] max-w-[180px] whitespace-normal break-words text-sm text-muted-foreground">
                     {info.getValue() || '-'}
                 </div>
             ),
@@ -137,7 +137,7 @@ export default function HasilRekonTable({
         columnHelper.accessor('qty', {
             header: () => <div className="text-right whitespace-nowrap">Qty</div>,
             cell: (info) => (
-                <div className="text-right whitespace-nowrap text-sm font-bold text-gray-900">
+                <div className="text-right whitespace-nowrap text-sm font-bold text-foreground">
                     {info.getValue() || 0}
                 </div>
             ),
@@ -202,11 +202,11 @@ export default function HasilRekonTable({
             <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4 shrink-0">
                 <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
                     <div className="relative w-full sm:w-72">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="search"
                             placeholder="Search TRX, SAP, NIK, or WO..."
-                            className="pl-9 bg-white"
+                            className="pl-9 bg-background"
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
                         />
@@ -274,9 +274,9 @@ export default function HasilRekonTable({
                                     variant="outline"
                                     size="icon"
                                     onClick={onClearFilters}
-                                    className="bg-white ml-auto"
+                                    className="bg-background ml-auto"
                                 >
-                                    <FilterX className="h-4 w-4 text-gray-500" />
+                                    <FilterX className="h-4 w-4 text-muted-foreground" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>

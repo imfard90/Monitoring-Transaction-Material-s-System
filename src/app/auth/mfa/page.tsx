@@ -70,7 +70,7 @@ export default function MFAPage({ mode = 'verify', onSuccess }: MFAPageProps) {
                     {mode === 'setup' && qrCode && (
                         <div className="mb-6">
                             <div className="flex justify-center mb-4">
-                                <div className="bg-white p-4 rounded-lg border">
+                                <div className="bg-background p-4 rounded-lg border">
                                     <Image
                                         src={qrCode}
                                         alt="QR Code MFA"
