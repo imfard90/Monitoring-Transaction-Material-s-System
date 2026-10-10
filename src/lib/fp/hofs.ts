@@ -57,7 +57,8 @@ export const withAuthAndValidation =
     };
 
 /**
- * Wraps a handler with try-catch error handling
+ * Wraps a handler with error handling (returns Result type)
+ * Logs errors to console in development, suppresses in production
  */
 export const withErrorHandling =
     <T extends unknown[], R>(handler: (...args: T) => Promise<R>) =>
@@ -73,21 +74,22 @@ export const withErrorHandling =
     };
 
 /**
- * Wraps a handler with logging
+ * Wraps a handler with logging (production-safe, no sensitive data)
  */
 export const withLogging =
     <T extends unknown[], R>(name: string, handler: (...args: T) => Promise<R>) =>
     async (...args: T): Promise<R> => {
         const start = Date.now();
-        console.log(`[${name}] Starting with args:`, args.length);
         try {
             const result = await handler(...args);
-            const duration = Date.now() - start;
-            console.log(`[${name}] Completed in ${duration}ms`);
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`[${name}] Completed in ${Date.now() - start}ms`);
+            }
             return result;
         } catch (error) {
-            const duration = Date.now() - start;
-            console.error(`[${name}] Failed after ${duration}ms:`, error);
+            if (process.env.NODE_ENV === 'development') {
+                console.error(`[${name}] Failed after ${Date.now() - start}ms`);
+            }
             throw error;
         }
     };
