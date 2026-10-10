@@ -266,6 +266,13 @@ export async function submitRekonLensa(
                             ${createdBy},
                             ${materialsJsonWithCode}::json
                         )`.execute(trx);
+
+                        // Flag: mark this WO as reconciled in wo_lensa_header
+                        await trx
+                            .updateTable('inventory.wo_lensa_header')
+                            .set({ rekon_check: true })
+                            .where(sql`CAST(pemakaian_id AS VARCHAR)`, '=', pemakaianId)
+                            .execute();
                     }
                 });
 

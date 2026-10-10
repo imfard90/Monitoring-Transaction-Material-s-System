@@ -43,6 +43,7 @@ export interface WOLensaHeader {
     nama_gudang: string | null;
     gi_number: string | null;
     wbs: string | null;
+    rekon_check: boolean | null;
 }
 
 export interface WOLensaDetail {
@@ -195,6 +196,20 @@ export default function WOLensaRefClient({
         columnHelper.accessor('wbs', {
             header: 'WBS',
             cell: (info) => info.getValue() || '-',
+        }),
+        columnHelper.accessor('rekon_check', {
+            header: 'Rekon',
+            cell: (info) => {
+                const val = info.getValue();
+                if (val === true) {
+                    return (
+                        <Badge variant="default" className="bg-green-600">
+                            Sudah
+                        </Badge>
+                    );
+                }
+                return <Badge variant="secondary">Belum</Badge>;
+            },
         }),
         columnHelper.display({
             id: 'actions',

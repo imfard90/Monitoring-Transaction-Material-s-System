@@ -49,6 +49,15 @@ export async function getWOLensaRefList() {
         return [];
     }
 
+    // Auto-update rekon_check: flag WO entries that have been submitted to rekon_used_header
+    await sql`
+        UPDATE inventory.wo_lensa_header wlh
+        SET rekon_check = TRUE
+        FROM inventory.rekon_used_header ruh
+        WHERE CAST(wlh.pemakaian_id AS VARCHAR) = ruh.id_pemakaian
+          AND (wlh.rekon_check IS FALSE OR wlh.rekon_check IS NULL)
+    `.execute(db);
+
     let query = db
         .selectFrom('inventory.wo_lensa_header as wlh')
         .leftJoin('inventory.rekon_used_header as ruh', (join) =>

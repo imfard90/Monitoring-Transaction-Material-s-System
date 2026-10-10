@@ -1047,6 +1047,7 @@ export interface inventory_wo_lensa_header {
     wo_number: string | null;
     created_at: Generated<Timestamp | null>;
     formatted_date: ColumnType<Date | string, string | undefined, string | undefined> | null;
+    rekon_check: boolean | null;
 }
 
 export interface inventory_wo_lensa_list {
