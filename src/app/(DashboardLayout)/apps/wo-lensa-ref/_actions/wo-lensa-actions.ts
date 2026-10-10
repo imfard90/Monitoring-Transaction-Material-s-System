@@ -60,11 +60,7 @@ export async function getWOLensaRefList() {
 
     let query = db
         .selectFrom('inventory.wo_lensa_header as wlh')
-        .leftJoin('inventory.rekon_used_header as ruh', (join) =>
-            join.onRef('ruh.id_pemakaian', '=', sql`CAST(wlh.pemakaian_id AS VARCHAR)`)
-        )
         .selectAll('wlh')
-        .where('ruh.id_pemakaian', 'is', null)
         .orderBy('wlh.formatted_date', 'desc')
         .orderBy(sql<number>`CAST(wlh.pemakaian_id AS BIGINT)`, 'desc');
 
