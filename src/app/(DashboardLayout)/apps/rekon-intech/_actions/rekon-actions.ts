@@ -122,6 +122,23 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
             idemKey,
             { nik, items },
             async (data) => {
+                // Prevent a WO already managed by Rekon Lensa from being reconciled via Intech.
+                const woNumber = data.items[0].wo_number;
+                const lensaWo = await db
+                    .selectFrom('inventory.wo_lensa_header')
+                    .select('rekon_check')
+                    .where('wo_number', 'like', `%${woNumber}%`)
+                    .executeTakeFirst();
+
+                if (lensaWo) {
+                    if (lensaWo.rekon_check === true) {
+                        throw new Error(`WO ${woNumber} sudah direkon melalui Rekon Lensa.`);
+                    }
+                    throw new Error(
+                        `WO ${woNumber} terdaftar di WO Lensa Ref. Silakan gunakan Rekon Lensa.`
+                    );
+                }
+
                 // Validate WO number uniqueness
                 const woNumbers = Array.from(new Set(data.items.map((item) => item.wo_number)));
                 if (woNumbers.length > 0) {

@@ -425,6 +425,10 @@ export default function RekonIntechForm() {
                     loading={loading}
                 >
                     <div className="space-y-4">
+                        <p className="rounded-md border border-amber-300 bg-amber-50 p-4 text-lg font-semibold leading-relaxed text-amber-950">
+                            Apakah anda melakukan rekon manual!!, pastikan WO tersebut tidak di
+                            update menggunakan Lensa
+                        </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
                             <div>
                                 <span className="text-gray-500 block mb-1">Teknisi:</span>
