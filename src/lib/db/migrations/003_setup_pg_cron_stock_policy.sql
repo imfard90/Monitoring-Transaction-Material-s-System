@@ -1,7 +1,12 @@
 -- Migration: Setup pg_cron for nightly stock policy recalculation
+--
+-- Prerequisite: postgresql.conf must have:
+--   shared_preload_libraries = 'pg_cron'
+-- The extension creation will fail if pg_cron is not preloaded.
+-- If your environment does not support pg_cron, this migration will fail;
+-- run the post-deploy script `scripts/post-deploy/003_schedule_pg_cron.sql`
+-- manually after confirming pg_cron is available.
 
--- Note: This requires the pg_cron extension to be enabled in postgresql.conf
--- (shared_preload_libraries = 'pg_cron')
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
 CREATE OR REPLACE PROCEDURE inventory.sp_calculate_stock_policy_nightly()
@@ -17,6 +22,7 @@ BEGIN
 END;
 $$;
 
--- Menjadwalkan cron job untuk jam 01:00 pagi (Waktu server DB)
--- Format cron: '0 1 * * *' (menit 0, jam 1 setiap hari)
-SELECT cron.schedule('calculate_stock_policy_nightly', '0 1 * * *', 'CALL inventory.sp_calculate_stock_policy_nightly()');
+-- NOTE: The cron.schedule() call has been moved to a separate post-deploy
+-- script (scripts/post-deploy/003_schedule_pg_cron.sql) so that migration
+-- does not fail in environments where pg_cron is unavailable.
+-- Run that script manually after confirming pg_cron is active.

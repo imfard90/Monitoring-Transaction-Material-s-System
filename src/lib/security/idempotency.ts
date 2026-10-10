@@ -11,6 +11,7 @@
  */
 
 import { redis } from '@/lib/redis';
+import { securityLogger } from '@/lib/logger';
 
 // ============================================
 // Types
@@ -71,7 +72,7 @@ export async function checkIdempotency<T = unknown>(
             }
         }
     } catch (e) {
-        console.warn('[Idempotency] Redis unavailable or error, skipping check', e);
+        securityLogger.warn('[Idempotency] Redis unavailable or error, skipping check', { error: String(e) });
     }
 
     return { isDuplicate: false, cachedResult: null };
@@ -90,13 +91,12 @@ export async function storeIdempotencyResult<T = unknown>(
         const redisKey = `${config.prefix}:${key}`;
         await redis.set(redisKey, JSON.stringify(result), 'EX', config.ttl);
 
-        // biome-ignore lint/suspicious/noConsole: needed for security logs
-        console.debug(`[Idempotency] Result stored`, {
+        securityLogger.debug(`[Idempotency] Result stored`, {
             key: `${redisKey.slice(0, 20)}...`,
             ttl: config.ttl,
         });
     } catch (e) {
-        console.warn('[Idempotency] Redis unavailable or error, skipping store', e);
+        securityLogger.warn('[Idempotency] Redis unavailable or error, skipping store', { error: String(e) });
     }
 }
 
@@ -157,7 +157,7 @@ export async function deleteIdempotencyKey(
         const redisKey = `${config.prefix}:${key}`;
         await redis.del(redisKey);
     } catch (e) {
-        console.warn('[Idempotency] Error deleting key', e);
+        securityLogger.warn('[Idempotency] Error deleting key', { error: String(e) });
     }
 }
 

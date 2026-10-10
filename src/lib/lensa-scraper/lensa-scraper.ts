@@ -1,3 +1,4 @@
+import { actionLogger } from '@/lib/logger';
 import { format, parse } from 'date-fns';
 import { type Browser, chromium } from 'playwright';
 import { redis } from '../redis';
@@ -70,9 +71,9 @@ export async function setupContext(username: string, password: string) {
                 return;
             } catch (error: unknown) {
                 if (i === retries) throw error;
-                console.warn(
+                actionLogger.info(
                     `Nav to ${url} failed, retrying... (${i + 1}/${retries})`,
-                    error instanceof Error ? error.message : String(error)
+                    { error: error instanceof Error ? error.message : String(error) }
                 );
                 await page.waitForTimeout(2000);
             }
@@ -197,13 +198,13 @@ export async function scrapeLensaHeaders(
 
         // Halaman 1: juga membaca metadata pagination
         const url1 = `${LENSA_URL}/resevation_list_data?page=1&perpage=${perpage}&search=&orderBy=reservation_id&orderDirection=desc`;
-        console.warn(`[OUT][${username}] Fetching page 1...`);
+        actionLogger.info(`[OUT][${username}] Fetching page 1...`);
         const resp1 = await fetchPageJSON(page, url1, performLogin, safeGoto);
 
         const items1 = resp1?.data || [];
         const lastPage = resp1?.pagination?.last_page ?? 1;
         const stats1 = processOutItems(items1, seenIds, newHeaders);
-        console.warn(
+        actionLogger.info(
             `[OUT][${username}] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (last_page=${lastPage})`
         );
 
@@ -214,7 +215,7 @@ export async function scrapeLensaHeaders(
         // Halaman berikutnya
         for (let p = 2; p <= maxPages; p++) {
             if (consecutiveEmpty >= OUT_STOP_ON_EMPTY) {
-                console.warn(
+                actionLogger.info(
                     `[OUT][${username}] Stop early: ${consecutiveEmpty} empty pages in a row.`
                 );
                 break;
@@ -226,7 +227,7 @@ export async function scrapeLensaHeaders(
             pagesFetched++;
 
             const stats = processOutItems(items, seenIds, newHeaders);
-            console.warn(
+            actionLogger.info(
                 `[OUT][${username}] page ${p}: items=${items.length} found=${stats.found} added=${stats.added} filtered=${stats.filtered}`
             );
 
@@ -237,13 +238,13 @@ export async function scrapeLensaHeaders(
             }
         }
 
-        console.warn(
+        actionLogger.info(
             `[OUT][${username}] Done pages=${pagesFetched}/${lastPage} (cap ${OUT_MAX_PAGES}) → new headers=${newHeaders.length}`
         );
 
         return newHeaders;
     } catch (error) {
-        console.error(`[OUT][${username}] Header sync error:`, error);
+        actionLogger.error(`[OUT][${username}] Header sync error:`, error instanceof Error ? error : new Error(String(error)));
         throw error;
     } finally {
         await context.close();
@@ -373,26 +374,26 @@ async function fetchPageJSON(
                 const parsed = JSON.parse(body || '{}') as LensaResponse;
                 const itemCount = parsed?.data?.length ?? 0;
                 const lastPage = parsed?.pagination?.last_page ?? '?';
-                console.warn(
+                actionLogger.info(
                     `   [fetchPageJSON] OK data=${itemCount} last_page=${lastPage} url=${url.slice(-90)}`
                 );
                 return parsed;
             } catch (_e) {
-                console.warn(
+                actionLogger.info(
                     `   [fetchPageJSON] JSON.parse FAILED — bodyLen=${body.length} bodyPreview="${body.slice(0, 200)}"`
                 );
                 return {};
             }
         } catch (err) {
             if (attempt === MAX_RETRIES) {
-                console.error(
+                actionLogger.error(
                     `Max retries (${MAX_RETRIES}) reached for ${url}. — ${
                         err instanceof Error ? err.message : String(err)
                     }`
                 );
                 throw err;
             }
-            console.warn(`Retry ${attempt}/${MAX_RETRIES} for ${url}...`);
+            actionLogger.info(`Retry ${attempt}/${MAX_RETRIES} for ${url}...`);
             await new Promise((r) => setTimeout(r, 2000));
         }
     }
@@ -408,7 +409,7 @@ async function scrapeDefaultEndpoint(
     results: WOLensaHeader[]
 ): Promise<void> {
     const url1 = `${LENSA_URL}/teknisi/wo-data?page=1&perpage=${perpage}&search=&orderBy=gi_number&orderDirection=desc`;
-    console.warn('  [Default] Fetching page 1 (adaptive multi-page)...');
+    actionLogger.info('  [Default] Fetching page 1 (adaptive multi-page)...');
     const resp1 = await fetchPageJSON(page, url1, performLogin, safeGoto);
 
     const items1 = resp1?.data || [];
@@ -416,7 +417,7 @@ async function scrapeDefaultEndpoint(
     let pagesFetched = 1;
 
     const stats1 = processItems(items1, seenIds, results);
- console.warn(`   [Default] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (cutoff=${format(CUTOFF_DATE, 'yyyy-MM-dd')})`);
+ actionLogger.info(`   [Default] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (cutoff=${format(CUTOFF_DATE, 'yyyy-MM-dd')})`);
 
     let consecutiveBelowCutoff = allBeforeCutoff(items1) ? 1 : 0;
  const maxPages = Math.min(lastPage, MAX_PAGES_DEFAULT);
@@ -440,7 +441,7 @@ async function scrapeDefaultEndpoint(
         if (items.length === 0) break;
     }
 
-    console.warn(`  [Default] Done pages=${pagesFetched}/${lastPage} (cap ${MAX_PAGES_DEFAULT})`);
+    actionLogger.info(`  [Default] Done pages=${pagesFetched}/${lastPage} (cap ${MAX_PAGES_DEFAULT})`);
 }
 
 async function scrapePrefixEndpoint(
@@ -453,7 +454,7 @@ async function scrapePrefixEndpoint(
     results: WOLensaHeader[]
 ): Promise<void> {
     const url1 = `${LENSA_URL}/teknisi/wo-data?page=1&perpage=${perpage}&search=${prefix}&orderBy=tanggal_update&orderDirection=asc`;
-    console.warn(`  [${prefix}] Fetching page 1...`);
+    actionLogger.info(`  [${prefix}] Fetching page 1...`);
     const resp1 = await fetchPageJSON(page, url1, performLogin, safeGoto);
 
     const items1 = resp1?.data || [];
@@ -461,7 +462,7 @@ async function scrapePrefixEndpoint(
     let pagesFetched = 1;
 
     const stats1 = processItems(items1, seenIds, results);
- console.warn(`   [${prefix}] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (cutoff=${format(CUTOFF_DATE, 'yyyy-MM-dd')})`);
+ actionLogger.info(`   [${prefix}] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (cutoff=${format(CUTOFF_DATE, 'yyyy-MM-dd')})`);
 
  const maxPages = Math.min(lastPage, MAX_PAGES_PREFIX);
 
@@ -476,7 +477,7 @@ async function scrapePrefixEndpoint(
         if (items.length === 0) break;
     }
 
-    console.warn(`  [${prefix}] Done pages=${pagesFetched}/${lastPage} (cap ${MAX_PAGES_PREFIX})`);
+    actionLogger.info(`  [${prefix}] Done pages=${pagesFetched}/${lastPage} (cap ${MAX_PAGES_PREFIX})`);
 }
 
 /**
@@ -530,7 +531,7 @@ export async function scrapeWOLensaHeaders(
 
         return newHeaders;
     } catch (error) {
-        console.error('WO Header sync error:', error);
+        actionLogger.error('WO Header sync error:', error instanceof Error ? error : new Error(String(error)));
         throw error;
     } finally {
         await context.close();
@@ -634,15 +635,15 @@ export async function scrapeLensaDetails(
                     materials,
                 });
             } catch (err) {
-                console.error(
-                    `Failed to scrape detail for reservation_id ${header.reservation_id}:`,
-                    err
+                actionLogger.error(
+                `Failed to scrape detail for reservation_id ${header.reservation_id}:`,
+                err instanceof Error ? err : new Error(String(err))
                 );
             }
         }
         return results;
     } catch (error) {
-        console.error('Detail sync error:', error);
+        actionLogger.error('Detail sync error:', error instanceof Error ? error : new Error(String(error)));
         throw error;
     } finally {
         await context.close();
@@ -840,15 +841,15 @@ export async function scrapeWOLensaDetails(
                     materials,
                 });
             } catch (err) {
-                console.error(
-                    `Failed to scrape detail for pemakaian_id ${header.pemakaian_id}:`,
-                    err
+                actionLogger.error(
+                `Failed to scrape detail for pemakaian_id ${header.pemakaian_id}:`,
+                err instanceof Error ? err : new Error(String(err))
                 );
             }
         }
         return results;
     } catch (error) {
-        console.error('WO Lensa Detail sync error:', error);
+        actionLogger.error('WO Lensa Detail sync error:', error instanceof Error ? error : new Error(String(error)));
         throw error;
     } finally {
         await context.close();

@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/db/db';
 
+import { actionLogger } from '@/lib/logger';
 export async function checkEmployeeNik(nik: string) {
     try {
         const employee = await db
@@ -36,7 +37,7 @@ export async function checkEmployeeNik(nik: string) {
             },
         };
     } catch (error) {
-        console.error('Error checking employee NIK:', error);
+        actionLogger.error('Error checking employee NIK:', error instanceof Error ? error : new Error(String(error)));
         return { success: false, message: 'Terjadi kesalahan pada sistem.' };
     }
 }

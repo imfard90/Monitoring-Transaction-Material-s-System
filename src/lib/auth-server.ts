@@ -95,3 +95,22 @@ export async function getSessionUser(): Promise<SessionUser> {
         throw errors.auth();
     }
 }
+
+/**
+ * Role yang dilarang mengakses menu management (Users, Technicians).
+ * Semua role non-Staff diizinkan KECUALI "Teknisi".
+ */
+const BLOCKED_MANAGEMENT_ROLES = new Set(['Staff', 'Teknisi']);
+
+/**
+ * Helper untuk mengecek apakah user berhak akses menu management.
+ * Admin = semua role non-Staff kecuali Teknisi.
+ * Melempar AuthorizationError jika tidak berhak (fail-closed).
+ */
+export async function requireManagementAccess(): Promise<SessionUser> {
+    const session = await getSessionUser();
+    if (!session.role || BLOCKED_MANAGEMENT_ROLES.has(session.role)) {
+        throw errors.accessDenied();
+    }
+    return session;
+}

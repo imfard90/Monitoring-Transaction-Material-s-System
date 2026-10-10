@@ -46,9 +46,12 @@ export async function getAvailableSapOuts() {
 
 export async function getSapOutItemsForReturn(headerId: number | string) {
     try {
-        const items = await db
+        const { isStaff, warehouseIds } = await getSessionUser();
+
+        let query = db
             .selectFrom('inventory.sap_out_items as i')
             .innerJoin('inventory.materials as m', 'm.id', 'i.designator_id')
+            .innerJoin('inventory.sap_out_header as h', 'h.id', 'i.header_id')
             .select([
                 'i.id as sap_out_item_id',
                 'i.designator_id',
@@ -58,8 +61,14 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
                 'i.qty_used',
             ])
             .where('i.header_id', '=', String(headerId))
-            .whereRef('i.qty_req', '>', 'i.qty_used')
-            .execute();
+            .whereRef('i.qty_req', '>', 'i.qty_used');
+
+        // Staff hanya boleh akses item dari warehouse miliknya
+        if (isStaff && warehouseIds.length > 0) {
+            query = query.where('h.warehouse_id', 'in', warehouseIds);
+        }
+
+        const items = await query.execute();
 
         // Add a maxReturn field
         const mapped = items.map((item) => ({
@@ -102,7 +111,7 @@ export async function createReturnMaterial(payload: ReturnMaterialPayload) {
                 return await db.transaction().execute(async (trx) => {
                     const createdBy = await getSessionNik();
 
-                    const resultId = await sql<{ header_id: string }>`
+                    const resultId = await sql<{ id_trx: string }>`
                         SELECT inventory.sp_create_return_request(
                             ${data.sap_out_id},
                             ${data.nik_teknisi},
@@ -110,10 +119,10 @@ export async function createReturnMaterial(payload: ReturnMaterialPayload) {
                             ${data.notes || null},
                             ${JSON.stringify(data.items)}::jsonb,
                             ${createdBy}
-                        ) as header_id
+                        ) as id_trx
                     `.execute(trx);
 
-                    return resultId.rows[0]?.header_id;
+                    return resultId.rows[0]?.id_trx;
                 });
             }
         );

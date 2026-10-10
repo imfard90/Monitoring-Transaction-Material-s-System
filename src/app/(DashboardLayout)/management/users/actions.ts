@@ -2,24 +2,27 @@
 
 import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
-import { getSessionUser } from '@/lib/auth-server';
+import { getSessionUser, requireManagementAccess } from '@/lib/auth-server';
+import { errors } from '@/lib/errors';
 import { db } from '@/lib/db/db';
 import { redis } from '@/lib/redis';
 
+/**
+ * Cek apakah user adalah Staff (untuk menyembunyikan menu di sidebar).
+ * Fail-closed: jika sesi invalid, anggap Staff (sembunyikan menu).
+ * Ini BUKAN kontrol keamanan — hanya untuk UI. Otorisasi sebenarnya ada di server action.
+ */
 export async function checkIsStaff() {
     try {
         const session = await getSessionUser();
         return session.isStaff;
     } catch {
-        return true; // fail-safe: assume staff to hide menus
+        return true; // fail-closed: assume staff to hide menus
     }
 }
 
 export async function getUsers() {
-    const session = await getSessionUser();
-    if (session.isStaff) {
-        throw new Error('Unauthorized');
-    }
+    await requireManagementAccess();
 
     // Query auth.user and optionally join with hr.employees to get roles
     const users = await db
@@ -57,10 +60,7 @@ export async function getUsers() {
 }
 
 export async function toggleUserStatus(userId: string, isActive: boolean) {
-    const session = await getSessionUser();
-    if (session.isStaff) {
-        throw new Error('Unauthorized');
-    }
+    await requireManagementAccess();
 
     await db
         .updateTable('auth.user')
@@ -72,10 +72,7 @@ export async function toggleUserStatus(userId: string, isActive: boolean) {
 }
 
 export async function deleteUser(userId: string) {
-    const session = await getSessionUser();
-    if (session.isStaff) {
-        throw new Error('Unauthorized');
-    }
+    await requireManagementAccess();
 
     // Usually you want to also delete sessions/accounts, but better-auth might handle this if ON DELETE CASCADE is set.
     // We'll delete from auth.user

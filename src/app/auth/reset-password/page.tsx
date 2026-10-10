@@ -36,9 +36,9 @@ function ResetPasswordForm() {
                 setIsValidating(false);
                 return;
             }
-            // TODO: validate token via Better Auth
-            // const result = await authClient.verifyEmail({ query: { token } });
-            await new Promise((res) => setTimeout(res, 500));
+            // Token validity is verified server-side when resetPassword is called.
+            // Better Auth validates the token against the `verification` table.
+            // We only check presence here; actual verification happens on submit.
             setIsValidToken(true);
             setIsValidating(false);
         };

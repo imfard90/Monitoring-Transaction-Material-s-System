@@ -85,7 +85,7 @@ export async function getNewHasilRekon(
                 .where('soh.warehouse_id', 'in', warehouseIds as readonly number[]);
         }
 
-        const data = await query.execute();
+        const data = await query.limit(500).execute();
 
         return data.map((item) => ({
             header_id: Number(item.header_id),
@@ -151,7 +151,7 @@ export async function getHasilRekon(offsetMonths = 0, limitMonths = 5): Promise<
             query = query.where('soh.warehouse_id', 'in', warehouseIds as readonly number[]);
         }
 
-        const data = await query.execute();
+        const data = await query.limit(500).execute();
 
         // Standardize output format
         return data.map((item) => ({

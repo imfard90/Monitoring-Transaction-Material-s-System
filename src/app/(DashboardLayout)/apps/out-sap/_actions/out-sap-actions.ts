@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import { hrRepository } from '@/lib/repositories/hr.repository';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 const createOutSapSchema = z.object({
@@ -58,7 +59,8 @@ export async function getOutSaps() {
             countQuery = countQuery.where('warehouse_id', 'in', warehouseIds as number[]);
         }
 
-        const saps = await sapQuery.execute();
+        // P2 audit fix: add default LIMIT to prevent unbounded result sets
+        const saps = await sapQuery.limit(200).execute();
 
         const resultCount = await countQuery
             .select([
@@ -90,9 +92,12 @@ export async function getOutSaps() {
 
 export async function getOutSapItemsByHeaderId(headerId: number | string) {
     try {
-        const items = await db
+        const { isStaff, warehouseIds } = await getSessionUser();
+
+        let query = db
             .selectFrom('inventory.sap_out_items as i')
             .innerJoin('inventory.materials as m', 'm.id', 'i.designator_id')
+            .innerJoin('inventory.sap_out_header as h', 'h.id', 'i.header_id')
             .select([
                 'i.id',
                 'i.header_id',
@@ -103,8 +108,14 @@ export async function getOutSapItemsByHeaderId(headerId: number | string) {
                 'i.qty_used',
                 'i.unit_price',
             ])
-            .where('i.header_id', '=', String(headerId))
-            .execute();
+            .where('i.header_id', '=', String(headerId));
+
+        // Staff hanya boleh melihat item dari warehouse miliknya
+        if (isStaff && warehouseIds.length > 0) {
+            query = query.where('h.warehouse_id', 'in', warehouseIds);
+        }
+
+        const items = await query.execute();
 
         return { success: true, data: items };
     } catch (error: unknown) {
@@ -118,12 +129,9 @@ export async function getOutSapItemsByHeaderId(headerId: number | string) {
 
 export async function getTechnicianByNik(nik: string) {
     try {
-        const t = await db
-            .selectFrom('hr.technicians as t')
-            .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
-            .select(['t.nik', 't.name', 'b.service_area as sa'])
-            .where('t.nik', '=', nik)
-            .executeTakeFirst();
+        await getSessionUser();
+
+        const t = await hrRepository.getTechnicianByNik(nik);
         return { success: true, data: t };
     } catch (error: unknown) {
         actionLogger.error(
@@ -136,13 +144,7 @@ export async function getTechnicianByNik(nik: string) {
 
 export async function getTechnicians(sa?: string) {
     try {
-        let query = db.selectFrom('hr.technicians as t').selectAll('t');
-        if (sa) {
-            query = query
-                .innerJoin('hr.branches as b', 'b.id', 't.branch_id')
-                .where('b.service_area', '=', sa);
-        }
-        const technicians = await query.execute();
+        const technicians = await hrRepository.getTechnicians(sa ? { serviceArea: sa } : undefined);
         return { success: true, data: technicians };
     } catch (error: unknown) {
         actionLogger.error(
@@ -210,13 +212,7 @@ export async function getWarehouses() {
 export async function getBranches() {
     try {
         const { branchName } = await getSessionUser();
-        let query = db.selectFrom('hr.branches').selectAll();
-
-        if (branchName) {
-            query = query.where('branch', '=', branchName);
-        }
-
-        const branches = await query.execute();
+        const branches = await hrRepository.getBranches(branchName ? { branchName } : undefined);
         return { success: true, data: branches };
     } catch (error: unknown) {
         actionLogger.error(
@@ -263,14 +259,11 @@ export async function createOutSap(payload: {
                     const now = new Date();
                     const yymm = `${now.getFullYear().toString().slice(2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
 
-                    // Get Sequence
-                    const countRes = await sql<{ count: string | number }>`
-                        SELECT COUNT(*) + 1 as count 
-                        FROM inventory.sap_out_header 
-                        WHERE to_char(request_time, 'YYMM') = ${yymm}
+                    // Generate deterministic sequence via PostgreSQL SEQUENCE (P0-D2 fix)
+                    const seqRes = await sql<{ seq: string }>`
+                        SELECT to_char(nextval('inventory.trx_out_seq'), 'FM0000') as seq
                     `.execute(trx);
-                    const count = Number(countRes.rows[0].count);
-                    const sequence = count.toString().padStart(4, '0');
+                    const sequence = seqRes.rows[0]?.seq ?? '0001';
 
                     const generatedIdTrx = `TRX-OUT-${intls}-${data.nik_teknisi}-${yymm}${sequence}`;
 

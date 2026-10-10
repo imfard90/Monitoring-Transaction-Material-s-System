@@ -197,14 +197,6 @@ export async function submitRekonLensa(
                     const now = new Date();
                     const yymm = `${now.getFullYear().toString().slice(2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
 
-                    // Get initial count for sequence
-                    const countRes = await sql<{ count: string | number }>`
-                        SELECT COUNT(*) as count 
-                        FROM inventory.transaction_used_header 
-                        WHERE to_char(created_at, 'YYMM') = ${yymm}
-                    `.execute(trx);
-                    let count = Number(countRes.rows[0].count);
-
                     // Group by WO to generate one ID per WO
                     const woGroups: Record<string, RekonLensaItemPayload[]> = {};
                     for (const item of data.items) {
@@ -220,8 +212,11 @@ export async function submitRekonLensa(
                         const sapString = uniqueSaps.join('-');
                         const pemakaianId = woItems[0].pemakaian_id;
 
-                        count++;
-                        const sequence = count.toString().padStart(4, '0');
+                        // Generate deterministic sequence via PostgreSQL SEQUENCE (P0-D2 fix)
+                        const seqRes = await sql<{ seq: string }>`
+                            SELECT to_char(nextval('inventory.trx_used_lensa_seq'), 'FM0000') as seq
+                        `.execute(trx);
+                        const sequence = seqRes.rows[0]?.seq ?? '0001';
                         const generatedIdTrx = `TRX-USED-LENSA-${data.nik}-${pemakaianId}-${yymm}${sequence}`;
 
                         const first = woItems[0];

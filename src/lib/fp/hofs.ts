@@ -1,3 +1,4 @@
+import { actionLogger } from '@/lib/logger';
 import type { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 
@@ -68,7 +69,7 @@ export const withErrorHandling =
             return { success: true, data };
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unknown error';
-            console.error('withErrorHandling caught:', error);
+            actionLogger.error('withErrorHandling caught:', error instanceof Error ? error : new Error(String(error)));
             return { success: false, error: message };
         }
     };
@@ -83,12 +84,12 @@ export const withLogging =
         try {
             const result = await handler(...args);
             if (process.env.NODE_ENV === 'development') {
-                console.log(`[${name}] Completed in ${Date.now() - start}ms`);
+                actionLogger.info(`[${name}] Completed in ${Date.now() - start}ms`);
             }
             return result;
         } catch (error) {
             if (process.env.NODE_ENV === 'development') {
-                console.error(`[${name}] Failed after ${Date.now() - start}ms`);
+                actionLogger.error(`[${name}] Failed after ${Date.now() - start}ms`);
             }
             throw error;
         }

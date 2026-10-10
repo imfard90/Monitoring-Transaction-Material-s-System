@@ -2,13 +2,15 @@
 
 import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
-import { getSessionNik } from '@/lib/auth-server';
+import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 
 export async function getRekonEditData(header_id: string, sap_out_id: string) {
     try {
-        // Fetch items that are already in this transaction
+        const { isStaff, warehouseIds } = await getSessionUser();
+
+        // Fetch items already in this transaction
         const existingItems = await db
             .selectFrom('inventory.transaction_used_item as tui')
             .innerJoin('inventory.materials as m', 'm.id', 'tui.designator_id')
@@ -22,11 +24,12 @@ export async function getRekonEditData(header_id: string, sap_out_id: string) {
             .where('tui.used_id', '=', header_id)
             .execute();
 
-        // Fetch all available items for this SAP OUT
-        // We will pass this to the client to calculate the 'max' allowable qty
-        const sapItems = await db
+        // Fetch all available items for SAP OUT
+        // We will pass client to calculate 'max' allowable qty
+        let sapItemsQuery = db
             .selectFrom('inventory.sap_out_items as soi')
             .innerJoin('inventory.materials as m', 'm.id', 'soi.designator_id')
+            .innerJoin('inventory.sap_out_header as soh', 'soh.id', 'soi.header_id')
             .select([
                 'soi.id as sap_out_item_id',
                 'soi.designator_id',
@@ -35,48 +38,50 @@ export async function getRekonEditData(header_id: string, sap_out_id: string) {
                 'soi.qty_req',
                 'soi.qty_used',
             ])
-            .where('soi.header_id', '=', String(sap_out_id) as string) // Based on the db type, it might be string or number
-            .execute();
+            .where('soi.header_id', '=', String(sap_out_id));
+
+        // Staff hanya boleh akses warehouse miliknya
+        if (isStaff && warehouseIds.length > 0) {
+            sapItemsQuery = sapItemsQuery.where('soh.warehouse_id', 'in', warehouseIds);
+        }
+
+        const sapItems = await sapItemsQuery.execute();
 
         return { success: true, existingItems, sapItems };
-    } catch (error) {
+    } catch (error: unknown) {
         actionLogger.error(
             'Error getRekonEditData:',
             error instanceof Error ? error : new Error(String(error))
         );
-        return { success: false, error: 'Gagal memuat data rekon' };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 
 export async function submitEditRekon(
-    header_id: string,
-    sap_out_id: string,
-    updatedItems: {
+    _header_id: string,
+    _sap_out_id: string,
+    items: Array<{
         item_id?: string;
         designator_id: number;
         sap_out_item_id: string;
         new_qty: number;
         old_qty: number;
-    }[]
+    }>
 ) {
     try {
-        const createdBy = await getSessionNik();
+        await getSessionUser();
 
         await db.transaction().execute(async (trx) => {
-            for (const item of updatedItems) {
-                if (item.new_qty !== item.old_qty) {
-                    await sql`
-                        CALL inventory.sp_edit_transaction_used(
-                            ${header_id},
-                            ${sap_out_id},
-                            ${item.sap_out_item_id},
-                            ${item.designator_id},
-                            ${item.new_qty},
-                            ${item.item_id || null},
-                            ${createdBy}
-                        )
-                    `.execute(trx);
-                }
+            for (const item of items) {
+                const diff = item.new_qty - item.old_qty;
+                if (diff === 0) continue;
+
+                await sql`CALL inventory.sp_edit_transaction_used(
+                    ${item.sap_out_item_id},
+                    ${item.designator_id},
+                    ${item.new_qty},
+                    ${item.item_id}
+                )`.execute(trx);
             }
         });
 

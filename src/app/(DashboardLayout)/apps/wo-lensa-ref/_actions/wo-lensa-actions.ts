@@ -10,8 +10,18 @@ import {
     scrapeWOLensaDetails,
     scrapeWOLensaHeaders,
 } from '@/lib/lensa-scraper/lensa-scraper';
+import { actionLogger } from '@/lib/logger';
 
-const ENCRYPTION_KEY = (process.env.MFA_ENCRYPTION_SECRET || '').slice(0, 32);
+// P3-S6 Fix: Derive a strict 32-byte key from the environment variable using SHA-256
+// instead of a weak slice(0,32) which might pad with weak characters or truncate.
+const getEncryptionKey = () => {
+    const secret = process.env.MFA_ENCRYPTION_SECRET;
+    if (!secret) {
+        throw new Error('MFA_ENCRYPTION_SECRET is not set');
+    }
+    // Hash the secret to guarantee exactly 32 bytes of high entropy for AES-256
+    return crypto.createHash('sha256').update(secret).digest();
+};
 
 function decrypt(text: string) {
     if (!text) return '';
@@ -21,7 +31,7 @@ function decrypt(text: string) {
         if (!firstPart) throw new Error('Invalid encrypted text format');
         const iv = Buffer.from(firstPart, 'hex');
         const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-        const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+        const decipher = crypto.createDecipheriv('aes-256-cbc', getEncryptionKey(), iv);
         let decrypted = decipher.update(encryptedText);
         decrypted = Buffer.concat([decrypted, decipher.final()]);
         return decrypted.toString();
@@ -166,7 +176,7 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
                 try {
                     customPassword = decrypt(lensaAcount.password);
                 } catch (_e) {
-                    console.error(`Failed to decrypt password for user ${picUser.id}`);
+                    actionLogger.error(`Failed to decrypt password for user ${picUser.id}`);
                     continue;
                 }
 
@@ -177,12 +187,12 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
                         customPassword,
                         perpage
                     );
-                    console.warn(
+                    actionLogger.info(
                         `[WO][${task.wh.name}] PIC ${customUsername} → ${newHeaders.length} headers`
                     );
                     return newHeaders;
                 } catch (e: unknown) {
-                    console.error(
+                    actionLogger.error(
                         `[WO][${task.wh.name}] Failed scrape PIC ${customUsername}: ${
                             e instanceof Error ? e.message : e
                         } — trying fallback`
@@ -191,7 +201,7 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
                 }
             }
 
-            console.warn(`[WO][${task.wh.name}] Semua PIC gagal.`);
+            actionLogger.info(`[WO][${task.wh.name}] Semua PIC gagal.`);
             return [];
         });
 
@@ -293,9 +303,9 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
                             customPassword
                         );
                     } catch (e: unknown) {
-                        console.error(
+                        actionLogger.error(
                             `Failed to scrape details for WO gudang ${task.gudang}:`,
-                            e instanceof Error ? e.message : e
+                            e instanceof Error ? e : new Error(String(e))
                         );
                         return [];
                     }
@@ -333,7 +343,7 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
             message: `Scraping selesai. ${totalInserted} data WO Lensa baru berhasil disimpan.`,
         };
     } catch (error: unknown) {
-        console.error('Trigger WO scraping error:', error);
+        actionLogger.error('Trigger WO scraping error:', error instanceof Error ? error : new Error(String(error)));
         return {
             success: false,
             message:

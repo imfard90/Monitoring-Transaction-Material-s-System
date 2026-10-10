@@ -23,6 +23,12 @@ dist/
 # Coverage
 # --------------------------------------------------
 coverage/
+
+# --------------------------------------------------
+# Test
+# --------------------------------------------------
+.vitest-cache/
+
 MTMS.code-workspace
 
 # --------------------------------------------------
@@ -136,6 +142,7 @@ Desktop.ini
 # Misc project notes / drafts (not for version control)
 # --------------------------------------------------
 AGENTS.md
+!AGENTS.md
 ARCHITECTURE_AUDIT.md
 ARCHITECTURE_IMPROVEMENT_PLAN.md
 CLINE.md

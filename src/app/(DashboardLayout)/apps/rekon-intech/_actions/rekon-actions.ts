@@ -127,7 +127,7 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
                 const lensaWo = await db
                     .selectFrom('inventory.wo_lensa_header')
                     .select('rekon_check')
-                    .where('wo_number', 'like', `%${woNumber}%`)
+                    .where('wo_number', '=', woNumber)
                     .executeTakeFirst();
 
                 if (lensaWo) {
@@ -170,87 +170,39 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
                     const now = new Date();
                     const yymm = `${now.getFullYear().toString().slice(2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
 
-                    // Get initial count for sequence
-                    const countRes = await sql<{ count: string | number }>`
-                        SELECT COUNT(*) as count 
-                        FROM inventory.transaction_used_header 
-                        WHERE to_char(created_at, 'YYMM') = ${yymm}
-                    `.execute(trx);
-                    let count = Number(countRes.rows[0].count);
-
                     for (const key in groups) {
                         const groupItems = groups[key];
                         const first = groupItems[0];
 
-                        count++;
-                        const sequence = count.toString().padStart(4, '0');
+                        // Generate deterministic sequence via PostgreSQL SEQUENCE (P0-D2 fix)
+                        const seqRes = await sql<{ seq: string }>`
+                            SELECT to_char(nextval('inventory.trx_used_seq'), 'FM0000') as seq
+                        `.execute(trx);
+                        const sequence = seqRes.rows[0]?.seq ?? '0001';
                         const generatedIdTrx = `TRX-USED-${data.nik}-${first.sap_number}-${first.wo_number}-${yymm}${sequence}`;
 
-                        // Insert Header
-                        const headerResult = await trx
-                            .insertInto('inventory.transaction_used_header')
-                            .values({
-                                id_trx: generatedIdTrx,
-                                sap_out_id: first.sap_out_id,
-                                nik_teknisi: data.nik,
-                                name_sa: first.name_sa,
-                                name_wh: first.name_wh || '',
-                                wo_number: first.wo_number,
-                                wo_type: first.wo_type,
-                                created_by: createdBy,
-                            })
-                            .returning('id')
-                            .executeTakeFirstOrThrow();
+                        // Build items JSON for SP
+                        const itemsJson = JSON.stringify(
+                            groupItems.map((item) => ({
+                                designator_id: item.designator_id,
+                                sap_out_item_id: Number(item.sap_out_item_id),
+                                qty: item.qty,
+                                notes: item.notes || null,
+                            }))
+                        );
 
-                        const headerId = headerResult.id;
-
-                        // Insert Items, Update sap_out_items, and call SP
-                        for (const item of groupItems) {
-                            await trx
-                                .insertInto('inventory.transaction_used_item')
-                                .values({
-                                    used_id: headerId,
-                                    designator_id: item.designator_id,
-                                    qty: item.qty,
-                                    notes: item.notes || null,
-                                })
-                                .execute();
-
-                            await trx
-                                .updateTable('inventory.sap_out_items')
-                                .set((_eb) => ({
-                                    qty_used: sql`COALESCE(qty_used, 0) + ${item.qty}`,
-                                }))
-                                .where('id', '=', item.sap_out_item_id)
-                                .execute();
-
-                            // Fetch warehouse_id from sap_out_header
-                            const sap = await trx
-                                .selectFrom('inventory.sap_out_header')
-                                .select('warehouse_id')
-                                .where('id', '=', item.sap_out_id)
-                                .executeTakeFirst();
-                            const warehouseId = sap?.warehouse_id || 0;
-
-                            await sql`CALL inventory.sp_record_material_used(${warehouseId}, ${item.designator_id}, ${item.qty}, ${generatedIdTrx}, ${item.notes || null}, ${createdBy})`.execute(
-                                trx
-                            );
-                        }
-
-                        // Check if sap_out_header can be closed
-                        const checkRes = await sql<{ all_closed: boolean }>`
-                            SELECT bool_and(qty_req = COALESCE(qty_used, 0)) as all_closed
-                            FROM inventory.sap_out_items
-                            WHERE header_id = ${first.sap_out_id}
-                        `.execute(trx);
-
-                        if (checkRes.rows[0]?.all_closed) {
-                            await trx
-                                .updateTable('inventory.sap_out_header')
-                                .set({ end_status: 'close' })
-                                .where('id', '=', String(first.sap_out_id))
-                                .execute();
-                        }
+                        // Call SP — atomic insert header, items, update sap_out_items, audit movement, auto-close (P0-D1 fix)
+                        await sql`CALL inventory.sp_submit_rekon_intech(
+                            ${generatedIdTrx},
+                            ${data.nik},
+                            ${first.sap_out_id},
+                            ${first.wo_number},
+                            ${first.wo_type ?? null},
+                            ${first.name_sa},
+                            ${first.name_wh || ''},
+                            ${createdBy},
+                            ${itemsJson}::jsonb
+                        )`.execute(trx);
                     }
                 });
 

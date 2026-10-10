@@ -7,6 +7,7 @@ export async function register() {
     if (process.env.NODE_ENV !== 'production') return;
 
     const cron = await import('node-cron');
+	const { actionLogger } = await import('@/lib/logger');
     const { internalTriggerScraping } = await import(
         './app/(DashboardLayout)/apps/out-lensa-ref/_actions/out-lensa-actions'
     );
@@ -39,14 +40,14 @@ export async function register() {
 
     const runScrapers = async (perpage: number) => {
         try {
-            console.warn(`[CRON] Running Lensa scrapers perpage=${perpage}...`);
+            actionLogger.info(`[CRON] Running Lensa scrapers perpage=${perpage}...`);
             await internalTriggerScraping(perpage);
-            console.warn(`[CRON] Lensa scrapers perpage=${perpage} completed.`);
-            console.warn(`[CRON] Running WO Lensa scrapers (v3 internal perpage)...`);
+            actionLogger.info(`[CRON] Lensa scrapers perpage=${perpage} completed.`);
+            actionLogger.info(`[CRON] Running WO Lensa scrapers (v3 internal perpage)...`);
             await internalTriggerWOScraping();
-            console.warn(`[CRON] WO Lensa scrapers completed.`);
+            actionLogger.info(`[CRON] WO Lensa scrapers completed.`);
         } catch (error) {
-            console.error('[CRON] Error during scheduled scraping:', error);
+            actionLogger.error('[CRON] Error during scheduled scraping:', error instanceof Error ? error : new Error(String(error)));
         }
     };
 
@@ -60,6 +61,6 @@ export async function register() {
                 timezone: 'Asia/Jakarta',
             });
         }
-        console.warn('[CRON] Scheduled Lensa scrapers registered for Asia/Jakarta timezone.');
+        actionLogger.info('[CRON] Scheduled Lensa scrapers registered for Asia/Jakarta timezone.');
     }
 }

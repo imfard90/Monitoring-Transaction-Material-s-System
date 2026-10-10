@@ -1,28 +1,16 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getSessionUser } from '@/lib/auth-server';
+import { requireManagementAccess } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { hrRepository } from '@/lib/repositories/hr.repository';
 import { actionLogger } from '@/lib/logger';
 
 export async function getTechnicians() {
     try {
-        const technicians = await db
-            .selectFrom('hr.technicians as t')
-            .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
-            .leftJoin('hr.mitras as m', 'm.id', 't.mitra_id')
-            .select([
-                't.id',
-                't.nik',
-                't.name',
-                't.is_active',
-                't.branch_id',
-                't.mitra_id',
-                'b.service_area',
-                'm.mitra_name',
-            ])
-            .orderBy('t.name', 'asc')
-            .execute();
+        await requireManagementAccess();
+
+        const technicians = await hrRepository.getTechnicians();
 
         return technicians;
     } catch (error: unknown) {
@@ -36,11 +24,9 @@ export async function getTechnicians() {
 
 export async function getBranches() {
     try {
-        return await db
-            .selectFrom('hr.branches')
-            .select(['id', 'service_area', 'branch'])
-            .orderBy('service_area', 'asc')
-            .execute();
+        await requireManagementAccess();
+
+        return await hrRepository.getBranches();
     } catch (error: unknown) {
         actionLogger.error(
             'Failed to fetch branches:',
@@ -52,11 +38,9 @@ export async function getBranches() {
 
 export async function getMitras() {
     try {
-        return await db
-            .selectFrom('hr.mitras')
-            .select(['id', 'mitra_name'])
-            .orderBy('mitra_name', 'asc')
-            .execute();
+        await requireManagementAccess();
+
+        return await hrRepository.getMitras();
     } catch (error: unknown) {
         actionLogger.error(
             'Failed to fetch mitras:',
@@ -68,7 +52,8 @@ export async function getMitras() {
 
 export async function toggleTechnicianStatus(id: string | number, isActive: boolean) {
     try {
-        const _session = await getSessionUser();
+        await requireManagementAccess();
+
         await db
             .updateTable('hr.technicians')
             .set({ is_active: isActive })
@@ -94,7 +79,7 @@ export async function upsertTechnician(data: {
     mitra_id: number | null;
 }) {
     try {
-        const _session = await getSessionUser();
+        await requireManagementAccess();
 
         if (data.id) {
             await db

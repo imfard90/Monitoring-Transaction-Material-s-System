@@ -223,6 +223,58 @@ export function withActionErrorHandling<T extends (...args: any[]) => Promise<an
 }
 
 // ============================================
+// SERVER ACTION RESULT WRAPPER
+// ============================================
+
+/**
+ * Standard ActionResult type.
+ * Actions should return `{ success: true, data }` on success
+ * or `{ success: false, error }` on failure.
+ */
+export type ActionResult<TData = unknown> =
+    | { success: true; data: TData }
+    | { success: false; error: string };
+
+/**
+ * Wrap a server action function with standardized error handling.
+ *
+ * - AppError subclasses → message passed to client (operational errors)
+ * - Unexpected errors → generic message in production, detailed in dev
+ *
+ * Usage:
+ * ```ts
+ * export const myAction = toActionResult(async (input: Input) => {
+ *     const session = await getSessionUser(); // throws AuthenticationError
+ *     const result = await doWork(input);     // throws AppError on failure
+ *     return { data: result };
+ * });
+ * ```
+ */
+export function toActionResult<TArgs extends unknown[], TData>(
+    fn: (...args: TArgs) => Promise<{ data: TData }>
+): (...args: TArgs) => Promise<ActionResult<TData>> {
+    return async (...args: TArgs) => {
+        try {
+            const { data } = await fn(...args);
+            return { success: true as const, data };
+        } catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            errorHandler.log(err);
+
+            if (err instanceof AppError) {
+                return { success: false as const, error: err.message };
+            }
+
+            const isDev = process.env.NODE_ENV !== 'production';
+            return {
+                success: false as const,
+                error: isDev ? err.message : 'An unexpected error occurred',
+            };
+        }
+    };
+}
+
+// ============================================
 // CLIENT ERROR UTILITIES
 // ============================================
 
