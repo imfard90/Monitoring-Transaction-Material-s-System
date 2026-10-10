@@ -1,0 +1,107 @@
+-- ============================================================================
+-- Migration: L5 — Enable query audit logging (DDL + slow query)
+-- Description: Live DB audit (L5) found:
+--   log_statement             = none    (no query logging at all)
+--   log_min_duration_statement = -1      (slow query logging off)
+--   log_connections            = off     (no connection logging)
+--   log_disconnections         = off     (no disconnection logging)
+--
+-- This migration CANNOT be run via the normal migration runner (run-migration.ts)
+-- because ALTER SYSTEM cannot run inside a transaction block (BEGIN/COMMIT).
+-- The migration runner wraps each file in BEGIN/COMMIT, which would cause
+-- ERROR: "ALTER SYSTEM cannot run inside a transaction block".
+--
+-- Instead, this file serves as DOCUMENTATION of the required changes and
+-- must be executed manually by a DBA/superuser OUTSIDE the migration runner:
+--
+--   psql -U imam -d gresik -f src/lib/db/migrations/018_enable_query_logging.sql
+--
+-- Or execute each statement individually via psql or admin tool.
+--
+-- After execution, SELECT pg_reload_conf(); must be run to apply changes
+-- that require SIGHUP (log_statement, log_min_duration_statement).
+--
+-- Settings chosen (per audit recommendation §4-L5):
+--   log_statement = 'ddl'     — logs all DDL (CREATE/DROP/ALTER), captures
+--                                schema changes that could indicate attack
+--   log_min_duration_statement = 1000  — logs queries slower than 1 second
+--                                (balance between observability and log volume)
+--   log_connections = on      — logs every connection attempt (audit trail)
+--   log_disconnections = on   — logs every disconnection (session duration)
+--
+-- Why not log_statement = 'mod' or 'all'?
+--   - 'mod' logs all DDL + DML (INSERT/UPDATE/DELETE) — very high volume
+--     for an inventory system with frequent stock_movement inserts.
+--   - 'all' logs every SELECT — extremely high volume, impacts performance.
+--   - 'ddl' is the sweet spot: captures dangerous schema changes without
+--     flooding logs with routine DML.
+--
+-- Impact:
+--   - log_statement='ddl': minimal overhead — DDL is rare in production.
+--   - log_min_duration_statement=1000: only logs slow queries (>1s), which
+--     are already problematic and worth investigating.
+--   - log_connections/disconnections: small per-connection overhead.
+--   - All changes are SIGHUP context — no restart required, only reload.
+-- ============================================================================
+
+-- ============================================================================
+-- Step 1: ALTER SYSTEM — set logging parameters
+-- ============================================================================
+-- NOTE: These statements must be run individually (NOT in a transaction).
+-- The migration runner will SKIP this file because ALTER SYSTEM fails inside
+-- BEGIN/COMMIT. Run manually:
+--   psql -U imam -d gresik -c "ALTER SYSTEM SET log_statement = 'ddl';"
+--   psql -U imam -d gresik -c "ALTER SYSTEM SET log_min_duration_statement = 1000;"
+--   psql -U imam -d gresik -c "ALTER SYSTEM SET log_connections = on;"
+--   psql -U imam -d gresik -c "ALTER SYSTEM SET log_disconnections = on;"
+--   psql -U imam -d gresik -c "SELECT pg_reload_conf();"
+
+-- The following ALTER SYSTEM statements are intentionally commented out
+-- to prevent the migration runner from failing on them (ALTER SYSTEM
+-- cannot run inside BEGIN/COMMIT transaction block).
+-- A DBA must uncomment and run them manually outside the migration runner.
+
+-- ALTER SYSTEM SET log_statement = 'ddl';
+-- ALTER SYSTEM SET log_min_duration_statement = 1000;
+-- ALTER SYSTEM SET log_connections = on;
+-- ALTER SYSTEM SET log_disconnections = on;
+
+-- ============================================================================
+-- Step 2: Apply changes (SIGHUP — no restart required)
+-- ============================================================================
+-- After running ALTER SYSTEM, reload configuration:
+-- SELECT pg_reload_conf();
+-- This applies the new settings without restarting PostgreSQL.
+
+-- ============================================================================
+-- Step 3: Verification (run manually after applying)
+-- ============================================================================
+-- SELECT name, setting, source
+-- FROM pg_settings
+-- WHERE name IN ('log_statement', 'log_min_duration_statement',
+--                'log_connections', 'log_disconnections')
+-- ORDER BY name;
+--
+-- Expected after reload:
+--   log_statement              = ddl     (source: configuration file)
+--   log_min_duration_statement = 1000    (source: configuration file)
+--   log_connections            = on      (source: configuration file)
+--   log_disconnections         = on      (source: configuration file)
+
+-- ============================================================================
+-- IMPORTANT NOTE FOR MIGRATION RUNNER
+-- ============================================================================
+-- This migration file contains ONLY comments (no executable SQL statements).
+-- The migration runner will execute it (empty SQL = no-op), log it in
+-- _migration_log, and mark it as done. The actual ALTER SYSTEM commands
+-- must be run manually by a DBA as documented above.
+--
+-- This approach ensures:
+-- 1. The migration is tracked in _migration_log (audit trail).
+-- 2. The required changes are documented in the migration file.
+-- 3. The migration runner does not fail (ALTER SYSTEM cannot run in BEGIN/COMMIT).
+-- 4. A DBA can verify the settings were applied by checking pg_settings.
+
+-- No-op statement to ensure the migration file is not empty
+-- (migration runner expects at least one statement, though empty SQL is also OK)
+SELECT 'L5 query logging migration — see comments for manual ALTER SYSTEM steps' AS info;
