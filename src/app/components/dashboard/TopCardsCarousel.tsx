@@ -138,14 +138,17 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
                     <SwiperSlide key={item.key} className="py-2">
                         <Link href={item.url} className="block group">
                             <CardBox
-                                className={`relative overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${item.bgcolor} w-full border border-white/20 dark:border-white/5 py-6 group-hover:-translate-y-1`}
+                                className={`relative overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 motion-reduce:transition-none ${item.bgcolor} w-full border border-white/20 dark:border-white/5 py-6 group-hover:-translate-y-1 motion-reduce:group-hover:translate-y-0`}
                             >
                                 {/* Decorative gradient blob */}
-                                <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/20 dark:bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+                                <div
+                                    className="absolute -right-6 -top-6 w-24 h-24 bg-white/20 dark:bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 motion-reduce:transition-none"
+                                    aria-hidden="true"
+                                />
 
                                 <div className="relative z-10 flex items-center gap-4">
                                     <div
-                                        className={`rounded-2xl p-3 bg-white/50 dark:bg-black/20 backdrop-blur-sm shadow-sm border border-white/40 dark:border-white/10 group-hover:scale-110 transition-transform duration-300`}
+                                        className={`rounded-2xl p-3 bg-white/50 dark:bg-black/20 backdrop-blur-sm shadow-sm border border-white/40 dark:border-white/10 group-hover:scale-110 transition-transform duration-300 motion-reduce:transition-none`}
                                     >
                                         <Icon
                                             icon={item.icon}

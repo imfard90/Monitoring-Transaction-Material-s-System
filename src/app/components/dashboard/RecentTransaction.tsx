@@ -40,7 +40,7 @@ const RecentTransaction: React.FC = () => {
             toolbar: { show: false },
             type: 'bar',
             fontFamily: 'inherit',
-            foreColor: '#7C8FAC',
+            foreColor: 'var(--color-muted-foreground, #7C8FAC)',
             height: 310,
         },
         colors: ['var(--color-primary)'],
@@ -77,8 +77,15 @@ const RecentTransaction: React.FC = () => {
     ];
 
     return (
-        <CardBox className="h-full w-full relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary/5 to-transparent pointer-events-none" />
+        <CardBox
+            className="h-full w-full relative overflow-hidden motion-reduce:transition-none"
+            role="img"
+            aria-label="Grafik bar Total Out Material 30 hari terakhir"
+        >
+            <div
+                className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary/5 to-transparent pointer-events-none"
+                aria-hidden="true"
+            />
 
             <div className="relative z-10 flex flex-col mb-6">
                 <h5 className="text-xl font-bold tracking-tight text-foreground">

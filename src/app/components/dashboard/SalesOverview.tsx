@@ -63,7 +63,7 @@ const SalesOverview: React.FC = () => {
             toolbar: { show: false },
             type: 'bar',
             fontFamily: 'inherit',
-            foreColor: '#7C8FAC',
+            foreColor: 'var(--color-muted-foreground, #7C8FAC)',
             height: 310,
             stacked: true, // stacked instead of side-by-side
             width: '100%',
@@ -79,7 +79,7 @@ const SalesOverview: React.FC = () => {
         },
         dataLabels: { enabled: false },
         legend: { show: true, position: 'top', horizontalAlign: 'right' },
-        grid: { borderColor: 'rgba(0,0,0,0.1)', strokeDashArray: 3 },
+        grid: { borderColor: 'var(--color-border, rgba(0,0,0,0.1))', strokeDashArray: 3 },
         xaxis: {
             categories: chartData.dates,
             axisBorder: { show: false },
@@ -137,8 +137,11 @@ const SalesOverview: React.FC = () => {
     }, []);
 
     return (
-        <CardBox className="pb-0 h-full w-full relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+        <CardBox className="pb-0 h-full w-full relative overflow-hidden motion-reduce:transition-none">
+            <div
+                className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"
+                aria-hidden="true"
+            />
 
             <div className="relative z-10 sm:flex items-center justify-between mb-6">
                 <div>
