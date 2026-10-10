@@ -33,8 +33,8 @@ export default async function WOLensaRefPage() {
     try {
         const list = await getWOLensaRefList();
         initialData = list as WOLensaHeader[];
-    } catch (e: unknown) {
-        console.error('Failed to load WO Lensa Ref List', e);
+    } catch {
+        // Error captured: user-facing message assigned to errorMsg.
         errorMsg = 'Gagal memuat data WO Lensa Ref.';
     }
 

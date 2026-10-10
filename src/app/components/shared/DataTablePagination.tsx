@@ -7,9 +7,14 @@ interface DataTablePaginationProps<TData> {
 
 export function DataTablePagination<TData>({ table }: DataTablePaginationProps<TData>) {
     return (
-        <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-                Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+        <div
+            className="flex items-center justify-between"
+            role="navigation"
+            aria-label="Navigasi halaman tabel"
+        >
+            <div className="text-sm text-muted-foreground">
+                Halaman {table.getState().pagination.pageIndex + 1} dari{' '}
+                {table.getPageCount()}
             </div>
             <div className="flex gap-2">
                 <Button
@@ -17,16 +22,18 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
                     size="sm"
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
+                    aria-label="Halaman sebelumnya"
                 >
-                    Previous
+                    Sebelumnya
                 </Button>
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
+                    aria-label="Halaman berikutnya"
                 >
-                    Next
+                    Berikutnya
                 </Button>
             </div>
         </div>

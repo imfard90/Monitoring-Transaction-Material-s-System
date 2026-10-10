@@ -284,7 +284,7 @@ export default function LoginPage() {
         <Suspense
             fallback={
                 <AuthLayout>
-                    <AuthCard title="Masuk" description="Loading...">
+                    <AuthCard title="Masuk" description="Memuat data...">
                         <div className="flex justify-center items-center py-8">
                             <Loader2 className="size-8 animate-spin text-primary" />
                         </div>

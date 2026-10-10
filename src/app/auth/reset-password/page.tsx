@@ -210,7 +210,7 @@ export default function ResetPasswordPage() {
         <Suspense
             fallback={
                 <AuthLayout>
-                    <AuthCard title="Reset Password" description="Loading...">
+                    <AuthCard title="Reset Password" description="Memuat data...">
                         <div className="flex justify-center items-center py-8">
                             <Loader2 className="size-8 animate-spin text-primary" />
                         </div>

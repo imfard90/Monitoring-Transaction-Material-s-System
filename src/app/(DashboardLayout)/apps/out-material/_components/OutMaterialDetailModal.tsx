@@ -74,13 +74,13 @@ export default function OutMaterialDetailModal({
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-4 text-gray-500">
-                                        Loading...
+                                    <td colSpan={5} className="text-center py-4 text-muted-foreground" role="status">
+                                        Memuat data, mohon tunggu...
                                     </td>
                                 </tr>
                             ) : items.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-4 text-gray-500">
+                                    <td colSpan={5} className="text-center py-4 text-muted-foreground" role="status">
                                         No items found
                                     </td>
                                 </tr>

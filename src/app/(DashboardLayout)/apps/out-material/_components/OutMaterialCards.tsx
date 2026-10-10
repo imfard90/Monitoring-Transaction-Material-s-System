@@ -25,36 +25,36 @@ export default function OutMaterialCards({
             id: 'all',
             title: 'All Materials',
             value: counts.wait_approve + counts.request + counts.intech + counts.close,
-            icon: <FileEdit className="text-gray-500" size={24} />,
-            color: 'bg-gray-500/10',
+            icon: <FileEdit className="text-secondary" size={24} />,
+            color: 'bg-secondary/10',
         },
         {
             id: 'wait_approve',
             title: 'Wait Approve',
             value: counts.wait_approve,
-            icon: <Clock className="text-yellow-500" size={24} />,
-            color: 'bg-yellow-500/10',
+            icon: <Clock className="text-warning" size={24} />,
+            color: 'bg-warning/10',
         },
         {
             id: 'request',
             title: 'Requested',
             value: counts.request,
-            icon: <FileEdit className="text-blue-500" size={24} />,
-            color: 'bg-blue-500/10',
+            icon: <FileEdit className="text-info" size={24} />,
+            color: 'bg-info/10',
         },
         {
             id: 'intech',
             title: 'Intech',
             value: counts.intech,
-            icon: <Truck className="text-purple-500" size={24} />,
-            color: 'bg-purple-500/10',
+            icon: <Truck className="text-secondary" size={24} />,
+            color: 'bg-secondary/10',
         },
         {
             id: 'close',
             title: 'Close',
             value: counts.close,
-            icon: <CheckCircle className="text-green-500" size={24} />,
-            color: 'bg-green-500/10',
+            icon: <CheckCircle className="text-success" size={24} />,
+            color: 'bg-success/10',
         },
     ];
 
@@ -72,12 +72,12 @@ export default function OutMaterialCards({
                     >
                         <CardContent className="p-4 flex items-center justify-between h-full">
                             <div>
-                                <p className="text-sm font-medium text-gray-700 mb-1">
+                                <p className="text-sm font-medium text-foreground mb-1">
                                     {card.title}
                                 </p>
-                                <h3 className="text-2xl font-bold text-gray-900">{card.value}</h3>
+                                <h3 className="text-2xl font-bold text-foreground">{card.value}</h3>
                             </div>
-                            <div className="p-3 bg-white/50 rounded-full">{card.icon}</div>
+                            <div className="p-3 bg-background/50 rounded-full">{card.icon}</div>
                         </CardContent>
                     </Card>
                 </StaggerItem>

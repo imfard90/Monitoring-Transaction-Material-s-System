@@ -112,8 +112,8 @@ export default function HasilRekonClient({
                 });
                 setMonthsOffset(nextOffset);
             }
-        } catch (e) {
-            console.error(e);
+        } catch {
+            // Error swallowed: load-more failure already handled by setHasMoreData(false).
         } finally {
             setIsLoadingMore(false);
         }

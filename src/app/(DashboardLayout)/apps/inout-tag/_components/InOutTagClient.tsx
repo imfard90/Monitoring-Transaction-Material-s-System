@@ -97,8 +97,8 @@ export default function InOutTagClient({
                 );
                 setMonthsOffset(nextOffset);
             }
-        } catch (e) {
-            console.error(e);
+        } catch {
+            // Error swallowed: load-more failure already handled by setHasMoreData(false).
         } finally {
             setIsLoadingMore(false);
         }

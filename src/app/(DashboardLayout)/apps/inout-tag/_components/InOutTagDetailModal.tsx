@@ -53,8 +53,8 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
                     </p>
                 ) : (
                     <div className="rounded-md border overflow-x-auto">
-                        <table className="w-full text-sm text-left text-gray-500">
-                            <thead className="text-sm text-gray-700 uppercase bg-gray-50 border-b">
+                        <table className="w-full text-sm text-left text-muted-foreground">
+                            <thead className="text-sm text-foreground uppercase bg-muted/50 border-b">
                                 <tr>
                                     <th className="px-4 py-3">No</th>
                                     <th className="px-4 py-3">Designator / Code</th>
@@ -66,7 +66,7 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
                                 {items.map((item: InOutTagItem, idx: number) => (
                                     <tr
                                         key={item.id}
-                                        className="bg-white border-b hover:bg-gray-50"
+                                        className="bg-background border-b hover:bg-muted/50"
                                     >
                                         <td className="px-4 py-3">{idx + 1}</td>
                                         <td className="px-4 py-3 font-medium">

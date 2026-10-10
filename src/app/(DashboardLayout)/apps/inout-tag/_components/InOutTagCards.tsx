@@ -25,36 +25,36 @@ export default function InOutTagCards({
             id: 'all',
             title: 'All Tags',
             value: counts.requested + counts.in_transit + counts.closed + counts.cancel,
-            icon: <Warehouse className="text-gray-500" size={24} />,
-            color: 'bg-gray-500/10',
+            icon: <Warehouse className="text-secondary" size={24} />,
+            color: 'bg-secondary/10',
         },
         {
             id: 'requested',
             title: 'Request',
             value: counts.requested,
-            icon: <FileEdit className="text-blue-500" size={24} />,
-            color: 'bg-blue-500/10',
+            icon: <FileEdit className="text-info" size={24} />,
+            color: 'bg-info/10',
         },
         {
             id: 'in_transit',
             title: 'Transit',
             value: counts.in_transit,
-            icon: <Truck className="text-yellow-500" size={24} />,
-            color: 'bg-yellow-500/10',
+            icon: <Truck className="text-warning" size={24} />,
+            color: 'bg-warning/10',
         },
         {
             id: 'closed',
             title: 'Closed',
             value: counts.closed,
-            icon: <CheckCircle className="text-green-500" size={24} />,
-            color: 'bg-green-500/10',
+            icon: <CheckCircle className="text-success" size={24} />,
+            color: 'bg-success/10',
         },
         {
             id: 'cancel',
             title: 'Cancel',
             value: counts.cancel,
-            icon: <XCircle className="text-red-500" size={24} />,
-            color: 'bg-red-500/10',
+            icon: <XCircle className="text-error" size={24} />,
+            color: 'bg-error/10',
         },
     ];
 
@@ -72,12 +72,12 @@ export default function InOutTagCards({
                     >
                         <CardContent className="p-4 flex items-center justify-between h-full">
                             <div>
-                                <p className="text-sm font-medium text-gray-700 mb-1">
+                                <p className="text-sm font-medium text-foreground mb-1">
                                     {card.title}
                                 </p>
-                                <h3 className="text-2xl font-bold text-gray-900">{card.value}</h3>
+                                <h3 className="text-2xl font-bold text-foreground">{card.value}</h3>
                             </div>
-                            <div className="p-3 bg-white/50 rounded-full">{card.icon}</div>
+                            <div className="p-3 bg-background/50 rounded-full">{card.icon}</div>
                         </CardContent>
                     </Card>
                 </StaggerItem>

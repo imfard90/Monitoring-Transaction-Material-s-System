@@ -289,7 +289,7 @@ export default function RekonLensaForm() {
                                         {wosLoading ? (
                                             <TableRow>
                                                 <TableCell colSpan={5} className="text-center py-8">
-                                                    Loading...
+                                                    Memuat data, mohon tunggu...
                                                 </TableCell>
                                             </TableRow>
                                         ) : wosData?.length === 0 ? (
@@ -373,7 +373,7 @@ export default function RekonLensaForm() {
                                         {materialsLoading ? (
                                             <TableRow>
                                                 <TableCell colSpan={4} className="text-center py-8">
-                                                    Loading...
+                                                    Memuat data, mohon tunggu...
                                                 </TableCell>
                                             </TableRow>
                                         ) : materialsData?.length === 0 ? (

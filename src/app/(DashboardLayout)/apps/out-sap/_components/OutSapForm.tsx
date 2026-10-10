@@ -354,7 +354,7 @@ export default function OutSapForm() {
                                                 }
                                                 className="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white w-full h-full"
                                             >
-                                                {isScraping ? 'Loading...' : 'Get Data'}
+                                                {isScraping ? 'Memuat data...' : 'Get Data'}
                                             </Button>
                                         </motion.div>
                                     </div>
