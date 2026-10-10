@@ -31,7 +31,7 @@ Aplikasi: Next.js (App Router) + TypeScript strict, PostgreSQL via Kysely, Redis
 | Performa (query, caching, pagination) | Ditinjau sebagian |
 | Keamanan (auth, otorisasi, secret, input) | Ditinjau |
 | Business rules via database (SP/function) | Ditinjau |
-| Testing | **Tidak ada suite tes ditemukan** |
+| Testing | ✅ `vitest` + `pgTAP` (44 tes: 34 unit + 10 integration) |
 
 ---
 
@@ -261,6 +261,7 @@ Optimasi gambar Next dimatikan. Jika ada banyak aset, pertimbangkan optimizer at
 | M2 | File aksi besar | **P2** ✅ | M | Maintainability |
 | M4 | Penanganan error inkonsisten | **P2** ✅ | M | UX/logging |
 | P1 | Dashboard tanpa pagination | **P2** ✅ | S | Performa data besar |
+| P2 | N+1 pada auto-close check | **P2** ✅ | S | Duplikasi cek |
 | Q2 | Logger redact berlebihan | **P3** ✅ | S | Debug sulit |
 | Q3 | `console.error` tersebar | **P3** ✅ | S | Logging inkonsisten |
 | S5 | Tidak ada `.env.example` | **P3** ✅ | S | Onboarding |
