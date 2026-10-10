@@ -90,6 +90,7 @@ export async function getWOLensa(nik: string) {
             ])
             .where('h.nik_pemakai', '=', nik)
             .where('h.wo_number', 'is not', null)
+            .where('h.rekon_check', '=', false)
             .where('h.wo_number', 'not in', (eb: any) =>
                 eb
                     .selectFrom('inventory.transaction_used_header')
