@@ -1,4 +1,4 @@
-import { format, isAfter, isEqual, parse } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { type Browser, chromium } from 'playwright';
 import { redis } from '../src/lib/redis';
 
@@ -161,13 +161,243 @@ export async function scrapeLensaHeaders(
     }
 }
 
+export interface WOLensaHeader {
+    pemakaian_id: string;
+    gi_number: string | null;
+    nama_gudang: string | null;
+    nik_pemakai: string | null;
+    tanggal_update: string | null;
+    formatted_date: string | null;
+    type: string | null;
+    wbs: string | null;
+    wo_number: string | null;
+}
+
+interface LensaResponse {
+    status?: boolean;
+    data?: Array<Record<string, unknown>>;
+    pagination?: { current_page?: number; last_page?: number; per_page?: number; total?: number };
+}
+
+// Cutoff: CUTOFF_MONTH env (YYYY-MM) atau default bulan berjalan.
+const CUTOFF_MONTH_RAW = process.env.CUTOFF_MONTH || format(new Date(), 'yyyy-MM');
+const CUTOFF_MONTH_MATCH = /^(\d{4})-(\d{2})$/.exec(CUTOFF_MONTH_RAW);
+if (!CUTOFF_MONTH_MATCH) {
+    throw new Error(
+        `CUTOFF_MONTH="${CUTOFF_MONTH_RAW}" invalid. Expected format: YYYY-MM (e.g. 2026-10)`
+    );
+}
+const CUTOFF_YEAR = parseInt(CUTOFF_MONTH_MATCH[1], 10);
+const CUTOFF_MONTH = parseInt(CUTOFF_MONTH_MATCH[2], 10);
+const CUTOFF_DATE = new Date(CUTOFF_YEAR, CUTOFF_MONTH - 1, 1);
+
+const MAX_RETRIES = 3;
+const MAX_PAGES_DEFAULT = 50;
+const MAX_PAGES_PREFIX = 50;
+const CONSECUTIVE_STOP_THRESHOLD = 2;
+
+type LensaPage = Awaited<ReturnType<typeof setupContext>>['page'];
+type LensaPerformLogin = () => Promise<void>;
+type LensaSafeGoto = (url: string) => Promise<void>;
+
+function isWithinCutoff(dateStr: string | null | undefined): boolean {
+    const d = parseLensaDate(dateStr);
+    if (!d) return false;
+    return d >= CUTOFF_DATE;
+}
+
+function isBeforeCutoff(dateStr: string | null | undefined): boolean {
+    const d = parseLensaDate(dateStr);
+    if (!d) return true;
+    return d < CUTOFF_DATE;
+}
+
+function allBeforeCutoff(items: Array<Record<string, unknown>>): boolean {
+    if (items.length === 0) return true;
+    return items.every((item) => isBeforeCutoff(item.tanggal_update?.toString() || null));
+}
+
+function processItems(
+    items: Array<Record<string, unknown>>,
+    seenIds: Set<string>,
+    results: WOLensaHeader[]
+): { found: number; added: number; filtered: number } {
+    let found = 0;
+    let added = 0;
+    let filtered = 0;
+
+    for (const item of items) {
+        const pemakaianId = String(item.pemakaian_id ?? '');
+        if (!pemakaianId || pemakaianId === 'undefined') continue;
+
+        const rawDate = item.tanggal_update?.toString() || null;
+        found++;
+
+        if (!isWithinCutoff(rawDate)) {
+            filtered++;
+            continue;
+        }
+
+        if (seenIds.has(pemakaianId)) continue;
+        seenIds.add(pemakaianId);
+        added++;
+
+        const parsedDate = parseLensaDate(rawDate);
+        results.push({
+            pemakaian_id: pemakaianId,
+            gi_number: item.gi_number?.toString() || null,
+            nama_gudang: item.nama_gudang?.toString() || null,
+            nik_pemakai: item.nik_pemakai?.toString() || null,
+            tanggal_update: rawDate,
+            formatted_date: parsedDate ? format(parsedDate, 'yyyy-MM-dd') : null,
+            type: item.type?.toString() || null,
+            wbs: item.wbs?.toString() || null,
+            wo_number: item.wo_number?.toString() || null,
+        });
+    }
+
+    return { found, added, filtered };
+}
+
+async function fetchPageJSON(
+    page: LensaPage,
+    url: string,
+    performLogin: LensaPerformLogin,
+    safeGoto: LensaSafeGoto
+): Promise<LensaResponse> {
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            await safeGoto(url);
+
+            if (page.url().includes('login')) {
+                await performLogin();
+                await safeGoto(url);
+                if (page.url().includes('login')) {
+                    throw new Error('Sesi tidak valid walau sudah relogin.');
+                }
+            }
+
+            const body = await page.evaluate(
+                () => document.body.innerText || document.body.textContent || ''
+            );
+            try {
+                return JSON.parse(body || '{}') as LensaResponse;
+            } catch (_e) {
+                return {};
+            }
+        } catch (err) {
+            if (attempt === MAX_RETRIES) {
+                console.error(
+                    `Max retries (${MAX_RETRIES}) reached for ${url}. — ${
+                        err instanceof Error ? err.message : String(err)
+                    }`
+                );
+                throw err;
+            }
+            console.warn(`Retry ${attempt}/${MAX_RETRIES} for ${url}...`);
+            await new Promise((r) => setTimeout(r, 2000));
+        }
+    }
+    return {};
+}
+
+async function scrapeDefaultEndpoint(
+    page: LensaPage,
+    performLogin: LensaPerformLogin,
+    safeGoto: LensaSafeGoto,
+    perpage: number,
+    seenIds: Set<string>,
+    results: WOLensaHeader[]
+): Promise<void> {
+    const url1 = `${LENSA_URL}/teknisi/wo-data?page=1&perpage=${perpage}&search=&orderBy=gi_number&orderDirection=desc`;
+    console.warn('  [Default] Fetching page 1 (adaptive multi-page)...');
+    const resp1 = await fetchPageJSON(page, url1, performLogin, safeGoto);
+
+    const items1 = resp1?.data || [];
+    const lastPage = resp1?.pagination?.last_page ?? 1;
+    let pagesFetched = 1;
+
+    processItems(items1, seenIds, results);
+
+    let consecutiveBelowCutoff = allBeforeCutoff(items1) ? 1 : 0;
+    const maxPages = Math.min(lastPage, MAX_PAGES_DEFAULT);
+
+    for (let p = 2; p <= maxPages; p++) {
+        if (consecutiveBelowCutoff >= CONSECUTIVE_STOP_THRESHOLD) break;
+
+        const url = `${LENSA_URL}/teknisi/wo-data?page=${p}&perpage=${perpage}&search=&orderBy=gi_number&orderDirection=desc`;
+        const resp = await fetchPageJSON(page, url, performLogin, safeGoto);
+        const items = resp?.data || [];
+        pagesFetched++;
+
+        processItems(items, seenIds, results);
+
+        if (allBeforeCutoff(items)) {
+            consecutiveBelowCutoff++;
+        } else {
+            consecutiveBelowCutoff = 0;
+        }
+
+        if (items.length === 0) break;
+    }
+
+    console.warn(`  [Default] Done pages=${pagesFetched}/${lastPage} (cap ${MAX_PAGES_DEFAULT})`);
+}
+
+async function scrapePrefixEndpoint(
+    page: LensaPage,
+    performLogin: LensaPerformLogin,
+    safeGoto: LensaSafeGoto,
+    perpage: number,
+    prefix: 'INC' | 'SC',
+    seenIds: Set<string>,
+    results: WOLensaHeader[]
+): Promise<void> {
+    const url1 = `${LENSA_URL}/teknisi/wo-data?page=1&perpage=${perpage}&search=${prefix}&orderBy=tanggal_update&orderDirection=asc`;
+    console.warn(`  [${prefix}] Fetching page 1...`);
+    const resp1 = await fetchPageJSON(page, url1, performLogin, safeGoto);
+
+    const items1 = resp1?.data || [];
+    const lastPage = resp1?.pagination?.last_page ?? 1;
+    let pagesFetched = 1;
+
+    processItems(items1, seenIds, results);
+
+    const maxPages = Math.min(lastPage, MAX_PAGES_PREFIX);
+
+    for (let p = 2; p <= maxPages; p++) {
+        const url = `${LENSA_URL}/teknisi/wo-data?page=${p}&perpage=${perpage}&search=${prefix}&orderBy=tanggal_update&orderDirection=asc`;
+        const resp = await fetchPageJSON(page, url, performLogin, safeGoto);
+        const items = resp?.data || [];
+        pagesFetched++;
+
+        processItems(items, seenIds, results);
+
+        if (items.length === 0) break;
+    }
+
+    console.warn(`  [${prefix}] Done pages=${pagesFetched}/${lastPage} (cap ${MAX_PAGES_PREFIX})`);
+}
+
+/**
+ * Scrape WO Lensa headers untuk SATU akun PIC.
+ *
+ * Strategi (v3 adaptive cutoff):
+ *   1) Default endpoint: sort by gi_number desc, adaptive multi-page
+ *      (stop jika N halaman berturut-turut semua < cutoff, cap 50).
+ *   2) Prefix INC: sort by tanggal_update asc, loop sampai last_page atau cap 50.
+ *   3) Prefix SC: sama seperti INC.
+ *
+ * Parameter `fullLoop` (legacy) diabaikan — hanya INC/SC yang diproses,
+ * LP/WO/FMC tidak lagi di-scrape sesuai keputusan.
+ */
 export async function scrapeWOLensaHeaders(
     existingPemakaianIds: string[],
     customUsername?: string,
     customPassword?: string,
     perpage: number = 100,
-    fullLoop: boolean = false
-) {
+    _fullLoop: boolean = false
+): Promise<WOLensaHeader[]> {
     const username = customUsername || process.env.LENSA_USERNAME;
     const password = customPassword || process.env.LENSA_PASSWORD;
     if (!username || !password) throw new Error('LENSA_USERNAME or LENSA_PASSWORD is not set');
@@ -175,99 +405,28 @@ export async function scrapeWOLensaHeaders(
     const { context, page, safeGoto, performLogin } = await setupContext(username, password);
 
     try {
-        const newHeaders: any[] = [];
-        const seenPemakaianIds = new Set<string>(existingPemakaianIds);
-        const cutoffDate = new Date('2026-10-01');
+        const newHeaders: WOLensaHeader[] = [];
+        const seenIds = new Set<string>(existingPemakaianIds);
 
-        const fetchAndProcess = async (url: string, maxRetries = 3) => {
-            for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
-                    await safeGoto(url);
-
-                    if (page.url().includes('login')) {
-                        await performLogin();
-                        await safeGoto(url);
-                        if (page.url().includes('login')) {
-                            throw new Error('Sesi terputus atau login gagal');
-                        }
-                    }
-
-                    const listContent = await page.evaluate(
-                        () => document.body.innerText || document.body.textContent
-                    );
-                    let listData: Record<string, unknown> = {};
-                    try {
-                        listData = JSON.parse(listContent || '{}');
-                    } catch (_e) {
-                        throw new Error('Failed to parse JSON response');
-                    }
-
-                    const items = (listData?.data as Array<Record<string, unknown>>) || [];
-                    let foundItems = 0;
-
-                    for (const item of items) {
-                        const pemakaianId = String(item.pemakaian_id);
-                        if (!pemakaianId || pemakaianId === 'undefined') continue;
-
-                        const rawDate = item.tanggal_update?.toString() || null;
-                        const parsedDate = parseLensaDate(rawDate);
-                        const formattedDate = parsedDate ? format(parsedDate, 'yyyy-MM-dd') : null;
-
-                        if (
-                            !parsedDate ||
-                            (!isAfter(parsedDate, cutoffDate) && !isEqual(parsedDate, cutoffDate))
-                        ) {
-                            continue;
-                        }
-
-                        foundItems++;
-
-                        if (seenPemakaianIds.has(pemakaianId)) continue;
-                        seenPemakaianIds.add(pemakaianId);
-
-                        newHeaders.push({
-                            pemakaian_id: pemakaianId,
-                            gi_number: item.gi_number?.toString() || null,
-                            nama_gudang: item.nama_gudang?.toString() || null,
-                            nik_pemakai: item.nik_pemakai?.toString() || null,
-                            tanggal_update: rawDate,
-                            formatted_date: formattedDate,
-                            type: item.type?.toString() || null,
-                            wbs: item.wbs?.toString() || null,
-                            wo_number: item.wo_number?.toString() || null,
-                        });
-                    }
-                    return foundItems > 0; // Return true if we found items to process
-                } catch (_error) {
-                    if (attempt === maxRetries) {
-                        console.error(`Max retries reached for ${url}. Giving up.`);
-                        return false;
-                    }
-                    await new Promise((resolve) => setTimeout(resolve, 2000));
-                }
-            }
-            return false;
-        };
-
-        // Step 1: Run original query
-        const originalUrl = `${LENSA_URL}/teknisi/wo-data?page=1&perpage=${perpage}&search=&orderBy=gi_number&orderDirection=desc`;
-        await fetchAndProcess(originalUrl);
-
-        // Step 2: Run prefix loop if requested
-        if (fullLoop) {
-            const prefixes = ['SC', 'INC', 'LP', 'WO', 'FMC'];
-            const maxPages = 100; // Safe high limit, will break when empty
-
-            for (const prefix of prefixes) {
-                for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-                    const prefixUrl = `${LENSA_URL}/teknisi/wo-data?page=${pageNum}&perpage=${perpage}&search=${prefix}&orderBy=tanggal_update&orderDirection=desc`;
-                    const hasItems = await fetchAndProcess(prefixUrl);
-                    if (!hasItems) {
-                        break;
-                    }
-                }
-            }
-        }
+        await scrapeDefaultEndpoint(page, performLogin, safeGoto, perpage, seenIds, newHeaders);
+        await scrapePrefixEndpoint(
+            page,
+            performLogin,
+            safeGoto,
+            perpage,
+            'INC',
+            seenIds,
+            newHeaders
+        );
+        await scrapePrefixEndpoint(
+            page,
+            performLogin,
+            safeGoto,
+            perpage,
+            'SC',
+            seenIds,
+            newHeaders
+        );
 
         return newHeaders;
     } catch (error) {

@@ -91,21 +91,29 @@ async function asyncPool<T, R>(
     return Promise.all(ret);
 }
 
-export async function internalTriggerWOScraping(perpage: number = 20, fullLoop: boolean = false) {
+export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: boolean = false) {
+    // v3: ukuran halaman ditentukan internal scraper (default 100).
+    // Parameter _perpage diabaikan agar perubahan jadwal Out Lensa tidak memengaruhi WO.
+    const perpage = 100;
     try {
-        const validUsers = await db
-            .selectFrom('auth.user as u')
-            .where('u.lensa_acount', 'is not', null)
-            .select(['u.id', 'u.lensa_acount'])
+        // 1) Kumpulkan warehouse + PIC 1/PIC 2 + mapping NIK → user lensa
+        const whs = await db
+            .selectFrom('inventory.mas_wh')
+            .select(['id', 'name', 'pic_1', 'pic_2'])
             .execute();
 
-        if (validUsers.length === 0) {
-            return {
-                success: false,
-                message: 'Tidak ada user Lensa yang valid untuk melakukan scraping.',
-            };
+        const usersWithLensa = await db
+            .selectFrom('auth.user as u')
+            .where('u.lensa_acount', 'is not', null)
+            .select(['u.id', 'u.nik', 'u.lensa_acount'])
+            .execute();
+
+        const userByNik = new Map<string, (typeof usersWithLensa)[number]>();
+        for (const u of usersWithLensa) {
+            if (u.nik) userByNik.set(u.nik, u);
         }
 
+        // 2) Existing pemakaian_id untuk dedup
         const existingHeaders = await db
             .selectFrom('inventory.wo_lensa_header')
             .select(['pemakaian_id'])
@@ -114,41 +122,77 @@ export async function internalTriggerWOScraping(perpage: number = 20, fullLoop: 
 
         let totalInserted = 0;
 
-        const headerResults = await asyncPool(5, validUsers, async (u) => {
-            const lensaAcount = u.lensa_acount as Record<string, string> | null;
-            if (!lensaAcount?.username || !lensaAcount?.password) return [];
+        // 3) Per-warehouse: PIC 1 → fallback PIC 2
+        const whTasks = whs
+            .map((w) => {
+                const pic1Nik = w.pic_1 ? String(w.pic_1).trim() : null;
+                const pic2Nik = w.pic_2 ? String(w.pic_2).trim() : null;
+                const pic1 = pic1Nik ? userByNik.get(pic1Nik) : undefined;
+                const pic2 = pic2Nik ? userByNik.get(pic2Nik) : undefined;
+                if (!pic1?.lensa_acount && !pic2?.lensa_acount) return null;
+                return {
+                    wh: w,
+                    pic1: pic1?.lensa_acount ? pic1 : undefined,
+                    pic2: pic2?.lensa_acount ? pic2 : undefined,
+                };
+            })
+            .filter((t): t is NonNullable<typeof t> => t !== null);
 
-            const customUsername = lensaAcount.username;
-            let customPassword = '';
+        if (whTasks.length === 0) {
+            return {
+                success: false,
+                message:
+                    'Tidak ada warehouse dengan PIC Lensa yang valid untuk melakukan scraping.',
+            };
+        }
 
-            try {
-                customPassword = decrypt(lensaAcount.password);
-            } catch (_e) {
-                console.error(`Failed to decrypt password for user ${u.id}`);
-                return [];
+        const headerResults = await asyncPool(5, whTasks, async (task) => {
+            const candidates = [task.pic1, task.pic2].filter(Boolean) as NonNullable<
+                (typeof whTasks)[number]['pic1']
+            >[];
+            if (candidates.length === 0) return [];
+
+            for (const picUser of candidates) {
+                const lensaAcount = picUser.lensa_acount as Record<string, string> | null;
+                if (!lensaAcount?.username || !lensaAcount?.password) continue;
+
+                const customUsername = lensaAcount.username;
+                let customPassword = '';
+                try {
+                    customPassword = decrypt(lensaAcount.password);
+                } catch (_e) {
+                    console.error(`Failed to decrypt password for user ${picUser.id}`);
+                    continue;
+                }
+
+                try {
+                    const newHeaders = await scrapeWOLensaHeaders(
+                        existingPemakaianIds,
+                        customUsername,
+                        customPassword,
+                        perpage
+                    );
+                    console.warn(
+                        `[WO][${task.wh.name}] PIC ${customUsername} → ${newHeaders.length} headers`
+                    );
+                    return newHeaders;
+                } catch (e: unknown) {
+                    console.error(
+                        `[WO][${task.wh.name}] Failed scrape PIC ${customUsername}: ${
+                            e instanceof Error ? e.message : e
+                        } — trying fallback`
+                    );
+                    // lanjut ke kandidat berikutnya (PIC 2)
+                }
             }
 
-            try {
-                const newHeaders = await scrapeWOLensaHeaders(
-                    existingPemakaianIds,
-                    customUsername,
-                    customPassword,
-                    perpage,
-                    fullLoop
-                );
-                return newHeaders;
-            } catch (e: unknown) {
-                console.error(
-                    `Failed to scrape WO headers for user ${customUsername}:`,
-                    e instanceof Error ? e.message : e
-                );
-                return [];
-            }
+            console.warn(`[WO][${task.wh.name}] Semua PIC gagal.`);
+            return [];
         });
 
         const allNewHeaders = headerResults.flat();
 
-        const uniqueHeadersMap = new Map();
+        const uniqueHeadersMap = new Map<string, (typeof allNewHeaders)[number]>();
         for (const h of allNewHeaders) {
             uniqueHeadersMap.set(h.pemakaian_id, h);
         }
@@ -303,7 +347,7 @@ export async function triggerWOScraping(): Promise<
 
     Promise.resolve().then(async () => {
         try {
-            const result = await internalTriggerWOScraping(100, true);
+            const result = await internalTriggerWOScraping(undefined, true);
             if (result.success) {
                 await redis.set(
                     `job:${jobId}`,

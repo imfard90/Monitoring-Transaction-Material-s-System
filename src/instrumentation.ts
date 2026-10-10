@@ -39,12 +39,12 @@ export async function register() {
 
     const runScrapers = async (perpage: number) => {
         try {
-            console.log(`[CRON] Running Lensa scrapers with perpage=${perpage}...`);
+            console.warn(`[CRON] Running Lensa scrapers perpage=${perpage}...`);
             await internalTriggerScraping(perpage);
-            console.log(`[CRON] Lensa scrapers with perpage=${perpage} completed.`);
-            console.log(`[CRON] Running WO Lensa scrapers with perpage=${perpage}...`);
-            await internalTriggerWOScraping(perpage);
-            console.log(`[CRON] WO Lensa scrapers with perpage=${perpage} completed.`);
+            console.warn(`[CRON] Lensa scrapers perpage=${perpage} completed.`);
+            console.warn(`[CRON] Running WO Lensa scrapers (v3 internal perpage)...`);
+            await internalTriggerWOScraping();
+            console.warn(`[CRON] WO Lensa scrapers completed.`);
         } catch (error) {
             console.error('[CRON] Error during scheduled scraping:', error);
         }
@@ -60,6 +60,6 @@ export async function register() {
                 timezone: 'Asia/Jakarta',
             });
         }
-        console.log('[CRON] Scheduled Lensa scrapers registered for Asia/Jakarta timezone.');
+        console.warn('[CRON] Scheduled Lensa scrapers registered for Asia/Jakarta timezone.');
     }
 }
