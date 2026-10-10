@@ -47,7 +47,10 @@ export const StockIntechOverview = () => {
             if (!searchQuery) return matchesWh;
             const q = searchQuery.toLowerCase();
             const matchesSearch =
-                item.nik?.toLowerCase().includes(q) || item.teknisi?.toLowerCase().includes(q);
+                item.nik?.toLowerCase().includes(q) ||
+                item.teknisi?.toLowerCase().includes(q) ||
+                item.material_code.toLowerCase().includes(q) ||
+                item.material_name?.toLowerCase().includes(q);
 
             return matchesWh && matchesSearch;
         });
@@ -61,6 +64,10 @@ export const StockIntechOverview = () => {
         columnHelper.accessor('wh_name', {
             header: 'Warehouse',
             cell: (info) => <span className="text-gray-500">{info.getValue() || '-'}</span>,
+        }),
+        columnHelper.accessor('nik', {
+            header: 'NIK',
+            cell: (info) => <span className="font-mono text-sm">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('teknisi', {
             header: 'Teknisi',
@@ -107,7 +114,7 @@ export const StockIntechOverview = () => {
                                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                                 <Input
                                     type="search"
-                                    placeholder="Cari NIK/Teknisi..."
+                                    placeholder="Cari NIK/Teknisi/Material..."
                                     className="pl-9 bg-white"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
