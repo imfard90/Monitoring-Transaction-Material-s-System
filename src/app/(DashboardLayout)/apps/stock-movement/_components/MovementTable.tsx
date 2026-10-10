@@ -15,6 +15,14 @@ import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
@@ -44,8 +52,8 @@ interface MovementTableProps {
     onWarehouseFilterChange?: (val: string) => void;
     materialFilter?: string;
     onMaterialFilterChange?: (val: string) => void;
-    typeFilter?: string;
-    onTypeFilterChange?: (val: string) => void;
+    typeFilter?: string[];
+    onTypeFilterChange?: (val: string[]) => void;
     uniqueWarehouses?: string[];
     uniqueMaterials?: string[];
     uniqueTypes?: string[];
@@ -211,20 +219,44 @@ export default function MovementTable({
 
                     {onTypeFilterChange && (
                         <div className="w-[200px]">
-                            <SearchableSelect
-                                value={typeFilter || ''}
-                                onValueChange={onTypeFilterChange}
-                                options={[
-                                    { value: 'all', label: 'All Types' },
-                                    ...uniqueTypes.map((type) => ({
-                                        value: type,
-                                        label: type
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full justify-between bg-white font-normal"
+                                    >
+                                        {typeFilter && typeFilter.length > 0
+                                            ? `${typeFilter.length} Type${typeFilter.length > 1 ? 's' : ''} selected`
+                                            : 'All Types'}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-[200px] max-h-[300px] overflow-y-auto">
+                                    <DropdownMenuLabel>Filter by Type</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {uniqueTypes.map((type) => {
+                                        const label = type
                                             .replace(/_/g, ' ')
-                                            .replace(/\b\w/g, (l) => l.toUpperCase()),
-                                    })),
-                                ]}
-                                placeholder="All Types"
-                            />
+                                            .replace(/\b\w/g, (l) => l.toUpperCase());
+                                        const isChecked = typeFilter?.includes(type) ?? false;
+                                        return (
+                                            <DropdownMenuCheckboxItem
+                                                key={type}
+                                                checked={isChecked}
+                                                onCheckedChange={(checked) => {
+                                                    const current = typeFilter ?? [];
+                                                    const next = checked
+                                                        ? [...current, type]
+                                                        : current.filter((t) => t !== type);
+                                                    onTypeFilterChange(next);
+                                                }}
+                                                onSelect={(e) => e.preventDefault()}
+                                            >
+                                                {label}
+                                            </DropdownMenuCheckboxItem>
+                                        );
+                                    })}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     )}
                 </div>

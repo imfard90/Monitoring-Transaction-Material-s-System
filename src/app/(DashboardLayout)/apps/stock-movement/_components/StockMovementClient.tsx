@@ -23,7 +23,7 @@ export default function StockMovementClient({ initialData }: StockMovementClient
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [warehouseFilter, setWarehouseFilter] = useState('all');
     const [materialFilter, setMaterialFilter] = useState('all');
-    const [typeFilter, setTypeFilter] = useState('all');
+    const [typeFilter, setTypeFilter] = useState<string[]>([]);
 
     const uniqueWarehouses = useMemo(() => {
         const set = new Set(data.map((item) => item.warehouse_name).filter(Boolean));
@@ -45,7 +45,7 @@ export default function StockMovementClient({ initialData }: StockMovementClient
         setDateRange(undefined);
         setWarehouseFilter('all');
         setMaterialFilter('all');
-        setTypeFilter('all');
+        setTypeFilter([]);
     };
 
     const loadMore = useCallback(async () => {
@@ -103,8 +103,8 @@ export default function StockMovementClient({ initialData }: StockMovementClient
                 return false;
             }
 
-            // Type filter
-            if (typeFilter && typeFilter !== 'all' && item.movement_type !== typeFilter) {
+            // Type filter (multi-select: empty = all)
+            if (typeFilter && typeFilter.length > 0 && !typeFilter.includes(item.movement_type)) {
                 return false;
             }
 
