@@ -122,3 +122,72 @@ describe('shared components premium invariants', () => {
         expect(src).toMatch(/motion-reduce/);
     });
 });
+
+describe('UI primitives premium invariants', () => {
+    it('Button honors reduced motion and active scale', async () => {
+        const src = await readSrc('src/components/ui/button.tsx');
+        expect(src).toMatch(/motion-reduce:transition-none/);
+        expect(src).toMatch(/motion-reduce:active:scale-100/);
+    });
+
+    it('Skeleton is aria-hidden and honors reduced motion', async () => {
+        const src = await readSrc('src/components/ui/skeleton.tsx');
+        expect(src).toMatch(/motion-reduce:animate-none/);
+        expect(src).toMatch(/aria-hidden/);
+    });
+
+    it('Badge uses focus-visible, not focus, and honors reduced motion', async () => {
+        const src = await readSrc('src/components/ui/badge.tsx');
+        expect(src).toMatch(/focus-visible:ring/);
+        expect(src).toMatch(/motion-reduce:transition-none/);
+    });
+});
+
+describe('DataTable premium invariants', () => {
+    it('uses semantic tokens and Indonesian defaults', async () => {
+        const src = await readSrc('src/app/components/shared/DataTable.tsx');
+        // No raw gray literals (SKILL §2.1).
+        expect(src).not.toMatch(/text-gray-\d/);
+        expect(src).not.toMatch(/bg-gray-\d/);
+        expect(src).not.toMatch(/bg-white(?!\/)/);
+        // Uses semantic tokens.
+        expect(src).toMatch(/text-muted-foreground/);
+        expect(src).toMatch(/bg-background/);
+        // Indonesian default copy (SKILL §3.7).
+        expect(src).toMatch(/Belum ada data/);
+        expect(src).toMatch(/Memuat data/);
+        // A11y: role=status + aria-busy + scope=col (SKILL §2.3).
+        expect(src).toMatch(/role="status"/);
+        expect(src).toMatch(/aria-busy/);
+        expect(src).toMatch(/scope="col"/);
+        // Motion: honors reduced motion (SKILL §2.4).
+        expect(src).toMatch(/motion-reduce/);
+    });
+
+    it('DataTablePagination uses Indonesian copy and ARIA labels', async () => {
+        const src = await readSrc('src/app/components/shared/DataTablePagination.tsx');
+        expect(src).toMatch(/Halaman/);
+        expect(src).toMatch(/Sebelumnya/);
+        expect(src).toMatch(/Berikutnya/);
+        expect(src).toMatch(/role="navigation"/);
+        expect(src).toMatch(/aria-label/);
+    });
+});
+
+describe('global CSS premium invariants', () => {
+    it('globals.css has prefers-reduced-motion and focus-visible', async () => {
+        const src = await readSrc('src/app/css/globals.css');
+        expect(src).toMatch(/prefers-reduced-motion/);
+        expect(src).toMatch(/:focus-visible/);
+    });
+});
+
+describe('LoadingSkeleton premium invariants', () => {
+    it('exposes role=status and aria-label', async () => {
+        const src = await readSrc('src/app/components/shared/LoadingSkeleton.tsx');
+        expect(src).toMatch(/role="status"/);
+        expect(src).toMatch(/aria-label/);
+        expect(src).toMatch(/Memuat data/);
+    });
+});
+
