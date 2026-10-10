@@ -19,7 +19,11 @@ import InOutTagDetailModal from './InOutTagDetailModal';
 import InOutTagTable from './InOutTagTable';
 import UpdateTagModal from './UpdateTagModal';
 
-export default function InOutTagClient() {
+interface InOutTagClientProps {
+    canCreateTag: boolean;
+}
+
+export default function InOutTagClient({ canCreateTag }: InOutTagClientProps) {
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [toWhFilter, setToWhFilter] = useState<string>('all');
@@ -178,6 +182,7 @@ export default function InOutTagClient() {
                         onCreateClick={() => setIsCreateModalOpen(true)}
                         onViewDetail={(row) => setDetailRow(row)}
                         onUpdateClick={handleUpdateClick}
+                        canCreateTag={canCreateTag}
                     />
                     {isLoadingMore && (
                         <div className="text-center text-sm text-gray-500 py-2">

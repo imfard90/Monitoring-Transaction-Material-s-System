@@ -43,6 +43,7 @@ interface InOutTagTableProps {
     onUpdateClick: (row: InOutTagRow) => void;
     dateFilter: DateRange | undefined;
     onDateFilterChange: (val: DateRange | undefined) => void;
+    canCreateTag: boolean;
 }
 
 const columnHelper = createColumnHelper<InOutTagRow>();
@@ -59,6 +60,8 @@ export default function InOutTagTable({
     onCreateClick,
     onViewDetail,
     onUpdateClick,
+    canCreateTag,
+
     dateFilter,
     onDateFilterChange,
 }: InOutTagTableProps) {
@@ -269,12 +272,14 @@ export default function InOutTagTable({
                     )}
                 </div>
 
-                <Button
-                    onClick={onCreateClick}
-                    className="flex items-center gap-2 w-full md:w-auto"
-                >
-                    <Plus size={16} /> Create Tag
-                </Button>
+                {canCreateTag && (
+                    <Button
+                        onClick={onCreateClick}
+                        className="flex items-center gap-2 w-full md:w-auto"
+                    >
+                        <Plus size={16} /> Create Tag
+                    </Button>
+                )}
             </StaggerItem>
 
             <StaggerItem>
