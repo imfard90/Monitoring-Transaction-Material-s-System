@@ -98,6 +98,28 @@ next-env.d.ts
 # --------------------------------------------------
 tmp/
 temp/
+*.pid
+*.log
+
+# --------------------------------------------------
+# Agent / Scaffolding tooling (local only)
+# --------------------------------------------------
+.agents/
+.cline/
+.archive/
+.external_scrapping/
+setup-cline-mcp.sh
+
+# --------------------------------------------------
+# IDE / Workspace
+# --------------------------------------------------
+MTMS.code-workspace
+
+# --------------------------------------------------
+# TypeScript incremental build cache
+# --------------------------------------------------
+tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # --------------------------------------------------
 # Certificates
@@ -111,3 +133,14 @@ temp/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# --------------------------------------------------
+# Misc project notes / drafts (not for version control)
+# --------------------------------------------------
+AGENTS.md
+ARCHITECTURE_AUDIT.md
+ARCHITECTURE_IMPROVEMENT_PLAN.md
+CLINE.md
+CLINE_QUICK_START.md
+VIBECODING_*.md
+bispro.md
