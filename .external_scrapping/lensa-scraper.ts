@@ -25,7 +25,7 @@ function parseLensaDate(dateStr: string | null | undefined): Date | null {
     }
 }
 
-const LENSA_URL = process.env.LENSA_URL; //'https://lensa-inventory.telkomakses.co.id';
+const LENSA_URL = (process.env.LENSA_URL || '').replace(/\/+$/, ''); //'https://lensa-inventory.telkomakses.co.id';
 const SESSION_TTL = 60 * 60 * 2;
 
 export async function setupContext(username: string, password: string) {
@@ -281,8 +281,17 @@ async function fetchPageJSON(
                 () => document.body.innerText || document.body.textContent || ''
             );
             try {
-                return JSON.parse(body || '{}') as LensaResponse;
+                const parsed = JSON.parse(body || '{}') as LensaResponse;
+                const itemCount = parsed?.data?.length ?? 0;
+                const lastPage = parsed?.pagination?.last_page ?? '?';
+                console.warn(
+                    `   [fetchPageJSON] OK data=${itemCount} last_page=${lastPage} url=${url.slice(-90)}`
+                );
+                return parsed;
             } catch (_e) {
+                console.warn(
+                    `   [fetchPageJSON] JSON.parse FAILED — bodyLen=${body.length} bodyPreview="${body.slice(0, 200)}"`
+                );
                 return {};
             }
         } catch (err) {
@@ -317,10 +326,11 @@ async function scrapeDefaultEndpoint(
     const lastPage = resp1?.pagination?.last_page ?? 1;
     let pagesFetched = 1;
 
-    processItems(items1, seenIds, results);
+    const stats1 = processItems(items1, seenIds, results);
+ console.warn(`   [Default] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (cutoff=${format(CUTOFF_DATE, 'yyyy-MM-dd')})`);
 
     let consecutiveBelowCutoff = allBeforeCutoff(items1) ? 1 : 0;
-    const maxPages = Math.min(lastPage, MAX_PAGES_DEFAULT);
+ const maxPages = Math.min(lastPage, MAX_PAGES_DEFAULT);
 
     for (let p = 2; p <= maxPages; p++) {
         if (consecutiveBelowCutoff >= CONSECUTIVE_STOP_THRESHOLD) break;
@@ -361,9 +371,10 @@ async function scrapePrefixEndpoint(
     const lastPage = resp1?.pagination?.last_page ?? 1;
     let pagesFetched = 1;
 
-    processItems(items1, seenIds, results);
+    const stats1 = processItems(items1, seenIds, results);
+ console.warn(`   [${prefix}] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (cutoff=${format(CUTOFF_DATE, 'yyyy-MM-dd')})`);
 
-    const maxPages = Math.min(lastPage, MAX_PAGES_PREFIX);
+ const maxPages = Math.min(lastPage, MAX_PAGES_PREFIX);
 
     for (let p = 2; p <= maxPages; p++) {
         const url = `${LENSA_URL}/teknisi/wo-data?page=${p}&perpage=${perpage}&search=${prefix}&orderBy=tanggal_update&orderDirection=asc`;
