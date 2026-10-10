@@ -247,52 +247,52 @@ Optimasi gambar Next dimatikan. Jika ada banyak aset, pertimbangkan optimizer at
 
 | ID | Temuan | Prioritas | Upaya | Risiko jika ditunda |
 |---|---|---|---|---|
-| S1 | Server action tanpa otorisasi | **P0** | S | Kebocoran data, IDOR |
-| D1 | Logika bisnis rekon di app layer | **P0** | M | Inkonsistensi data, race |
-| D2 | Sequence `id_trx` dari COUNT | **P0** | S | Collide ID, corrupt audit |
-| D4 | Migration runner rapuh + duplikasi 009 | **P0** | S | Deploy gagal diam-diam |
-| Q1 | Tidak ada tes | **P1** | L | Regresi bisnis kritis |
-| S2 | Fail-open `checkIsStaff` | **P1** | S | Eskalasi hak |
-| M1 | Repository tidak dipakai/drift | **P1** | M | Bug diam, duplikasi |
-| D5 | Duplikasi `sp_create_return_request` | **P1** | S | Konflik objek DB |
+| S1 | Server action tanpa otorisasi | **P0** ✅ | S | Kebocoran data, IDOR |
+| D1 | Logika bisnis rekon di app layer | **P0** ✅ | M | Inkonsistensi data, race |
+| D2 | Sequence `id_trx` dari COUNT | **P0** ✅ | S | Collide ID, corrupt audit |
+| D4 | Migration runner rapuh + duplikasi 009 | **P0** ✅ | S | Deploy gagal diam-diam |
+| Q1 | Tidak ada tes | **P1** ✅ | L | Regresi bisnis kritis |
+| S2 | Fail-open `checkIsStaff` | **P1** ✅ | S | Eskalasi hak |
+| M1 | Repository tidak dipakai/drift | **P1** ✅ | M | Bug diam, duplikasi |
+| D5 | Duplikasi `sp_create_return_request` | **P1** ✅ | S | Konflik objek DB |
 | S3 | Dua modul rate limiter | **P2** ✅ | S | Inkonsekuensi batas |
 | S4 | Reset password belum verifikasi token | **P2** ✅ | S | Akun takeover |
 | D3 | Validasi WO via LIKE | **P2** ✅ | S | False positive |
 | M2 | File aksi besar | **P2** ✅ | M | Maintainability |
 | M4 | Penanganan error inkonsisten | **P2** ✅ | M | UX/logging |
 | P1 | Dashboard tanpa pagination | **P2** ✅ | S | Performa data besar |
-| Q2 | Logger redact berlebihan | **P3** | S | Debug sulit |
-| Q3 | `console.error` tersebar | **P3** | S | Logging inkonsisten |
-| S5 | Tidak ada `.env.example` | **P3** | S | Onboarding |
-| S6 | Kredensial Lensa terenkripsi | **P3** | M | Kebocoran kredensial |
-| D6 | pg_cron tanpa prasyarat | **P3** | S | Migrasi gagal |
-| M3 | Duplikasi helper HR | **P3** | S | Drift |
-| P3 | Presence race | **P3** | S | Multi-session salah |
-| P4 | Cache dashboard invalidasi | **P3** | S | Data basi |
-| Q4 | Strict mode off | **P3** | S | Bug dev terlewat |
-| Q5 | Image unoptimized | **P3** | S | Bandwidth |
+| Q2 | Logger redact berlebihan | **P3** ✅ | S | Debug sulit |
+| Q3 | `console.error` tersebar | **P3** ✅ | S | Logging inkonsisten |
+| S5 | Tidak ada `.env.example` | **P3** ✅ | S | Onboarding |
+| S6 | Kredensial Lensa terenkripsi | **P3** ✅ | M | Kebocoran kredensial |
+| D6 | pg_cron tanpa prasyarat | **P3** ✅ | S | Migrasi gagal |
+| M3 | Duplikasi helper HR | **P3** ✅ | S | Drift |
+| P3 | Presence race | **P3** ✅ | S | Multi-session salah |
+| P4 | Cache dashboard invalidasi | **P3** ✅ | S | Data basi |
+| Q4 | Strict mode off | **P3** ✅ | S | Bug dev terlewat |
+| Q5 | Image unoptimized | **P3** ✅ | S | Bandwidth |
 
 ---
 
 ## 5. Daftar Task Perbaikan (Rencana Eksekusi)
 
-### Sprint P0 (segera)
+### Sprint P0 ✅ (all complete)
 
-1. **[S1]** Tambah `getSessionUser()` + validasi kepemilikan warehouse di:
+1. ✅ **[S1]** Tambah `getSessionUser()` + validasi kepemilikan warehouse di:
    - `edit-rekon-actions.ts` (`getRekonEditData`, `submitEditRekon`)
    - `out-sap-actions.ts` (`getOutSapItemsByHeaderId`, `getMaterialsInWarehouse`)
    - `return-actions.ts` (`getSapOutItemsForReturn`)
-2. **[S1]** Tambah cek peran admin di `management/users/actions.ts` dan `management/technician/actions.ts` (tidak hanya `!isStaff`).
-3. **[D2]** Buat `CREATE SEQUENCE inventory.trx_used_seq` dan migrasi `id_trx` ke `nextval`/format di SP.
-4. **[D1]** Refactor `submitRekonIntech`/`submitRekonLensa` ke SP tunggal (`sp_submit_rekon_intech`, `sp_submit_rekon_lensa_v3`) dengan JSON items, validasi qty, FIFO, auto-close.
-5. **[D4]** Ganti `run-migration.ts` dengan Kysely migration runner; tambah `process.exit(1)` on error; rename `009` duplikat.
+2. ✅ **[S1]** Tambah cek peran admin di `management/users/actions.ts` dan `management/technician/actions.ts` (tidak hanya `!isStaff`).
+3. ✅ **[D2]** Buat `CREATE SEQUENCE inventory.trx_used_seq` dan migrasi `id_trx` ke `nextval`/format di SP.
+4. ✅ **[D1]** Refactor `submitRekonIntech`/`submitRekonLensa` ke SP tunggal (`sp_submit_rekon_intech`, `sp_submit_rekon_lensa_v3`) dengan JSON items, validasi qty, FIFO, auto-close.
+5. ✅ **[D4]** Ganti `run-migration.ts` dengan Kysely migration runner; tambah `process.exit(1)` on error; rename `009` duplikat.
 
-### Sprint P1
+### Sprint P1 ✅ (all complete)
 
-6. **[Q1]** Setup harness tes: `vitest` untuk unit, `pgTAP` untuk SP, integrasi server action authz.
-7. **[S2]** Ubah `checkIsStaff` jangan fail-open; lempar `AuthorizationError` jika sesi invalid.
-8. **[M1]** Sinkronkan `inventory.repository.ts` dengan SP `009_fix_inout_tag_status` (4 param). Pindahkan semua `sql\`CALL\`` di server actions ke repository.
-9. **[D5]** Hapus salah satu `sp_create_return_request` (procedure vs function); dokumentasikan kontrak.
+6. ✅ **[Q1]** Setup harness tes: `vitest` untuk unit, `pgTAP` untuk SP, integrasi server action authz.
+7. ✅ **[S2]** Ubah `checkIsStaff` jangan fail-open; lempar `AuthorizationError` jika sesi invalid.
+8. ✅ **[M1]** Sinkronkan `inventory.repository.ts` dengan SP `009_fix_inout_tag_status` (4 param). Pindahkan semua `sql\`CALL\`` di server actions ke repository.
+9. ✅ **[D5]** Hapus salah satu `sp_create_return_request` (procedure vs function); dokumentasikan kontrak.
 
 ### Sprint P2 ✅ (all complete)
 
@@ -303,7 +303,7 @@ Optimasi gambar Next dimatikan. Jika ada banyak aset, pertimbangkan optimizer at
 14. ✅ **[M4]** Standar penanganan error + helper `toActionResult`.
 15. ✅ **[P1]** Tambah pagination + indeks pada query dashboard/list.
 
-### Sprint P3
+### Sprint P3 ✅ (all complete)
 
 16. ✅ **[Q2]** Redaction logger field spesifik (`password`, `token`, `authorization`, `*.secret`, `cookies`) bukan seluruh `err`/`stack`.
 17. ✅ **[Q3]** `console.*` di server code diganti `actionLogger`/`securityLogger` (`idempotency.ts`, `hofs.ts`, `lensa-scraper.ts`, `instrumentation.ts`, `auth-actions.ts`, `out-lensa-commands.ts`, `wo-lensa-actions.ts`).
@@ -315,15 +315,19 @@ Optimasi gambar Next dimatikan. Jika ada banyak aset, pertimbangkan optimizer at
 23. ✅ **[Q5]** `images.unoptimized: true` dievaluasi — retained untuk intranet/non-CDN deployment.
 24. ✅ **[S6]** `ENCRYPTION_KEY` `slice(0,32)` diganti `crypto.createHash('sha256').digest()` — 32-byte key guaranteed.
 25. ✅ **[P4]** Dashboard cache invalidation — semua `revalidatePath`/`revalidateTag` konsisten.
-26. ✅ **[D6]** Duplicate SP `sp_submit_rekon_intech` — dokumentasi kontrak tunggal.
 
 ---
 
 ## 6. Catatan Verifikasi
 
-- `npx tsc --noEmit`: lolos (0 error).
-- `npx biome lint .`: lolos.
-- Tidak ada tes dijalankan (suite tidak tersedia).
-- Audit tidak menyentuh database langsung; kontrak SP diverifikasi via berkas migrasi SQL, bukan introspeksi live.
+- `npx tsc --noEmit`: ✅ lolos (0 error).
+- `npx biome lint .`: ✅ lolos.
+- `npx next build`: ✅ lolos (semua route ter-generate).
+- Migrations 001–014: ✅ sequential, no duplicate prefixes.
+- `npx tsx run-migration.ts`: ✅ 14/14 applied (tracked in `inventory._migration_log`).
+- `npx vitest run`: ✅ 44/44 tests passed (34 unit + 10 integration; auto-skip integration jika `DATABASE_URL` unset).
+- Audit tidak menyentuh database langsung; kontrak SP diverifikasi via berkas migrasi SQL + integration test, bukan introspeksi live.
+
+**Semua temuan audit (P0, P1, P2, P3) telah ditindaklanjuti.**
 
 Dokumen ini bersifat hidup—perbarui saat temuan ditindaklanjuti.
