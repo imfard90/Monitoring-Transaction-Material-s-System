@@ -89,7 +89,7 @@ export default function StockBalanceOverview() {
                 const qty = Number(info.getValue());
                 return (
                     <div className="text-right font-medium">
-                        <span className={qty <= 0 ? 'text-red-500' : 'text-gray-900'}>
+                        <span className={qty <= 0 ? 'text-error' : 'text-foreground'}>
                             {qty.toLocaleString()}
                         </span>
                     </div>

@@ -274,7 +274,7 @@ export default function UpdateTagModal({
                                         </TableCell>
                                         <TableCell className="font-medium">{item.code}</TableCell>
                                         <TableCell
-                                            className="text-sm text-gray-600 truncate max-w-[200px]"
+                                            className="text-sm text-muted-foreground truncate max-w-[200px]"
                                             title={item.description}
                                         >
                                             {item.description}

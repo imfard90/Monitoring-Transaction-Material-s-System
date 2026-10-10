@@ -110,7 +110,7 @@ export const StockWarningTable = () => {
                                                 {w.min_qty}
                                             </TableCell>
                                             <TableCell
-                                                className={`text-right font-bold ${isWarning ? 'text-yellow-500' : 'text-green-600'}`}
+                                                className={`text-right font-bold ${isWarning ? 'text-warning' : 'text-success'}`}
                                             >
                                                 {w.qty_stock}
                                             </TableCell>
@@ -118,14 +118,14 @@ export const StockWarningTable = () => {
                                                 {isWarning ? (
                                                     <Badge
                                                         variant="outline"
-                                                        className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                                                        className="bg-warning/10 text-warning border-warning/20"
                                                     >
                                                         Warning
                                                     </Badge>
                                                 ) : (
                                                     <Badge
                                                         variant="outline"
-                                                        className="bg-green-500/10 text-green-600 border-green-500/20"
+                                                        className="bg-success/10 text-success border-success/20"
                                                     >
                                                         Safe
                                                     </Badge>

@@ -108,16 +108,16 @@ export default function MovementTable({
         }),
         columnHelper.accessor('material_name', {
             header: 'Description',
-            cell: (info) => <span className="text-sm text-gray-500">{info.getValue()}</span>,
+            cell: (info) => <span className="text-sm text-muted-foreground">{info.getValue()}</span>,
         }),
         columnHelper.accessor('movement_type', {
             header: 'Type',
             cell: (info) => {
                 const val = info.getValue();
-                let color = 'bg-gray-100 text-gray-800';
+                let color = 'bg-muted text-foreground';
                 if (val === 'transfer_in' || val === 'receive' || val === 'return')
-                    color = 'bg-green-100 text-green-800';
-                if (val === 'transfer_out' || val === 'sap_out') color = 'bg-red-100 text-red-800';
+                    color = 'bg-success/10 text-success';
+                if (val === 'transfer_out' || val === 'sap_out') color = 'bg-error/10 text-error';
 
                 return (
                     <Badge className={`hover:bg-transparent capitalize ${color}`}>
@@ -131,7 +131,7 @@ export default function MovementTable({
             cell: (info) => {
                 const val = info.getValue();
                 const color =
-                    val > 0 ? 'text-green-600' : val < 0 ? 'text-red-600' : 'text-gray-900';
+                    val > 0 ? 'text-success' : val < 0 ? 'text-error' : 'text-foreground';
                 return (
                     <div className={`text-right text-sm font-bold ${color}`}>
                         {val > 0 ? `+${val}` : val}
@@ -145,7 +145,7 @@ export default function MovementTable({
         }),
         columnHelper.accessor('notes', {
             header: 'Notes',
-            cell: (info) => <span className="text-sm text-gray-500">{info.getValue() || '-'}</span>,
+            cell: (info) => <span className="text-sm text-muted-foreground">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('created_by', {
             header: 'By',
@@ -171,11 +171,11 @@ export default function MovementTable({
             <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4 shrink-0">
                 <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
                     <div className="relative w-full sm:w-72">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="search"
                             placeholder="Search reference, material, etc..."
-                            className="pl-9 bg-white"
+                            className="pl-9 bg-background"
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
                         />

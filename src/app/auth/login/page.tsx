@@ -145,7 +145,7 @@ const LoginForm = () => {
                         className={`mb-4 p-3 text-sm rounded-lg border ${
                             errorMsg.type === 'error'
                                 ? 'text-destructive bg-destructive/10 border-destructive/20'
-                                : 'text-yellow-600 bg-yellow-50 border-yellow-200 dark:text-yellow-500 dark:bg-yellow-950/30 dark:border-yellow-900/50'
+                                : 'text-warning bg-warning/10 border-warning/20 dark:text-warning dark:bg-warning/10 dark:border-warning/30'
                         }`}
                     >
                         {errorMsg.text}
@@ -251,7 +251,7 @@ const LoginForm = () => {
                 onClose={() => setPendingLogin(null)}
                 title="Sesi Aktif Ditemukan"
             >
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                     Akun Anda terdeteksi masih login di perangkat atau browser lain. Apakah Anda
                     ingin memutuskan sesi tersebut dan login di sini?
                 </p>

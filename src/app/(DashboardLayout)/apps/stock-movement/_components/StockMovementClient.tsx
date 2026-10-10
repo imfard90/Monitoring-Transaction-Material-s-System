@@ -151,7 +151,7 @@ export default function StockMovementClient({ initialData }: StockMovementClient
                         onClearFilters={handleClearFilters}
                     />
                     {isLoadingMore && (
-                        <div className="text-center text-sm text-gray-500 py-2">
+                        <div className="text-center text-sm text-muted-foreground py-2" role="status">
                             Mencari di 5 bulan sebelumnya...
                         </div>
                     )}

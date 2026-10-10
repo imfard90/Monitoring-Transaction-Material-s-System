@@ -39,21 +39,21 @@ export default function OutMaterialDetailModal({
             title="Out Material Detail"
             className="max-w-4xl"
         >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 bg-gray-50 p-4 rounded-md text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 bg-muted/50 p-4 rounded-md text-sm">
                 <div>
-                    <p className="text-gray-500 mb-1">NIK Teknisi</p>
+                    <p className="text-muted-foreground mb-1">NIK Teknisi</p>
                     <p className="font-medium">{row.nik_teknisi || '-'}</p>
                 </div>
                 <div>
-                    <p className="text-gray-500 mb-1">Nama Teknisi</p>
+                    <p className="text-muted-foreground mb-1">Nama Teknisi</p>
                     <p className="font-medium">{row.nama_teknisi || '-'}</p>
                 </div>
                 <div>
-                    <p className="text-gray-500 mb-1">ID Reservasi</p>
+                    <p className="text-muted-foreground mb-1">ID Reservasi</p>
                     <p className="font-medium">{row.id_reservasi || '-'}</p>
                 </div>
                 <div>
-                    <p className="text-gray-500 mb-1">SAP Number</p>
+                    <p className="text-muted-foreground mb-1">SAP Number</p>
                     <p className="font-medium">{row.sap_number || '-'}</p>
                 </div>
             </div>
@@ -62,7 +62,7 @@ export default function OutMaterialDetailModal({
                 <h4 className="font-semibold mb-3">List Material</h4>
                 <div className="rounded-md border overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 text-gray-700">
+                        <thead className="bg-muted/50 text-foreground">
                             <tr>
                                 <th className="px-4 py-3 border-b font-medium">No</th>
                                 <th className="px-4 py-3 border-b font-medium">Designator</th>
@@ -94,7 +94,7 @@ export default function OutMaterialDetailModal({
                                     return (
                                         <tr
                                             key={item.id}
-                                            className="border-b last:border-b-0 hover:bg-gray-50/50"
+                                            className="border-b last:border-b-0 hover:bg-muted/50"
                                         >
                                             <td className="px-4 py-3">{index + 1}</td>
                                             <td className="px-4 py-3">
@@ -110,8 +110,8 @@ export default function OutMaterialDetailModal({
                                                     }
                                                     className={
                                                         status === 'close'
-                                                            ? 'bg-green-500/10 text-green-700 hover:bg-green-500/20'
-                                                            : 'bg-purple-500/10 text-purple-700 hover:bg-purple-500/20'
+                                                            ? 'bg-success/10 text-success hover:bg-success/20'
+                                                            : 'bg-secondary/10 text-secondary hover:bg-secondary/20'
                                                     }
                                                 >
                                                     {status === 'close' ? 'Close' : 'Intech'}

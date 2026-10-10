@@ -150,10 +150,10 @@ export default function OutMaterialTable({
                             placeholder="Search request id, reservasi, sap..."
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
-                            className="pl-9 bg-white"
+                            className="pl-9 bg-background"
                         />
                         <Search
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                             size={16}
                         />
                     </div>
