@@ -59,8 +59,7 @@ export async function checkIdempotency<T = unknown>(
         const existing = await redis.get(redisKey);
 
         if (existing) {
-            // biome-ignore lint/suspicious/noConsole: needed for security logs
-            console.debug(`[Idempotency] Hit`, { key: `${redisKey.slice(0, 20)}...` });
+            securityLogger.debug('[Idempotency] Hit', { key: `${redisKey.slice(0, 20)}...` });
 
             try {
                 return {
