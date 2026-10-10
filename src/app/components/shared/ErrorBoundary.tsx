@@ -16,6 +16,14 @@ type State = {
     error?: Error;
 };
 
+/**
+ * ErrorBoundary — fallback error UI premium.
+ *
+ * Sesuai premium-ui-ux-builder/SKILL.md §2.4 (motion), §3.7 (pesan ID),
+ * dan AGENTS.md §2 langkah 8 (tidak ada console.error di server; untuk
+ * client boundary andalkan callback `onError` yang disediakan konsumen
+ * untuk pelaporan terstruktur, mis. ke endpoint log/api).
+ */
 export class ErrorBoundary extends Component<Props, State> {
     constructor(props: Props) {
         super(props);
@@ -27,7 +35,8 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        console.error('ErrorBoundary caught an error:', error, errorInfo);
+        // Delegate structured reporting to consumer; avoid console.error
+        // as UI feedback channel (premium-ui-ux-builder/SKILL.md §3.7).
         this.props.onError?.(error, errorInfo);
     }
 
@@ -35,29 +44,59 @@ export class ErrorBoundary extends Component<Props, State> {
         this.setState({ hasError: false, error: undefined });
     };
 
+    handleReload = () => {
+        if (typeof window !== 'undefined') window.location.reload();
+    };
+
     render() {
         if (this.state.hasError) {
-            if (this.props.fallback) {
-                return this.props.fallback;
-            }
+            if (this.props.fallback) return this.props.fallback;
 
             return (
-                <Alert variant="destructive" className="my-4">
-                    <Icon icon="mdi:alert-triangle" className="h-4 w-4" />
-                    <AlertTitle>Something went wrong</AlertTitle>
+                <Alert
+                    variant="destructive"
+                    role="alert"
+                    className="my-4 motion-reduce:transition-none"
+                >
+                    <Icon
+                        icon="mdi:alert-triangle"
+                        className="h-4 w-4"
+                        aria-hidden="true"
+                    />
+                    <AlertTitle>Terjadi kesalahan</AlertTitle>
                     <AlertDescription className="mt-2">
                         <p className="mb-4 text-sm">
-                            {this.state.error?.message || 'An unexpected error occurred.'}
+                            {this.state.error?.message ||
+                                'Terjadi kesalahan tak terduga. Silakan coba lagi.'}
                         </p>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={this.handleReset}
-                            className="gap-2"
-                        >
-                            <Icon icon="mdi:refresh" className="h-4 w-4" />
-                            Try again
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={this.handleReset}
+                                className="gap-2"
+                            >
+                                <Icon
+                                    icon="mdi:refresh"
+                                    className="h-4 w-4"
+                                    aria-hidden="true"
+                                />
+                                Coba lagi
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={this.handleReload}
+                                className="gap-2"
+                            >
+                                <Icon
+                                    icon="mdi:reload"
+                                    className="h-4 w-4"
+                                    aria-hidden="true"
+                                />
+                                Muat ulang halaman
+                            </Button>
+                        </div>
                     </AlertDescription>
                 </Alert>
             );

@@ -1,31 +1,55 @@
-import { Badge } from '@/components/ui/badge';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface StatusBadgeProps {
     status?: string | null;
+    className?: string;
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
-    if (!status) return <span className="text-gray-400">-</span>;
-
-    const val = status.toLowerCase();
-    let color = 'bg-gray-500/10 text-gray-800'; // fallback
-
-    // Map common statuses to standard colors
-    if (val === 'request' || val === 'requested') {
-        color = 'bg-blue-500/10 text-blue-800';
-    } else if (val === 'wait_approve' || val === 'in_transit') {
-        color = 'bg-yellow-500/10 text-yellow-800';
-    } else if (val === 'intech') {
-        color = 'bg-purple-500/10 text-purple-800';
-    } else if (val === 'close' || val === 'closed' || val === 'rekon' || val === 'accepted') {
-        color = 'bg-green-500/10 text-green-800';
-    } else if (val === 'cancel' || val === 'rejected' || val === 'cancelled') {
-        color = 'bg-red-500/10 text-red-800';
+/**
+ * StatusBadge — menampilkan status domain sebagai badge semantik.
+ *
+ * Menggunakan token warna tema (light* + semantic) sesuai
+ * premium-ui-ux-builder/SKILL.md §2.1 (konsistensi sistem desain) dan
+ * §2.5 (jangan andalkan warna saja; tetap menyertakan teks label).
+ * Mendukung dark mode secara otomatis lewat token.
+ */
+export function StatusBadge({ status, className }: StatusBadgeProps) {
+    if (!status) {
+        return <span className="text-muted-foreground">-</span>;
     }
 
+    const val = status.toLowerCase();
+    const variant: BadgeProps['variant'] = mapStatusVariant(val);
+
     return (
-        <Badge className={`capitalize border-none ${color}`} variant="outline">
+        <Badge
+            variant={variant}
+            className={cn(
+                'capitalize border-none motion-reduce:transition-none',
+                className,
+            )}
+            aria-label={`Status: ${val.replace(/_/g, ' ')}`}
+        >
             {val.replace(/_/g, ' ')}
         </Badge>
     );
+}
+
+function mapStatusVariant(val: string): BadgeProps['variant'] {
+    if (val === 'request' || val === 'requested') return 'lightInfo';
+    if (val === 'wait_approve' || val === 'in_transit') return 'lightWarning';
+    if (val === 'intech') return 'lightSecondary';
+    if (
+        val === 'close' ||
+        val === 'closed' ||
+        val === 'rekon' ||
+        val === 'accepted'
+    ) {
+        return 'lightSuccess';
+    }
+    if (val === 'cancel' || val === 'rejected' || val === 'cancelled') {
+        return 'lightError';
+    }
+    return 'outline';
 }

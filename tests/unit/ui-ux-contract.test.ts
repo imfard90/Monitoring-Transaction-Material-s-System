@@ -84,3 +84,41 @@ describe('cn util contract', () => {
         expect(cn('a', false && 'b', undefined, 'c')).toBe('a c');
     });
 });
+
+describe('shared components premium invariants', () => {
+    it('StatusBadge uses semantic tokens, not raw color literals', async () => {
+        const src = await readSrc('src/app/components/shared/StatusBadge.tsx');
+        // Raw palette literals are forbidden (SKILL §2.1).
+        expect(src).not.toMatch(/bg-gray-500/);
+        expect(src).not.toMatch(/bg-blue-500/);
+        expect(src).not.toMatch(/bg-yellow-500/);
+        expect(src).not.toMatch(/bg-green-500/);
+        expect(src).not.toMatch(/bg-red-500/);
+        // Uses semantic light* variants via mapStatusVariant.
+        expect(src).toMatch(/lightInfo|lightWarning|lightSuccess|lightError|lightSecondary/);
+        // Accessibility: exposes aria-label and honors reduced motion.
+        expect(src).toMatch(/aria-label/);
+        expect(src).toMatch(/motion-reduce/);
+        // Uses cn util for class merging via mapStatusVariant.
+        expect(src).toMatch(/mapStatusVariant/);
+    });
+
+    it('EmptyState defaults to Indonesian copy and honors reduced motion', async () => {
+        const src = await readSrc('src/app/components/shared/EmptyState.tsx');
+        expect(src).toMatch(/Belum ada data/);
+        expect(src).toMatch(/text-muted-foreground/);
+        expect(src).toMatch(/motion-reduce/);
+        expect(src).toMatch(/role="status"/);
+    });
+
+    it('ErrorBoundary avoids console.error and offers reload + reset', async () => {
+        const src = await readSrc('src/app/components/shared/ErrorBoundary.tsx');
+        // No console.error *call* as UI feedback (comments documenting the rule are OK).
+        expect(src).not.toMatch(/[^/]\s*console\.error\(/);
+        expect(src).toMatch(/onError\?\.?\(/);
+        expect(src).toMatch(/Coba lagi/);
+        expect(src).toMatch(/Muat ulang halaman/);
+        expect(src).toMatch(/window\.location\.reload/);
+        expect(src).toMatch(/motion-reduce/);
+    });
+});
