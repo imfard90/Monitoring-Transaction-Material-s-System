@@ -22,13 +22,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="en" suppressHydrationWarning>
+        <html lang="id" suppressHydrationWarning>
             <head>
                 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
                 <link rel="manifest" href="/manifest.json" />
                 <meta name="theme-color" content="#5d87ff" />
             </head>
-            <body className={`${plusJakarta.className}`}>
+            <body className={`${plusJakarta.className} antialiased`}>
                 <Providers>
                     <ServiceWorkerRegister />
                     {children}

@@ -7,3 +7,10 @@
     min-height: 70px;
     overflow: visible;
 }
+
+/* Premium UI/UX: respect reduced-motion preference (SKILL §2.4). */
+@media (prefers-reduced-motion: reduce) {
+    .mobile-header-menu {
+        transition-duration: 0.01ms;
+    }
+}

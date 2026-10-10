@@ -8,6 +8,26 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Premium UI/UX: respect reduced-motion preference globally (SKILL §2.4). */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Premium UI/UX: visible keyboard focus indicator across interactive elements (SKILL §2.3). */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-primary, currentcolor);
+    outline-offset: 2px;
+}
+
 html,
 main {
     scroll-behavior: smooth;
