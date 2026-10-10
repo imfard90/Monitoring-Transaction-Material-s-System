@@ -94,6 +94,7 @@ Sebelum menyatakan tugas selesai, pastikan:
 - Gunakan primitif `src/components/ui/*` (Radix-based).
 - State server via React Query/TanStack Table; jangan simpan token/password di `localStorage`.
 - Service worker (`src/sw.ts`) hanya cache aset statis; jangan cache response transaksi sensitif.
+- Saat membuat/memperbaiki UI/UX, ikuti juga skill `.agents/skills/premium-ui-ux-builder/SKILL.md` (sistem desain, aksesibilitas, state UI, motion, checklist UI premium). Pada konflik, otorisasi/business rules di `AGENTS.md` lebih tinggi.
 
 ## 4. Definisi Selesai (Definition of Done)
 
@@ -106,6 +107,7 @@ Sebelum menyatakan tugas selesai, pastikan:
 - [ ] Error handling terstruktur + logger.
 - [ ] Tes minimal untuk SP/authz baru.
 - [ ] `tsc` + `biome` lolos.
+- [ ] Untuk perubahan UI: checklist UI di `premium-ui-ux-builder/SKILL.md` §4 terpenuhi (primitif, token tema, responsif, dark mode, a11y, state UI lengkap).
 - [ ] `docs/AUDIT_REPORT.md` diperbarui status temuan terkait.
 
 ## 5. Saat Ragu

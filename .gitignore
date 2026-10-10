@@ -110,7 +110,9 @@ temp/
 # --------------------------------------------------
 # Agent / Scaffolding tooling (local only)
 # --------------------------------------------------
-.agents/
+# Ignore local agent data, but keep committed skills for team collaboration
+.agents/*
+!.agents/skills/
 .cline/
 .archive/
 setup-cline-mcp.sh
