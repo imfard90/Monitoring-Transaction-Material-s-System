@@ -21,9 +21,15 @@ import UpdateTagModal from './UpdateTagModal';
 
 interface InOutTagClientProps {
     canCreateTag: boolean;
+    isStaff: boolean;
+    warehouseIds: number[];
 }
 
-export default function InOutTagClient({ canCreateTag }: InOutTagClientProps) {
+export default function InOutTagClient({
+    canCreateTag,
+    isStaff,
+    warehouseIds,
+}: InOutTagClientProps) {
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [toWhFilter, setToWhFilter] = useState<string>('all');
@@ -208,6 +214,8 @@ export default function InOutTagClient({ canCreateTag }: InOutTagClientProps) {
                 items={updateItems}
                 isOpen={updateRow !== null}
                 onClose={() => setUpdateRow(null)}
+                isStaff={isStaff}
+                warehouseIds={warehouseIds}
             />
         </StaggerContainer>
     );

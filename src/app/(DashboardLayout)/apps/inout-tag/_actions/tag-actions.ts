@@ -1,9 +1,11 @@
 'use server';
 
+import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { actionLogger } from '@/lib/logger';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 const createTagSchema = z
@@ -281,9 +283,6 @@ export async function getMaterialsWithStock(fromWhId?: number | null) {
     }
 }
 
-import { sql } from 'kysely';
-import { actionLogger } from '@/lib/logger';
-
 export async function createTag(payload: {
     fromWhId: number;
     toWhId: number;
@@ -394,6 +393,57 @@ export async function updateTag(payload: {
     }
 
     try {
+        // ── Authorization: enforce PIC-based access per actionType ──────────
+        // - request : only non-Staff (Admin/Supervisor/etc.)
+        // - send    : only non-Staff OR PIC of the sending warehouse (from_wh_id)
+        // - accept  : only non-Staff OR PIC of the receiving warehouse (to_wh_id)
+        const { isStaff, nik } = await getSessionUser();
+
+        if (isStaff) {
+            if (payload.actionType === 'request') {
+                return {
+                    success: false,
+                    error: 'Akses ditolak: Staff tidak dapat melakukan Request ID.',
+                };
+            }
+
+            // Resolve from/to wh + PICs for this header
+            const header = await db
+                .selectFrom('inventory.inout_tag_header as h')
+                .innerJoin('inventory.mas_wh as wh_from', 'wh_from.id', 'h.from_wh_id')
+                .innerJoin('inventory.mas_wh as wh_to', 'wh_to.id', 'h.to_wh_id')
+                .select([
+                    'wh_from.pic_1 as from_pic_1',
+                    'wh_from.pic_2 as from_pic_2',
+                    'wh_to.pic_1 as to_pic_1',
+                    'wh_to.pic_2 as to_pic_2',
+                ])
+                .where('h.id', '=', String(payload.headerId))
+                .executeTakeFirst();
+
+            if (!header) {
+                return { success: false, error: 'Transaksi tidak ditemukan.' };
+            }
+
+            const isSenderPic = nik === header.from_pic_1 || nik === header.from_pic_2;
+            const isReceiverPic = nik === header.to_pic_1 || nik === header.to_pic_2;
+
+            if (payload.actionType === 'send' && !isSenderPic) {
+                return {
+                    success: false,
+                    error: 'Akses ditolak: hanya PIC gudang pengirim yang dapat mengisi Send ID.',
+                };
+            }
+
+            if (payload.actionType === 'accept' && !isReceiverPic) {
+                return {
+                    success: false,
+                    error: 'Akses ditolak: hanya PIC gudang penerima yang dapat mengisi Accept ID.',
+                };
+            }
+        }
+        // Non-Staff (Admin, etc.) may perform any actionType without restriction.
+
         const { isDuplicate } = await checkAndStoreIdempotency(
             payload.idemKey,
             payload,

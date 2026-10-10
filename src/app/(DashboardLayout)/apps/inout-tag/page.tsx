@@ -34,7 +34,11 @@ export default async function InOutTagPage() {
             <div className="shrink-0">
                 <BreadcrumbComp title="InOut Tag" items={BCrumb} />
             </div>
-            <InOutTagClient canCreateTag={canCreateTag} />
+            <InOutTagClient
+                canCreateTag={canCreateTag}
+                isStaff={sessionUser.isStaff}
+                warehouseIds={sessionUser.warehouseIds}
+            />
         </div>
     );
 }

@@ -27,6 +27,8 @@ interface UpdateTagModalProps {
     onClose: () => void;
     row: InOutTagRow | null;
     items: InOutTagItem[];
+    isStaff: boolean;
+    warehouseIds: number[];
 }
 
 interface MaterialItem {
@@ -38,7 +40,14 @@ interface MaterialItem {
     qty: number | string;
 }
 
-export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTagModalProps) {
+export default function UpdateTagModal({
+    isOpen,
+    onClose,
+    row,
+    items,
+    isStaff,
+    warehouseIds,
+}: UpdateTagModalProps) {
     const queryClient = useQueryClient();
 
     // Determine state
@@ -66,6 +75,36 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
           : isUpdatingSend
             ? 'Send ID'
             : 'Accept ID';
+
+    // ── Access control for the current action ───────────────────────────────
+    // - request : only non-Staff
+    // - send    : non-Staff OR user is PIC of the sending warehouse (from_wh_id)
+    // - accept  : non-Staff OR user is PIC of the receiving warehouse (to_wh_id)
+    // For Staff we approximate "PIC of warehouse" by membership in warehouseIds
+    // (the same set used to scope the tag list). Non-Staff may perform any action.
+    const fromWhId = row?.from_wh_id ?? null;
+    const toWhId = row?.to_wh_id ?? null;
+
+    const canUpdate = (() => {
+        if (!isStaff) return true; // Admin / non-Staff: bebas
+        if (actionType === 'request') return false;
+        if (actionType === 'send')
+            return fromWhId !== null && warehouseIds.includes(Number(fromWhId));
+        if (actionType === 'accept')
+            return toWhId !== null && warehouseIds.includes(Number(toWhId));
+        return false;
+    })();
+
+    const deniedReason = (() => {
+        if (canUpdate) return null;
+        if (actionType === 'request')
+            return 'Anda tidak berhak mengisi Request ID (hanya non-Staff).';
+        if (actionType === 'send')
+            return 'Anda tidak berhak mengisi Send ID (hanya PIC gudang pengirim).';
+        if (actionType === 'accept')
+            return 'Anda tidak berhak mengisi Accept ID (hanya PIC gudang penerima).';
+        return 'Anda tidak berhak melakukan aksi ini.';
+    })();
 
     const [actionId, setActionId] = useState('');
     const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
@@ -192,11 +231,17 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <Label>{idLabel}</Label>
-                        <Input
-                            placeholder={`Enter ${idLabel}...`}
-                            value={actionId}
-                            onChange={(e) => setActionId(e.target.value)}
-                        />
+                        {canUpdate ? (
+                            <Input
+                                placeholder={`Enter ${idLabel}...`}
+                                value={actionId}
+                                onChange={(e) => setActionId(e.target.value)}
+                            />
+                        ) : (
+                            <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                                {deniedReason}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -301,7 +346,12 @@ export default function UpdateTagModal({ isOpen, onClose, row, items }: UpdateTa
                     </Button>
                     <Button
                         onClick={() => updateMutation.mutate()}
-                        disabled={updateMutation.isPending || cancelMutation.isPending || !actionId}
+                        disabled={
+                            updateMutation.isPending ||
+                            cancelMutation.isPending ||
+                            !actionId ||
+                            !canUpdate
+                        }
                     >
                         {updateMutation.isPending ? 'Saving...' : 'Update'}
                     </Button>
