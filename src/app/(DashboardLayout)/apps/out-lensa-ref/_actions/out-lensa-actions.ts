@@ -60,7 +60,7 @@ export async function getOutLensaRefList() {
         let query = db
             .selectFrom('inventory.out_lensa_ref_header')
             .selectAll()
-            .orderBy('tgl_entry', 'desc');
+            .orderBy('formatted_date', 'desc');
 
         if (isStaff && whNames.length > 0) {
             query = query.where('nama_gudang', 'in', whNames);
@@ -137,6 +137,16 @@ export async function internalTriggerScraping(perpage: number = 20) {
         let totalInserted = 0;
         let totalUsersScraped = 0;
 
+        // Track per-account outcomes for diagnostics
+        const accountResults: Array<{
+            username: string;
+            phase: 'headers' | 'details';
+            gudang?: string;
+            status: 'success' | 'login_fail' | 'scrape_fail' | 'no_data' | 'skip';
+            count: number;
+            error?: string;
+        }> = [];
+
         // PHASE 1: SCRAPE HEADERS
         const headerResults = await asyncPool(5, validUsers, async (u) => {
             const lensaAcount: any = u.lensa_acount;
@@ -147,6 +157,13 @@ export async function internalTriggerScraping(perpage: number = 20) {
                 customPassword = decrypt(lensaAcount.password);
             } catch (_e) {
                 console.error(`Failed to decrypt password for user ${u.id}`);
+                accountResults.push({
+                    username: customUsername,
+                    phase: 'headers',
+                    status: 'skip',
+                    count: 0,
+                    error: 'decrypt_failed',
+                });
                 return [];
             }
 
@@ -157,11 +174,26 @@ export async function internalTriggerScraping(perpage: number = 20) {
                     customPassword,
                     perpage
                 );
+                accountResults.push({
+                    username: customUsername,
+                    phase: 'headers',
+                    status: newHeaders.length > 0 ? 'success' : 'no_data',
+                    count: newHeaders.length,
+                });
                 return newHeaders.map((h: any) => ({ ...h, scraped_by_username: customUsername }));
             } catch (e: any) {
+                const msg = e.message || String(e);
+                const isLoginErr = msg.toLowerCase().includes('sesi') || msg.toLowerCase().includes('login');
+                accountResults.push({
+                    username: customUsername,
+                    phase: 'headers',
+                    status: isLoginErr ? 'login_fail' : 'scrape_fail',
+                    count: 0,
+                    error: msg,
+                });
                 console.error(
                     `Failed to scrape headers for user ${customUsername}:`,
-                    e.message || e
+                    msg
                 );
                 return [];
             }
@@ -199,6 +231,7 @@ export async function internalTriggerScraping(perpage: number = 20) {
                         .values({
                             reservation_id: h.reservation_id,
                             tgl_entry: h.tgl_entry,
+                            formatted_date: h.formatted_date,
                             nama_gudang: h.nama_gudang,
                             regional: h.regional,
                             project_id: h.project_id,
@@ -272,6 +305,14 @@ export async function internalTriggerScraping(perpage: number = 20) {
                 try {
                     customPassword = decrypt(lensaAcount.password);
                 } catch (_e) {
+                    accountResults.push({
+                        username: customUsername,
+                        phase: 'details',
+                        gudang,
+                        status: 'skip',
+                        count: 0,
+                        error: 'decrypt_failed',
+                    });
                     return [];
                 }
 
@@ -283,15 +324,40 @@ export async function internalTriggerScraping(perpage: number = 20) {
                             customPassword
                         );
                         totalUsersScraped++;
+                        accountResults.push({
+                            username: customUsername,
+                            phase: 'details',
+                            gudang,
+                            status: details.length > 0 ? 'success' : 'no_data',
+                            count: details.length,
+                        });
                         return details;
                     } catch (e: any) {
+                        const msg = e.message || String(e);
+                        const isLoginErr = msg.toLowerCase().includes('sesi') || msg.toLowerCase().includes('login');
+                        accountResults.push({
+                            username: customUsername,
+                            phase: 'details',
+                            gudang,
+                            status: isLoginErr ? 'login_fail' : 'scrape_fail',
+                            count: 0,
+                            error: msg,
+                        });
                         console.error(
                             `Failed to scrape details for gudang ${gudang}:`,
-                            e.message || e
+                            msg
                         );
                         return [];
                     }
                 }
+                accountResults.push({
+                    username: customUsername,
+                    phase: 'details',
+                    gudang,
+                    status: 'skip',
+                    count: 0,
+                    error: 'missing_credentials',
+                });
                 return [];
             });
 
@@ -336,7 +402,16 @@ export async function internalTriggerScraping(perpage: number = 20) {
             totalUsersScraped = validUsers.length;
         }
 
-        return { success: true, newCount: totalInserted, usersScraped: totalUsersScraped };
+        // Summarize diagnostics
+        const summary = {
+            totalAccounts: validUsers.length,
+            headersInserted: totalInserted,
+            usersScraped: totalUsersScraped,
+            accountResults,
+        };
+        console.warn('[OUT-Lensa] Scrape summary:', JSON.stringify(summary, null, 2));
+
+        return { success: true, newCount: totalInserted, usersScraped: totalUsersScraped, accountResults };
     } catch (error: any) {
         console.error('Trigger scraping error:', error);
         return { success: false, error: error.message };
@@ -346,6 +421,18 @@ export async function internalTriggerScraping(perpage: number = 20) {
 export async function triggerScraping(): Promise<
     { success: true; jobId: string } | { success: false; error: string }
 > {
+    const LOCK_KEY = 'lock:out_lensa_scrape';
+    const LOCK_TTL = 1800; // 30 menit, cukup untuk satu siklus scrape penuh
+
+    // Acquire active-job lock (atomic SET NX) untuk mencegah manual/cron overlap
+    const acquired = await redis.set(LOCK_KEY, '1', 'EX', LOCK_TTL, 'NX');
+    if (!acquired) {
+        return {
+            success: false,
+            error: 'Scrape sedang berjalan (manual/cron overlap). Coba lagi nanti.',
+        };
+    }
+
     const jobId = `out_lensa_scrape_${Date.now()}`;
     await redis.set(`job:${jobId}`, JSON.stringify({ status: 'running' }));
 
@@ -375,6 +462,9 @@ export async function triggerScraping(): Promise<
                 'EX',
                 3600
             );
+        } finally {
+            // Release lock setelah selesai (atau gagal)
+            await redis.del(LOCK_KEY);
         }
     });
 

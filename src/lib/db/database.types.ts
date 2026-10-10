@@ -1015,6 +1015,7 @@ export interface InventoryOutLensaRefHeader {
     mitra: string | null;
     nik_pemakai: string | null;
     tgl_entry: string | null;
+    formatted_date: ColumnType<Date | string, string | undefined, string | undefined> | null;
     nama_gudang: string | null;
     regional: string | null;
     reservation_id_sap: string | null;

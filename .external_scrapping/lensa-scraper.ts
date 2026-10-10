@@ -25,6 +25,26 @@ function parseLensaDate(dateStr: string | null | undefined): Date | null {
     }
 }
 
+/**
+ * Parser tanggal untuk OUT Lensa.
+ * Endpoint OUT mengirim tgl_entry dalam format "yyyy-MM-dd" (opsional bagian waktu),
+ * berbeda dari WO yang memakai "dd/MM/yyyy".
+ * Fallback ke parseLensaDate() jika format ternyata dd/MM/yyyy.
+ */
+function parseOutLensaDate(dateStr: string | null | undefined): Date | null {
+    if (!dateStr) return null;
+    try {
+        const datePart = dateStr.split(' ')[0];
+        // Coba yyyy-MM-dd (format yang diamati dari endpoint OUT)
+        const isoParsed = parse(datePart, 'yyyy-MM-dd', new Date());
+        if (!Number.isNaN(isoParsed.getTime())) return isoParsed;
+        // Fallback ke dd/MM/yyyy (sama seperti WO)
+        return parseLensaDate(dateStr);
+    } catch (_e) {
+        return null;
+    }
+}
+
 const LENSA_URL = (process.env.LENSA_URL || '').replace(/\/+$/, ''); //'https://lensa-inventory.telkomakses.co.id';
 const SESSION_TTL = 60 * 60 * 2;
 
@@ -81,6 +101,81 @@ export async function setupContext(username: string, password: string) {
     return { context, page, safeGoto, sessionKey, performLogin };
 }
 
+export interface OutLensaHeader {
+    reservation_id: string;
+    tgl_entry: string | null;
+    formatted_date: string | null;
+    nama_gudang: string | null;
+    regional: string | null;
+    project_id: string | null;
+    nik_pemakai: string | null;
+    reservation_id_sap: string | null;
+    gi_number: string | null;
+    status_proses: string | null;
+}
+
+
+
+const OUT_MAX_PAGES = 50;
+const OUT_STOP_ON_EMPTY = 2; // berhenti setelah N halaman kosong berturut-turut
+
+/**
+ * Proses item dari endpoint resevation_list_data.
+ * Hanya ambil data dengan status_proses === 'done' dan memiliki gi_number,
+ * dan belum ada di seenIds. Update seenIds supaya dedupe antar halaman.
+ */
+function processOutItems(
+    items: Array<Record<string, unknown>>,
+    seenIds: Set<string>,
+    results: OutLensaHeader[]
+): { found: number; added: number; filtered: number } {
+    let found = 0;
+    let added = 0;
+    let filtered = 0;
+
+    for (const item of items) {
+        const resId = String(item.reservation_id ?? '');
+        if (!resId || resId === 'undefined') continue;
+
+        found++;
+
+        if (!item.gi_number) {
+            filtered++;
+            continue;
+        }
+
+        const statusProses = item.status_proses?.toString().toLowerCase() || '';
+        if (statusProses !== 'done') {
+            filtered++;
+            continue;
+        }
+
+        if (seenIds.has(resId)) {
+            filtered++;
+            continue;
+        }
+        seenIds.add(resId);
+        added++;
+
+        const rawTglEntry = item.tgl_entry?.toString() || null;
+        const parsedTglEntry = parseOutLensaDate(rawTglEntry);
+        results.push({
+            reservation_id: resId,
+            tgl_entry: rawTglEntry,
+            formatted_date: parsedTglEntry ? format(parsedTglEntry, 'yyyy-MM-dd') : null,
+            nama_gudang: item.nama_gudang?.toString() || null,
+            regional: item.regional?.toString() || null,
+            project_id: item.project_id?.toString() || null,
+            nik_pemakai: item.nik_pemakai?.toString() || null,
+            reservation_id_sap: item.reservation_id_sap?.toString() || null,
+            gi_number: item.gi_number?.toString() || null,
+            status_proses: item.status_proses?.toString() || null,
+        });
+    }
+
+    return { found, added, filtered };
+}
+
 export async function scrapeLensaHeaders(
     existingHeaderIds: string[],
     customUsername?: string,
@@ -97,64 +192,58 @@ export async function scrapeLensaHeaders(
     );
 
     try {
-        const listUrl = `${LENSA_URL}/resevation_list_data?page=1&perpage=${perpage}&search=&orderBy=reservation_id&orderDirection=desc`;
-        await safeGoto(listUrl);
+        const newHeaders: OutLensaHeader[] = [];
+        const seenIds = new Set<string>(existingHeaderIds);
 
-        if (page.url().includes('login')) {
-            // Sesi mungkin expired, coba relogin
-            await performLogin();
-            await safeGoto(listUrl);
+        // Halaman 1: juga membaca metadata pagination
+        const url1 = `${LENSA_URL}/resevation_list_data?page=1&perpage=${perpage}&search=&orderBy=reservation_id&orderDirection=desc`;
+        console.warn(`[OUT][${username}] Fetching page 1...`);
+        const resp1 = await fetchPageJSON(page, url1, performLogin, safeGoto);
 
-            if (page.url().includes('login')) {
-                await redis.del(sessionKey);
-                throw new Error(
-                    'Sesi Lensa tidak valid atau telah kadaluarsa walau sudah relogin.'
+        const items1 = resp1?.data || [];
+        const lastPage = resp1?.pagination?.last_page ?? 1;
+        const stats1 = processOutItems(items1, seenIds, newHeaders);
+        console.warn(
+            `[OUT][${username}] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (last_page=${lastPage})`
+        );
+
+        const maxPages = Math.min(lastPage, OUT_MAX_PAGES);
+        let pagesFetched = 1;
+        let consecutiveEmpty = items1.length === 0 ? 1 : 0;
+
+        // Halaman berikutnya
+        for (let p = 2; p <= maxPages; p++) {
+            if (consecutiveEmpty >= OUT_STOP_ON_EMPTY) {
+                console.warn(
+                    `[OUT][${username}] Stop early: ${consecutiveEmpty} empty pages in a row.`
                 );
+                break;
+            }
+
+            const url = `${LENSA_URL}/resevation_list_data?page=${p}&perpage=${perpage}&search=&orderBy=reservation_id&orderDirection=desc`;
+            const resp = await fetchPageJSON(page, url, performLogin, safeGoto);
+            const items = resp?.data || [];
+            pagesFetched++;
+
+            const stats = processOutItems(items, seenIds, newHeaders);
+            console.warn(
+                `[OUT][${username}] page ${p}: items=${items.length} found=${stats.found} added=${stats.added} filtered=${stats.filtered}`
+            );
+
+            if (items.length === 0) {
+                consecutiveEmpty++;
+            } else {
+                consecutiveEmpty = 0;
             }
         }
 
-        const listContent = await page.evaluate(
-            () => document.body.innerText || document.body.textContent
+        console.warn(
+            `[OUT][${username}] Done pages=${pagesFetched}/${lastPage} (cap ${OUT_MAX_PAGES}) → new headers=${newHeaders.length}`
         );
-        let listData: Record<string, unknown> = {};
-        try {
-            listData = JSON.parse(listContent || '{}');
-        } catch (_e) {}
-
-        const items = (listData?.data as Array<Record<string, unknown>>) || [];
-        const newHeaders = [];
-
-        for (const item of items) {
-            const resId = String(item.reservation_id);
-            const statusProses = item.status_proses?.toString().toLowerCase() || '';
-
-            if (!resId) continue;
-
-            // 1. Filter: data hasil scaping yang tidak ada 'gi_number' tidak di ambil
-            if (!item.gi_number) continue;
-
-            // Filter: Hanya ambil data yang statusnya 'done'
-            if (statusProses !== 'done') continue;
-
-            // 2. data scraping header di cocokan dengan database, jika sudah ada di drop
-            if (existingHeaderIds.includes(resId)) continue;
-
-            newHeaders.push({
-                reservation_id: resId,
-                tgl_entry: item.tgl_entry?.toString() || null,
-                nama_gudang: item.nama_gudang?.toString() || null,
-                regional: item.regional?.toString() || null,
-                project_id: item.project_id?.toString() || null,
-                nik_pemakai: item.nik_pemakai?.toString() || null,
-                reservation_id_sap: item.reservation_id_sap?.toString() || null,
-                gi_number: item.gi_number?.toString() || null,
-                status_proses: item.status_proses?.toString() || null,
-            });
-        }
 
         return newHeaders;
     } catch (error) {
-        console.error('Header sync error:', error);
+        console.error(`[OUT][${username}] Header sync error:`, error);
         throw error;
     } finally {
         await context.close();

@@ -8,6 +8,7 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import { CheckCircle2, Eye, Play } from 'lucide-react';
+import { format } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
@@ -34,6 +35,7 @@ export interface OutLensaHeader {
     id: string;
     reservation_id: string | null;
     tgl_entry: string | null;
+    formatted_date: string | null;
     nama_gudang: string | null;
     gi_number: string | null;
     status_proses: string | null;
@@ -150,9 +152,18 @@ export default function OutLensaRefClient({
             header: 'Reservation ID',
             cell: (info) => info.getValue(),
         }),
-        columnHelper.accessor('tgl_entry', {
+        columnHelper.accessor('formatted_date', {
             header: 'Tgl Entry',
-            cell: (info) => info.getValue(),
+            sortingFn: 'datetime',
+            cell: (info) => {
+                const val = info.getValue();
+                if (!val) return '-';
+                try {
+                    return format(new Date(val), 'dd/MM/yyyy');
+                } catch (_e) {
+                    return val;
+                }
+            },
         }),
         columnHelper.accessor('nama_gudang', {
             header: 'Gudang',
