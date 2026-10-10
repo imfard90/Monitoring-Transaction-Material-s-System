@@ -13,7 +13,7 @@ import {
     scrapeLensaDetails,
     scrapeLensaHeaders,
     scrapeReservation,
-} from '../../../../../../.external_scrapping/lensa-scraper';
+} from '@/lib/lensa-scraper/lensa-scraper';
 
 const ENCRYPTION_KEY = (process.env.MFA_ENCRYPTION_SECRET || '').slice(0, 32);
 

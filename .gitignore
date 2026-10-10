@@ -107,9 +107,7 @@ temp/
 .agents/
 .cline/
 .archive/
-.external_scrapping/
 setup-cline-mcp.sh
-
 # --------------------------------------------------
 # IDE / Workspace
 # --------------------------------------------------
