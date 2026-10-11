@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import SimpleBar from 'simplebar-react';
 import { AMMenu, AMMenuItem, AMSidebar, AMSubmenu } from 'tailwind-sidebar';
-import { checkIsStaff } from '../../management/users/actions';
+import { getSidebarUserAccess, type SidebarUserAccess } from '../../management/users/actions';
 import FullLogo from '../shared/logo/FullLogo';
 import { SidebarAnnouncement } from './SidebarAnnouncement';
 import SidebarContent from './sidebaritems';
@@ -163,17 +163,29 @@ const SidebarLayout = ({
 }) => {
     const pathname = usePathname();
     const { theme } = useTheme();
-    const [isStaff, setIsStaff] = useState<boolean>(true); // default to true to hide sensitive menus until checked
+    const [access, setAccess] = useState<SidebarUserAccess>({
+        isStaff: true,
+        isTeknisi: false,
+    }); // default to hide sensitive menus until checked
 
     useEffect(() => {
-        checkIsStaff().then((staff) => setIsStaff(staff));
+        getSidebarUserAccess().then((acc) => setAccess(acc));
     }, []);
 
     // Filter sidebar content based on role
     const filteredSidebarContent = SidebarContent.map((section) => {
-        if (section.heading === 'Management' && isStaff) {
-            // Remove 'Users' from Management if user is staff
-            const filteredChildren = section.children?.filter((child) => child.name !== 'Users');
+        if (section.heading === 'Management') {
+            const filteredChildren = section.children?.filter((child) => {
+                // Teknisi cannot access Users and Technicians
+                if (access.isTeknisi && (child.name === 'Users' || child.name === 'Technicians')) {
+                    return false;
+                }
+                // Staff cannot access Users
+                if (access.isStaff && child.name === 'Users') {
+                    return false;
+                }
+                return true;
+            });
             return { ...section, children: filteredChildren };
         }
         return section;

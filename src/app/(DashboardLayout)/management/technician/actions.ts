@@ -1,14 +1,14 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireManagementAccess } from '@/lib/auth-server';
+import { requireTechnicianManagementAccess } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { hrRepository } from '@/lib/repositories/hr.repository';
 import { actionLogger } from '@/lib/logger';
 
 export async function getTechnicians() {
     try {
-        await requireManagementAccess();
+        await requireTechnicianManagementAccess();
 
         const technicians = await hrRepository.getTechnicians();
 
@@ -24,7 +24,7 @@ export async function getTechnicians() {
 
 export async function getBranches() {
     try {
-        await requireManagementAccess();
+        await requireTechnicianManagementAccess();
 
         return await hrRepository.getBranches();
     } catch (error: unknown) {
@@ -38,7 +38,7 @@ export async function getBranches() {
 
 export async function getMitras() {
     try {
-        await requireManagementAccess();
+        await requireTechnicianManagementAccess();
 
         return await hrRepository.getMitras();
     } catch (error: unknown) {
@@ -52,7 +52,7 @@ export async function getMitras() {
 
 export async function toggleTechnicianStatus(id: string | number, isActive: boolean) {
     try {
-        await requireManagementAccess();
+        await requireTechnicianManagementAccess();
 
         await db
             .updateTable('hr.technicians')
@@ -79,7 +79,7 @@ export async function upsertTechnician(data: {
     mitra_id: number | null;
 }) {
     try {
-        await requireManagementAccess();
+        await requireTechnicianManagementAccess();
 
         if (data.id) {
             await db

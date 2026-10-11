@@ -97,7 +97,7 @@ export async function getSessionUser(): Promise<SessionUser> {
 }
 
 /**
- * Role yang dilarang mengakses menu management (Users, Technicians).
+ * Role yang dilarang mengakses menu management (Users).
  * Semua role non-Staff diizinkan KECUALI "Teknisi".
  */
 const BLOCKED_MANAGEMENT_ROLES = new Set(['Staff', 'Teknisi']);
@@ -110,6 +110,24 @@ const BLOCKED_MANAGEMENT_ROLES = new Set(['Staff', 'Teknisi']);
 export async function requireManagementAccess(): Promise<SessionUser> {
     const session = await getSessionUser();
     if (!session.role || BLOCKED_MANAGEMENT_ROLES.has(session.role)) {
+        throw errors.accessDenied();
+    }
+    return session;
+}
+
+/**
+ * Role yang dilarang mengakses menu manajemen teknisi (/management/technician).
+ * Khusus halaman teknisi: Staff diizinkan membuka dan mengolah, tetapi "Teknisi" dilarang.
+ */
+const BLOCKED_TECHNICIAN_ROLES = new Set(['Teknisi']);
+
+/**
+ * Helper untuk mengecek apakah user berhak akses manajemen teknisi.
+ * Staff & level lain diizinkan, kecuali Teknisi. Melempar AuthorizationError jika tidak berhak (fail-closed).
+ */
+export async function requireTechnicianManagementAccess(): Promise<SessionUser> {
+    const session = await getSessionUser();
+    if (!session.role || BLOCKED_TECHNICIAN_ROLES.has(session.role)) {
         throw errors.accessDenied();
     }
     return session;

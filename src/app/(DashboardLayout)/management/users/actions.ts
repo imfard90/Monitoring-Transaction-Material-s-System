@@ -3,7 +3,6 @@
 import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { getSessionUser, requireManagementAccess } from '@/lib/auth-server';
-import { errors } from '@/lib/errors';
 import { db } from '@/lib/db/db';
 import { redis } from '@/lib/redis';
 
@@ -18,6 +17,30 @@ export async function checkIsStaff() {
         return session.isStaff;
     } catch {
         return true; // fail-closed: assume staff to hide menus
+    }
+}
+
+export interface SidebarUserAccess {
+    isStaff: boolean;
+    isTeknisi: boolean;
+}
+
+/**
+ * Cek akses role untuk penyaringan menu sidebar.
+ * Fail-closed: jika sesi invalid, anggap restricted (sembunyikan menu sensitif).
+ */
+export async function getSidebarUserAccess(): Promise<SidebarUserAccess> {
+    try {
+        const session = await getSessionUser();
+        return {
+            isStaff: session.isStaff,
+            isTeknisi: session.role === 'Teknisi',
+        };
+    } catch {
+        return {
+            isStaff: true,
+            isTeknisi: true, // fail-closed: assume restricted to hide menus
+        };
     }
 }
 

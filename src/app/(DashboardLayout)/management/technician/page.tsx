@@ -1,5 +1,7 @@
+import { redirect } from 'next/navigation';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
+import { getSessionUser } from '@/lib/auth-server';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
 import { getBranches, getMitras, getTechnicians } from './actions';
 import TechnicianTable from './technician-table';
@@ -21,6 +23,13 @@ const BCrumb = [
 ];
 
 export default async function TechnicianManagementPage() {
+    const session = await getSessionUser();
+
+    // Prevent Teknisi from accessing page
+    if (session.role === 'Teknisi') {
+        redirect('/');
+    }
+
     const [technicians, branches, mitras] = await Promise.all([
         getTechnicians(),
         getBranches(),

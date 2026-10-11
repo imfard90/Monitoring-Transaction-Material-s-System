@@ -69,10 +69,20 @@ export function mockAuthServer(initial: MockSessionUser = ADMIN_USER) {
         return currentUser;
     });
 
+    const requireTechnicianManagementAccess = vi.fn(async (): Promise<MockSessionUser> => {
+        if (shouldThrow || !currentUser) throw new Error('AuthenticationError');
+        const blocked = new Set(['Teknisi']);
+        if (!currentUser.role || blocked.has(currentUser.role)) {
+            throw new Error('AuthorizationError');
+        }
+        return currentUser;
+    });
+
     vi.mock('@/lib/auth-server', () => ({
         getSessionUser,
         getSessionNik,
         requireManagementAccess,
+        requireTechnicianManagementAccess,
         SessionUser: {} as any,
     }));
 
@@ -80,6 +90,7 @@ export function mockAuthServer(initial: MockSessionUser = ADMIN_USER) {
         getSessionUser,
         getSessionNik,
         requireManagementAccess,
+        requireTechnicianManagementAccess,
         setUser(u: MockSessionUser | null) {
             currentUser = u;
             shouldThrow = false;
@@ -93,6 +104,7 @@ export function mockAuthServer(initial: MockSessionUser = ADMIN_USER) {
             getSessionUser.mockClear();
             getSessionNik.mockClear();
             requireManagementAccess.mockClear();
+            requireTechnicianManagementAccess.mockClear();
         },
     };
 }

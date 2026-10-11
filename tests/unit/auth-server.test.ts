@@ -33,7 +33,7 @@ vi.mock('next/headers', () => ({
     headers: vi.fn(async () => new Headers()),
 }));
 
-const { getSessionNik, getSessionUser, requireManagementAccess } = await import(
+const { getSessionNik, getSessionUser, requireManagementAccess, requireTechnicianManagementAccess } = await import(
     '@/lib/auth-server'
 );
 const { AuthenticationError, AuthorizationError } = await import('@/lib/errors');
@@ -147,6 +147,46 @@ describe('requireManagementAccess', () => {
         mockAuthGetSession.mockResolvedValue(makeSession('SUP01', 'Supervisor'));
         mockDbReturns('Supervisor');
         const user = await requireManagementAccess();
+        expect(user.role).toBe('Supervisor');
+    });
+});
+
+describe('requireTechnicianManagementAccess', () => {
+    it('allows Staff role (Staff can open & manage technicians)', async () => {
+        mockAuthGetSession.mockResolvedValue(makeSession('NIK004', 'Staff'));
+        mockDbReturns('Staff');
+        const user = await requireTechnicianManagementAccess();
+        expect(user.role).toBe('Staff');
+    });
+
+    it('blocks Teknisi role (Teknisi cannot open or manage)', async () => {
+        mockAuthGetSession.mockResolvedValue(makeSession('NIK005', 'Teknisi'));
+        mockDbReturns('Teknisi');
+        await expect(requireTechnicianManagementAccess()).rejects.toThrow(AuthorizationError);
+    });
+
+    it('blocks null role (fail-closed)', async () => {
+        mockAuthGetSession.mockResolvedValue(makeSession('NIK006', null));
+        mockDbReturns(null);
+        await expect(requireTechnicianManagementAccess()).rejects.toThrow(AuthorizationError);
+    });
+
+    it('blocks when session invalid (fail-closed)', async () => {
+        mockAuthGetSession.mockResolvedValue(null);
+        await expect(requireTechnicianManagementAccess()).rejects.toThrow(AuthenticationError);
+    });
+
+    it('allows Administrator role', async () => {
+        mockAuthGetSession.mockResolvedValue(makeSession('ADM01', 'Administrator'));
+        mockDbReturns('Administrator');
+        const user = await requireTechnicianManagementAccess();
+        expect(user.role).toBe('Administrator');
+    });
+
+    it('allows Supervisor role', async () => {
+        mockAuthGetSession.mockResolvedValue(makeSession('SUP01', 'Supervisor'));
+        mockDbReturns('Supervisor');
+        const user = await requireTechnicianManagementAccess();
         expect(user.role).toBe('Supervisor');
     });
 });
