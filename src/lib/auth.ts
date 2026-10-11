@@ -94,6 +94,15 @@ export const auth = betterAuth({
                 type: 'boolean',
                 required: false,
             },
+            api_key: {
+                type: 'string',
+                required: false,
+            },
+            appr_api: {
+                type: 'boolean',
+                required: false,
+                defaultValue: false,
+            },
         },
     },
     account: {

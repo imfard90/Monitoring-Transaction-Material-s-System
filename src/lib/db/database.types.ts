@@ -76,6 +76,8 @@ export interface AuthUser {
     name: string;
     nik: string;
     lensa_acount?: any;
+    api_key?: string | null;
+    appr_api?: Generated<boolean>;
     updatedAt: Generated<Timestamp>;
 }
 

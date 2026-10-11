@@ -1,0 +1,15 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Key card body -->
+  <rect x="4" y="8" width="24" height="16" rx="2" fill="#5D87FF" fill-opacity="0.1"/>
+  <!-- Key teeth -->
+  <rect x="1" y="13" width="4" height="2" rx="0.5" fill="#5D87FF"/>
+  <rect x="1" y="17" width="5" height="2" rx="0.5" fill="#5D87FF"/>
+  <rect x="1" y="21" width="3" height="2" rx="0.5" fill="#5D87FF"/>
+  <!-- Key dots pattern -->
+  <circle cx="11" cy="14" r="1" fill="#5D87FF"/>
+  <circle cx="15" cy="14" r="1" fill="#5D87FF"/>
+  <circle cx="19" cy="14" r="1" fill="#5D87FF"/>
+  <circle cx="11" cy="18" r="1" fill="#5D87FF"/>
+  <circle cx="15" cy="18" r="1" fill="#5D87FF"/>
+  <circle cx="19" cy="18" r="1" fill="#5D87FF"/>
+</svg>

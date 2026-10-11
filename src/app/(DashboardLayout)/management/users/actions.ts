@@ -58,6 +58,8 @@ export async function getUsers() {
             'auth.user.email',
             'auth.user.nik',
             'auth.user.is_active',
+            'auth.user.appr_api',
+            sql<boolean>`(auth.user.api_key IS NOT NULL)`.as('has_api_key'),
             sql<Record<string, unknown>>`auth.user.lensa_acount`.as('lensa_acount'),
             'hr.levels.level_name as role',
         ])
@@ -103,3 +105,16 @@ export async function deleteUser(userId: string) {
 
     revalidatePath('/management/users');
 }
+
+export async function toggleUserApiApproval(userId: string, apprApi: boolean) {
+    await requireManagementAccess();
+
+    await db
+        .updateTable('auth.user')
+        .set({ appr_api: apprApi })
+        .where('id', '=', userId)
+        .execute();
+
+    revalidatePath('/management/users');
+}
+

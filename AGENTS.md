@@ -38,6 +38,17 @@
 - Runner **wajib** `process.exit(1)` saat gagal.
 - Setiap migrasi bersifat idempoten (`CREATE OR REPLACE`, `IF NOT EXISTS`) kecuali perlu migrasi data; dokumentasikan rollback.
 
+### 1.5 External REST API & API Key (P0)
+
+- **Autentikasi & Otorisasi:** Setiap endpoint publik/eksternal (`src/app/api/v1/...`) **wajib** memanggil `authenticateApiRequest(req)` dari `@/lib/security/api-auth` di baris pertama handler.
+- **Hashing API Key:** Format key adalah `mtms_live_<64-hex>`. Plaintext key hanya ditampilkan **satu kali** saat dibuat di User Profile. Kolom `auth.user.api_key` **hanya** menyimpan hash SHA-256 (`hashApiKey()` dari `@/lib/security/api-key`). **Dilarang keras** menyimpan atau mencatat plaintext key di log.
+- **Admin Approval Gate (`appr_api`):** Meskipun key valid, request **wajib ditolak** dengan `403 Forbidden` jika `appr_api !== true`. Pengubahan approval hanya boleh dilakukan Admin via `requireManagementAccess()` di Manajemen Pengguna.
+- **Atomic Per-User Rate Limiting:** Batas request (default: 1 request / 300 detik per user) dikelola atomik di Redis via `checkAndConsumeApiRateLimit()`. Konsumsi kuota dilakukan **sebelum** verifikasi approval, sehingga request berulang yang ditolak (403) tetap menghabiskan jatah 5 menit untuk mencegah abuse. Jika rate limit terlampaui, kembalikan `429 Too Many Requests` disertai header `Retry-After: <detik>` dan properti RFC 9457 `retryAt`.
+- **Scoping Akses Data:** Data yang disajikan via API wajib menerapkan scoping peran MTMS: Staff hanya melihat data gudang di mana NIK-nya terdaftar sebagai `pic_1` atau `pic_2` di `inventory.mas_wh`; Non-Staff dapat melihat seluruh gudang.
+- **Kontrak Response Standar:**
+  - Sukses: Gunakan `apiSuccessResponse(data, meta)` dari `@/lib/api-response` (`{ data: [...], meta: { total, timestamp } }`) dengan header `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate`.
+  - Error: Gunakan `problemResponse({ status, title, detail, ... })` dari `@/lib/api-response` berstandar RFC 9457 `application/problem+json`.
+
 ## 2. Alur Kerja Wajib
 
 Sebelum menyatakan tugas selesai, pastikan:
@@ -63,6 +74,8 @@ Sebelum menyatakan tugas selesai, pastikan:
 19. **pg_cron scheduling** — jadwal cron dipisah ke `scripts/post-deploy/`; migrasi hanya membuat extension + procedure (P3-D6).
 20. **Environment template** — `.env.example` wajib di-commit sebagai template; `.env` tidak boleh di-commit (P3-S5).
 21. **reactStrictMode** — `true` di `next.config.mjs` (P3-Q4).
+22. **External REST API endpoints** — route handler di `src/app/api/v1/*` wajib menerapkan autentikasi bearer key SHA-256, rate limiting 5 menit atomik per-user via Redis, validasi gate `appr_api`, RFC 9457 Problem Details error envelope, dan metadata success envelope (§1.5).
+
 
 ## 3. Aturan Kode Spesifik
 
@@ -73,6 +86,10 @@ Sebelum menyatakan tugas selesai, pastikan:
 - Komponen: `src/app/<feature>/_components/*.tsx` + `src/components/ui/*` (primitif).
 - Repository: `src/lib/repositories/*.repository.ts` (factory `createXRepository(db)`).
 - Helpers HR umum: konsolidasi ke `src/lib/repositories/hr.repository.ts` (jangan duplikasi `getBranches`/`getTechnicians`).
+- External API routes: `src/app/api/v1/<feature>/route.ts`.
+- External API services: `src/lib/services/*-api.service.ts`.
+- External API security & utils: `src/lib/security/api-auth.ts`, `src/lib/security/api-key.ts`, `src/lib/security/api-rate-limit.ts`, `src/lib/api-response.ts`.
+
 
 ### 3.2 Keamanan
 
@@ -108,6 +125,8 @@ Sebelum menyatakan tugas selesai, pastikan:
 - [ ] Tes minimal untuk SP/authz baru.
 - [ ] `tsc` + `biome` lolos.
 - [ ] Untuk perubahan UI: checklist UI di `premium-ui-ux-builder/SKILL.md` §4 terpenuhi (primitif, token tema, responsif, dark mode, a11y, state UI lengkap).
+- [ ] External REST API sesuai standar §1.5 (jika membuat/mengubah endpoint publik).
+
 - [ ] `docs/AUDIT_REPORT.md` diperbarui status temuan terkait.
 
 ## 5. Saat Ragu

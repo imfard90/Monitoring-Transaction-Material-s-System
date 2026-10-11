@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { deleteUser, toggleUserStatus } from './actions';
+import { deleteUser, toggleUserApiApproval, toggleUserStatus } from './actions';
 
 export interface UserItem {
     id: string;
@@ -25,6 +25,8 @@ export interface UserItem {
     email: string;
     nik: string;
     is_active: boolean | null;
+    appr_api: boolean | null;
+    has_api_key: boolean | null;
     lensa_acount: Record<string, unknown>;
     role: string | null;
     is_online: boolean;
@@ -48,6 +50,19 @@ export default function UserTable({ data }: UserTableProps) {
             } catch (error: unknown) {
                 toast.error(
                     error instanceof Error ? error.message : 'Failed to update user status'
+                );
+            }
+        });
+    };
+
+    const handleToggleApiApproval = (userId: string, currentStatus: boolean) => {
+        startTransition(async () => {
+            try {
+                await toggleUserApiApproval(userId, !currentStatus);
+                toast.success(`API access ${currentStatus ? 'disapproved / revoked' : 'approved'}`);
+            } catch (error: unknown) {
+                toast.error(
+                    error instanceof Error ? error.message : 'Failed to update API approval'
                 );
             }
         });
@@ -136,6 +151,43 @@ export default function UserTable({ data }: UserTableProps) {
                         <span className="text-sm text-muted-foreground">
                             {isActive ? 'Yes' : 'No'}
                         </span>
+                    </div>
+                );
+            },
+        }),
+        columnHelper.accessor('appr_api', {
+            header: 'API Access',
+            cell: (info) => {
+                const isApproved = info.getValue() === true;
+                const hasApiKey = info.row.original.has_api_key === true;
+                const userId = info.row.original.id;
+                return (
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center space-x-2">
+                            <Switch
+                                checked={isApproved}
+                                onCheckedChange={() => handleToggleApiApproval(userId, isApproved)}
+                                disabled={isPending}
+                                aria-label="Toggle status approval API"
+                            />
+                            <span className={`text-xs font-medium ${isApproved ? 'text-success' : 'text-muted-foreground'}`}>
+                                {isApproved ? 'Approved' : 'Off'}
+                            </span>
+                        </div>
+                        <div>
+                            {hasApiKey ? (
+                                <Badge
+                                    variant="outline"
+                                    className="text-[10px] py-0 px-1.5 border-primary/30 text-primary bg-primary/5"
+                                >
+                                    Key Generated
+                                </Badge>
+                            ) : (
+                                <span className="text-[10px] text-muted-foreground italic">
+                                    No Key
+                                </span>
+                            )}
+                        </div>
                     </div>
                 );
             },

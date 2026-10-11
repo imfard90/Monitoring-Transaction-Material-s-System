@@ -222,5 +222,41 @@ describeDb('L5 query logging migration tracked (018)', () => {
         expect(names).toContain('017_enable_rls_policies.sql');
         expect(names).toContain('018_enable_query_logging.sql');
     });
+
+describeDb('API key and approval columns (020)', () => {
+    it('020_add_api_key_and_appr_api_to_auth_user.sql recorded in migration log', async () => {
+        const rows = await query<{ filename: string }>(`
+            SELECT filename FROM inventory._migration_log WHERE filename LIKE '020_%'
+        `);
+        expect(rows.length).toBe(1);
+        expect(rows[0].filename).toBe('020_add_api_key_and_appr_api_to_auth_user.sql');
+    });
+
+    it('auth.user table has api_key and appr_api columns', async () => {
+        const rows = await query<{ column_name: string }>(`
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'auth'
+              AND table_name = 'user'
+              AND column_name IN ('api_key', 'appr_api')
+        `);
+        const names = rows.map((r) => r.column_name);
+        expect(names).toContain('api_key');
+        expect(names).toContain('appr_api');
+    });
+
+    it('auth.user has unique index on api_key', async () => {
+        const row = await queryOne<{ exists: boolean }>(`
+            SELECT EXISTS (
+                SELECT 1 FROM pg_indexes
+                WHERE schemaname = 'auth'
+                  AND tablename = 'user'
+                  AND indexname = 'uq_auth_user_api_key'
+            ) AS exists
+        `);
+        expect(row?.exists).toBe(true);
+    });
+});
+
 });
 
