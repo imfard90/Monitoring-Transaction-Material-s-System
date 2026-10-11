@@ -8,6 +8,7 @@ import SimpleBar from 'simplebar-react';
 import { AMMenu, AMMenuItem, AMSidebar, AMSubmenu } from 'tailwind-sidebar';
 import { checkIsStaff } from '../../management/users/actions';
 import FullLogo from '../shared/logo/FullLogo';
+import { SidebarAnnouncement } from './SidebarAnnouncement';
 import SidebarContent from './sidebaritems';
 import 'tailwind-sidebar/styles.css';
 
@@ -195,29 +196,35 @@ const SidebarLayout = ({
                     : 'fixed left-0 top-0 border-r border-border bg-card dark:bg-card z-10 h-[100dvh] shadow-lg'
             }
         >
-            {/* Logo */}
-            <div className="px-6 py-6 flex items-center brand-logo overflow-hidden">
-                <Link href="/" className="flex items-center">
-                    <FullLogo />
-                </Link>
-            </div>
-
-            {/* Sidebar items */}
-
-            <SimpleBar className="h-[calc(100vh-100px)]">
-                <div className="px-4">
-                    {filteredSidebarContent.map((section, index) => (
-                        <SidebarSection
-                            key={section.heading || index}
-                            section={section}
-                            pathname={pathname}
-                            onClose={onClose}
-                        />
-                    ))}
-
-                    {/* Promo Section Removed */}
+            <div className="flex flex-col h-full w-full justify-between">
+                {/* Logo */}
+                <div className="px-6 py-6 flex items-center brand-logo shrink-0 overflow-hidden">
+                    <Link href="/" className="flex items-center">
+                        <FullLogo />
+                    </Link>
                 </div>
-            </SimpleBar>
+
+                {/* Sidebar items */}
+                <div className="flex-1 min-h-0 overflow-hidden">
+                    <SimpleBar className="h-full">
+                        <div className="px-4 pb-2">
+                            {filteredSidebarContent.map((section, index) => (
+                                <SidebarSection
+                                    key={section.heading || index}
+                                    section={section}
+                                    pathname={pathname}
+                                    onClose={onClose}
+                                />
+                            ))}
+                        </div>
+                    </SimpleBar>
+                </div>
+
+                {/* Announcement Widget - Pinned at the bottom with spacing */}
+                <div className="shrink-0 px-3 pb-5 pt-2">
+                    <SidebarAnnouncement />
+                </div>
+            </div>
         </AMSidebar>
     );
 };

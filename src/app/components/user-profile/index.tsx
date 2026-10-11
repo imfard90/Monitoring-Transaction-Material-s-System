@@ -89,12 +89,12 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
         startTransition(async () => {
             const result = await saveLensaAccount(lensaUsername, lensaPassword);
             if (result.success) {
-                toast.success('Lensa Account berhasil disimpan');
+                toast.success('Akun Lensa berhasil dihubungkan');
                 setIsLensaDialogOpen(false);
                 setLensaUsername('');
                 setLensaPassword('');
             } else {
-                toast.error(result.error || 'Gagal menyimpan akun Lensa');
+                toast.error(result.error || 'Gagal menghubungkan akun Lensa');
             }
         });
     };
@@ -178,7 +178,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                 </StaggerItem>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <StaggerItem className="space-y-6 rounded-xl border border-border bg-card md:p-6 p-4 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <StaggerItem className="space-y-4 rounded-xl border border-border bg-card md:px-6 md:py-4 px-4 py-3 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
                         <h5 className="text-lg font-semibold text-foreground flex items-center gap-2">
                             <Icon icon="lucide:user" className="text-primary" width="20" /> Personal
                             Information
@@ -262,7 +262,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                         </div>
                     </StaggerItem>
 
-                    <StaggerItem className="space-y-6 rounded-xl border border-border bg-card md:p-6 p-4 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <StaggerItem className="space-y-4 rounded-xl border border-border bg-card md:px-6 md:py-4 px-4 py-3 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
                         <h5 className="text-lg font-semibold text-foreground flex items-center gap-2">
                             <Icon icon="lucide:briefcase" className="text-primary" width="20" />{' '}
                             Work Details
@@ -313,67 +313,141 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                         </div>
                     </StaggerItem>
 
-                    <StaggerItem className="space-y-6 rounded-xl border border-border bg-card md:p-6 p-4 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
-                        <div className="flex justify-between items-center">
-                            <h5 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                                <Icon icon="lucide:database" className="text-primary" width="20" />{' '}
-                                Lensa Inventory Account
-                            </h5>
+                    <StaggerItem className="space-y-3 rounded-xl border border-border bg-card md:px-6 md:py-4 px-4 py-3 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <h5 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                                    <Icon icon="lucide:database" className="text-primary" width="20" aria-hidden="true" />
+                                    Lensa Inventory Account
+                                </h5>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Kelola koneksi untuk pengambilan detail reservasi secara otomatis.
+                                </p>
+                            </div>
+                            <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${profileData?.lensa_acount ? 'border-success/20 bg-success/10 text-success' : 'border-warning/20 bg-warning/10 text-warning'}`}>
+                                <Icon icon={profileData?.lensa_acount ? 'lucide:check-circle' : 'lucide:alert-circle'} width="14" aria-hidden="true" />
+                                {profileData?.lensa_acount ? 'Terhubung' : 'Belum terhubung'}
+                            </span>
                         </div>
-                        <div className="flex flex-col gap-4">
-                            {profileData?.lensa_acount ? (
-                                <div className="flex flex-col gap-2 p-4 bg-success/10 border border-success/20 rounded-lg">
-                                    <div className="flex items-center gap-2 text-success font-medium">
-                                        <Icon icon="lucide:check-circle" width="20" />
-                                        <span>Lensa Inventory Connected</span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">
-                                        Username: {String(profileData.lensa_acount.username)}
+
+                        <div className="grid min-h-44 grid-cols-1 gap-3 rounded-lg border border-border bg-muted/30 p-3 sm:grid-cols-[1fr_auto] sm:items-center sm:p-4">
+                            <div className="flex flex-col items-start gap-3">
+                                <div className="space-y-1">
+                                    <h6 className="font-medium text-foreground">
+                                        {profileData?.lensa_acount ? 'Akun Lensa siap digunakan' : 'Hubungkan akun Lensa Anda'}
+                                    </h6>
+                                    <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+                                        {profileData?.lensa_acount
+                                            ? 'Kredensial tersimpan dengan aman dan digunakan untuk membantu proses pengambilan data inventaris.'
+                                            : 'Sambungkan akun untuk membantu MTMS mengambil detail reservasi inventaris secara otomatis.'}
                                     </p>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-fit"
-                                            onClick={() => setIsLensaDialogOpen(true)}
-                                        >
-                                            Update Account
-                                        </Button>
-                                        <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            className="w-fit"
-                                            onClick={handleDeleteLensa}
-                                            disabled={isPending}
-                                        >
-                                            <Icon
-                                                icon="lucide:unplug"
-                                                width="16"
-                                                className="mr-1"
-                                            />
-                                            Disconnect
-                                        </Button>
-                                    </div>
                                 </div>
-                            ) : (
-                                <div className="flex flex-col gap-2 p-4 bg-warning/10 border border-warning/20 rounded-lg">
-                                    <div className="flex items-center gap-2 text-warning font-medium">
-                                        <Icon icon="lucide:alert-circle" width="20" />
-                                        <span>Not Connected</span>
+                                {profileData?.lensa_acount ? (
+                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-border bg-background px-3 py-2 text-sm">
+                                        <Icon icon="lucide:user-round" width="16" className="text-muted-foreground" aria-hidden="true" />
+                                        <span className="text-muted-foreground">Akun terhubung</span>
+                                        <span className="font-medium text-foreground">{String(profileData.lensa_acount.username)}</span>
                                     </div>
-                                    <p className="text-sm text-muted-foreground">
-                                        Hubungkan akun Lensa kamu agar sistem dapat mengambil detail
-                                        reservasi secara otomatis.
-                                    </p>
-                                    <Button
-                                        size="sm"
-                                        className="w-fit mt-2"
-                                        onClick={() => setIsLensaDialogOpen(true)}
-                                    >
+                                ) : (
+                                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1"><Icon icon="lucide:lock-keyhole" width="14" aria-hidden="true" />Kredensial terenkripsi</span>
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1"><Icon icon="lucide:refresh-cw" width="14" aria-hidden="true" />Dapat diputus kapan saja</span>
+                                    </div>
+                                )}
+                                {profileData?.lensa_acount ? (
+                                    <Button variant="destructive" size="sm" className="w-fit" onClick={handleDeleteLensa} disabled={isPending}>
+                                        <Icon icon="lucide:unplug" width="16" className="mr-1" aria-hidden="true" />
+                                        {isPending ? 'Memutus koneksi...' : 'Disconnect'}
+                                    </Button>
+                                ) : (
+                                    <Button size="sm" className="w-fit" onClick={() => setIsLensaDialogOpen(true)}>
+                                        <Icon icon="lucide:link" width="16" className="mr-1" aria-hidden="true" />
                                         Connect Account
                                     </Button>
+                                )}
+                            </div>
+
+                            <div className="relative mx-auto flex h-36 w-full max-w-52 items-center justify-center sm:h-40 sm:w-48" aria-hidden="true">
+                                <div className="absolute inset-3 rounded-full bg-primary/5" />
+                                <div className="absolute inset-6 rounded-full border border-dashed border-primary/20" />
+                                <div className="absolute left-3 top-5 flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-primary shadow-sm">
+                                    <Icon icon="lucide:package" width="20" />
                                 </div>
-                            )}
+                                <div className="absolute bottom-5 left-7 flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm">
+                                    <Icon icon="lucide:boxes" width="18" />
+                                </div>
+                                <div className="absolute right-4 top-8 flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm">
+                                    <Icon icon="lucide:scan-line" width="18" />
+                                </div>
+                                <svg viewBox="0 0 120 100" className="relative h-28 w-32 text-primary drop-shadow-sm" fill="none">
+                                    <path d="M18 37 60 15l42 22v45L60 96 18 82V37Z" className="fill-primary/10 stroke-primary/40" strokeWidth="2" strokeLinejoin="round" />
+                                    <path d="m18 37 42 23 42-23M60 60v36M39 26l42 22v15" className="stroke-primary/50" strokeWidth="2" strokeLinejoin="round" />
+                                    <path d="m48 44 12 7 12-7v14l-12 7-12-7V44Z" className="fill-card stroke-primary" strokeWidth="2" strokeLinejoin="round" />
+                                    <path d="M52 54h16" className="stroke-primary/50" strokeWidth="2" strokeLinecap="round" />
+                                    <circle cx="60" cy="8" r="3" className="fill-primary/50" />
+                                </svg>
+                                <div className="absolute bottom-1 right-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">
+                                    <span className={`h-2 w-2 rounded-full ${profileData?.lensa_acount ? 'bg-success' : 'bg-muted-foreground/50'}`} />
+                                    {profileData?.lensa_acount ? 'Koneksi aktif' : 'Menunggu koneksi'}
+                                </div>
+                            </div>
+                        </div>
+                    </StaggerItem>
+
+                    <StaggerItem className="space-y-3 rounded-xl border border-border bg-card md:px-6 md:py-4 px-4 py-3 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
+                        <div className="flex justify-between items-center">
+                            <h5 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                                <Icon icon="lucide:key-round" className="text-primary" width="20" />{' '}
+                                Generate API Key
+                            </h5>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                                <Icon icon="lucide:sparkles" width="12" />
+                                Coming Soon
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-2 p-3 bg-muted/40 border border-dashed border-border rounded-lg">
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-sm font-medium text-foreground">
+                                        API Access Token
+                                    </span>
+                                    <span className="text-xs text-muted-foreground font-mono">
+                                        v1 (REST)
+                                    </span>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    Integrasikan sistem MTMS dengan layanan eksternal atau sistem
+                                    otomatisasi internal Anda secara aman menggunakan API Key.
+                                </p>
+                                <div className="flex items-center gap-2 p-2.5 bg-background border border-border rounded-md">
+                                    <code className="text-xs text-muted-foreground font-mono flex-1 select-none">
+                                        mtms_live_••••••••••••••••••••••••••••••••
+                                    </code>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs text-muted-foreground"
+                                        disabled
+                                        title="Fitur segera hadir"
+                                    >
+                                        <Icon icon="lucide:copy" width="14" />
+                                    </Button>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2 mt-1">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="w-fit opacity-60 cursor-not-allowed"
+                                        disabled
+                                    >
+                                        <Icon icon="lucide:plus" width="16" className="mr-1" />
+                                        Generate Key
+                                    </Button>
+                                    <span className="text-xs text-muted-foreground italic">
+                                        Fitur manajemen API Key akan segera hadir.
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </StaggerItem>
                 </div>
@@ -382,7 +456,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
             <ModalDialog
                 isOpen={isLensaDialogOpen}
                 onClose={() => setIsLensaDialogOpen(false)}
-                title="Lensa Inventory Account"
+                title="Hubungkan Akun Lensa"
             >
                 <p className="text-sm text-muted-foreground">
                     Masukkan kredensial akun Lensa Inventory kamu. Password akan dienkripsi secara
@@ -420,7 +494,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                         Batal
                     </Button>
                     <Button onClick={handleSaveLensa} disabled={isPending}>
-                        {isPending ? 'Menyimpan...' : 'Simpan Kredensial'}
+                        {isPending ? 'Menghubungkan...' : 'Hubungkan Akun'}
                     </Button>
                 </div>
             </ModalDialog>
