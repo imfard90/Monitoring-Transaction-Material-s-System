@@ -25,7 +25,7 @@ export interface UserItem {
     email: string;
     nik: string;
     is_active: boolean | null;
-    appr_api: boolean | null;
+    appr_api?: boolean | null;
     has_api_key: boolean | null;
     lensa_acount: Record<string, unknown>;
     role: string | null;

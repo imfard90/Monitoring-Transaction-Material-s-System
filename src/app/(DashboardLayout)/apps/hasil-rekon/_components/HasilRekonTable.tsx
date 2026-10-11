@@ -7,7 +7,7 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { FilterX, Pencil, Search } from 'lucide-react';
+import { FileSpreadsheet, FilterX, Pencil, Search } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
@@ -45,6 +45,7 @@ interface HasilRekonTableProps {
     uniqueMaterials?: string[];
     onClearFilters?: () => void;
     onEditClick?: (row: HasilRekonData) => void;
+    onExportClick?: () => void;
 }
 
 const columnHelper = createColumnHelper<HasilRekonData>();
@@ -68,6 +69,7 @@ export default function HasilRekonTable({
     uniqueMaterials = [],
     onClearFilters,
     onEditClick,
+    onExportClick,
 }: HasilRekonTableProps) {
     const columns = [
         columnHelper.accessor('created_at', {
@@ -301,25 +303,49 @@ export default function HasilRekonTable({
                     )}
                 </div>
 
-                {onClearFilters && (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={onClearFilters}
-                                    className="bg-background ml-auto"
-                                >
-                                    <FilterX className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Clear all filters</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                )}
+                <div className="flex items-center gap-2 ml-auto">
+                    {onClearFilters && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={onClearFilters}
+                                        className="bg-background"
+                                        aria-label="Clear all filters"
+                                    >
+                                        <FilterX className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Clear all filters</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+
+                    {onExportClick && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={onExportClick}
+                                        className="bg-background text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/80 transition-colors"
+                                        aria-label="Export Data Excel (.xlsx)"
+                                    >
+                                        <FileSpreadsheet className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Export Data Excel (.xlsx)</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                </div>
             </StaggerItem>
 
             {/* Table */}
