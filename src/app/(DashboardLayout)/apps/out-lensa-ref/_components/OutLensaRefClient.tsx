@@ -14,18 +14,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import {
     checkScrapingStatus,
     getOutLensaRefDetails,
@@ -340,22 +334,14 @@ export default function OutLensaRefClient({
                         </div>
                         {!isStaff && (
                             <div className="flex items-center gap-2">
-                                <Select
+                                <WarehouseCombobox
                                     value={selectedGudang}
                                     onValueChange={handleWarehouseChange}
-                                >
-                                    <SelectTrigger className="w-[200px]">
-                                        <SelectValue placeholder="Pilih Gudang" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Semua Gudang</SelectItem>
-                                        {uniqueGudang.map((g) => (
-                                            <SelectItem key={g} value={g}>
-                                                {g}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    warehouses={uniqueGudang}
+                                    placeholder="Cari gudang..."
+                                    allLabel="Semua Gudang"
+                                    emptyText="Gudang tidak ditemukan."
+                                />
 
                                 <Button
                                     onClick={handleRunScraping}

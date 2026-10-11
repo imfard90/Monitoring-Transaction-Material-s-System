@@ -1,6 +1,7 @@
 'use client';
 
 import { Check, ChevronsUpDown } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -17,17 +18,29 @@ interface WarehouseComboboxProps {
     value: string;
     onValueChange: (value: string) => void;
     warehouses: string[];
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    placeholder?: string;
+    allLabel?: string;
+    emptyText?: string;
+    className?: string;
 }
 
 export function WarehouseCombobox({
     value,
     onValueChange,
     warehouses,
-    open,
-    onOpenChange,
+    open: controlledOpen,
+    onOpenChange: controlledOnOpenChange,
+    placeholder = 'Search WH...',
+    allLabel = 'All Warehouses',
+    emptyText = 'No WH found.',
+    className,
 }: WarehouseComboboxProps) {
+    const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+    const open = controlledOpen === undefined ? uncontrolledOpen : controlledOpen;
+    const onOpenChange = controlledOnOpenChange ?? setUncontrolledOpen;
+
     return (
         <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
@@ -35,16 +48,16 @@ export function WarehouseCombobox({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-[200px] justify-between font-normal"
+                    className={cn('w-[200px] justify-between font-normal', className)}
                 >
-                    {value === 'all' ? 'All Warehouses' : value}
+                    <span className="truncate">{value === 'all' || !value ? allLabel : value}</span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0" align="start">
+            <PopoverContent className={cn('w-[200px] p-0', className)} align="start">
                 <Command>
-                    <CommandInput placeholder="Search WH..." />
-                    <CommandEmpty>No WH found.</CommandEmpty>
+                    <CommandInput placeholder={placeholder} />
+                    <CommandEmpty>{emptyText}</CommandEmpty>
                     <CommandList>
                         <CommandGroup>
                             <CommandItem
@@ -57,10 +70,10 @@ export function WarehouseCombobox({
                                 <Check
                                     className={cn(
                                         'mr-2 h-4 w-4',
-                                        value === 'all' ? 'opacity-100' : 'opacity-0'
+                                        value === 'all' || !value ? 'opacity-100' : 'opacity-0'
                                     )}
                                 />
-                                All Warehouses
+                                {allLabel}
                             </CommandItem>
                             {warehouses.map((wh) => (
                                 <CommandItem
