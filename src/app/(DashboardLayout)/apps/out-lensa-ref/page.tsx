@@ -1,7 +1,6 @@
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
-import { Footer } from '@/app/components/dashboard/Footer';
 import { getSessionUser } from '@/lib/auth-server';
-import { getOutLensaRefList } from './_actions/out-lensa-actions';
+import { getOutLensaFilterOptions, getOutLensaRefList } from './_actions/out-lensa-queries';
 import OutLensaRefClient from './_components/OutLensaRefClient';
 
 export const dynamic = 'force-dynamic';
@@ -24,10 +23,28 @@ const BCrumb = [
     },
 ];
 
-export default async function OutLensaRefPage() {
+interface SearchParams {
+    page?: string;
+    pageSize?: string;
+    warehouse?: string;
+}
+
+export default async function OutLensaRefPage({
+    searchParams,
+}: {
+    searchParams: Promise<SearchParams>;
+}) {
     const { isStaff } = await getSessionUser();
 
-    const { success, data, error } = await getOutLensaRefList();
+    const params = await searchParams;
+    const page = Math.max(1, parseInt(params.page ?? '1', 10));
+    const pageSize = Math.min(100, Math.max(10, parseInt(params.pageSize ?? '20', 10)));
+    const warehouse = params.warehouse ?? 'all';
+
+    const [result, filterOptions] = await Promise.all([
+        getOutLensaRefList({ page, pageSize, warehouseFilter: warehouse }),
+        getOutLensaFilterOptions(),
+    ]);
 
     return (
         <div className="flex flex-col flex-1 gap-6 md:h-full md:min-h-0 md:overflow-hidden">
@@ -36,9 +53,21 @@ export default async function OutLensaRefPage() {
             </div>
 
             <OutLensaRefClient
-                initialData={success && data ? data : []}
-                error={error}
+                initialData={result.success ? (result.data?.headers ?? []) : []}
+                pagination={
+                    result.success
+                        ? {
+                              total: result.data?.total ?? 0,
+                              page: result.data?.page ?? 1,
+                              pageSize: result.data?.pageSize ?? 20,
+                              totalPages: result.data?.totalPages ?? 0,
+                          }
+                        : undefined
+                }
+                error={result.success ? undefined : result.error}
                 isStaff={isStaff}
+                currentWarehouse={warehouse}
+                warehouseOptions={filterOptions.warehouses}
             />
         </div>
     );

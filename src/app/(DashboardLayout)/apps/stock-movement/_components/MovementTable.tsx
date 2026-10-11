@@ -29,6 +29,7 @@ import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export interface StockMovementItem {
+    id?: number | string;
     created_at: string | Date;
     reference_trx: string | null;
     warehouse_name: string | null;
@@ -44,6 +45,13 @@ export interface StockMovementItem {
 
 interface MovementTableProps {
     data: StockMovementItem[];
+    pagination?: {
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    };
+    onPaginationChange?: (page: number, pageSize: number) => void;
     searchQuery: string;
     onSearchChange: (val: string) => void;
     dateRange?: DateRange;
@@ -64,6 +72,8 @@ const columnHelper = createColumnHelper<StockMovementItem>();
 
 export default function MovementTable({
     data,
+    pagination,
+    onPaginationChange,
     searchQuery,
     onSearchChange,
     dateRange,
@@ -100,22 +110,26 @@ export default function MovementTable({
         }),
         columnHelper.accessor('warehouse_name', {
             header: 'Warehouse',
-            cell: (info) => <span className="text-sm">{info.getValue()}</span>,
+            cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('material_code', {
             header: 'Material Code',
-            cell: (info) => <span className="text-sm">{info.getValue()}</span>,
+            cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('material_name', {
             header: 'Description',
-            cell: (info) => <span className="text-sm text-muted-foreground">{info.getValue()}</span>,
+            cell: (info) => (
+                <div className="max-w-[200px] truncate text-sm text-muted-foreground">
+                    {info.getValue() || '-'}
+                </div>
+            ),
         }),
         columnHelper.accessor('movement_type', {
             header: 'Type',
             cell: (info) => {
                 const val = info.getValue();
-                let color = 'bg-muted text-foreground';
-                if (val === 'transfer_in' || val === 'receive' || val === 'return')
+                let color = 'bg-secondary/10 text-secondary';
+                if (val === 'transfer_in' || val === 'sap_in')
                     color = 'bg-success/10 text-success';
                 if (val === 'transfer_out' || val === 'sap_out') color = 'bg-error/10 text-error';
 
@@ -145,7 +159,9 @@ export default function MovementTable({
         }),
         columnHelper.accessor('notes', {
             header: 'Notes',
-            cell: (info) => <span className="text-sm text-muted-foreground">{info.getValue() || '-'}</span>,
+            cell: (info) => (
+                <span className="text-sm text-muted-foreground">{info.getValue() || '-'}</span>
+            ),
         }),
         columnHelper.accessor('created_by', {
             header: 'By',
@@ -153,15 +169,33 @@ export default function MovementTable({
         }),
     ];
 
+    const paginationState = {
+        pageIndex: pagination ? pagination.page - 1 : 0,
+        pageSize: pagination ? pagination.pageSize : 20,
+    };
+
     const table = useReactTable({
         data,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
+        manualPagination: !!pagination,
+        pageCount: pagination ? pagination.totalPages : undefined,
+        state: {
+            pagination: paginationState,
+        },
         initialState: {
             pagination: {
-                pageSize: 15,
+                pageSize: 20,
             },
+        },
+        onPaginationChange: (updater) => {
+            if (typeof updater === 'function') {
+                const next = updater(paginationState);
+                onPaginationChange?.(next.pageIndex + 1, next.pageSize);
+            } else {
+                onPaginationChange?.(updater.pageIndex + 1, updater.pageSize);
+            }
         },
     });
 
@@ -283,12 +317,16 @@ export default function MovementTable({
             </StaggerItem>
 
             {/* Table */}
-            <StaggerItem className="flex-1 md:min-h-0 md:overflow-y-auto">
-                <DataTable table={table} emptyMessage="No movements found." />
+            <StaggerItem className="flex-1 md:min-h-0 flex flex-col overflow-hidden">
+                <DataTable
+                    table={table}
+                    emptyMessage="No movements found."
+                    className="rounded-md border border-border flex-1 md:overflow-auto relative"
+                />
             </StaggerItem>
 
             {/* Pagination */}
-            <StaggerItem className="py-4 px-4 shrink-0">
+            <StaggerItem className="py-2 px-1 shrink-0">
                 <DataTablePagination table={table} />
             </StaggerItem>
         </StaggerContainer>

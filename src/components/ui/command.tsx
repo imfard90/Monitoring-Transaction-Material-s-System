@@ -26,7 +26,7 @@ const CommandDialog = ({ children, ...props }: DialogProps) => {
     return (
         <Dialog {...props}>
             <DialogContent className="overflow-hidden p-0 shadow-lg">
-                <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+                <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-4 [&_[cmdk-input-wrapper]_svg]:w-4 [&_[cmdk-input]]:h-8 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-2 [&_[cmdk-item]_svg]:h-4 [&_[cmdk-item]_svg]:w-4">
                     {children}
                 </Command>
             </DialogContent>
@@ -38,19 +38,18 @@ const CommandInput = React.forwardRef<
     React.ElementRef<typeof CommandPrimitive.Input>,
     React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
-    <div
-        className="flex items-center border-b border-ld dark:border-gray-600 px-3"
-        cmdk-input-wrapper=""
-    >
-        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-        <CommandPrimitive.Input
-            ref={ref}
-            className={cn(
-                'flex h-11 w-full rounded-md bg-transparent focus:outline-none py-3 text-sm outline-none placeholder:text-muted-foreground dark:placeholder:text-white/30 disabled:cursor-not-allowed disabled:opacity-50 border-none focus:ring-0',
-                className
-            )}
-            {...props}
-        />
+    <div className="p-2" cmdk-input-wrapper="">
+        <div className="flex h-8 w-full items-center rounded-md border border-input bg-transparent px-2.5 text-xs md:text-sm focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
+            <Search className="mr-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <CommandPrimitive.Input
+                ref={ref}
+                className={cn(
+                    'flex h-full w-full bg-transparent py-1 text-xs md:text-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-0 border-none outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 shadow-none focus:shadow-none focus-visible:shadow-none',
+                    className
+                )}
+                {...props}
+            />
+        </div>
     </div>
 ));
 
@@ -73,7 +72,7 @@ const CommandEmpty = React.forwardRef<
     React.ElementRef<typeof CommandPrimitive.Empty>,
     React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
 >((props, ref) => (
-    <CommandPrimitive.Empty ref={ref} className="py-6 text-center text-sm" {...props} />
+    <CommandPrimitive.Empty ref={ref} className="py-4 text-center text-xs md:text-sm text-muted-foreground" {...props} />
 ));
 
 CommandEmpty.displayName = CommandPrimitive.Empty.displayName;
@@ -113,7 +112,7 @@ const CommandItem = React.forwardRef<
     <CommandPrimitive.Item
         ref={ref}
         className={cn(
-            "relative flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected='true']:bg-lightprimary data-[selected=true]:text-primary data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-lightprimary dark:hover:lightprimary hover:cursor-pointer",
+            "relative flex cursor-pointer gap-2 select-none items-center rounded-sm px-2 py-1.5 text-xs md:text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected='true']:bg-lightprimary data-[selected=true]:text-primary data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-lightprimary dark:hover:bg-lightprimary/20",
             className
         )}
         {...props}

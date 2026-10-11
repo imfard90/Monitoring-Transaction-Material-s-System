@@ -5,12 +5,9 @@ import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
-import { redis } from '@/lib/redis';
-import {
-    scrapeWOLensaDetails,
-    scrapeWOLensaHeaders,
-} from '@/lib/lensa-scraper/lensa-scraper';
+import { scrapeWOLensaDetails, scrapeWOLensaHeaders } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
+import { redis } from '@/lib/redis';
 
 // P3-S6 Fix: Derive a strict 32-byte key from the environment variable using SHA-256
 // instead of a weak slice(0,32) which might pad with weak characters or truncate.
@@ -37,6 +34,174 @@ function decrypt(text: string) {
         return decrypted.toString();
     } catch (_e) {
         throw new Error('Failed to decrypt password');
+    }
+}
+
+export interface WOLensaHeader {
+    id: number | string;
+    pemakaian_id: string | null;
+    tanggal_update: string | null;
+    formatted_date: string | Date | null;
+    type: string | null;
+    wo_number: string | null;
+    nik_pemakai: string | null;
+    nama_gudang: string | null;
+    gi_number: string | null;
+    wbs: string | null;
+    rekon_check: boolean | null;
+    materials?: WOLensaDetail[];
+}
+
+export interface WOLensaDetail {
+    id?: number | string;
+    header_id?: number | string | null;
+    material_id: string | null;
+    material_desc: string | null;
+    uom: string | null;
+    qty_pemakaian: number | null;
+}
+
+export interface PaginatedWOLensaResult {
+    headers: WOLensaHeader[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+}
+
+export interface GetWOLensaListOptions {
+    page?: number;
+    pageSize?: number;
+    warehouseFilter?: string;
+}
+
+export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
+    const { page = 1, pageSize = 20, warehouseFilter } = options;
+
+    try {
+        const { isStaff, warehouseIds } = await getSessionUser();
+
+        let whNames: string[] = [];
+        if (isStaff && warehouseIds.length > 0) {
+            const whs = await db
+                .selectFrom('inventory.mas_wh')
+                .select('name')
+                .where('id', 'in', warehouseIds)
+                .execute();
+            whNames = whs.map((w: Record<string, unknown>) => w.name as string);
+            if (whNames.includes('SO Karangpilang')) whNames.push('SO Karang Pilang');
+            if (whNames.includes('SO Karang Pilang')) whNames.push('SO Karangpilang');
+        }
+
+        if (isStaff && whNames.length === 0) {
+            return {
+                success: true,
+                data: { headers: [], total: 0, page: 1, pageSize, totalPages: 0 },
+            };
+        }
+
+        let filterWarehouse: string[] | undefined;
+        if (warehouseFilter && warehouseFilter !== 'all') {
+            filterWarehouse = [warehouseFilter];
+        } else if (isStaff && whNames.length > 0) {
+            filterWarehouse = whNames;
+        }
+
+        // Auto-update rekon_check: flag WO entries that have been submitted to rekon_used_header
+        await sql`
+            UPDATE inventory.wo_lensa_header wlh
+            SET rekon_check = TRUE
+            FROM inventory.rekon_used_header ruh
+            WHERE CAST(wlh.pemakaian_id AS VARCHAR) = ruh.id_pemakaian
+              AND (wlh.rekon_check IS FALSE OR wlh.rekon_check IS NULL)
+        `.execute(db);
+
+        // Get total count
+        let countQuery = db
+            .selectFrom('inventory.wo_lensa_header')
+            .select((eb) => eb.fn.count('id').as('total'));
+
+        if (filterWarehouse) {
+            countQuery = countQuery.where('nama_gudang', 'in', filterWarehouse);
+        }
+
+        const countResult = await countQuery.executeTakeFirst();
+        const total = Number(countResult?.total ?? 0);
+
+        // Fetch paginated headers
+        let query = db
+            .selectFrom('inventory.wo_lensa_header as wlh')
+            .selectAll('wlh')
+            .orderBy('wlh.formatted_date', 'desc')
+            .orderBy(sql<number>`CAST(wlh.pemakaian_id AS BIGINT)`, 'desc')
+            .limit(pageSize)
+            .offset((page - 1) * pageSize);
+
+        if (filterWarehouse) {
+            query = query.where('wlh.nama_gudang', 'in', filterWarehouse);
+        }
+
+        const headers = await query.execute();
+
+        if (headers.length === 0) {
+            return {
+                success: true,
+                data: {
+                    headers: [],
+                    total,
+                    page,
+                    pageSize,
+                    totalPages: Math.ceil(total / pageSize),
+                },
+            };
+        }
+
+        const headerIds = headers.map((h: any) => h.id);
+
+        const details = await db
+            .selectFrom('inventory.wo_lensa_list')
+            .selectAll()
+            .where('header_id', 'in', headerIds)
+            .execute();
+
+        const result = headers.map((h: any) => ({
+            ...h,
+            materials: details.filter((d: any) => String(d.header_id) === String(h.id)),
+        }));
+
+        return {
+            success: true,
+            data: {
+                headers: result,
+                total,
+                page,
+                pageSize,
+                totalPages: Math.ceil(total / pageSize),
+            },
+        };
+    } catch (error: unknown) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        };
+    }
+}
+
+export async function getWOLensaFilterOptions() {
+    try {
+        const { isStaff, warehouseIds } = await getSessionUser();
+
+        let whQuery = db.selectFrom('inventory.mas_wh').select('name').orderBy('name', 'asc');
+        if (isStaff && warehouseIds.length > 0) {
+            whQuery = whQuery.where('id', 'in', warehouseIds as number[]);
+        }
+        const whs = await whQuery.execute();
+
+        return {
+            warehouses: whs.map((w: any) => w.name).filter(Boolean) as string[],
+        };
+    } catch {
+        return { warehouses: [] };
     }
 }
 
@@ -343,7 +508,10 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
             message: `Scraping selesai. ${totalInserted} data WO Lensa baru berhasil disimpan.`,
         };
     } catch (error: unknown) {
-        actionLogger.error('Trigger WO scraping error:', error instanceof Error ? error : new Error(String(error)));
+        actionLogger.error(
+            'Trigger WO scraping error:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return {
             success: false,
             message:
@@ -405,7 +573,7 @@ export async function checkWOScrapingStatus(jobId: string) {
     return parsed;
 }
 
-export async function getWOLensaRefDetails(headerId: number) {
+export async function getWOLensaRefDetails(headerId: number | string) {
     try {
         const details = await db
             .selectFrom('inventory.wo_lensa_list')

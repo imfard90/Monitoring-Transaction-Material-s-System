@@ -31,7 +31,14 @@ import { cn } from '@/lib/utils';
 
 interface InOutTagTableProps {
     data: InOutTagRow[];
-    isLoading: boolean;
+    pagination?: {
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    };
+    onPaginationChange?: (page: number, pageSize: number) => void;
+    isLoading?: boolean;
     searchQuery: string;
     onSearchChange: (val: string) => void;
     toWhOptions: string[];
@@ -50,7 +57,9 @@ const columnHelper = createColumnHelper<InOutTagRow>();
 
 export default function InOutTagTable({
     data,
-    isLoading,
+    pagination,
+    onPaginationChange,
+    isLoading = false,
     searchQuery,
     onSearchChange,
     toWhOptions,
@@ -61,13 +70,11 @@ export default function InOutTagTable({
     onViewDetail,
     onUpdateClick,
     canCreateTag,
-
     dateFilter,
     onDateFilterChange,
 }: InOutTagTableProps) {
     const [openCombo, setOpenCombo] = useState(false);
 
-    // Columns order: request time, id trx, from wh, to wh, request id, send id, vendor, accept id, status, action
     const columns = [
         columnHelper.accessor('request_time', {
             header: 'Request Time',
@@ -106,18 +113,17 @@ export default function InOutTagTable({
         }),
         columnHelper.accessor('end_status', {
             header: 'Status',
-            cell: (info) => <StatusBadge status={info.getValue()} />,
+            cell: (info) => <StatusBadge status={info.getValue() || 'requested'} />,
         }),
         columnHelper.display({
             id: 'actions',
-            header: () => <div className="text-center">Action</div>,
+            header: 'Action',
             cell: (info) => {
                 const row = info.row.original;
                 const isClosed = row.end_status === 'closed' || row.end_status === 'cancel';
-
                 return (
                     <TooltipProvider>
-                        <div className="flex justify-center items-center gap-2">
+                        <div className="flex gap-1">
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
@@ -158,17 +164,39 @@ export default function InOutTagTable({
         }),
     ];
 
+    const paginationState = {
+        pageIndex: pagination ? pagination.page - 1 : 0,
+        pageSize: pagination ? pagination.pageSize : 20,
+    };
+
     const table = useReactTable({
         data,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        initialState: { pagination: { pageSize: 15 } },
+        manualPagination: !!pagination,
+        pageCount: pagination ? pagination.totalPages : undefined,
+        state: {
+            pagination: paginationState,
+        },
+        initialState: {
+            pagination: {
+                pageSize: 20,
+            },
+        },
+        onPaginationChange: (updater) => {
+            if (typeof updater === 'function') {
+                const next = updater(paginationState);
+                onPaginationChange?.(next.pageIndex + 1, next.pageSize);
+            } else {
+                onPaginationChange?.(updater.pageIndex + 1, updater.pageSize);
+            }
+        },
     });
 
     return (
-        <StaggerContainer className="space-y-4">
-            <StaggerItem className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
+            <StaggerItem className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
                 <div className="flex flex-wrap items-center gap-3 flex-1 w-full">
                     <div className="relative w-full md:w-64">
                         <Input
@@ -196,16 +224,18 @@ export default function InOutTagTable({
                                 variant="outline"
                                 role="combobox"
                                 aria-expanded={openCombo}
-                                className="w-full md:w-[200px] justify-between font-normal bg-white"
+                                className="w-full md:w-[200px] justify-between font-normal h-9 px-3"
                             >
-                                {toWhFilter === 'all' ? 'All Destination' : toWhFilter}
+                                <span className="truncate">
+                                    {toWhFilter === 'all' ? 'Semua Tujuan' : toWhFilter}
+                                </span>
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0" align="start">
+                        <PopoverContent className="w-[220px] p-0" align="start">
                             <Command>
-                                <CommandInput placeholder="Search WH..." />
-                                <CommandEmpty>No WH found.</CommandEmpty>
+                                <CommandInput placeholder="Cari gudang tujuan..." />
+                                <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
                                 <CommandList>
                                     <CommandGroup>
                                         <CommandItem
@@ -217,13 +247,13 @@ export default function InOutTagTable({
                                         >
                                             <Check
                                                 className={cn(
-                                                    'mr-2 h-4 w-4',
+                                                    'mr-2 h-4 w-4 shrink-0',
                                                     toWhFilter === 'all'
                                                         ? 'opacity-100'
                                                         : 'opacity-0'
                                                 )}
                                             />
-                                            All Destination
+                                            Semua Tujuan
                                         </CommandItem>
                                         {toWhOptions.map((wh) => (
                                             <CommandItem
@@ -236,13 +266,13 @@ export default function InOutTagTable({
                                             >
                                                 <Check
                                                     className={cn(
-                                                        'mr-2 h-4 w-4',
+                                                        'mr-2 h-4 w-4 shrink-0',
                                                         toWhFilter === wh
                                                             ? 'opacity-100'
                                                             : 'opacity-0'
                                                     )}
                                                 />
-                                                {wh}
+                                                <span className="truncate">{wh}</span>
                                             </CommandItem>
                                         ))}
                                     </CommandGroup>
@@ -282,10 +312,15 @@ export default function InOutTagTable({
                 )}
             </StaggerItem>
 
-            <StaggerItem>
-                <DataTable table={table} isLoading={isLoading} emptyMessage="No tags found." />
+            <StaggerItem className="flex-1 md:min-h-0 flex flex-col overflow-hidden">
+                <DataTable
+                    table={table}
+                    isLoading={isLoading}
+                    emptyMessage="No tags found."
+                    className="rounded-md border border-border flex-1 md:overflow-auto relative max-h-[600px]"
+                />
             </StaggerItem>
-            <StaggerItem>
+            <StaggerItem className="py-2 px-1 shrink-0">
                 <DataTablePagination table={table} />
             </StaggerItem>
         </StaggerContainer>

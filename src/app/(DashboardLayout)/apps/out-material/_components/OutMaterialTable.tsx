@@ -31,7 +31,14 @@ import { cn } from '@/lib/utils';
 
 interface OutMaterialTableProps {
     data: OutMaterialRow[];
-    isLoading: boolean;
+    pagination?: {
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    };
+    onPaginationChange?: (page: number, pageSize: number) => void;
+    isLoading?: boolean;
     searchQuery: string;
     onSearchChange: (val: string) => void;
     whOptions: string[];
@@ -47,7 +54,9 @@ const columnHelper = createColumnHelper<OutMaterialRow>();
 
 export default function OutMaterialTable({
     data,
-    isLoading,
+    pagination,
+    onPaginationChange,
+    isLoading = false,
     searchQuery,
     onSearchChange,
     whOptions,
@@ -59,7 +68,7 @@ export default function OutMaterialTable({
     onClearFilters,
 }: OutMaterialTableProps) {
     const [openCombo, setOpenCombo] = useState(false);
-    // Columns order: request time, id trx, request_id, nik teknisi, nama teknisi, nama sa, nama gudang, id reservasi, sap number, end_status, action
+
     const columns = [
         columnHelper.accessor('request_time', {
             header: 'Request Time',
@@ -100,17 +109,16 @@ export default function OutMaterialTable({
         }),
         columnHelper.accessor('end_status', {
             header: 'Status',
-            cell: (info) => <StatusBadge status={info.getValue()} />,
+            cell: (info) => <StatusBadge status={info.getValue() || 'wait_approve'} />,
         }),
         columnHelper.display({
             id: 'actions',
-            header: () => <div className="text-center">Action</div>,
+            header: 'Action',
             cell: (info) => {
                 const row = info.row.original;
-
                 return (
                     <TooltipProvider>
-                        <div className="flex justify-center items-center gap-2">
+                        <div className="flex items-center gap-1">
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
@@ -133,12 +141,34 @@ export default function OutMaterialTable({
         }),
     ];
 
+    const paginationState = {
+        pageIndex: pagination ? pagination.page - 1 : 0,
+        pageSize: pagination ? pagination.pageSize : 20,
+    };
+
     const table = useReactTable({
         data,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        initialState: { pagination: { pageSize: 15 } },
+        manualPagination: !!pagination,
+        pageCount: pagination ? pagination.totalPages : undefined,
+        state: {
+            pagination: paginationState,
+        },
+        initialState: {
+            pagination: {
+                pageSize: 20,
+            },
+        },
+        onPaginationChange: (updater) => {
+            if (typeof updater === 'function') {
+                const next = updater(paginationState);
+                onPaginationChange?.(next.pageIndex + 1, next.pageSize);
+            } else {
+                onPaginationChange?.(updater.pageIndex + 1, updater.pageSize);
+            }
+        },
     });
 
     return (
@@ -169,16 +199,18 @@ export default function OutMaterialTable({
                                 variant="outline"
                                 role="combobox"
                                 aria-expanded={openCombo}
-                                className="w-[200px] justify-between font-normal bg-white"
+                                className="w-[200px] justify-between font-normal h-9 px-3"
                             >
-                                {whFilter === 'all' ? 'All Warehouses' : whFilter}
+                                <span className="truncate">
+                                    {whFilter === 'all' ? 'Semua Gudang' : whFilter}
+                                </span>
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0" align="start">
+                        <PopoverContent className="w-[220px] p-0" align="start">
                             <Command>
-                                <CommandInput placeholder="Search WH..." />
-                                <CommandEmpty>No WH found.</CommandEmpty>
+                                <CommandInput placeholder="Cari gudang..." />
+                                <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
                                 <CommandList>
                                     <CommandGroup>
                                         <CommandItem
@@ -190,11 +222,11 @@ export default function OutMaterialTable({
                                         >
                                             <Check
                                                 className={cn(
-                                                    'mr-2 h-4 w-4',
+                                                    'mr-2 h-4 w-4 shrink-0',
                                                     whFilter === 'all' ? 'opacity-100' : 'opacity-0'
                                                 )}
                                             />
-                                            All Warehouses
+                                            Semua Gudang
                                         </CommandItem>
                                         {whOptions.map((wh) => (
                                             <CommandItem
@@ -207,13 +239,13 @@ export default function OutMaterialTable({
                                             >
                                                 <Check
                                                     className={cn(
-                                                        'mr-2 h-4 w-4',
+                                                        'mr-2 h-4 w-4 shrink-0',
                                                         whFilter === wh
                                                             ? 'opacity-100'
                                                             : 'opacity-0'
                                                     )}
                                                 />
-                                                {wh}
+                                                <span className="truncate">{wh}</span>
                                             </CommandItem>
                                         ))}
                                     </CommandGroup>
@@ -245,9 +277,14 @@ export default function OutMaterialTable({
             </StaggerItem>
 
             <StaggerItem>
-                <DataTable table={table} isLoading={isLoading} emptyMessage="No materials found." />
+                <DataTable
+                    table={table}
+                    isLoading={isLoading}
+                    emptyMessage="No materials found."
+                    className="rounded-md border border-border overflow-auto relative max-h-[600px]"
+                />
             </StaggerItem>
-            <StaggerItem>
+            <StaggerItem className="py-2 px-1">
                 <DataTablePagination table={table} />
             </StaggerItem>
         </StaggerContainer>

@@ -2,7 +2,10 @@ export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
-import { getStockMovements } from './_actions/movement-actions';
+import {
+    getStockMovementFilterOptions,
+    getStockMovementsPaginated,
+} from './_actions/movement-actions';
 import StockMovementClient from './_components/StockMovementClient';
 
 export const metadata: Metadata = {
@@ -24,15 +27,73 @@ const BCrumb = [
     },
 ];
 
-export default async function StockMovementPage() {
-    const data = await getStockMovements();
+interface SearchParams {
+    page?: string;
+    pageSize?: string;
+    search?: string;
+    warehouse?: string;
+    material?: string;
+    type?: string;
+    startDate?: string;
+    endDate?: string;
+}
+
+export default async function StockMovementPage({
+    searchParams,
+}: {
+    searchParams: Promise<SearchParams>;
+}) {
+    const params = await searchParams;
+    const page = Math.max(1, parseInt(params.page ?? '1', 10));
+    const pageSize = Math.min(100, Math.max(10, parseInt(params.pageSize ?? '20', 10)));
+    const search = params.search ?? '';
+    const warehouse = params.warehouse ?? 'all';
+    const material = params.material ?? 'all';
+    const types = params.type ? params.type.split(',').filter(Boolean) : undefined;
+    const startDate = params.startDate;
+    const endDate = params.endDate;
+
+    const [result, filterOptions] = await Promise.all([
+        getStockMovementsPaginated({
+            page,
+            pageSize,
+            search,
+            warehouse,
+            material,
+            types,
+            startDate,
+            endDate,
+        }),
+        getStockMovementFilterOptions(),
+    ]);
 
     return (
         <div className="flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
             <div className="shrink-0">
                 <BreadcrumbComp title="Stock Movement" items={BCrumb} />
             </div>
-            <StockMovementClient initialData={data} />
+            <StockMovementClient
+                initialData={result.success ? result.data.movements : []}
+                pagination={
+                    result.success
+                        ? {
+                              total: result.data.total,
+                              page: result.data.page,
+                              pageSize: result.data.pageSize,
+                              totalPages: result.data.totalPages,
+                          }
+                        : undefined
+                }
+                filterOptions={filterOptions}
+                initialFilters={{
+                    search,
+                    warehouse,
+                    material,
+                    types: types ?? [],
+                    startDate,
+                    endDate,
+                }}
+            />
         </div>
     );
 }

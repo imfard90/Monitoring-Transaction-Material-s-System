@@ -159,18 +159,20 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                                 <Button
                                     variant="outline"
                                     role="combobox"
-                                    className="w-full justify-between font-normal"
+                                    className="w-full justify-between font-normal h-9 px-3"
                                 >
-                                    {fromWhId
-                                        ? warehouses.find((w) => w.id === fromWhId)?.name
-                                        : 'Select Source WH...'}
+                                    <span className="truncate">
+                                        {fromWhId
+                                            ? warehouses.find((w) => w.id === fromWhId)?.name
+                                            : 'Pilih Gudang Asal...'}
+                                    </span>
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[300px] p-0" align="start">
                                 <Command>
-                                    <CommandInput placeholder="Search WH..." />
-                                    <CommandEmpty>No warehouse found.</CommandEmpty>
+                                    <CommandInput placeholder="Cari gudang asal..." />
+                                    <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
                                     <CommandList>
                                         <CommandGroup>
                                             {warehouses.map((wh) => (
@@ -184,13 +186,15 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                                                 >
                                                     <Check
                                                         className={cn(
-                                                            'mr-2 h-4 w-4',
+                                                            'mr-2 h-4 w-4 shrink-0',
                                                             fromWhId === wh.id
                                                                 ? 'opacity-100'
                                                                 : 'opacity-0'
                                                         )}
                                                     />
-                                                    {wh.name} ({wh.branch})
+                                                    <span className="truncate">
+                                                        {wh.name} ({wh.branch})
+                                                    </span>
                                                 </CommandItem>
                                             ))}
                                         </CommandGroup>
@@ -207,18 +211,20 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                                 <Button
                                     variant="outline"
                                     role="combobox"
-                                    className="w-full justify-between font-normal"
+                                    className="w-full justify-between font-normal h-9 px-3"
                                 >
-                                    {toWhId
-                                        ? warehouses.find((w) => w.id === toWhId)?.name
-                                        : 'Select Destination WH...'}
+                                    <span className="truncate">
+                                        {toWhId
+                                            ? warehouses.find((w) => w.id === toWhId)?.name
+                                            : 'Pilih Gudang Tujuan...'}
+                                    </span>
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[300px] p-0" align="start">
                                 <Command>
-                                    <CommandInput placeholder="Search WH..." />
-                                    <CommandEmpty>No warehouse found.</CommandEmpty>
+                                    <CommandInput placeholder="Cari gudang tujuan..." />
+                                    <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
                                     <CommandList>
                                         <CommandGroup>
                                             {warehouses.map((wh) => (
@@ -232,13 +238,15 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                                                 >
                                                     <Check
                                                         className={cn(
-                                                            'mr-2 h-4 w-4',
+                                                            'mr-2 h-4 w-4 shrink-0',
                                                             toWhId === wh.id
                                                                 ? 'opacity-100'
                                                                 : 'opacity-0'
                                                         )}
                                                     />
-                                                    {wh.name} ({wh.branch})
+                                                    <span className="truncate">
+                                                        {wh.name} ({wh.branch})
+                                                    </span>
                                                 </CommandItem>
                                             ))}
                                         </CommandGroup>
@@ -388,15 +396,15 @@ function MaterialRow({
                             className="w-full justify-between font-normal h-8 px-2"
                         >
                             <span className="truncate max-w-[150px]">
-                                {selectedMat ? selectedMat.code : 'Select Code...'}
+                                {selectedMat ? selectedMat.code : 'Pilih Kode...'}
                             </span>
                             <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[300px] p-0" align="start">
                         <Command>
-                            <CommandInput placeholder="Search material code..." />
-                            <CommandEmpty>No material found.</CommandEmpty>
+                            <CommandInput placeholder="Cari kode material..." />
+                            <CommandEmpty>Material tidak ditemukan.</CommandEmpty>
                             <CommandList>
                                 <CommandGroup>
                                     {materials.map((m) => (
@@ -410,13 +418,15 @@ function MaterialRow({
                                         >
                                             <Check
                                                 className={cn(
-                                                    'mr-2 h-4 w-4',
+                                                    'mr-2 h-4 w-4 shrink-0',
                                                     item.designator_id === m.id
                                                         ? 'opacity-100'
                                                         : 'opacity-0'
                                                 )}
                                             />
-                                            {m.code}
+                                            <span className="truncate">
+                                                {m.code} - {m.description}
+                                            </span>
                                         </CommandItem>
                                     ))}
                                 </CommandGroup>

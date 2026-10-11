@@ -152,20 +152,22 @@ export function TechnicianDialog({
                                     variant="outline"
                                     role="combobox"
                                     aria-expanded={branchOpen}
-                                    className="w-full justify-between"
+                                    className="w-full justify-between font-normal h-9 px-3"
                                     disabled={isPending}
                                 >
-                                    {formData.branch_id
-                                        ? branches.find((b) => String(b.id) === formData.branch_id)
-                                            ? `${branches.find((b) => String(b.id) === formData.branch_id)?.service_area} - ${branches.find((b) => String(b.id) === formData.branch_id)?.branch}`
-                                            : 'Pilih Service Area'
-                                        : 'Pilih Service Area'}
+                                    <span className="truncate">
+                                        {formData.branch_id
+                                            ? branches.find((b) => String(b.id) === formData.branch_id)
+                                                ? `${branches.find((b) => String(b.id) === formData.branch_id)?.service_area} - ${branches.find((b) => String(b.id) === formData.branch_id)?.branch}`
+                                                : 'Pilih Service Area'
+                                            : 'Pilih Service Area'}
+                                    </span>
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[375px] p-0" align="start">
                                 <Command>
-                                    <CommandInput placeholder="Cari Branch / WH..." />
+                                    <CommandInput placeholder="Cari branch..." />
                                     <CommandList>
                                         <CommandEmpty>Branch tidak ditemukan.</CommandEmpty>
                                         <CommandGroup>
@@ -183,13 +185,15 @@ export function TechnicianDialog({
                                                 >
                                                     <Check
                                                         className={cn(
-                                                            'mr-2 h-4 w-4',
+                                                            'mr-2 h-4 w-4 shrink-0',
                                                             formData.branch_id === String(b.id)
                                                                 ? 'opacity-100'
                                                                 : 'opacity-0'
                                                         )}
                                                     />
-                                                    {b.service_area} - {b.branch}
+                                                    <span className="truncate">
+                                                        {b.service_area} - {b.branch}
+                                                    </span>
                                                 </CommandItem>
                                             ))}
                                         </CommandGroup>
@@ -208,19 +212,21 @@ export function TechnicianDialog({
                                     variant="outline"
                                     role="combobox"
                                     aria-expanded={mitraOpen}
-                                    className="w-full justify-between"
+                                    className="w-full justify-between font-normal h-9 px-3"
                                     disabled={isPending}
                                 >
-                                    {formData.mitra_id
-                                        ? mitras.find((m) => String(m.id) === formData.mitra_id)
-                                              ?.mitra_name
-                                        : 'Pilih Mitra'}
+                                    <span className="truncate">
+                                        {formData.mitra_id
+                                            ? mitras.find((m) => String(m.id) === formData.mitra_id)
+                                                  ?.mitra_name
+                                            : 'Pilih Mitra'}
+                                    </span>
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[375px] p-0" align="start">
                                 <Command>
-                                    <CommandInput placeholder="Cari Mitra..." />
+                                    <CommandInput placeholder="Cari mitra..." />
                                     <CommandList>
                                         <CommandEmpty>Mitra tidak ditemukan.</CommandEmpty>
                                         <CommandGroup>
@@ -238,13 +244,13 @@ export function TechnicianDialog({
                                                 >
                                                     <Check
                                                         className={cn(
-                                                            'mr-2 h-4 w-4',
+                                                            'mr-2 h-4 w-4 shrink-0',
                                                             formData.mitra_id === String(m.id)
                                                                 ? 'opacity-100'
                                                                 : 'opacity-0'
                                                         )}
                                                     />
-                                                    {m.mitra_name}
+                                                    <span className="truncate">{m.mitra_name}</span>
                                                 </CommandItem>
                                             ))}
                                         </CommandGroup>

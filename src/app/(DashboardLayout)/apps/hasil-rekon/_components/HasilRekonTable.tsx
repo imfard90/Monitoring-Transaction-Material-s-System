@@ -23,6 +23,13 @@ import type { HasilRekonData } from '../_actions/rekon-actions';
 
 interface HasilRekonTableProps {
     data: HasilRekonData[];
+    pagination?: {
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    };
+    onPaginationChange?: (page: number, pageSize: number) => void;
     searchQuery: string;
     onSearchChange: (val: string) => void;
     dateRange?: DateRange;
@@ -44,6 +51,8 @@ const columnHelper = createColumnHelper<HasilRekonData>();
 
 export default function HasilRekonTable({
     data,
+    pagination,
+    onPaginationChange,
     searchQuery,
     onSearchChange,
     dateRange,
@@ -94,26 +103,23 @@ export default function HasilRekonTable({
             ),
         }),
         columnHelper.accessor('nik', {
-            header: 'NIK Teknisi',
+            header: 'NIK',
             cell: (info) => (
                 <div className="whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
             ),
         }),
         columnHelper.accessor('type', {
             header: 'Type',
-            cell: (info) => {
-                const val = info.getValue();
-                return (
-                    <div className="whitespace-nowrap">
-                        <Badge className="bg-blue-100 text-blue-800 hover:bg-transparent uppercase">
-                            {val || '-'}
-                        </Badge>
-                    </div>
-                );
-            },
+            cell: (info) => (
+                <div className="min-w-[100px] whitespace-nowrap">
+                    <Badge variant="outline" className="capitalize text-xs font-semibold">
+                        {info.getValue() || '-'}
+                    </Badge>
+                </div>
+            ),
         }),
         columnHelper.accessor('workorder', {
-            header: () => <div className="whitespace-nowrap">Work Order</div>,
+            header: 'WO Number',
             cell: (info) => (
                 <div className="min-w-[120px] max-w-[150px] whitespace-normal break-words text-sm font-medium">
                     {info.getValue() || '-'}
@@ -184,15 +190,33 @@ export default function HasilRekonTable({
         }),
     ];
 
+    const paginationState = {
+        pageIndex: pagination ? pagination.page - 1 : 0,
+        pageSize: pagination ? pagination.pageSize : 20,
+    };
+
     const table = useReactTable({
         data,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
+        manualPagination: !!pagination,
+        pageCount: pagination ? pagination.totalPages : undefined,
+        state: {
+            pagination: paginationState,
+        },
         initialState: {
             pagination: {
-                pageSize: 15,
+                pageSize: 20,
             },
+        },
+        onPaginationChange: (updater) => {
+            if (typeof updater === 'function') {
+                const next = updater(paginationState);
+                onPaginationChange?.(next.pageIndex + 1, next.pageSize);
+            } else {
+                onPaginationChange?.(updater.pageIndex + 1, updater.pageSize);
+            }
         },
     });
 
@@ -288,12 +312,16 @@ export default function HasilRekonTable({
             </StaggerItem>
 
             {/* Table */}
-            <StaggerItem className="flex-1 md:min-h-0 md:overflow-y-auto">
-                <DataTable table={table} emptyMessage="No records found." />
+            <StaggerItem className="flex-1 md:min-h-0 flex flex-col overflow-hidden">
+                <DataTable
+                    table={table}
+                    emptyMessage="No records found."
+                    className="rounded-md border border-border flex-1 md:overflow-auto relative"
+                />
             </StaggerItem>
 
             {/* Pagination */}
-            <StaggerItem className="py-4 px-4 shrink-0">
+            <StaggerItem className="py-2 px-1 shrink-0">
                 <DataTablePagination table={table} />
             </StaggerItem>
         </StaggerContainer>

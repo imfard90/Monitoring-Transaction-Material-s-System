@@ -23,9 +23,17 @@
 }
 
 /* Premium UI/UX: visible keyboard focus indicator across interactive elements (SKILL §2.3). */
-:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+:where(a, button, input:not([cmdk-input]), select, textarea, [tabindex]):focus-visible {
     outline: 2px solid var(--color-primary, currentcolor);
     outline-offset: 2px;
+}
+
+[cmdk-input],
+[cmdk-input]:focus,
+[cmdk-input]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
 }
 
 html,

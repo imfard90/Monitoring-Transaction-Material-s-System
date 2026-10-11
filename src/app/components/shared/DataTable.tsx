@@ -5,26 +5,29 @@ interface DataTableProps<TData> {
     table: Table<TData>;
     isLoading?: boolean;
     emptyMessage?: string;
+    className?: string;
 }
 
 export function DataTable<TData>({
     table,
     isLoading = false,
     emptyMessage = 'Belum ada data yang ditemukan.',
+    className,
 }: DataTableProps<TData>) {
     return (
         <div
-            className="rounded-md border overflow-x-auto"
+            className={className || "rounded-md border overflow-x-auto"}
             aria-busy={isLoading}
         >
             <table className="w-full text-sm text-left text-muted-foreground whitespace-nowrap">
-                <thead className="text-sm text-foreground uppercase bg-muted/50 border-b sticky top-0 z-10 shadow-sm">
+                <thead className="text-sm text-foreground uppercase bg-muted border-b border-border sticky top-0 z-20 shadow-sm">
                     {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id}>
+                        <tr key={headerGroup.id} className="bg-muted">
                             {headerGroup.headers.map((header) => (
                                 <th
                                     key={header.id}
-                                    className="px-3 py-1.5 font-semibold"
+                                    className="px-3 py-1.5 font-semibold bg-muted"
+                                    style={header.column.columnDef.size ? { width: header.column.columnDef.size } : undefined}
                                     scope="col"
                                 >
                                     {header.isPlaceholder
@@ -70,7 +73,11 @@ export function DataTable<TData>({
                                     className="bg-background border-b hover:bg-muted/50 motion-reduce:transition-none"
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <td key={cell.id} className="px-3 py-1.5">
+                                        <td
+                                            key={cell.id}
+                                            className="px-3 py-1.5"
+                                            style={cell.column.columnDef.size ? { width: cell.column.columnDef.size } : undefined}
+                                        >
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext()

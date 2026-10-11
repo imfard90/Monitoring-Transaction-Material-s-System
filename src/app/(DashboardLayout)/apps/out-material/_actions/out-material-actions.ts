@@ -1,9 +1,11 @@
 'use server';
 
+import { sql } from 'kysely';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import type { OutMaterialRow } from '@/lib/types/inventory';
 
 const getOutMaterialsSchema = z.object({
     offsetMonths: z.number().int().min(0).default(0),
@@ -49,7 +51,6 @@ export async function getOutMaterials(offsetMonths = 0, limitMonths = 5) {
 
         const headers = await query.execute();
 
-        // Group by status for the cards
         const counts = {
             wait_approve: 0,
             request: 0,
@@ -65,7 +66,7 @@ export async function getOutMaterials(offsetMonths = 0, limitMonths = 5) {
             else if (status === 'close') counts.close++;
         });
 
-        return { success: true, data: headers, counts };
+        return { success: true, data: headers as unknown as OutMaterialRow[], counts };
     } catch (error) {
         actionLogger.error(
             'Error fetching out materials:',
@@ -76,6 +77,154 @@ export async function getOutMaterials(offsetMonths = 0, limitMonths = 5) {
             data: [],
             counts: { wait_approve: 0, request: 0, intech: 0, close: 0 },
         };
+    }
+}
+
+export interface GetOutMaterialsPaginatedOptions {
+    page?: number;
+    pageSize?: number;
+    status?: string;
+    warehouse?: string;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+}
+
+export async function getOutMaterialsPaginated(options: GetOutMaterialsPaginatedOptions = {}) {
+    try {
+        const { isStaff, warehouseIds } = await getSessionUser();
+        const page = Math.max(1, options.page ?? 1);
+        const pageSize = Math.min(100, Math.max(10, options.pageSize ?? 20));
+        const offset = (page - 1) * pageSize;
+
+        // Base query for counts by status
+        let baseCountQuery = db.selectFrom('inventory.sap_out_header as h');
+        if (isStaff && warehouseIds.length > 0) {
+            baseCountQuery = baseCountQuery.where('h.warehouse_id', 'in', warehouseIds as number[]);
+        }
+
+        const countsRes = await baseCountQuery
+            .select([
+                sql<number>`count(*) filter (where h.end_status = 'wait_approve')`.as('wait_approve'),
+                sql<number>`count(*) filter (where h.end_status = 'request')`.as('request'),
+                sql<number>`count(*) filter (where h.end_status = 'intech')`.as('intech'),
+                sql<number>`count(*) filter (where h.end_status = 'close')`.as('close'),
+            ])
+            .executeTakeFirst();
+
+        const counts = {
+            wait_approve: Number(countsRes?.wait_approve ?? 0),
+            request: Number(countsRes?.request ?? 0),
+            intech: Number(countsRes?.intech ?? 0),
+            close: Number(countsRes?.close ?? 0),
+        };
+
+        // Filtered list query
+        let listQuery = db
+            .selectFrom('inventory.sap_out_header as h')
+            .leftJoin('hr.technicians as t', 't.nik', 'h.nik_teknisi')
+            .leftJoin('inventory.mas_wh as wh', 'wh.id', 'h.warehouse_id');
+
+        if (isStaff && warehouseIds.length > 0) {
+            listQuery = listQuery.where('h.warehouse_id', 'in', warehouseIds as number[]);
+        }
+
+        if (options.status && options.status !== 'all') {
+            listQuery = listQuery.where(sql<boolean>`h.end_status::text = ${options.status}`);
+        }
+
+        if (options.warehouse && options.warehouse !== 'all') {
+            listQuery = listQuery.where('wh.name', '=', options.warehouse);
+        }
+
+        if (options.startDate) {
+            const start = new Date(options.startDate);
+            start.setHours(0, 0, 0, 0);
+            listQuery = listQuery.where('h.request_time', '>=', start);
+        }
+
+        if (options.endDate) {
+            const end = new Date(options.endDate);
+            end.setHours(23, 59, 59, 999);
+            listQuery = listQuery.where('h.request_time', '<=', end);
+        }
+
+        if (options.search?.trim()) {
+            const s = `%${options.search.trim()}%`;
+            listQuery = listQuery.where((eb) =>
+                eb.or([
+                    eb('h.request_id', 'ilike', s),
+                    eb('h.id_reservasi', 'ilike', s),
+                    eb('h.sap_number', 'ilike', s),
+                    eb('h.nik_teknisi', 'ilike', s),
+                    eb('t.name', 'ilike', s),
+                ])
+            );
+        }
+
+        const countRes = await listQuery
+            .select((eb) => eb.fn.count('h.id').as('total'))
+            .executeTakeFirst();
+        const total = Number(countRes?.total ?? 0);
+
+        const rows = await listQuery
+            .selectAll('h')
+            .select(['t.name as nama_teknisi', 'wh.name as nama_gudang'])
+            .orderBy('h.request_time', 'desc')
+            .limit(pageSize)
+            .offset(offset)
+            .execute();
+
+        return {
+            success: true,
+            data: {
+                headers: rows as unknown as OutMaterialRow[],
+                total,
+                page,
+                pageSize,
+                totalPages: Math.ceil(total / pageSize),
+                counts,
+            },
+        };
+    } catch (error) {
+        actionLogger.error(
+            'Error fetching paginated out materials:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return {
+            success: false,
+            error: 'Failed to fetch out materials',
+            data: {
+                headers: [],
+                total: 0,
+                page: 1,
+                pageSize: 20,
+                totalPages: 0,
+                counts: { wait_approve: 0, request: 0, intech: 0, close: 0 },
+            },
+        };
+    }
+}
+
+export async function getOutMaterialFilterOptions() {
+    try {
+        const { isStaff, warehouseIds } = await getSessionUser();
+
+        let whQuery = db.selectFrom('inventory.mas_wh').select('name').orderBy('name', 'asc');
+        if (isStaff && warehouseIds.length > 0) {
+            whQuery = whQuery.where('id', 'in', warehouseIds as number[]);
+        }
+        const whs = await whQuery.execute();
+
+        return {
+            warehouses: whs.map((w: any) => w.name).filter(Boolean) as string[],
+        };
+    } catch (error) {
+        actionLogger.error(
+            'Error fetching out material filter options:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return { warehouses: [] };
     }
 }
 

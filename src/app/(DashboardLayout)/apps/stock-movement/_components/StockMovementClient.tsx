@@ -1,44 +1,125 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
-import { getStockMovements } from '../_actions/movement-actions';
 import type { StockMovementItem } from './MovementTable';
 import MovementTable from './MovementTable';
 
 interface StockMovementClientProps {
     initialData: StockMovementItem[];
+    pagination?: {
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    };
+    filterOptions: {
+        warehouses: string[];
+        materials: string[];
+        types: string[];
+    };
+    initialFilters?: {
+        search?: string;
+        warehouse?: string;
+        material?: string;
+        types?: string[];
+        startDate?: string;
+        endDate?: string;
+    };
 }
 
-export default function StockMovementClient({ initialData }: StockMovementClientProps) {
-    const [data, setData] = useState(initialData);
-    const [monthsOffset, setMonthsOffset] = useState(0);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [hasMoreData, setHasMoreData] = useState(true);
+export default function StockMovementClient({
+    initialData,
+    pagination,
+    filterOptions,
+    initialFilters = { search: '', warehouse: 'all', material: 'all', types: [] },
+}: StockMovementClientProps) {
+    const router = useRouter();
 
-    const [searchQuery, setSearchQuery] = useState('');
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-    const [warehouseFilter, setWarehouseFilter] = useState('all');
-    const [materialFilter, setMaterialFilter] = useState('all');
-    const [typeFilter, setTypeFilter] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState(initialFilters?.search ?? '');
+    const [warehouseFilter, setWarehouseFilter] = useState(initialFilters?.warehouse ?? 'all');
+    const [materialFilter, setMaterialFilter] = useState(initialFilters?.material ?? 'all');
+    const [typeFilter, setTypeFilter] = useState<string[]>(initialFilters?.types ?? []);
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+        if (initialFilters?.startDate) {
+            return {
+                from: new Date(initialFilters.startDate),
+                to: initialFilters?.endDate ? new Date(initialFilters.endDate) : undefined,
+            };
+        }
+        return undefined;
+    });
 
-    const uniqueWarehouses = useMemo(() => {
-        const set = new Set(data.map((item) => item.warehouse_name).filter(Boolean));
-        return Array.from(set).sort() as string[];
-    }, [data]);
+    const applyFilters = useCallback(
+        (overrides: {
+            page?: number;
+            pageSize?: number;
+            search?: string;
+            warehouse?: string;
+            material?: string;
+            types?: string[];
+            date?: DateRange | undefined;
+        }) => {
+            const params = new URLSearchParams();
+            const page = overrides.page ?? 1;
+            const pageSize = overrides.pageSize ?? pagination?.pageSize ?? 20;
+            const search = overrides.search === undefined ? searchQuery : overrides.search;
+            const wh = overrides.warehouse === undefined ? warehouseFilter : overrides.warehouse;
+            const mat = overrides.material === undefined ? materialFilter : overrides.material;
+            const types = overrides.types === undefined ? typeFilter : overrides.types;
+            const date = overrides.date === undefined ? dateRange : overrides.date;
 
-    const uniqueMaterials = useMemo(() => {
-        const set = new Set(data.map((item) => item.material_code).filter(Boolean));
-        return Array.from(set).sort() as string[];
-    }, [data]);
+            params.set('page', page.toString());
+            params.set('pageSize', pageSize.toString());
 
-    const uniqueTypes = useMemo(() => {
-        const set = new Set(data.map((item) => item.movement_type).filter(Boolean));
-        return Array.from(set).sort() as string[];
-    }, [data]);
+            if (search.trim()) params.set('search', search.trim());
+            if (wh && wh !== 'all') params.set('warehouse', wh);
+            if (mat && mat !== 'all') params.set('material', mat);
+            if (types && types.length > 0) params.set('type', types.join(','));
+            if (date?.from) params.set('startDate', date.from.toISOString());
+            if (date?.to) params.set('endDate', date.to.toISOString());
+
+            router.push(`/apps/stock-movement?${params.toString()}`);
+        },
+        [
+            pagination?.pageSize,
+            searchQuery,
+            warehouseFilter,
+            materialFilter,
+            typeFilter,
+            dateRange,
+            router,
+        ]
+    );
+
+    const handleSearchChange = (val: string) => {
+        setSearchQuery(val);
+        applyFilters({ search: val, page: 1 });
+    };
+
+    const handleWarehouseChange = (val: string) => {
+        setWarehouseFilter(val);
+        applyFilters({ warehouse: val, page: 1 });
+    };
+
+    const handleMaterialChange = (val: string) => {
+        setMaterialFilter(val);
+        applyFilters({ material: val, page: 1 });
+    };
+
+    const handleTypeChange = (types: string[]) => {
+        setTypeFilter(types);
+        applyFilters({ types, page: 1 });
+    };
+
+    const handleDateRangeChange = (range: DateRange | undefined) => {
+        setDateRange(range);
+        applyFilters({ date: range, page: 1 });
+    };
 
     const handleClearFilters = () => {
         setSearchQuery('');
@@ -46,115 +127,36 @@ export default function StockMovementClient({ initialData }: StockMovementClient
         setWarehouseFilter('all');
         setMaterialFilter('all');
         setTypeFilter([]);
+        router.push('/apps/stock-movement?page=1&pageSize=20');
     };
 
-    const loadMore = useCallback(async () => {
-        if (isLoadingMore || !hasMoreData) return;
-        setIsLoadingMore(true);
-        try {
-            const nextOffset = monthsOffset + 5;
-            const newData = await getStockMovements(nextOffset, 5);
-            if (newData.length === 0) {
-                setHasMoreData(false);
-            } else {
-                setData((prev) => [...prev, ...newData]);
-                setMonthsOffset(nextOffset);
-            }
-        } catch {
-            // Error swallowed: load-more failure already handled by setHasMoreData(false).
-        } finally {
-            setIsLoadingMore(false);
-        }
-    }, [isLoadingMore, hasMoreData, monthsOffset]);
-
-    const filteredData = useMemo(() => {
-        return data.filter((item) => {
-            // Date filter (Range)
-            if (dateRange?.from && item.created_at) {
-                const itemDate = new Date(item.created_at);
-                itemDate.setHours(0, 0, 0, 0); // normalize
-
-                const fromDate = new Date(dateRange.from);
-                fromDate.setHours(0, 0, 0, 0);
-                if (itemDate < fromDate) return false;
-
-                if (dateRange.to) {
-                    const toDate = new Date(dateRange.to);
-                    toDate.setHours(23, 59, 59, 999);
-                    if (itemDate > toDate) return false;
-                }
-            }
-
-            // Warehouse filter
-            if (
-                warehouseFilter &&
-                warehouseFilter !== 'all' &&
-                item.warehouse_name !== warehouseFilter
-            ) {
-                return false;
-            }
-
-            // Material filter
-            if (
-                materialFilter &&
-                materialFilter !== 'all' &&
-                item.material_code !== materialFilter
-            ) {
-                return false;
-            }
-
-            // Type filter (multi-select: empty = all)
-            if (typeFilter && typeFilter.length > 0 && !typeFilter.includes(item.movement_type)) {
-                return false;
-            }
-
-            // Search filter
-            const q = searchQuery.toLowerCase();
-            return (
-                item.material_code?.toLowerCase().includes(q) ||
-                item.material_name?.toLowerCase().includes(q) ||
-                item.reference_trx?.toLowerCase().includes(q) ||
-                item.warehouse_name?.toLowerCase().includes(q) ||
-                item.movement_type?.toLowerCase().includes(q)
-            );
-        });
-    }, [data, searchQuery, dateRange, warehouseFilter, materialFilter, typeFilter]);
-
-    useEffect(() => {
-        if (searchQuery && filteredData.length === 0 && hasMoreData && !isLoadingMore) {
-            const timeout = setTimeout(() => {
-                loadMore();
-            }, 800);
-            return () => clearTimeout(timeout);
-        }
-    }, [searchQuery, filteredData.length, hasMoreData, isLoadingMore, loadMore]);
+    const handlePaginationChange = (page: number, pageSize: number) => {
+        applyFilters({ page, pageSize });
+    };
 
     return (
         <StaggerContainer className="flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
             <StaggerItem className="flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
                 <CardBox className="flex flex-col flex-1 p-6 md:h-full md:min-h-0 md:overflow-hidden">
                     <MovementTable
-                        data={filteredData}
+                        data={initialData}
+                        pagination={pagination}
+                        onPaginationChange={handlePaginationChange}
                         searchQuery={searchQuery}
-                        onSearchChange={setSearchQuery}
+                        onSearchChange={handleSearchChange}
                         dateRange={dateRange}
-                        onDateRangeChange={setDateRange}
+                        onDateRangeChange={handleDateRangeChange}
                         warehouseFilter={warehouseFilter}
-                        onWarehouseFilterChange={setWarehouseFilter}
+                        onWarehouseFilterChange={handleWarehouseChange}
                         materialFilter={materialFilter}
-                        onMaterialFilterChange={setMaterialFilter}
+                        onMaterialFilterChange={handleMaterialChange}
                         typeFilter={typeFilter}
-                        onTypeFilterChange={setTypeFilter}
-                        uniqueWarehouses={uniqueWarehouses}
-                        uniqueMaterials={uniqueMaterials}
-                        uniqueTypes={uniqueTypes}
+                        onTypeFilterChange={handleTypeChange}
+                        uniqueWarehouses={filterOptions.warehouses}
+                        uniqueMaterials={filterOptions.materials}
+                        uniqueTypes={filterOptions.types}
                         onClearFilters={handleClearFilters}
                     />
-                    {isLoadingMore && (
-                        <div className="text-center text-sm text-muted-foreground py-2" role="status">
-                            Mencari di 5 bulan sebelumnya...
-                        </div>
-                    )}
                 </CardBox>
             </StaggerItem>
         </StaggerContainer>

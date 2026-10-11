@@ -15,6 +15,8 @@ export {
     getMaterialsWithStock,
     getInoutTagItemsByHeaderId,
     getReturnMaterialItemsByHeaderId,
+    getInOutTagsPaginated,
+    getInOutTagFilterOptions,
 } from './tag-queries';
 
 export {

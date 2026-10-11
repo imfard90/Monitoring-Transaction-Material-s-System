@@ -8,13 +8,13 @@ import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
-import { redis } from '@/lib/redis';
 import {
     scrapeLensaDetails,
     scrapeLensaHeaders,
     scrapeReservation,
 } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
+import { redis } from '@/lib/redis';
 
 // P3-S6 Fix: Derive a strict 32-byte key from the environment variable using SHA-256
 // instead of a weak slice(0,32) which might pad with weak characters or truncate.
@@ -40,7 +40,6 @@ function decrypt(text: string) {
     return decrypted.toString();
 }
 
-
 async function asyncPool(poolLimit: number, array: any[], iteratorFn: (item: any) => Promise<any>) {
     const ret: Promise<any>[] = [];
     const executing: Promise<void>[] = [];
@@ -49,7 +48,9 @@ async function asyncPool(poolLimit: number, array: any[], iteratorFn: (item: any
         ret.push(p);
 
         if (poolLimit <= array.length) {
-            const e: any = p.then(() => { executing.splice(executing.indexOf(e), 1); });
+            const e: any = p.then(() => {
+                executing.splice(executing.indexOf(e), 1);
+            });
             executing.push(e);
             if (executing.length >= poolLimit) {
                 await Promise.race(executing);
@@ -134,7 +135,8 @@ export async function internalTriggerScraping(perpage: number = 20) {
                 return newHeaders.map((h: any) => ({ ...h, scraped_by_username: customUsername }));
             } catch (e: any) {
                 const msg = e.message || String(e);
-                const isLoginErr = msg.toLowerCase().includes('sesi') || msg.toLowerCase().includes('login');
+                const isLoginErr =
+                    msg.toLowerCase().includes('sesi') || msg.toLowerCase().includes('login');
                 accountResults.push({
                     username: customUsername,
                     phase: 'headers',
@@ -142,10 +144,7 @@ export async function internalTriggerScraping(perpage: number = 20) {
                     count: 0,
                     error: msg,
                 });
-                actionLogger.error(
-                    `Failed to scrape headers for user ${customUsername}:`,
-                    msg
-                );
+                actionLogger.error(`Failed to scrape headers for user ${customUsername}:`, msg);
                 return [];
             }
         });
@@ -285,7 +284,9 @@ export async function internalTriggerScraping(perpage: number = 20) {
                         return details;
                     } catch (e: any) {
                         const msg = e.message || String(e);
-                        const isLoginErr = msg.toLowerCase().includes('sesi') || msg.toLowerCase().includes('login');
+                        const isLoginErr =
+                            msg.toLowerCase().includes('sesi') ||
+                            msg.toLowerCase().includes('login');
                         accountResults.push({
                             username: customUsername,
                             phase: 'details',
@@ -294,10 +295,7 @@ export async function internalTriggerScraping(perpage: number = 20) {
                             count: 0,
                             error: msg,
                         });
-                        actionLogger.error(
-                            `Failed to scrape details for gudang ${gudang}:`,
-                            msg
-                        );
+                        actionLogger.error(`Failed to scrape details for gudang ${gudang}:`, msg);
                         return [];
                     }
                 }
@@ -360,15 +358,24 @@ export async function internalTriggerScraping(perpage: number = 20) {
             usersScraped: totalUsersScraped,
             accountResults,
         };
-        actionLogger.info('[OUT-Lensa] Scrape summary:', { summary: JSON.stringify(summary, null, 2) });
+        actionLogger.info('[OUT-Lensa] Scrape summary:', {
+            summary: JSON.stringify(summary, null, 2),
+        });
 
-        return { success: true, newCount: totalInserted, usersScraped: totalUsersScraped, accountResults };
+        return {
+            success: true,
+            newCount: totalInserted,
+            usersScraped: totalUsersScraped,
+            accountResults,
+        };
     } catch (error: any) {
-        actionLogger.error('Trigger scraping error:', error instanceof Error ? error : new Error(String(error)));
+        actionLogger.error(
+            'Trigger scraping error:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, error: error.message };
     }
 }
-
 
 export async function triggerScraping(): Promise<
     { success: true; jobId: string } | { success: false; error: string }
@@ -423,7 +430,6 @@ export async function triggerScraping(): Promise<
     return { success: true, jobId };
 }
 
-
 export async function scrapeReservationAction(id: string) {
     try {
         const session = await auth.api.getSession({ headers: await headers() });
@@ -443,7 +449,10 @@ export async function scrapeReservationAction(id: string) {
                 try {
                     customPassword = decrypt(account.password);
                 } catch (e) {
-                    actionLogger.error('Failed to decrypt user password', e instanceof Error ? e : new Error(String(e)));
+                    actionLogger.error(
+                        'Failed to decrypt user password',
+                        e instanceof Error ? e : new Error(String(e))
+                    );
                 }
             }
         }

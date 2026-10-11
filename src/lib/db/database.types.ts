@@ -1022,6 +1022,8 @@ export interface InventoryOutLensaRefHeader {
     scraped_by_username: string | null;
     gi_number: string | null;
     status_proses: string | null;
+    sap_out_check: boolean | null;
+
     created_at: Generated<Timestamp>;
     updated_at: Generated<Timestamp>;
 }

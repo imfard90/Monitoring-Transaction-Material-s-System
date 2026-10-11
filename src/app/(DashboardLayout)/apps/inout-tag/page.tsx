@@ -1,43 +1,91 @@
-import type { Metadata } from 'next';
-import { getSessionUser } from '@/lib/auth-server';
-import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
-import InOutTagClient from './_components/InOutTagClient';
-
-export const metadata: Metadata = {
-    title: 'InOut Tag',
-};
 export const dynamic = 'force-dynamic';
 
+import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
+import { getSessionUser } from '@/lib/auth-server';
+import { getInOutTagFilterOptions, getInOutTagsPaginated } from './_actions/tag-queries';
+import InOutTagClient from './_components/InOutTagClient';
+
+export const metadata = {
+    title: "InOut Tag - Monitoring Transaction Material's System",
+    description: 'Data InOut Tag',
+};
+
 const BCrumb = [
-    {
-        to: '/',
-        title: 'Home',
-    },
-    {
-        to: '/apps',
-        title: 'Apps',
-    },
-    {
-        title: 'InOut Tag',
-    },
+    { to: '/', title: 'Home' },
+    { to: '/apps', title: 'Apps' },
+    { title: 'InOut Tag' },
 ];
 
-export default async function InOutTagPage() {
-    // Fetch user session to determine permissions
-    const sessionUser = await getSessionUser();
+interface SearchParams {
+    page?: string;
+    pageSize?: string;
+    status?: string;
+    warehouse?: string;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+}
 
-    // Staff role cannot create tags (only view and update)
+export default async function InOutTagPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+    const sessionUser = await getSessionUser();
     const canCreateTag = sessionUser.role !== 'Staff';
+
+    const params = await searchParams;
+    const page = Math.max(1, parseInt(params.page ?? '1', 10));
+    const pageSize = Math.min(100, Math.max(10, parseInt(params.pageSize ?? '20', 10)));
+    const status = params.status ?? 'all';
+    const warehouse = params.warehouse ?? 'all';
+    const search = params.search ?? '';
+    const startDate = params.startDate;
+    const endDate = params.endDate;
+
+    const [result, filterOptions] = await Promise.all([
+        getInOutTagsPaginated({
+            page,
+            pageSize,
+            status,
+            warehouse,
+            search,
+            startDate,
+            endDate,
+        }),
+        getInOutTagFilterOptions(),
+    ]);
 
     return (
         <div className="flex flex-col flex-1 ">
             <div className="shrink-0">
                 <BreadcrumbComp title="InOut Tag" items={BCrumb} />
             </div>
+
             <InOutTagClient
                 canCreateTag={canCreateTag}
                 isStaff={sessionUser.isStaff}
                 warehouseIds={sessionUser.warehouseIds}
+                initialData={result.success ? result.data.tags : []}
+                counts={
+                    result.success
+                        ? result.data.counts
+                        : { requested: 0, in_transit: 0, closed: 0, cancel: 0 }
+                }
+                pagination={
+                    result.success
+                        ? {
+                              total: result.data.total,
+                              page: result.data.page,
+                              pageSize: result.data.pageSize,
+                              totalPages: result.data.totalPages,
+                          }
+                        : undefined
+                }
+                toWhOptions={filterOptions.toWhOptions}
+                initialFilters={{
+                    status,
+                    warehouse,
+                    search,
+                    startDate,
+                    endDate,
+                }}
             />
         </div>
     );

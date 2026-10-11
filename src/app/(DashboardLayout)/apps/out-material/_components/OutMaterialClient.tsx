@@ -1,134 +1,124 @@
 'use client';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { endOfDay, isWithinInterval, startOfDay } from 'date-fns';
-import React, { useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import CardBox from '@/app/components/shared/CardBox';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import type { OutMaterialRow } from '@/lib/types/inventory';
-import { getOutMaterials } from '../_actions/out-material-actions';
 import OutMaterialCards from './OutMaterialCards';
 import OutMaterialDetailModal from './OutMaterialDetailModal';
 import OutMaterialTable from './OutMaterialTable';
 
-export default function OutMaterialClient() {
-    const [filterStatus, setFilterStatus] = useState<string>('all');
-    const [searchQuery, setSearchQuery] = useState<string>('');
-    const [whFilter, setWhFilter] = useState<string>('all');
-    const [dateFilter, setDateFilter] = useState<DateRange | undefined>();
+interface OutMaterialClientProps {
+    initialData: OutMaterialRow[];
+    counts: {
+        wait_approve: number;
+        request: number;
+        intech: number;
+        close: number;
+    };
+    pagination?: {
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    };
+    whOptions: string[];
+    initialFilters?: {
+        status?: string;
+        warehouse?: string;
+        search?: string;
+        startDate?: string;
+        endDate?: string;
+    };
+}
+
+export default function OutMaterialClient({
+    initialData,
+    counts,
+    pagination,
+    whOptions,
+    initialFilters = { status: 'all', warehouse: 'all', search: '' },
+}: OutMaterialClientProps) {
+    const router = useRouter();
+
+    const [filterStatus, setFilterStatus] = useState<string>(initialFilters?.status ?? 'all');
+    const [searchQuery, setSearchQuery] = useState<string>(initialFilters?.search ?? '');
+    const [whFilter, setWhFilter] = useState<string>(initialFilters?.warehouse ?? 'all');
+    const [dateFilter, setDateFilter] = useState<DateRange | undefined>(() => {
+        if (initialFilters?.startDate) {
+            return {
+                from: new Date(initialFilters.startDate),
+                to: initialFilters?.endDate ? new Date(initialFilters.endDate) : undefined,
+            };
+        }
+        return undefined;
+    });
     const [detailRow, setDetailRow] = useState<OutMaterialRow | null>(null);
 
-    const { data, isLoading } = useQuery({
-        queryKey: ['outMaterials'],
-        queryFn: async () => {
-            const res = await getOutMaterials();
-            if (!res.success) throw new Error('Failed to fetch out materials');
-            return res;
+    const applyFilters = useCallback(
+        (overrides: {
+            page?: number;
+            pageSize?: number;
+            status?: string;
+            warehouse?: string;
+            search?: string;
+            date?: DateRange | undefined;
+        }) => {
+            const params = new URLSearchParams();
+            const page = overrides.page ?? 1;
+            const pageSize = overrides.pageSize ?? pagination?.pageSize ?? 20;
+            const status = overrides.status !== undefined ? overrides.status : filterStatus;
+            const wh = overrides.warehouse !== undefined ? overrides.warehouse : whFilter;
+            const search = overrides.search !== undefined ? overrides.search : searchQuery;
+            const date = overrides.date !== undefined ? overrides.date : dateFilter;
+
+            params.set('page', page.toString());
+            params.set('pageSize', pageSize.toString());
+
+            if (status && status !== 'all') params.set('status', status);
+            if (wh && wh !== 'all') params.set('warehouse', wh);
+            if (search.trim()) params.set('search', search.trim());
+            if (date?.from) params.set('startDate', date.from.toISOString());
+            if (date?.to) params.set('endDate', date.to.toISOString());
+
+            router.push(`/apps/out-material?${params.toString()}`);
         },
-        staleTime: 1000 * 60, // 1 minute
-    });
+        [pagination?.pageSize, filterStatus, whFilter, searchQuery, dateFilter, router]
+    );
 
-    const headers = data?.data || [];
-    const counts = data?.counts || { wait_approve: 0, request: 0, intech: 0, close: 0 };
+    const handleFilterStatusChange = (status: string) => {
+        setFilterStatus(status);
+        applyFilters({ status, page: 1 });
+    };
 
-    const whOptions = React.useMemo(() => {
-        const set = new Set(headers.map((h: OutMaterialRow) => h.nama_gudang).filter(Boolean));
-        return Array.from(set).sort() as string[];
-    }, [headers]);
+    const handleSearchChange = (val: string) => {
+        setSearchQuery(val);
+        applyFilters({ search: val, page: 1 });
+    };
 
-    const [monthsOffset, setMonthsOffset] = useState(0);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [hasMoreData, setHasMoreData] = useState(true);
-    const queryClient = useQueryClient();
+    const handleWhChange = (wh: string) => {
+        setWhFilter(wh);
+        applyFilters({ warehouse: wh, page: 1 });
+    };
 
-    const loadMore = useCallback(async () => {
-        if (isLoadingMore || !hasMoreData) return;
-        setIsLoadingMore(true);
-        try {
-            const nextOffset = monthsOffset + 5;
-            const res = await getOutMaterials(nextOffset, 5);
-            if (!res.success || !res.data || res.data.length === 0) {
-                setHasMoreData(false);
-            } else {
-                queryClient.setQueryData(
-                    ['outMaterials'],
-                    (old: { data: OutMaterialRow[] } | undefined) => {
-                        if (!old) return old;
-                        return {
-                            ...old,
-                            data: [...old.data, ...res.data],
-                        };
-                    }
-                );
-                setMonthsOffset(nextOffset);
-            }
-        } catch {
-            // Error swallowed: load-more failure already handled by setHasMoreData(false).
-        } finally {
-            setIsLoadingMore(false);
-        }
-    }, [isLoadingMore, hasMoreData, monthsOffset, queryClient]);
-
-    const filteredData = React.useMemo(() => {
-        return headers.filter((header: OutMaterialRow) => {
-            const matchesStatus = filterStatus === 'all' || header.end_status === filterStatus;
-            const matchesWh = whFilter === 'all' || header.nama_gudang === whFilter;
-
-            const searchLower = searchQuery.toLowerCase();
-            const reqId = header.request_id ? String(header.request_id).toLowerCase() : '';
-            const resId = header.id_reservasi ? String(header.id_reservasi).toLowerCase() : '';
-            const sapNum = header.sap_number ? String(header.sap_number).toLowerCase() : '';
-            const nik = header.nik_teknisi ? String(header.nik_teknisi).toLowerCase() : '';
-
-            const matchesSearch =
-                !searchQuery ||
-                reqId.includes(searchLower) ||
-                resId.includes(searchLower) ||
-                sapNum.includes(searchLower) ||
-                nik.includes(searchLower);
-
-            let matchesDate = true;
-            if (dateFilter?.from && header.request_time) {
-                const rowDate = new Date(header.request_time);
-                if (dateFilter.to) {
-                    matchesDate = isWithinInterval(rowDate, {
-                        start: startOfDay(dateFilter.from),
-                        end: endOfDay(dateFilter.to),
-                    });
-                } else {
-                    matchesDate = isWithinInterval(rowDate, {
-                        start: startOfDay(dateFilter.from),
-                        end: endOfDay(dateFilter.from),
-                    });
-                }
-            }
-
-            return matchesStatus && matchesWh && matchesSearch && matchesDate;
-        });
-    }, [headers, filterStatus, whFilter, searchQuery, dateFilter]);
-
-    React.useEffect(() => {
-        if (
-            searchQuery &&
-            filteredData.length === 0 &&
-            hasMoreData &&
-            !isLoadingMore &&
-            !isLoading
-        ) {
-            const timeout = setTimeout(() => {
-                loadMore();
-            }, 800);
-            return () => clearTimeout(timeout);
-        }
-    }, [searchQuery, filteredData.length, hasMoreData, isLoadingMore, isLoading, loadMore]);
+    const handleDateFilterChange = (range: DateRange | undefined) => {
+        setDateFilter(range);
+        applyFilters({ date: range, page: 1 });
+    };
 
     const handleClearFilters = () => {
         setFilterStatus('all');
         setSearchQuery('');
         setWhFilter('all');
         setDateFilter(undefined);
+        router.push('/apps/out-material?page=1&pageSize=20');
+    };
+
+    const handlePaginationChange = (page: number, pageSize: number) => {
+        applyFilters({ page, pageSize });
     };
 
     return (
@@ -137,30 +127,26 @@ export default function OutMaterialClient() {
                 <OutMaterialCards
                     counts={counts}
                     activeFilter={filterStatus}
-                    onFilterChange={setFilterStatus}
+                    onFilterChange={handleFilterStatusChange}
                 />
             </StaggerItem>
 
             <StaggerItem>
-                <CardBox className="p-4 w-full ">
+                <CardBox className="p-4 w-full">
                     <OutMaterialTable
-                        data={filteredData}
-                        isLoading={isLoading}
+                        data={initialData}
+                        pagination={pagination}
+                        onPaginationChange={handlePaginationChange}
                         searchQuery={searchQuery}
-                        onSearchChange={setSearchQuery}
+                        onSearchChange={handleSearchChange}
                         whOptions={whOptions}
                         whFilter={whFilter}
-                        onWhChange={setWhFilter}
+                        onWhChange={handleWhChange}
                         dateFilter={dateFilter}
-                        onDateFilterChange={setDateFilter}
+                        onDateFilterChange={handleDateFilterChange}
                         onViewDetail={(row) => setDetailRow(row)}
                         onClearFilters={handleClearFilters}
                     />
-                    {isLoadingMore && (
-                        <div className="text-center text-sm text-muted-foreground py-2" role="status">
-                            Mencari di 5 bulan sebelumnya...
-                        </div>
-                    )}
                 </CardBox>
             </StaggerItem>
 

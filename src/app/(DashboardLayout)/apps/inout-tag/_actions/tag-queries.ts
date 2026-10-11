@@ -1,8 +1,10 @@
 'use server';
 
+import { sql } from 'kysely';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import type { InOutTagRow } from '@/lib/types/inventory';
 
 export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
     try {
@@ -304,5 +306,210 @@ export async function getReturnMaterialItemsByHeaderId(headerId: number) {
             data: [],
             error: error instanceof Error ? error.message : 'Unknown error',
         };
+    }
+}
+
+export interface GetInOutTagsPaginatedOptions {
+    page?: number;
+    pageSize?: number;
+    status?: string;
+    warehouse?: string;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+}
+
+export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOptions = {}) {
+    try {
+        const { isStaff, warehouseIds } = await getSessionUser();
+        const page = Math.max(1, options.page ?? 1);
+        const pageSize = Math.min(100, Math.max(10, options.pageSize ?? 20));
+        const offset = (page - 1) * pageSize;
+
+        const baseCte = sql`
+            WITH combined AS (
+                SELECT 
+                    h.id,
+                    h.id_trx,
+                    h.request_id,
+                    h.send_id,
+                    h.accept_id,
+                    h.end_status::text as end_status,
+                    h.request_time,
+                    v.name_vendor,
+                    wh_from.name as from_wh_name,
+                    wh_to.name as to_wh_name,
+                    'inout' as type,
+                    h.from_wh_id as wh_from_id,
+                    h.to_wh_id as wh_to_id
+                FROM inventory.inout_tag_header h
+                LEFT JOIN inventory.vendor_tracking v ON v.header_id = h.id
+                LEFT JOIN inventory.mas_wh wh_from ON wh_from.id = h.from_wh_id
+                LEFT JOIN inventory.mas_wh wh_to ON wh_to.id = h.to_wh_id
+                UNION ALL
+                SELECT 
+                    r.id,
+                    r.id_trx,
+                    null as request_id,
+                    null as send_id,
+                    r.accept_id,
+                    CASE 
+                        WHEN r.end_status = 'pending' THEN 'requested'
+                        WHEN r.end_status = 'accepted' THEN 'closed'
+                        ELSE r.end_status
+                    END::text as end_status,
+                    r.created_at as request_time,
+                    null as name_vendor,
+                    ('Technician: ' || t.name) as from_wh_name,
+                    wh_to.name as to_wh_name,
+                    'return' as type,
+                    null::bigint as wh_from_id,
+                    wh_to.id as wh_to_id
+                FROM inventory.return_material_header r
+                INNER JOIN inventory.mas_wh wh_to ON wh_to.id = r.warehouse_id
+                INNER JOIN hr.technicians t ON t.nik = r.nik_teknisi
+            )
+        `;
+
+        const staffWhere =
+            isStaff && warehouseIds.length > 0
+                ? sql`WHERE (wh_from_id = ANY(${warehouseIds}) OR wh_to_id = ANY(${warehouseIds}))`
+                : sql``;
+
+        const countsQuery = sql<{
+            requested: string;
+            in_transit: string;
+            closed: string;
+            cancel: string;
+        }>`
+            ${baseCte}
+            SELECT 
+                count(*) filter (where end_status = 'requested') as requested,
+                count(*) filter (where end_status = 'in_transit') as in_transit,
+                count(*) filter (where end_status = 'closed') as closed,
+                count(*) filter (where end_status = 'cancel') as cancel
+            FROM combined
+            ${staffWhere}
+        `;
+        const countsRes = await countsQuery.execute(db);
+        const counts = {
+            requested: Number(countsRes.rows[0]?.requested ?? 0),
+            in_transit: Number(countsRes.rows[0]?.in_transit ?? 0),
+            closed: Number(countsRes.rows[0]?.closed ?? 0),
+            cancel: Number(countsRes.rows[0]?.cancel ?? 0),
+        };
+
+        const conditions: any[] = [];
+        if (isStaff && warehouseIds.length > 0) {
+            conditions.push(
+                sql`(wh_from_id = ANY(${warehouseIds}) OR wh_to_id = ANY(${warehouseIds}))`
+            );
+        }
+
+        if (options.status && options.status !== 'all') {
+            conditions.push(sql`end_status = ${options.status}`);
+        }
+
+        if (options.warehouse && options.warehouse !== 'all') {
+            conditions.push(sql`to_wh_name = ${options.warehouse}`);
+        }
+
+        if (options.startDate) {
+            const start = new Date(options.startDate);
+            start.setHours(0, 0, 0, 0);
+            conditions.push(sql`request_time >= ${start}`);
+        }
+
+        if (options.endDate) {
+            const end = new Date(options.endDate);
+            end.setHours(23, 59, 59, 999);
+            conditions.push(sql`request_time <= ${end}`);
+        }
+
+        if (options.search?.trim()) {
+            const s = `%${options.search.trim()}%`;
+            conditions.push(sql`(
+                request_id ILIKE ${s} OR
+                send_id ILIKE ${s} OR
+                accept_id ILIKE ${s} OR
+                id_trx ILIKE ${s}
+            )`);
+        }
+
+        const filterWhere =
+            conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+
+        const countQuery = sql<{ total: string }>`
+            ${baseCte}
+            SELECT count(*) as total FROM combined
+            ${filterWhere}
+        `;
+        const countRes = await countQuery.execute(db);
+        const total = Number(countRes.rows[0]?.total ?? 0);
+
+        const dataQuery = sql<InOutTagRow>`
+            ${baseCte}
+            SELECT 
+                id,
+                id_trx,
+                request_id,
+                send_id,
+                accept_id,
+                end_status,
+                request_time,
+                name_vendor,
+                from_wh_name,
+                to_wh_name,
+                type
+            FROM combined
+            ${filterWhere}
+            ORDER BY request_time DESC
+            LIMIT ${pageSize} OFFSET ${offset}
+        `;
+        const dataRes = await dataQuery.execute(db);
+
+        return {
+            success: true,
+            data: {
+                tags: dataRes.rows,
+                total,
+                page,
+                pageSize,
+                totalPages: Math.ceil(total / pageSize),
+                counts,
+            },
+        };
+    } catch (error) {
+        actionLogger.error(
+            'Error fetching paginated tags:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return {
+            success: false,
+            error: 'Failed to fetch tags',
+            data: {
+                tags: [],
+                total: 0,
+                page: 1,
+                pageSize: 20,
+                totalPages: 0,
+                counts: { requested: 0, in_transit: 0, closed: 0, cancel: 0 },
+            },
+        };
+    }
+}
+
+export async function getInOutTagFilterOptions() {
+    try {
+        const whs = await db.selectFrom('inventory.mas_wh').select('name').orderBy('name', 'asc').execute();
+        return {
+            toWhOptions: whs.map((w: any) => w.name).filter(Boolean) as string[],
+        };
+    } catch (error) {
+        actionLogger.error(
+            'Error fetching inout tag filter options:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return { toWhOptions: [] };
     }
 }

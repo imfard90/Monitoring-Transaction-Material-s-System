@@ -14,7 +14,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-interface Option {
+export interface Option {
     value: string;
     label: string;
 }
@@ -33,12 +33,16 @@ export function SearchableSelect({
     options,
     value,
     onValueChange,
-    placeholder = 'Select option...',
-    emptyText = 'No option found.',
+    placeholder = 'Pilih opsi...',
+    emptyText = 'Data tidak ditemukan.',
     className,
     disabled = false,
 }: SearchableSelectProps) {
     const [open, setOpen] = React.useState(false);
+
+    const selectedOption = React.useMemo(() => {
+        return options.find((option) => option.value === value);
+    }, [options, value]);
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -47,20 +51,25 @@ export function SearchableSelect({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className={cn('w-full justify-between font-normal', className)}
+                    className={cn('w-full justify-between font-normal h-9 px-3', className)}
                     disabled={disabled}
                 >
-                    {value ? (
-                        options.find((option) => option.value === value)?.label
-                    ) : (
-                        <span className="text-muted-foreground">{placeholder}</span>
-                    )}
+                    <span className="truncate text-left">
+                        {selectedOption ? (
+                            selectedOption.label
+                        ) : (
+                            <span className="text-muted-foreground">{placeholder}</span>
+                        )}
+                    </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+            <PopoverContent
+                className="w-[--radix-popover-trigger-width] min-w-[200px] p-0"
+                align="start"
+            >
                 <Command>
-                    <CommandInput placeholder={`Search...`} />
+                    <CommandInput placeholder="Cari..." />
                     <CommandList>
                         <CommandEmpty>{emptyText}</CommandEmpty>
                         <CommandGroup>
@@ -75,11 +84,11 @@ export function SearchableSelect({
                                 >
                                     <Check
                                         className={cn(
-                                            'mr-2 h-4 w-4',
+                                            'mr-2 h-4 w-4 shrink-0',
                                             value === option.value ? 'opacity-100' : 'opacity-0'
                                         )}
                                     />
-                                    {option.label}
+                                    <span className="truncate">{option.label}</span>
                                 </CommandItem>
                             ))}
                         </CommandGroup>

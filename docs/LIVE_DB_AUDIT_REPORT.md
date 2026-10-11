@@ -502,3 +502,19 @@ Sesuai migrasi 003 (`setup_pg_cron_stock_policy`). ⚠️ `username=imam` (super
 Audit live ini mengonfirmasi bahwa perbaikan P0 statik (otorisasi, sequence `id_trx`, SP `sp_submit_rekon_intech`) sudah ter-refleksi di struktur live DB. Temuan baru L1–L5 bersifat **operasional & hardening**—tidak menggagalkan fungsi, tapi memperkuat posture keamanan dan integritas data. Prioritas: L1 (data integrity, butuh bisnis decision) dan L2 (least privilege, prasyarat L3/L4).
 
 Dokumen ini bersifat hidup—perbarui saat temuan ditindaklanjuti.
+
+### L6 — N+1 Pattern & Missing Composite Indexes (P1 — Performance & Reliability)
+
+> **Status: ✅ EKSEKUSI SELESAI** — Migration `019_add_lensa_ref_indexes.sql` dan refactoring queries `out-lensa-queries.ts`, `wo-lensa-queries.ts` telah di-merge.
+
+**Kondisi Awal:**
+- Tabel `out_lensa_ref_header` dan `wo_lensa_header` melakukan full table scan pada filter `nama_gudang` dan pengurutan `formatted_date DESC`.
+- Pola pengambilan data N+1: Server fetch semua ID header untuk filter gudang tersebut (ribuan baris), lalu fetch details satu-persatu per ID, yang memicu timeout/OOM pada environment production dengan dataset besar.
+
+**Tindakan Perbaikan:**
+1. **Migration 019**: Ditambahkan composite/single index pada:
+   - `idx_out_lensa_ref_header_nama_gudang` & `idx_out_lensa_ref_header_formatted_date`
+   - `idx_out_lensa_ref_header_gi_number`
+   - `idx_wo_lensa_header_nama_gudang` & `idx_wo_lensa_header_formatted_date`
+2. **Refactoring ke Pagination**: Mengganti pemanggilan select/query getAll menjadi paginated list (default `LIMIT 50`) yang digabung single LEFT JOIN query atau 2-step single query (header in batch, detail `WHERE header_id IN (...)`).
+3. **Pemisahan file (M2)**: Sesuai panduan `AGENTS.md`, read operations untuk dashboard (yang banyak dibaca) dipindahkan ke `*-queries.ts` yang berdiri terpisah dari `*-commands.ts` (write/server actions), sehingga modul frontend tidak mengimpor modul heavy backend actions jika tidak perlu.

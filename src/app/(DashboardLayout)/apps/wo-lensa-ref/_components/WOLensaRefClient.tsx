@@ -7,8 +7,9 @@ import {
     getSortedRowModel,
     useReactTable,
 } from '@tanstack/react-table';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { Eye, Play } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
@@ -36,7 +37,7 @@ export interface WOLensaHeader {
     id: number | string;
     pemakaian_id: string | null;
     tanggal_update: string | null;
-    formatted_date: string | null;
+    formatted_date: string | Date | null;
     type: string | null;
     wo_number: string | null;
     nik_pemakai: string | null;
@@ -53,19 +54,32 @@ export interface WOLensaDetail {
     qty_pemakaian: number | null;
 }
 
+interface PaginationInfo {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+}
+
 const columnHelper = createColumnHelper<WOLensaHeader>();
 const detailColumnHelper = createColumnHelper<WOLensaDetail>();
 
 export default function WOLensaRefClient({
     initialData,
+    pagination,
     error,
     isStaff = false,
+    currentWarehouse = 'all',
+    warehouseOptions = [],
 }: {
     initialData: WOLensaHeader[];
+    pagination?: PaginationInfo;
     error?: string;
     isStaff?: boolean;
+    currentWarehouse?: string;
+    warehouseOptions?: string[];
 }) {
-    const [data] = useState(initialData);
+    const data = initialData;
     const [isStarting, setIsStarting] = useState(false);
 
     // For detail view
@@ -74,23 +88,39 @@ export default function WOLensaRefClient({
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [loadingDetail, setLoadingDetail] = useState(false);
 
-    const [selectedGudang, setSelectedGudang] = useState<string>('all');
+    const [selectedGudang, setSelectedGudang] = useState<string>(currentWarehouse);
+    const router = useRouter();
 
     const uniqueGudang = useMemo(() => {
+        if (warehouseOptions && warehouseOptions.length > 0) {
+            return warehouseOptions;
+        }
         const list = new Set(initialData.map((d) => d.nama_gudang).filter(Boolean));
         return Array.from(list).sort() as string[];
-    }, [initialData]);
+    }, [initialData, warehouseOptions]);
 
-    const filteredData = useMemo(() => {
-        if (selectedGudang === 'all') return data;
-        return data.filter((d) => d.nama_gudang === selectedGudang);
-    }, [data, selectedGudang]);
+    const filteredData = data;
 
     useEffect(() => {
         if (error) {
             toast.error(error);
         }
     }, [error]);
+
+    const handleWarehouseChange = (value: string) => {
+        setSelectedGudang(value);
+        const params = new URLSearchParams(window.location.search);
+        if (value === 'all') {
+            params.delete('warehouse');
+        } else {
+            params.set('warehouse', value);
+        }
+        if (pagination && pagination.page > 1) {
+            params.set('page', '1');
+        }
+        const query = params.toString();
+        router.push(`/apps/wo-lensa-ref${query ? `?${query}` : ''}`);
+    };
 
     const handleRunScraping = () => {
         setIsStarting(true);
@@ -101,7 +131,7 @@ export default function WOLensaRefClient({
                     setIsStarting(false);
 
                     if (!res.success)
-                        return reject(new Error(res.error || 'Gagal memulai scraping.'));
+                        return reject(new Error(res.error || 'Gagal memulai proses scraping.'));
 
                     const interval = setInterval(async () => {
                         try {
@@ -137,11 +167,11 @@ export default function WOLensaRefClient({
         setLoadingDetail(true);
         setSelectedHeader(row);
 
-        const result = await getWOLensaRefDetails(Number(row.id));
+        const result = await getWOLensaRefDetails(row.id);
 
         setLoadingDetail(false);
         if (result.success && result.data) {
-            setDetailData(result.data);
+            setDetailData(result.data as WOLensaDetail[]);
         } else {
             toast.error(result.error || 'Gagal mengambil detail material');
         }
@@ -158,10 +188,11 @@ export default function WOLensaRefClient({
             cell: (info) => {
                 const val = info.getValue();
                 if (!val) return '-';
+                if (val instanceof Date) return val.toLocaleDateString('id-ID');
                 try {
                     return format(new Date(val), 'dd/MM/yyyy');
-                } catch (e) {
-                    return val;
+                } catch {
+                    return String(val);
                 }
             },
         }),
@@ -219,12 +250,23 @@ export default function WOLensaRefClient({
                     variant="ghost"
                     size="icon"
                     onClick={() => handleViewDetail(info.row.original)}
+                    title="Lihat Detail"
                 >
-                    <Eye className="h-4 w-4 text-blue-500" />
+                    <Eye className="h-4 w-4" />
                 </Button>
             ),
         }),
     ];
+
+    const [{ pageIndex, pageSize }, setPagination] = useState({
+        pageIndex: pagination ? pagination.page - 1 : 0,
+        pageSize: pagination ? pagination.pageSize : 20,
+    });
+
+    const paginationState = {
+        pageIndex: pagination ? pagination.page - 1 : pageIndex,
+        pageSize: pagination ? pagination.pageSize : pageSize,
+    };
 
     const table = useReactTable({
         data: filteredData,
@@ -232,14 +274,31 @@ export default function WOLensaRefClient({
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
+        manualPagination: !!pagination,
+        pageCount: pagination ? pagination.totalPages : undefined,
         initialState: {
             sorting: [
                 { id: 'formatted_date', desc: true },
                 { id: 'pemakaian_id', desc: true },
             ],
-            pagination: {
-                pageSize: 12,
-            },
+        },
+        state: {
+            pagination: paginationState,
+        },
+        onPaginationChange: (updater) => {
+            if (typeof updater === 'function') {
+                const newState = updater(paginationState);
+                setPagination(newState);
+
+                if (pagination) {
+                    const params = new URLSearchParams(window.location.search);
+                    params.set('page', (newState.pageIndex + 1).toString());
+                    params.set('pageSize', newState.pageSize.toString());
+                    router.push(`/apps/wo-lensa-ref?${params.toString()}`);
+                }
+            } else {
+                setPagination(updater);
+            }
         },
     });
 
@@ -282,7 +341,10 @@ export default function WOLensaRefClient({
                         </div>
                         {!isStaff && (
                             <div className="flex items-center gap-2">
-                                <Select value={selectedGudang} onValueChange={setSelectedGudang}>
+                                <Select
+                                    value={selectedGudang}
+                                    onValueChange={handleWarehouseChange}
+                                >
                                     <SelectTrigger className="w-[200px]">
                                         <SelectValue placeholder="Pilih Gudang" />
                                     </SelectTrigger>
@@ -312,9 +374,11 @@ export default function WOLensaRefClient({
                         )}
                     </CardHeader>
                     <CardContent className="flex flex-col md:min-h-0 md:overflow-hidden gap-4">
-                        <div className="rounded-md border border-border md:min-h-0 md:overflow-y-auto">
-                            <DataTable table={table} emptyMessage="Tidak ada data." />
-                        </div>
+                        <DataTable
+                            table={table}
+                            emptyMessage="Tidak ada data."
+                            className="rounded-md border border-border flex-1 md:overflow-auto relative"
+                        />
                         <div className="shrink-0">
                             <DataTablePagination table={table} />
                         </div>
