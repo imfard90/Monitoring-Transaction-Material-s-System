@@ -28,16 +28,34 @@ const getEncryptionKey = () => {
 };
 
 function decrypt(text: string) {
-    // getEncryptionKey() validates the secret and returns a 32-byte key
-    const textParts = text.split(':');
-    const shifted = textParts.shift();
-    if (!shifted) throw new Error('Invalid encrypted text format');
-    const iv = Buffer.from(shifted, 'hex');
-    const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', getEncryptionKey(), iv);
-    let decrypted = decipher.update(encryptedText);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
+    if (!text) return '';
+    const secret = process.env.MFA_ENCRYPTION_SECRET;
+    if (!secret) throw new Error('MFA_ENCRYPTION_SECRET is not set');
+
+    try {
+        const textParts = text.split(':');
+        const shifted = textParts.shift();
+        if (!shifted) throw new Error('Invalid encrypted text format');
+        const iv = Buffer.from(shifted, 'hex');
+        const encryptedText = Buffer.from(textParts.join(':'), 'hex');
+
+        // Primary: strict SHA-256 derived key (P3-S6)
+        try {
+            const decipher = crypto.createDecipheriv('aes-256-cbc', getEncryptionKey(), iv);
+            let decrypted = decipher.update(encryptedText);
+            decrypted = Buffer.concat([decrypted, decipher.final()]);
+            return decrypted.toString('utf8');
+        } catch (_primaryErr) {
+            // Fallback for legacy passwords encrypted with slice(0, 32) before P3-S6
+            const keyLegacy = Buffer.from(secret.slice(0, 32));
+            const decipher = crypto.createDecipheriv('aes-256-cbc', keyLegacy, iv);
+            let decrypted = decipher.update(encryptedText);
+            decrypted = Buffer.concat([decrypted, decipher.final()]);
+            return decrypted.toString('utf8');
+        }
+    } catch (_e) {
+        throw new Error('Failed to decrypt password');
+    }
 }
 
 async function asyncPool(poolLimit: number, array: any[], iteratorFn: (item: any) => Promise<any>) {

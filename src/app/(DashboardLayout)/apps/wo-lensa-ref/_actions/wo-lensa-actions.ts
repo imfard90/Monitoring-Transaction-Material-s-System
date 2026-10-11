@@ -22,16 +22,30 @@ const getEncryptionKey = () => {
 
 function decrypt(text: string) {
     if (!text) return '';
+    const secret = process.env.MFA_ENCRYPTION_SECRET;
+    if (!secret) throw new Error('MFA_ENCRYPTION_SECRET is not set');
+
     try {
         const textParts = text.split(':');
         const firstPart = textParts.shift();
         if (!firstPart) throw new Error('Invalid encrypted text format');
         const iv = Buffer.from(firstPart, 'hex');
         const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-        const decipher = crypto.createDecipheriv('aes-256-cbc', getEncryptionKey(), iv);
-        let decrypted = decipher.update(encryptedText);
-        decrypted = Buffer.concat([decrypted, decipher.final()]);
-        return decrypted.toString();
+
+        // Primary: strict SHA-256 derived key (P3-S6)
+        try {
+            const decipher = crypto.createDecipheriv('aes-256-cbc', getEncryptionKey(), iv);
+            let decrypted = decipher.update(encryptedText);
+            decrypted = Buffer.concat([decrypted, decipher.final()]);
+            return decrypted.toString('utf8');
+        } catch (_primaryErr) {
+            // Fallback for legacy passwords encrypted with slice(0, 32) before P3-S6
+            const keyLegacy = Buffer.from(secret.slice(0, 32));
+            const decipher = crypto.createDecipheriv('aes-256-cbc', keyLegacy, iv);
+            let decrypted = decipher.update(encryptedText);
+            decrypted = Buffer.concat([decrypted, decipher.final()]);
+            return decrypted.toString('utf8');
+        }
     } catch (_e) {
         throw new Error('Failed to decrypt password');
     }
@@ -405,7 +419,7 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
         const headersMissingDetails = await db
             .selectFrom('inventory.wo_lensa_header as h')
             .leftJoin('inventory.wo_lensa_list as l', 'l.header_id', 'h.id')
-            .select(['h.id', 'h.pemakaian_id', 'h.nama_gudang'])
+            .select(['h.id', 'h.pemakaian_id', 'h.nama_gudang', 'h.type'])
             .where('l.id', 'is', null)
             .execute();
 
@@ -463,6 +477,7 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
                             headers.map((h) => ({
                                 id: Number(h.id),
                                 pemakaian_id: String(h.pemakaian_id),
+                                type: (h as { type?: string | null }).type || 'assurance',
                             })),
                             customUsername,
                             customPassword

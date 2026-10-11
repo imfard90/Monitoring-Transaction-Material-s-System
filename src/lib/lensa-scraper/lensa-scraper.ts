@@ -2,6 +2,7 @@ import { actionLogger } from '@/lib/logger';
 import { format, parse } from 'date-fns';
 import { type Browser, chromium } from 'playwright';
 import { redis } from '../redis';
+import { parseBapbPdfBuffer } from './bapb-pdf-parser';
 
 let globalBrowser: Browser | null = null;
 
@@ -775,7 +776,7 @@ export async function scrapeReservation(
 }
 
 export async function scrapeWOLensaDetails(
-    headersToSync: { id: number; pemakaian_id: string }[],
+    headersToSync: { id: number; pemakaian_id: string; type?: string | null }[],
     customUsername?: string,
     customPassword?: string
 ) {
@@ -789,51 +790,103 @@ export async function scrapeWOLensaDetails(
         password
     );
 
+    const tryBapbPdfFallback = async (header: { id: number; pemakaian_id: string; type?: string | null }) => {
+        try {
+            const candidateTypes = [header.type || 'assurance'];
+            if (!candidateTypes.includes('assurance')) candidateTypes.push('assurance');
+            if (!candidateTypes.includes('provisioning')) candidateTypes.push('provisioning');
+
+            for (const docType of candidateTypes) {
+                const bapbUrl = `${LENSA_URL}/pemakaian/document-bapb/${header.pemakaian_id}/${docType}`;
+                actionLogger.info(`Attempting fallback to BAPB PDF for WO ${header.pemakaian_id}: ${bapbUrl}`);
+                const pdfResp = await context.request.get(bapbUrl);
+                if (pdfResp.ok()) {
+                    const pdfBuf = await pdfResp.body();
+                    if (pdfBuf.length > 4 && pdfBuf.subarray(0, 5).toString('ascii') === '%PDF-') {
+                        const parsed = parseBapbPdfBuffer(pdfBuf);
+                        if (parsed.materials.length > 0) {
+                            actionLogger.info(
+                                `Successfully extracted ${parsed.materials.length} materials from BAPB PDF for WO ${header.pemakaian_id}`
+                            );
+                            return parsed.materials.map((m) => ({
+                                'ID MATERIAL': m['ID MATERIAL'],
+                                'NAMA MATERIAL': m['NAMA MATERIAL'],
+                                SATUAN: m.SATUAN,
+                                'QTY PEMAKAIAN': m['QTY PEMAKAIAN'],
+                            }));
+                        }
+                    }
+                }
+            }
+        } catch (pdfErr) {
+            actionLogger.warn(
+                `BAPB PDF fallback failed for pemakaian_id ${header.pemakaian_id}`,
+                { error: pdfErr instanceof Error ? pdfErr.message : String(pdfErr) }
+            );
+        }
+        return [];
+    };
+
     try {
         const results = [];
         for (const header of headersToSync) {
             try {
+                let materials: Record<string, string>[] = [];
                 const detailUrl = `${LENSA_URL}/teknisi/detail-wo/${header.pemakaian_id}`;
-                await safeGoto(detailUrl);
 
-                if (page.url().includes('login')) {
-                    await performLogin();
+                let htmlScrapeFailed = false;
+                try {
                     await safeGoto(detailUrl);
 
                     if (page.url().includes('login')) {
-                        await redis.del(sessionKey);
-                        throw new Error('Sesi terputus saat scrap detail WO walau sudah relogin');
+                        await performLogin();
+                        await safeGoto(detailUrl);
+
+                        if (page.url().includes('login')) {
+                            await redis.del(sessionKey);
+                            throw new Error('Sesi terputus saat scrap detail WO walau sudah relogin');
+                        }
                     }
+
+                    await page.waitForTimeout(3000);
+
+                    const tablesData = await page.$$eval('table', (tables) => {
+                        return tables.map((tableEl) => {
+                            const rows = Array.from(tableEl.querySelectorAll('tr'));
+                            if (rows.length === 0) return { type: 'unknown', data: [] };
+                            const headers = Array.from(rows[0].querySelectorAll('th, td')).map(
+                                (th) => th.textContent?.trim() || ''
+                            );
+                            let type = 'unknown';
+                            if (headers.includes('ID MATERIAL') || headers.includes('NAMA MATERIAL')) {
+                                type = 'materials';
+                            }
+                            const data = rows.slice(1).map((row) => {
+                                const cells = Array.from(row.querySelectorAll('td')).map(
+                                    (td) => td.textContent?.trim() || ''
+                                );
+                                const obj: Record<string, string> = {};
+                                headers.forEach((h, i) => {
+                                    if (h) obj[h] = cells[i] || '';
+                                });
+                                return obj;
+                            });
+                            return { type, data };
+                        });
+                    });
+
+                    materials = tablesData.find((t) => t.type === 'materials')?.data || [];
+                } catch (_err) {
+                    htmlScrapeFailed = true;
                 }
 
-                await page.waitForTimeout(3000);
-
-                const tablesData = await page.$$eval('table', (tables) => {
-                    return tables.map((tableEl) => {
-                        const rows = Array.from(tableEl.querySelectorAll('tr'));
-                        if (rows.length === 0) return { type: 'unknown', data: [] };
-                        const headers = Array.from(rows[0].querySelectorAll('th, td')).map(
-                            (th) => th.textContent?.trim() || ''
-                        );
-                        let type = 'unknown';
-                        if (headers.includes('ID MATERIAL') || headers.includes('NAMA MATERIAL')) {
-                            type = 'materials';
-                        }
-                        const data = rows.slice(1).map((row) => {
-                            const cells = Array.from(row.querySelectorAll('td')).map(
-                                (td) => td.textContent?.trim() || ''
-                            );
-                            const obj: Record<string, string> = {};
-                            headers.forEach((h, i) => {
-                                if (h) obj[h] = cells[i] || '';
-                            });
-                            return obj;
-                        });
-                        return { type, data };
-                    });
-                });
-
-                const materials = tablesData.find((t) => t.type === 'materials')?.data || [];
+                // If HTML table did not yield materials (e.g. 500 error or page failure), fallback to BAPB PDF
+                if (materials.length === 0 || htmlScrapeFailed) {
+                    const fallbackMaterials = await tryBapbPdfFallback(header);
+                    if (fallbackMaterials.length > 0) {
+                        materials = fallbackMaterials;
+                    }
+                }
 
                 results.push({
                     header_id: header.id,
@@ -842,8 +895,8 @@ export async function scrapeWOLensaDetails(
                 });
             } catch (err) {
                 actionLogger.error(
-                `Failed to scrape detail for pemakaian_id ${header.pemakaian_id}:`,
-                err instanceof Error ? err : new Error(String(err))
+                    `Failed to scrape detail for pemakaian_id ${header.pemakaian_id}:`,
+                    err instanceof Error ? err : new Error(String(err))
                 );
             }
         }
