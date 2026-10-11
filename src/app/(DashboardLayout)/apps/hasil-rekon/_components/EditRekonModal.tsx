@@ -190,7 +190,7 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
             isOpen={isOpen}
             onClose={onClose}
             title={`Edit Rekon: ${rowData?.trx_id}`}
-            className="max-w-3xl"
+            className="sm:max-w-[700px]"
         >
             {isLoading ? (
                 <div className="py-8 flex justify-center">
