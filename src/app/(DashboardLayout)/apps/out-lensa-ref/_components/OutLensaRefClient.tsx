@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { StatusBadge } from '@/app/components/shared/StatusBadge';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -173,12 +174,10 @@ export default function OutLensaRefClient({
     };
 
     const columns = [
-        columnHelper.accessor('reservation_id', {
-            header: 'Reservation ID',
-            cell: (info) => info.getValue(),
-        }),
         columnHelper.accessor('formatted_date', {
+            id: 'formatted_date',
             header: 'Tgl Entry',
+            size: 110,
             sortingFn: 'datetime',
             cell: (info) => {
                 const val = info.getValue();
@@ -191,32 +190,52 @@ export default function OutLensaRefClient({
                 }
             },
         }),
+        columnHelper.accessor('reservation_id', {
+            id: 'reservation_id',
+            header: 'Reservation ID',
+            size: 140,
+            cell: (info) => (
+                <span className="font-medium text-foreground">
+                    {info.getValue() || '-'}
+                </span>
+            ),
+        }),
         columnHelper.accessor('nama_gudang', {
             header: 'Gudang',
-            cell: (info) => info.getValue(),
-        }),
-        columnHelper.accessor('gi_number', {
-            header: 'GI Number',
-            cell: (info) => info.getValue(),
-        }),
-        columnHelper.accessor('status_proses', {
-            header: 'Status',
-            cell: (info) => info.getValue(),
+            size: 180,
+            cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('nik_pemakai', {
             header: 'NIK Pemakai',
-            cell: (info) => info.getValue(),
+            size: 120,
+            cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('reservation_id_sap', {
             header: 'Resv ID SAP',
-            cell: (info) => info.getValue(),
+            size: 130,
+            cell: (info) => info.getValue() || '-',
+        }),
+        columnHelper.accessor('gi_number', {
+            header: 'GI Number',
+            size: 130,
+            cell: (info) => info.getValue() || '-',
+        }),
+        columnHelper.accessor('status_proses', {
+            header: () => <div className="text-center">Status</div>,
+            size: 120,
+            cell: (info) => (
+                <div className="flex justify-center">
+                    <StatusBadge status={info.getValue()} />
+                </div>
+            ),
         }),
         columnHelper.accessor('sap_out_check', {
-            header: 'Out SAP',
+            header: () => <div className="text-center">Out SAP</div>,
+            size: 90,
             cell: (info) => (
                 <div className="flex justify-center">
                     {info.getValue() ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                     ) : (
                         <span className="text-muted-foreground">-</span>
                     )}
@@ -225,16 +244,20 @@ export default function OutLensaRefClient({
         }),
         columnHelper.display({
             id: 'actions',
-            header: 'Aksi',
+            header: () => <div className="text-center">Aksi</div>,
+            size: 80,
             cell: (info) => (
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleViewDetail(info.row.original)}
-                    title="Lihat Detail"
-                >
-                    <Eye className="h-4 w-4" />
-                </Button>
+                <div className="flex justify-center">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleViewDetail(info.row.original)}
+                        title="Lihat Detail"
+                        aria-label="Lihat detail material"
+                    >
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                </div>
             ),
         }),
     ];

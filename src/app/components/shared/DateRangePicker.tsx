@@ -49,6 +49,7 @@ export function DateRangePicker({ className, date, setDate }: DateRangePickerPro
                         defaultMonth={date?.from}
                         selected={date}
                         onSelect={setDate}
+                        disabled={{ after: new Date() }}
                         numberOfMonths={2}
                     />
                 </PopoverContent>

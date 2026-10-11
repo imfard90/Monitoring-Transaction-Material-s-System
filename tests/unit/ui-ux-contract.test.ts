@@ -191,3 +191,11 @@ describe('LoadingSkeleton premium invariants', () => {
     });
 });
 
+describe('DateRangePicker premium invariants', () => {
+    it('restricts selection to today or earlier (disables future dates after today)', async () => {
+        const src = await readSrc('src/app/components/shared/DateRangePicker.tsx');
+        expect(src).toMatch(/disabled=\{\{\s*after:\s*new Date\(\)\s*\}\}/);
+    });
+});
+
+

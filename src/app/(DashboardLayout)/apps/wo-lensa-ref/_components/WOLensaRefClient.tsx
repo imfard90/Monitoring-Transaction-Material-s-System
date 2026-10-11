@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
-import { Badge } from '@/components/ui/badge';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -57,6 +57,16 @@ interface PaginationInfo {
 
 const columnHelper = createColumnHelper<WOLensaHeader>();
 const detailColumnHelper = createColumnHelper<WOLensaDetail>();
+
+function getTypeBadgeVariant(type: string | null): BadgeProps['variant'] {
+    if (!type) return 'outline';
+    const val = type.toLowerCase().trim();
+    if (val === 'provisioning' || val === 'psb') return 'outline';
+    if (val === 'assurance' || val === 'qe/gamas') return 'outlineWarning';
+    if (val === 'maintenance') return 'outlineSecondary';
+    if (val === 'myrep' || val === 'lintas_arta') return 'outlineInfo';
+    return 'outline';
+}
 
 export default function WOLensaRefClient({
     initialData,
@@ -173,11 +183,19 @@ export default function WOLensaRefClient({
 
     const columns = [
         columnHelper.accessor('pemakaian_id', {
+            id: 'pemakaian_id',
             header: 'Pemakaian ID',
-            cell: (info) => info.getValue(),
+            size: 130,
+            cell: (info) => (
+                <span className="font-medium text-foreground">
+                    {info.getValue() || '-'}
+                </span>
+            ),
         }),
         columnHelper.accessor('formatted_date', {
+            id: 'formatted_date',
             header: 'Tgl Update',
+            size: 110,
             sortingFn: 'datetime',
             cell: (info) => {
                 const val = info.getValue();
@@ -191,63 +209,83 @@ export default function WOLensaRefClient({
             },
         }),
         columnHelper.accessor('type', {
-            header: 'Type',
-            cell: (info) => (
-                <Badge variant="outline" className="capitalize">
-                    {info.getValue() || '-'}
-                </Badge>
-            ),
+            header: () => <div className="text-center">Type</div>,
+            size: 130,
+            cell: (info) => {
+                const val = info.getValue();
+                return (
+                    <div className="flex justify-center">
+                        <Badge
+                            variant={getTypeBadgeVariant(val)}
+                            className="capitalize"
+                        >
+                            {val || '-'}
+                        </Badge>
+                    </div>
+                );
+            },
         }),
         columnHelper.accessor('wo_number', {
             header: 'WO Number',
+            size: 200,
             cell: (info) => (
-                <div className="min-w-[100px] whitespace-normal break-words">
+                <div className="min-w-[160px] max-w-[260px] whitespace-normal break-words font-medium">
                     {info.getValue() || '-'}
                 </div>
             ),
         }),
         columnHelper.accessor('nik_pemakai', {
             header: 'NIK Pemakai',
+            size: 120,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('nama_gudang', {
             header: 'Gudang',
+            size: 160,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('gi_number', {
             header: 'GI Number',
+            size: 120,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('wbs', {
             header: 'WBS',
+            size: 180,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('rekon_check', {
-            header: 'Rekon',
+            header: () => <div className="text-center">Rekon</div>,
+            size: 100,
             cell: (info) => {
                 const val = info.getValue();
-                if (val === true) {
-                    return (
-                        <Badge variant="default" className="bg-green-600">
-                            Sudah
-                        </Badge>
-                    );
-                }
-                return <Badge variant="secondary">Belum</Badge>;
+                return (
+                    <div className="flex justify-center">
+                        {val === true ? (
+                            <Badge variant="lightSuccess">Sudah</Badge>
+                        ) : (
+                            <Badge variant="secondary">Belum</Badge>
+                        )}
+                    </div>
+                );
             },
         }),
         columnHelper.display({
             id: 'actions',
-            header: 'Aksi',
+            header: () => <div className="text-center">Aksi</div>,
+            size: 80,
             cell: (info) => (
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleViewDetail(info.row.original)}
-                    title="Lihat Detail"
-                >
-                    <Eye className="h-4 w-4" />
-                </Button>
+                <div className="flex justify-center">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleViewDetail(info.row.original)}
+                        title="Lihat Detail"
+                        aria-label="Lihat detail material"
+                    >
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                </div>
             ),
         }),
     ];

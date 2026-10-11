@@ -72,48 +72,59 @@ export default function OutMaterialTable({
     const columns = [
         columnHelper.accessor('request_time', {
             header: 'Request Time',
+            size: 160,
             cell: (info) =>
                 info.getValue() ? format(new Date(info.getValue()), 'dd MMM yyyy HH:mm') : '-',
         }),
         columnHelper.accessor('id_trx', {
             header: 'ID Trx',
+            size: 180,
             cell: (info) => <span className="font-medium">{info.getValue()}</span>,
         }),
         columnHelper.accessor('request_id', {
             header: 'Request ID',
+            size: 140,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('nik_teknisi', {
             header: 'NIK Teknisi',
+            size: 110,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('nama_teknisi', {
             header: 'Nama Teknisi',
+            size: 180,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('name_sa', {
             header: 'Nama SA',
+            size: 130,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('nama_gudang', {
             header: 'Nama Gudang',
+            size: 150,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('id_reservasi', {
             header: 'ID Reservasi',
+            size: 140,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('sap_number', {
             header: 'SAP Number',
+            size: 140,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('end_status', {
             header: 'Status',
+            size: 130,
             cell: (info) => <StatusBadge status={info.getValue() || 'wait_approve'} />,
         }),
         columnHelper.display({
             id: 'actions',
             header: 'Action',
+            size: 70,
             cell: (info) => {
                 const row = info.row.original;
                 return (

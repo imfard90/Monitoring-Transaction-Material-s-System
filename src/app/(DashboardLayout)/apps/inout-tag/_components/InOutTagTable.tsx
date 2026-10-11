@@ -78,6 +78,7 @@ export default function InOutTagTable({
     const columns = [
         columnHelper.accessor('request_time', {
             header: 'Request Time',
+            size: 160,
             cell: (info) =>
                 info.getValue()
                     ? format(new Date(info.getValue() as string), 'dd MMM yyyy HH:mm')
@@ -85,39 +86,48 @@ export default function InOutTagTable({
         }),
         columnHelper.accessor('id_trx', {
             header: 'ID Trx',
+            size: 180,
             cell: (info) => <span className="font-medium">{info.getValue()}</span>,
         }),
         columnHelper.accessor('from_wh_name', {
             header: 'From WH',
+            size: 150,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('to_wh_name', {
             header: 'To WH',
+            size: 150,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('request_id', {
             header: 'Request ID',
+            size: 140,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('send_id', {
             header: 'Send ID',
+            size: 140,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('name_vendor', {
             header: 'Vendor',
+            size: 150,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('accept_id', {
             header: 'Accept ID',
+            size: 130,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('end_status', {
             header: 'Status',
+            size: 130,
             cell: (info) => <StatusBadge status={info.getValue() || 'requested'} />,
         }),
         columnHelper.display({
             id: 'actions',
             header: 'Action',
+            size: 90,
             cell: (info) => {
                 const row = info.row.original;
                 const isClosed = row.end_status === 'closed' || row.end_status === 'cancel';

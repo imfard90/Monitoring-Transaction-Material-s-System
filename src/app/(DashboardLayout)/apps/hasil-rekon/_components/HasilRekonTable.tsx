@@ -72,6 +72,7 @@ export default function HasilRekonTable({
     const columns = [
         columnHelper.accessor('created_at', {
             header: 'Timestamp',
+            size: 160,
             cell: (info) => (
                 <div className="whitespace-nowrap text-sm">
                     {info.getValue()
@@ -82,36 +83,41 @@ export default function HasilRekonTable({
         }),
         columnHelper.accessor('trx_id', {
             header: 'TRX ID',
+            size: 210,
             cell: (info) => (
-                <div className="min-w-[160px] max-w-[160px] whitespace-normal break-all text-sm font-medium">
+                <div className="whitespace-normal break-all text-sm font-medium">
                     {info.getValue() || '-'}
                 </div>
             ),
         }),
         columnHelper.accessor('sap_number', {
             header: 'SAP Number',
+            size: 130,
             cell: (info) => (
                 <div className="whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
             ),
         }),
         columnHelper.accessor('warehouse_name', {
             header: 'Warehouse',
+            size: 130,
             cell: (info) => (
-                <div className="whitespace-nowrap min-w-[150px] text-sm">
+                <div className="whitespace-nowrap text-sm">
                     {info.getValue() || '-'}
                 </div>
             ),
         }),
         columnHelper.accessor('nik', {
-            header: 'NIK',
+            header: () => <div className="text-center">NIK</div>,
+            size: 80,
             cell: (info) => (
-                <div className="whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
+                <div className="text-center whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
             ),
         }),
         columnHelper.accessor('type', {
-            header: 'Type',
+            header: () => <div className="text-center">Type</div>,
+            size: 90,
             cell: (info) => (
-                <div className="min-w-[100px] whitespace-nowrap">
+                <div className="flex justify-center whitespace-nowrap">
                     <Badge variant="outline" className="capitalize text-xs font-semibold">
                         {info.getValue() || '-'}
                     </Badge>
@@ -120,20 +126,23 @@ export default function HasilRekonTable({
         }),
         columnHelper.accessor('workorder', {
             header: 'WO Number',
+            size: 220,
             cell: (info) => (
-                <div className="min-w-[120px] max-w-[150px] whitespace-normal break-words text-sm font-medium">
+                <div className="whitespace-normal break-words text-sm font-medium">
                     {info.getValue() || '-'}
                 </div>
             ),
         }),
         columnHelper.accessor('material_code', {
             header: 'Material Code',
+            size: 140,
             cell: (info) => (
                 <div className="whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
             ),
         }),
         columnHelper.accessor('material_name', {
             header: 'Description',
+            size: 200,
             cell: (info) => (
                 <div className="min-w-[150px] max-w-[180px] whitespace-normal break-words text-sm text-muted-foreground">
                     {info.getValue() || '-'}
@@ -141,9 +150,10 @@ export default function HasilRekonTable({
             ),
         }),
         columnHelper.accessor('qty', {
-            header: () => <div className="text-right whitespace-nowrap">Qty</div>,
+            header: () => <div className="text-center whitespace-nowrap">Qty</div>,
+            size: 65,
             cell: (info) => (
-                <div className="text-right whitespace-nowrap text-sm font-bold text-foreground">
+                <div className="text-center whitespace-nowrap text-sm font-bold text-foreground">
                     {info.getValue() || 0}
                 </div>
             ),
@@ -151,6 +161,7 @@ export default function HasilRekonTable({
         columnHelper.display({
             id: 'actions',
             header: () => <div className="text-center">Action</div>,
+            size: 65,
             cell: (info) => {
                 const isLensa = info.row.original.type === 'lensa';
                 const isNewRekon = info.row.original.isNewRekon;

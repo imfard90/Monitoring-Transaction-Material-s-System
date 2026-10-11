@@ -92,6 +92,7 @@ export default function MovementTable({
     const columns = [
         columnHelper.accessor('created_at', {
             header: 'Timestamp',
+            size: 160,
             cell: (info) => (
                 <span className="text-sm">
                     {info.getValue()
@@ -102,30 +103,35 @@ export default function MovementTable({
         }),
         columnHelper.accessor('reference_trx', {
             header: 'Reference TRX',
+            size: 220,
             cell: (info) => (
-                <div className="max-w-[160px] whitespace-normal break-all text-sm font-medium">
+                <div className="whitespace-normal break-all text-sm font-medium">
                     {info.getValue() || '-'}
                 </div>
             ),
         }),
         columnHelper.accessor('warehouse_name', {
             header: 'Warehouse',
+            size: 150,
             cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('material_code', {
             header: 'Material Code',
+            size: 140,
             cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('material_name', {
             header: 'Description',
+            size: 200,
             cell: (info) => (
-                <div className="max-w-[200px] truncate text-sm text-muted-foreground">
+                <div className="whitespace-normal break-words text-sm text-muted-foreground">
                     {info.getValue() || '-'}
                 </div>
             ),
         }),
         columnHelper.accessor('movement_type', {
-            header: 'Type',
+            header: () => <div className="text-center">Type</div>,
+            size: 110,
             cell: (info) => {
                 const val = info.getValue();
                 let color = 'bg-secondary/10 text-secondary';
@@ -134,38 +140,44 @@ export default function MovementTable({
                 if (val === 'transfer_out' || val === 'sap_out') color = 'bg-error/10 text-error';
 
                 return (
-                    <Badge className={`hover:bg-transparent capitalize ${color}`}>
-                        {val?.replace(/_/g, ' ')}
-                    </Badge>
+                    <div className="flex justify-center">
+                        <Badge className={`hover:bg-transparent capitalize ${color}`}>
+                            {val?.replace(/_/g, ' ')}
+                        </Badge>
+                    </div>
                 );
             },
         }),
         columnHelper.accessor('qty_delta', {
-            header: () => <div className="text-right">Delta</div>,
+            header: () => <div className="text-center">Delta</div>,
+            size: 75,
             cell: (info) => {
                 const val = info.getValue();
                 const color =
                     val > 0 ? 'text-success' : val < 0 ? 'text-error' : 'text-foreground';
                 return (
-                    <div className={`text-right text-sm font-bold ${color}`}>
+                    <div className={`text-center text-sm font-bold ${color}`}>
                         {val > 0 ? `+${val}` : val}
                     </div>
                 );
             },
         }),
         columnHelper.accessor('qty_after', {
-            header: () => <div className="text-right">Balance</div>,
-            cell: (info) => <div className="text-right text-sm">{info.getValue()}</div>,
+            header: () => <div className="text-center">Balance</div>,
+            size: 75,
+            cell: (info) => <div className="text-center text-sm">{info.getValue()}</div>,
         }),
         columnHelper.accessor('notes', {
             header: 'Notes',
+            size: 200,
             cell: (info) => (
                 <span className="text-sm text-muted-foreground">{info.getValue() || '-'}</span>
             ),
         }),
         columnHelper.accessor('created_by', {
-            header: 'By',
-            cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
+            header: () => <div className="text-center">By</div>,
+            size: 90,
+            cell: (info) => <div className="text-center text-sm">{info.getValue() || '-'}</div>,
         }),
     ];
 
