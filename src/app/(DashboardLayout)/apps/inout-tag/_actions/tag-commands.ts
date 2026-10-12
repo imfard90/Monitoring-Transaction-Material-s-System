@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import { inventoryRepository } from '@/lib/repositories';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 const createTagSchema = z
@@ -73,21 +74,16 @@ export async function createTag(payload: {
             payload.idemKey,
             payload,
             async (data) => {
-                const itemsJson = JSON.stringify(data.items);
+                const res = await inventoryRepository.createInOutTag({
+                    fromWhId: data.fromWhId ?? null,
+                    toWhId: data.toWhId ?? null,
+                    requestId: data.requestId || null,
+                    vendorName: data.vendorName || null,
+                    cost: data.cost,
+                    items: data.items,
+                });
 
-                const res = await sql<{ p_id_trx: string }>`
-                  CALL inventory.sp_create_inout_tag(
-                    ${data.fromWhId}::bigint, 
-                    ${data.toWhId}::bigint, 
-                    ${data.requestId || null}, 
-                    ${data.vendorName || null}, 
-                    ${data.cost}, 
-                    ${itemsJson}::jsonb, 
-                    null
-                  )
-                `.execute(db);
-
-                return res.rows[0]?.p_id_trx;
+                return res;
             }
         );
 
@@ -196,16 +192,12 @@ export async function updateTag(payload: {
             payload.idemKey,
             payload,
             async (data) => {
-                const itemsJson = JSON.stringify(data.items);
-
-                await sql`
-                  CALL inventory.sp_update_inout_tag(
-                    ${Number(data.headerId)},
-                    ${data.actionType},
-                    ${data.actionId},
-                    ${itemsJson}::jsonb
-                  )
-                `.execute(db);
+                await inventoryRepository.updateInOutTag({
+                    headerId: Number(data.headerId),
+                    actionType: data.actionType,
+                    actionId: data.actionId,
+                    items: data.items,
+                });
 
                 return true;
             }
@@ -362,12 +354,10 @@ export async function acceptReturnTag(headerId: number, acceptId: string, idemKe
             idemKey,
             { headerId, acceptId },
             async (data) => {
-                await sql`
-                    CALL inventory.sp_return_material(
-                        ${data.headerId}::bigint,
-                        ${data.acceptId}
-                    )
-                `.execute(db);
+                await inventoryRepository.recordReturnMaterial({
+                    headerId: Number(data.headerId),
+                    acceptId: data.acceptId,
+                });
                 return true;
             }
         );

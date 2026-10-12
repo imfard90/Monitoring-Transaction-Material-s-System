@@ -7,6 +7,7 @@ import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 import { hrRepository } from '@/lib/repositories/hr.repository';
+import { inventoryRepository } from '@/lib/repositories/inventory.repository';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 const createOutSapSchema = z.object({
@@ -246,74 +247,16 @@ export async function createOutSap(payload: {
             payload.idemKey,
             payload,
             async (data) => {
-                return await db.transaction().execute(async (trx) => {
-                    // Get Warehouse initials
-                    const wh = await trx
-                        .selectFrom('inventory.mas_wh')
-                        .select('intls')
-                        .where('id', '=', data.warehouse_id)
-                        .executeTakeFirst();
-                    const intls = wh?.intls || 'UNKNOWN';
-
-                    // Generate YYMM
-                    const now = new Date();
-                    const yymm = `${now.getFullYear().toString().slice(2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-
-                    // Generate deterministic sequence via PostgreSQL SEQUENCE (P0-D2 fix)
-                    const seqRes = await sql<{ seq: string }>`
-                        SELECT to_char(nextval('inventory.trx_out_seq'), 'FM0000') as seq
-                    `.execute(trx);
-                    const sequence = seqRes.rows[0]?.seq ?? '0001';
-
-                    const generatedIdTrx = `TRX-OUT-${intls}-${data.nik_teknisi}-${yymm}${sequence}`;
-
-                    const createdBy = await getSessionNik();
-
-                    // Create Header
-                    const headerResult = await trx
-                        .insertInto('inventory.sap_out_header')
-                        .values({
-                            id_trx: generatedIdTrx,
-                            nik_teknisi: data.nik_teknisi,
-                            name_sa: data.name_sa,
-                            warehouse_id: data.warehouse_id,
-                            id_reservasi: data.id_reservasi,
-                            sap_number: data.sap_number,
-                            request_id: data.request_id,
-                            end_status: 'intech',
-                            created_by: createdBy,
-                        })
-                        .returning('id')
-                        .executeTakeFirstOrThrow();
-
-                    // Create Items
-                    if (data.items && data.items.length > 0) {
-                        const itemsToInsert = data.items.map(
-                            (item: {
-                                designator_id: number;
-                                qty_req: number;
-                                unit_price?: number;
-                            }) => ({
-                                header_id: headerResult.id,
-                                designator_id: item.designator_id,
-                                qty_req: item.qty_req,
-                                qty_used: 0,
-                                unit_price: item.unit_price || 0,
-                            })
-                        );
-
-                        await trx
-                            .insertInto('inventory.sap_out_items')
-                            .values(itemsToInsert)
-                            .execute();
-                    }
-
-                    // Call SP sp_sap_out for this header to reduce stock
-                    await sql`CALL inventory.sp_sap_out(${headerResult.id}::bigint, ${data.warehouse_id}::integer, ${createdBy})`.execute(
-                        trx
-                    );
-
-                    return headerResult.id;
+                const createdBy = await getSessionNik();
+                return await inventoryRepository.createOutSap({
+                    warehouseId: data.warehouse_id,
+                    nikTeknisi: data.nik_teknisi,
+                    nameSa: data.name_sa,
+                    idReservasi: data.id_reservasi || null,
+                    sapNumber: data.sap_number,
+                    requestId: data.request_id,
+                    createdBy,
+                    items: data.items ?? [],
                 });
             }
         );
@@ -325,7 +268,7 @@ export async function createOutSap(payload: {
         revalidatePath('/stock-intech');
         revalidatePath('/stock-inventory');
         revalidatePath('/apps/out-material');
-        return { success: true, header_id: result };
+        return { success: true, header_id: result.headerId, id_trx: result.idTrx };
     } catch (error: unknown) {
         actionLogger.error(
             'Failed to create Out SAP:',
@@ -357,9 +300,11 @@ export async function updateOutSapStatusToIntech(headerId: number | string) {
             const createdBy = await getSessionNik();
 
             // Call SP sp_sap_out for this header to reduce stock
-            await sql`CALL inventory.sp_sap_out(${headerId}::bigint, ${warehouseId}::integer, ${createdBy})`.execute(
-                trx
-            );
+            await inventoryRepository.recordSapOut({
+                headerId: Number(headerId),
+                warehouseId: Number(warehouseId),
+                createdBy,
+            });
 
             return true;
         });

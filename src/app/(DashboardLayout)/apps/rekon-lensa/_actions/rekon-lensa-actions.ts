@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import { createInventoryRepository } from '@/lib/repositories';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 export async function getTechniciansWithIntechSaps() {
@@ -241,27 +242,24 @@ export async function submitRekonLensa(
 
                         const codeMap = new Map(materials.map((m) => [m.id, m.code]));
 
-                        const materialsJsonWithCode = JSON.stringify(
-                            woItems.map((item) => ({
-                                out_sap: item.sap_number,
-                                designator_id: codeMap.get(item.designator_id),
+                        const repo = createInventoryRepository(trx);
+                        await repo.recordRekonLensa({
+                            idTrx: generatedIdTrx,
+                            idPemakaian: pemakaianId,
+                            woNumber: first.wo_number,
+                            woType: first.wo_type === 'provisioning' ? 'psb' : first.wo_type,
+                            nikTeknisi: data.nik,
+                            nameGudang: first.name_wh || '',
+                            nameSa: first.name_sa,
+                            notes: first.notes || null,
+                            createdBy,
+                            materials: woItems.map((item) => ({
+                                out_sap: item.sap_number ?? '',
+                                designator_id: String(codeMap.get(item.designator_id)),
                                 qty: item.qty,
                                 unit_price: 0,
-                            }))
-                        );
-
-                        await sql`CALL inventory.sp_record_rekon_lensa_v2(
-                            ${generatedIdTrx},
-                            ${pemakaianId},
-                            ${first.wo_number},
-                            ${first.wo_type === 'provisioning' ? 'psb' : first.wo_type},
-                            ${data.nik},
-                            ${first.name_wh || ''},
-                            ${first.name_sa},
-                            ${first.notes || null},
-                            ${createdBy},
-                            ${materialsJsonWithCode}::json
-                        )`.execute(trx);
+                            })),
+                        });
 
                         // Flag: mark this WO as reconciled in wo_lensa_header
                         await trx

@@ -1,10 +1,10 @@
 'use server';
 
-import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import { createInventoryRepository } from '@/lib/repositories';
 
 export async function getRekonEditData(header_id: string, sap_out_id: string) {
     try {
@@ -70,18 +70,23 @@ export async function submitEditRekon(
 ) {
     try {
         await getSessionUser();
+        const createdBy = await getSessionNik();
 
         await db.transaction().execute(async (trx) => {
+            const repo = createInventoryRepository(trx);
             for (const item of items) {
                 const diff = item.new_qty - item.old_qty;
                 if (diff === 0) continue;
 
-                await sql`CALL inventory.sp_edit_transaction_used(
-                    ${item.sap_out_item_id},
-                    ${item.designator_id},
-                    ${item.new_qty},
-                    ${item.item_id}
-                )`.execute(trx);
+                await repo.editTransactionUsed({
+                    usedItemId: item.item_id ? Number(item.item_id) : null,
+                    usedHeaderId: Number(_header_id),
+                    sapOutItemId: Number(item.sap_out_item_id),
+                    designatorId: item.designator_id,
+                    newQty: item.new_qty,
+                    oldQty: item.old_qty,
+                    createdBy,
+                });
             }
         });
 

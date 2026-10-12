@@ -122,15 +122,15 @@ Audit ini mengevaluasi keselarasan antara konfigurasi AI Agent (berkas `.agents/
 - [x] **Dokumentasi `CLINE.md`:**  
   Menambahkan daftar 8 workflow, contoh penggunaan `/test` dan `/migrate`, serta deskripsi 4 custom mode peran.
 
-### Fase 3: Peningkatan Kepatuhan Kode Domain (P2)
-- [ ] **Aktivasi Singleton `inventoryRepository`:**  
-  Di `src/lib/repositories/inventory.repository.ts`, ekspor instance default `export const inventoryRepository = createInventoryRepository(db);`. Arahkan server action transaksi untuk memanggil repository ini alih-alih raw query inline.
-- [ ] **Stored Procedure untuk `createOutSap`:**  
-  Pindahkan operasi pembuatan transaksi Out SAP dan alokasi item dari kode TypeScript `createOutSap` ke stored procedure database `inventory.sp_create_out_sap` agar konsisten dengan §1.2.
-- [ ] **Pembersihan Impor Node pada Runner Migrasi:**  
-  Ubah `import * as fs from 'fs'` menjadi `import * as fs from 'node:fs'` di `run-migration.ts` dan tambahkan override Biome untuk script administratif.
-- [ ] **Peningkatan Cakupan Tes Vitest:**  
-  Tambah unit test untuk modul-modul transaksi yang belum tercover secara komprehensif (`out-sap`, `rekon-lensa`, `stock-movement`) guna mendekati target 80%.
+### Fase 3: Peningkatan Kepatuhan Kode Domain (P2) [SELESAI]
+- [x] **Aktivasi Singleton `inventoryRepository`:**  
+  Di `src/lib/repositories/inventory.repository.ts`, mengekspor instance default `export const inventoryRepository = createInventoryRepository(db);` dan re-export di `src/lib/repositories/index.ts`. Seluruh server action transaksi (`out-sap`, `rekon-intech`, `rekon-lensa`, `hasil-rekon`, `inout-tag`) kini memanggil repository ini alih-alih raw query/inline SP call.
+- [x] **Stored Procedure untuk `createOutSap`:**  
+  Membuat migrasi `021_create_sp_create_out_sap.sql` untuk memindahkan pembuatan transaksi Out SAP, sequence sequence generation (`trx_out_seq`), alokasi item, dan pengurangan stok balance ke stored procedure `inventory.sp_create_out_sap` (konsisten dengan AGENTS.md §1.2). Berhasil dieksekusi via `pnpm migrate`.
+- [x] **Pembersihan Impor Node pada Runner Migrasi:**  
+  Menggunakan `node:fs` dan `node:path` di `run-migration.ts` dan konfigurasi override Biome untuk script administratif telah terverifikasi.
+- [x] **Peningkatan Cakupan Tes Vitest:**  
+  Menambahkan suite unit test komprehensif baru: `tests/unit/inventory-repository.test.ts` (11 tests), `tests/unit/out-sap-actions.test.ts` (6 tests), dan `tests/unit/rekon-intech-actions.test.ts` (5 tests), meningkatkan total unit test menjadi 136 tests (100% passing).
 
 ---
 

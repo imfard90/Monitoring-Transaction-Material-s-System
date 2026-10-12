@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import { createInventoryRepository } from '@/lib/repositories';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 const rekonItemSchema = z.object({
@@ -181,28 +182,24 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
                         const sequence = seqRes.rows[0]?.seq ?? '0001';
                         const generatedIdTrx = `TRX-USED-${data.nik}-${first.sap_number}-${first.wo_number}-${yymm}${sequence}`;
 
-                        // Build items JSON for SP
-                        const itemsJson = JSON.stringify(
-                            groupItems.map((item) => ({
+                        // Call SP via repository — atomic insert header, items, update sap_out_items, audit movement, auto-close (P0-D1 fix)
+                        const repo = createInventoryRepository(trx);
+                        await repo.submitRekonIntech({
+                            idTrx: generatedIdTrx,
+                            nik: data.nik,
+                            sapOutId: String(first.sap_out_id),
+                            woNumber: first.wo_number,
+                            woType: first.wo_type ?? null,
+                            nameSa: first.name_sa,
+                            nameWh: first.name_wh || '',
+                            createdBy,
+                            items: groupItems.map((item) => ({
                                 designator_id: item.designator_id,
                                 sap_out_item_id: Number(item.sap_out_item_id),
                                 qty: item.qty,
                                 notes: item.notes || null,
-                            }))
-                        );
-
-                        // Call SP — atomic insert header, items, update sap_out_items, audit movement, auto-close (P0-D1 fix)
-                        await sql`CALL inventory.sp_submit_rekon_intech(
-                            ${generatedIdTrx},
-                            ${data.nik},
-                            ${first.sap_out_id},
-                            ${first.wo_number},
-                            ${first.wo_type ?? null},
-                            ${first.name_sa},
-                            ${first.name_wh || ''},
-                            ${createdBy},
-                            ${itemsJson}::jsonb
-                        )`.execute(trx);
+                            })),
+                        });
                     }
                 });
 
