@@ -4,6 +4,7 @@ import { sql } from 'kysely';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { redis } from '@/lib/redis';
+import { expandWarehouseAliases } from '@/lib/warehouse-helper';
 
 export interface OutLensaHeader {
     id: string;
@@ -56,9 +57,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                 .select('name')
                 .where('id', 'in', warehouseIds)
                 .execute();
-            whNames = whs.map((w) => w.name as string).filter(Boolean);
-            if (whNames.includes('SO Karangpilang')) whNames.push('SO Karang Pilang');
-            if (whNames.includes('SO Karang Pilang')) whNames.push('SO Karangpilang');
+            whNames = expandWarehouseAliases(whs.map((w) => w.name as string).filter(Boolean));
         }
 
         if (isStaff && whNames.length === 0) {
@@ -71,7 +70,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
         // Determine warehouse filter (staff warehouse list or custom filter)
         let filterWarehouse: string[] | undefined;
         if (warehouseFilter && warehouseFilter !== 'all') {
-            filterWarehouse = [warehouseFilter];
+            filterWarehouse = expandWarehouseAliases(warehouseFilter);
         } else if (isStaff && whNames.length > 0) {
             filterWarehouse = whNames;
         }

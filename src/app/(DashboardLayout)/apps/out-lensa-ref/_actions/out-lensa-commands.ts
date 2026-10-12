@@ -15,6 +15,7 @@ import {
 } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
+import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
 
 // P3-S6 Fix: Derive a strict 32-byte key from the environment variable using SHA-256
 // instead of a weak slice(0,32) which might pad with weak characters or truncate.
@@ -248,10 +249,7 @@ export async function internalTriggerScraping(perpage: number = 20) {
             // Prepare tasks per gudang credential
             const userDetailTasks = Object.keys(groupedHeaders)
                 .map((gudang) => {
-                    const normalized = gudang.replace(/\s+/g, '').toLowerCase();
-                    const wh = whs.find(
-                        (w) => (w.name || '').replace(/\s+/g, '').toLowerCase() === normalized
-                    );
+                    const wh = findMatchingMasterWarehouse(gudang, whs);
                     if (!wh) return null;
                     const picNik = wh.pic_1 || wh.pic_2;
                     if (!picNik) return null;

@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
+import { toCanonicalWarehouseName } from '@/lib/warehouse-helper';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -92,14 +93,20 @@ export default function WOLensaRefClient({
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [loadingDetail, setLoadingDetail] = useState(false);
 
-    const [selectedGudang, setSelectedGudang] = useState<string>(currentWarehouse);
+    const [selectedGudang, setSelectedGudang] = useState<string>(
+        toCanonicalWarehouseName(currentWarehouse)
+    );
     const router = useRouter();
 
     const uniqueGudang = useMemo(() => {
         if (warehouseOptions && warehouseOptions.length > 0) {
             return warehouseOptions;
         }
-        const list = new Set(initialData.map((d) => d.nama_gudang).filter(Boolean));
+        const list = new Set(
+            initialData
+                .map((d) => toCanonicalWarehouseName(d.nama_gudang))
+                .filter(Boolean)
+        );
         return Array.from(list).sort() as string[];
     }, [initialData, warehouseOptions]);
 
@@ -242,7 +249,7 @@ export default function WOLensaRefClient({
         columnHelper.accessor('nama_gudang', {
             header: 'Gudang',
             size: 160,
-            cell: (info) => info.getValue() || '-',
+            cell: (info) => toCanonicalWarehouseName(info.getValue()) || '-',
         }),
         columnHelper.accessor('gi_number', {
             header: 'GI Number',

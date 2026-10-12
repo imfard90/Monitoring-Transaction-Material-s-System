@@ -4,6 +4,7 @@ import { sql } from 'kysely';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import { expandWarehouseAliases } from '@/lib/warehouse-helper';
 
 export interface HasilRekonData {
     header_id: number;
@@ -198,7 +199,8 @@ export async function getHasilRekonPaginated(options: GetHasilRekonPaginatedOpti
         }
 
         if (options.warehouse && options.warehouse !== 'all') {
-            whereConditions.push(sql`warehouse_name = ${options.warehouse}`);
+            const whList = expandWarehouseAliases(options.warehouse);
+            whereConditions.push(sql`warehouse_name = ANY(${whList})`);
         }
 
         if (options.type && options.type !== 'all') {
