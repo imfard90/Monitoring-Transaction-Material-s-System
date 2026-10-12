@@ -1,6 +1,5 @@
 'use server';
 
-import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
@@ -246,7 +245,7 @@ export async function cancelTag(headerId: number, type?: string) {
                     .where('id', '=', String(headerId))
                     .executeTakeFirst();
 
-                if (!ret || !ret.warehouse_id || !warehouseIds.includes(Number(ret.warehouse_id))) {
+                if (!ret?.warehouse_id || !warehouseIds.includes(Number(ret.warehouse_id))) {
                     return {
                         success: false,
                         error: 'Akses ditolak: Anda tidak memiliki akses membatalkan transaksi ini.',

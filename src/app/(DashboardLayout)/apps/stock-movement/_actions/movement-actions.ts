@@ -214,9 +214,9 @@ export async function getStockMovementFilterOptions() {
             .execute();
 
         return {
-            warehouses: whs.map((w: any) => w.name).filter(Boolean) as string[],
-            materials: mats.map((m: any) => m.code).filter(Boolean) as string[],
-            types: types.map((t: any) => t.movement_type).filter(Boolean) as string[],
+            warehouses: whs.map((w) => w.name).filter(Boolean) as string[],
+            materials: mats.map((m) => m.code).filter(Boolean) as string[],
+            types: types.map((t) => t.movement_type).filter(Boolean) as string[],
         };
     } catch (error) {
         actionLogger.error(

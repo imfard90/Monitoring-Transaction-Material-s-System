@@ -1,0 +1,218 @@
+'use server';
+
+import { sql } from 'kysely';
+import { getSessionUser } from '@/lib/auth-server';
+import { encryptedCache } from '@/lib/cache/encryptedCache';
+import { db } from '@/lib/db/db';
+import { actionLogger } from '@/lib/logger';
+
+export async function getStockBalances() {
+    try {
+        const balances = await db
+            .selectFrom('inventory.stock_balance as sb')
+            .innerJoin('inventory.mas_wh as w', 'w.id', 'sb.warehouse_id')
+            .innerJoin('inventory.materials as m', 'm.id', 'sb.designator_id')
+            .select([
+                'sb.id',
+                'sb.warehouse_id',
+                'w.name as warehouse_name',
+                'w.branch as branch_name',
+                'sb.designator_id',
+                'm.code as material_code',
+                'm.description as material_name',
+                'sb.qty_stock',
+            ])
+            .orderBy('w.name', 'asc')
+            .orderBy('m.code', 'asc')
+            .execute();
+
+        return { success: true, data: balances };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch stock balances:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export async function getDashboardStockIntech() {
+    try {
+        const { isStaff, warehouseIds } = await getSessionUser();
+        const applyWhFilter = isStaff && warehouseIds.length > 0;
+
+        let query = db
+            .selectFrom('inventory.sap_out_header as soh')
+            .innerJoin('inventory.sap_out_items as soi', 'soi.header_id', 'soh.id')
+            .leftJoin('hr.technicians as t', 't.nik', 'soh.nik_teknisi')
+            .leftJoin('inventory.mas_wh as wh', 'wh.id', 'soh.warehouse_id')
+            .innerJoin('inventory.materials as m', 'm.id', 'soi.designator_id')
+            .select([
+                'wh.branch as branch',
+                'wh.name as wh_name',
+                't.name as teknisi',
+                'soh.nik_teknisi as nik',
+                'm.code as material_code',
+                'm.description as material_name',
+                sql<number>`soi.qty_req - COALESCE(soi.qty_used, 0)`.as('qty_intech'),
+            ])
+            .where('soh.end_status', '=', 'intech')
+            .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0);
+
+        if (applyWhFilter) {
+            query = query.where('soh.warehouse_id', 'in', warehouseIds);
+        }
+
+        const data = await query.orderBy('wh.branch', 'asc').orderBy('t.name', 'asc').execute();
+
+        return { success: true, data };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch dashboard stock intech:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export async function getWarehouses() {
+    try {
+        const data = await db
+            .selectFrom('inventory.mas_wh')
+            .select(['id', 'name', 'branch'])
+            .orderBy('name', 'asc')
+            .execute();
+
+        return { success: true, data };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch warehouses:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+export async function getStockWarnings() {
+    try {
+        const data = await db
+            .selectFrom('inventory.stock_policy as p')
+            .innerJoin('inventory.stock_balance as b', (join) =>
+                join
+                    .onRef('b.warehouse_id', '=', 'p.warehouse_id')
+                    .onRef('b.designator_id', '=', 'p.designator_id')
+            )
+            .innerJoin('inventory.materials as m', 'm.id', 'p.designator_id')
+            .innerJoin('inventory.mas_wh as w', 'w.id', 'p.warehouse_id')
+            .select([
+                'w.name as warehouse_name',
+                'm.code as material_code',
+                'p.average_demand_weekly',
+                'p.lead_time_weeks',
+                'p.safety_stock_pct',
+                'p.min_qty',
+                'b.qty_stock',
+                sql<number>`p.min_qty - b.qty_stock`.as('deficit'),
+            ])
+            .orderBy('deficit', 'desc')
+            .orderBy('w.name')
+            .orderBy('m.code')
+            .limit(15)
+            .execute();
+
+        return { success: true, data };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch stock warnings:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return { success: false, data: [] };
+    }
+}
+
+export async function getDashboardKpis() {
+    try {
+        const cacheKey = `dashboard_kpis`;
+        const cached = await encryptedCache.getGeneral<unknown>('dashboard', cacheKey);
+        if (cached) {
+            return { success: true, data: cached };
+        }
+
+        const data = {
+            onlineUsers: 0,
+            requestTag: 0,
+            transitTag: 0,
+            closeTag: 0,
+            returnTek: 0,
+            intechOpen: 0,
+            intechClose: 0,
+        };
+
+        // 0. Online Users
+        try {
+            const { redis } = await import('@/lib/redis');
+            const keys = await redis.keys('presence:user:*');
+            data.onlineUsers = keys.length;
+        } catch (e) {
+            actionLogger.error(
+                'Failed to get online users count',
+                e instanceof Error ? e : new Error(String(e))
+            );
+        }
+
+        // 0.1 Intech Open (end_status = 'intech')
+        const intechOpen = await db
+            .selectFrom('inventory.sap_out_header')
+            .select(sql<number>`COUNT(id)`.as('total'))
+            .where('end_status', '=', 'intech')
+            .executeTakeFirst();
+        data.intechOpen = Number(intechOpen?.total || 0);
+
+        // 0.2 Intech Close (end_status = 'close')
+        const intechClose = await db
+            .selectFrom('inventory.sap_out_header')
+            .select(sql<number>`COUNT(id)`.as('total'))
+            .where('end_status', '=', 'close')
+            .executeTakeFirst();
+        data.intechClose = Number(intechClose?.total || 0);
+
+        // 1. Request Tag
+        const requestTag = await db
+            .selectFrom('inventory.inout_tag_header')
+            .select(sql<number>`COUNT(id)`.as('total'))
+            .where('end_status', '=', 'requested')
+            .executeTakeFirst();
+        data.requestTag = Number(requestTag?.total || 0);
+
+        // 2. Transit Tag
+        const transitTag = await db
+            .selectFrom('inventory.inout_tag_header')
+            .select(sql<number>`COUNT(id)`.as('total'))
+            .where('end_status', '=', 'in_transit')
+            .executeTakeFirst();
+        data.transitTag = Number(transitTag?.total || 0);
+
+        // 3. Close Tag
+        const closeTag = await db
+            .selectFrom('inventory.inout_tag_header')
+            .select(sql<number>`COUNT(id)`.as('total'))
+            .where('end_status', '=', 'closed')
+            .executeTakeFirst();
+        data.closeTag = Number(closeTag?.total || 0);
+
+        // 4. Return Tek
+        const returnTek = await db
+            .selectFrom('inventory.return_material_header')
+            .select(sql<number>`COUNT(id)`.as('total'))
+            .executeTakeFirst();
+        data.returnTek = Number(returnTek?.total || 0);
+
+        await encryptedCache.setGeneral('dashboard', data, cacheKey, 10);
+        return { success: true, data };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch dashboard KPIs:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return { success: false, data: null };
+    }
+}

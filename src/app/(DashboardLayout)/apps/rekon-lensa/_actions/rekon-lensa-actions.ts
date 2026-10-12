@@ -92,7 +92,7 @@ export async function getWOLensa(nik: string) {
             .where('h.nik_pemakai', '=', nik)
             .where('h.wo_number', 'is not', null)
             .where('h.rekon_check', '=', false)
-            .where('h.wo_number', 'not in', (eb: any) =>
+            .where('h.wo_number', 'not in', (eb) =>
                 eb
                     .selectFrom('inventory.transaction_used_header')
                     .select('wo_number')
@@ -105,7 +105,7 @@ export async function getWOLensa(nik: string) {
             return { success: true, data: [] };
         }
 
-        const headerIds = wos.map((w: any) => w.id);
+        const headerIds = wos.map((w) => w.id);
 
         const items = await db
             .selectFrom('inventory.wo_lensa_list as l')
@@ -113,9 +113,9 @@ export async function getWOLensa(nik: string) {
             .where('l.header_id', 'in', headerIds)
             .execute();
 
-        const data = wos.map((wo: any) => ({
+        const data = wos.map((wo) => ({
             ...wo,
-            items: items.filter((item: any) => item.header_id === wo.id),
+            items: items.filter((item) => item.header_id === wo.id),
         }));
 
         return { success: true, data };
@@ -210,7 +210,7 @@ export async function submitRekonLensa(
                         const uniqueSaps = Array.from(
                             new Set(woItems.map((i) => i.sap_number).filter(Boolean))
                         );
-                        const sapString = uniqueSaps.join('-');
+                        const _sapString = uniqueSaps.join('-');
                         const pemakaianId = woItems[0].pemakaian_id;
 
                         // Generate deterministic sequence via PostgreSQL SEQUENCE (P0-D2 fix)
@@ -221,7 +221,7 @@ export async function submitRekonLensa(
                         const generatedIdTrx = `TRX-USED-LENSA-${data.nik}-${pemakaianId}-${yymm}${sequence}`;
 
                         const first = woItems[0];
-                        const materialsJson = JSON.stringify(
+                        const _materialsJson = JSON.stringify(
                             woItems.map((item) => ({
                                 out_sap: item.sap_number,
                                 designator_id: item.designator_id.toString(), // SP expects code, wait, designator_id is number in schema but SP expects code?

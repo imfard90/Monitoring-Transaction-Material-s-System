@@ -1,4 +1,6 @@
-module.exports = {
+// @ts-check
+/** @type {import('pm2').ModuleOption} */
+const config = {
     apps: [
         {
             name: 'mtms-app', // Nama aplikasi di dalam PM2
@@ -8,7 +10,7 @@ module.exports = {
             exec_mode: 'cluster', // Mode eksekusi ('fork' atau 'cluster')
             autorestart: true, // Restart otomatis jika aplikasi crash
             watch: false, // Jangan watch perubahan file di production
-            max_memory_restart: '8G', // Restart jika penggunaan RAM melebihi 1 GB
+            max_memory_restart: '8G', // Restart jika penggunaan RAM melebihi 8 GB
             env: {
                 NODE_ENV: 'development',
             },
@@ -19,3 +21,5 @@ module.exports = {
         },
     ],
 };
+
+export default config;

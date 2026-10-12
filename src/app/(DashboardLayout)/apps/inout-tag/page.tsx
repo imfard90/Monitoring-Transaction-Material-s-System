@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
 import { getSessionUser } from '@/lib/auth-server';
-import { getInOutTagFilterOptions, getInOutTagsPaginated } from './_actions/tag-queries';
+import { getInOutTagFilterOptions, getInOutTagsPaginated } from './_actions/tag-actions';
 import InOutTagClient from './_components/InOutTagClient';
 
 export const metadata = {

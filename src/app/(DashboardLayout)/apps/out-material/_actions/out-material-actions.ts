@@ -219,7 +219,7 @@ export async function getOutMaterialFilterOptions() {
         const whs = await whQuery.execute();
 
         return {
-            warehouses: whs.map((w: any) => w.name).filter(Boolean) as string[],
+            warehouses: whs.map((w) => w.name).filter(Boolean) as string[],
         };
     } catch (error) {
         actionLogger.error(

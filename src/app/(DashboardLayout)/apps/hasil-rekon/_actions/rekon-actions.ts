@@ -192,7 +192,7 @@ export async function getHasilRekonPaginated(options: GetHasilRekonPaginatedOpti
         const pageSize = Math.min(100, Math.max(10, options.pageSize ?? 20));
         const offset = (page - 1) * pageSize;
 
-        const whereConditions: any[] = [];
+        const whereConditions: ReturnType<typeof sql>[] = [];
 
         if (isStaff && warehouseIds.length > 0) {
             whereConditions.push(sql`wh_id = ANY(${warehouseIds})`);
@@ -294,7 +294,7 @@ export async function getHasilRekonPaginated(options: GetHasilRekonPaginatedOpti
         const countRes = await countQuery.execute(db);
         const total = Number(countRes.rows[0]?.total ?? 0);
 
-        const dataQuery = sql<HasilRekonData>`
+        const dataQuery = sql<Record<string, unknown>>`
             ${baseCte}
             SELECT 
                 header_id,
@@ -319,12 +319,14 @@ export async function getHasilRekonPaginated(options: GetHasilRekonPaginatedOpti
         `;
         const dataRes = await dataQuery.execute(db);
 
-        const items: HasilRekonData[] = dataRes.rows.map((r: any) => ({
+        const items: HasilRekonData[] = dataRes.rows.map((r) => ({
             header_id: Number(r.header_id),
             item_id: Number(r.item_id),
             sap_out_id: r.sap_out_id ? Number(r.sap_out_id) : undefined,
             designator_id: r.designator_id ? Number(r.designator_id) : undefined,
-            created_at: r.created_at ? new Date(r.created_at).toISOString() : null,
+            created_at: r.created_at
+                ? new Date(r.created_at as string | number | Date).toISOString()
+                : null,
             trx_id: r.trx_id ? String(r.trx_id) : null,
             sap_number: r.sap_number ? String(r.sap_number) : null,
             warehouse_name: r.warehouse_name ? String(r.warehouse_name) : null,
@@ -383,8 +385,8 @@ export async function getHasilRekonFilterOptions() {
             .execute();
 
         return {
-            warehouses: whs.map((w: any) => w.name).filter(Boolean) as string[],
-            materials: mats.map((m: any) => m.code).filter(Boolean) as string[],
+            warehouses: whs.map((w) => w.name).filter(Boolean) as string[],
+            materials: mats.map((m) => m.code).filter(Boolean) as string[],
             types: ['psb', 'lensa', 'mt', 'ro'],
         };
     } catch (error) {
