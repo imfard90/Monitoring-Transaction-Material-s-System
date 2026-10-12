@@ -315,7 +315,7 @@ export default function OutSapForm() {
                 <CardBox className="p-6">
                     <form onSubmit={handleSubmit} className="space-y-8">
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
+                            <h2 className="text-lg font-bold text-foreground mb-4 border-b pb-2">
                                 Form Out SAP (Pengeluaran Material)
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -555,7 +555,7 @@ export default function OutSapForm() {
                                                                                 opacity: 0,
                                                                                 width: 0,
                                                                             }}
-                                                                            className="text-red-500 font-medium whitespace-nowrap overflow-hidden"
+                                                                            className="text-destructive font-medium whitespace-nowrap overflow-hidden"
                                                                         >
                                                                             ({errorReason})
                                                                         </motion.span>
@@ -784,7 +784,7 @@ export default function OutSapForm() {
                                                             {mat?.code as string} -{' '}
                                                             {mat?.description as string}
                                                         </TableCell>
-                                                        <TableCell className="text-center font-bold text-blue-600">
+                                                        <TableCell className="text-center font-bold text-primary">
                                                             {item.qty_req}
                                                         </TableCell>
                                                     </TableRow>

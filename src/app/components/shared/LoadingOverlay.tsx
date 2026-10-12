@@ -12,6 +12,9 @@ export function LoadingOverlay({ isVisible, text = 'Memuat Data...' }: LoadingOv
         <AnimatePresence>
             {isVisible && (
                 <motion.div
+                    role="status"
+                    aria-live="polite"
+                    aria-busy="true"
                     className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -22,7 +25,7 @@ export function LoadingOverlay({ isVisible, text = 'Memuat Data...' }: LoadingOv
                             width="120"
                             height="120"
                             viewBox="0 0 100 100"
-                            className="text-blue-500 overflow-visible drop-shadow-[0_0_10px_rgba(59,130,246,0.8)]"
+                            className="text-primary overflow-visible drop-shadow-[0_0_12px_var(--color-primary)]"
                         >
                             {/* Track background */}
                             <path

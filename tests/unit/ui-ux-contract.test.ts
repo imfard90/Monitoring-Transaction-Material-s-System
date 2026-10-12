@@ -294,4 +294,112 @@ describe('executive premium localization invariants', () => {
         expect(rekon).toMatch(/Semua Tipe/);
         expect(rekon).toMatch(/Semua Material/);
     });
+
+    describe('dialog & loading feedback consistency invariants', () => {
+        it('UpdateTagModal uses ConfirmDialog and avoids window.confirm', async () => {
+            const modal = await readSrc(
+                'src/app/(DashboardLayout)/apps/inout-tag/_components/UpdateTagModal.tsx'
+            );
+            expect(modal).toMatch(/ConfirmDialog/);
+            expect(modal).not.toMatch(/window\.confirm/);
+            expect(modal).toMatch(/Batalkan Transaksi Tag/);
+        });
+
+        it('ConfirmDialog uses semantic theme tokens and avoids raw slate background', async () => {
+            const dialog = await readSrc('src/app/components/shared/ConfirmDialog.tsx');
+            expect(dialog).not.toMatch(/bg-slate-\d/);
+            expect(dialog).toMatch(/bg-muted/);
+            expect(dialog).toMatch(/Memproses\.\.\./);
+            expect(dialog).not.toMatch(/Submitting\.\.\./);
+            expect(dialog).toMatch(/variant\?:\s*'default'\s*\|\s*'destructive'/);
+        });
+
+        it('UpdateTagModal marks destructive confirmation with destructive variant', async () => {
+            const modal = await readSrc(
+                'src/app/(DashboardLayout)/apps/inout-tag/_components/UpdateTagModal.tsx'
+            );
+            expect(modal).toMatch(/variant="destructive"/);
+        });
+
+        it('LoadingOverlay has accessibility landmarks and uses semantic primary token', async () => {
+            const overlay = await readSrc('src/app/components/shared/LoadingOverlay.tsx');
+            expect(overlay).toMatch(/role="status"/);
+            expect(overlay).toMatch(/aria-live="polite"/);
+            expect(overlay).toMatch(/text-primary/);
+            expect(overlay).not.toMatch(/text-blue-500/);
+        });
+
+        it('CreateTagModal is fully localized and avoids leftover English button strings', async () => {
+            const modal = await readSrc(
+                'src/app/(DashboardLayout)/apps/inout-tag/_components/CreateTagModal.tsx'
+            );
+            expect(modal).toMatch(/Batal/);
+            expect(modal).toMatch(/Simpan Tag/);
+            expect(modal).toMatch(/Menyimpan\.\.\./);
+            expect(modal).toMatch(/Gudang Asal/);
+            expect(modal).toMatch(/Gudang Tujuan/);
+            expect(modal).toMatch(/Daftar Material/);
+            expect(modal).toMatch(/Tambah Material/);
+            expect(modal).not.toMatch(/>\s*Cancel\s*</);
+            expect(modal).not.toMatch(/>\s*Save Tag\s*</);
+        });
+
+        it('Detail modals avoid English fallback text for empty lists', async () => {
+            const inoutDetail = await readSrc(
+                'src/app/(DashboardLayout)/apps/inout-tag/_components/InOutTagDetailModal.tsx'
+            );
+            expect(inoutDetail).toMatch(/Tidak ada item untuk status tag ini\./);
+            expect(inoutDetail).not.toMatch(/No items found/);
+
+            const outMaterialDetail = await readSrc(
+                'src/app/(DashboardLayout)/apps/out-material/_components/OutMaterialDetailModal.tsx'
+            );
+            expect(outMaterialDetail).toMatch(/Tidak ada item yang ditemukan/);
+            expect(outMaterialDetail).not.toMatch(/No items found/);
+        });
+
+        it('HasilRekonTable and InOutTagTable use semantic primary tokens instead of raw blue utility colors', async () => {
+            const rekonTable = await readSrc(
+                'src/app/(DashboardLayout)/apps/hasil-rekon/_components/HasilRekonTable.tsx'
+            );
+            expect(rekonTable).not.toMatch(/text-blue-600/);
+            expect(rekonTable).toMatch(/text-primary/);
+
+            const tagTable = await readSrc(
+                'src/app/(DashboardLayout)/apps/inout-tag/_components/InOutTagTable.tsx'
+            );
+            expect(tagTable).not.toMatch(/text-blue-600/);
+            expect(tagTable).toMatch(/text-primary/);
+            expect(tagTable).toMatch(/Perbarui Tag/);
+        });
+
+        it('DataTablePagination provides full accessible labels, titles, and screen reader announcements', async () => {
+            const pagination = await readSrc('src/app/components/shared/DataTablePagination.tsx');
+            expect(pagination).toMatch(/aria-label="Halaman pertama"/);
+            expect(pagination).toMatch(/aria-label="Sebelumnya"/);
+            expect(pagination).toMatch(/aria-label="Berikutnya"/);
+            expect(pagination).toMatch(/aria-label="Halaman terakhir"/);
+            expect(pagination).toMatch(/aria-label="Pilih jumlah baris per halaman"/);
+            expect(pagination).toMatch(/<span className="sr-only">Halaman pertama<\/span>/);
+            expect(pagination).toMatch(/<span className="sr-only">Halaman terakhir<\/span>/);
+        });
+
+        it('Reference scraping pages localize actions and modal titles in Indonesian', async () => {
+            const outLensa = await readSrc(
+                'src/app/(DashboardLayout)/apps/out-lensa-ref/_components/OutLensaRefClient.tsx'
+            );
+            expect(outLensa).toMatch(/Jalankan Scraping/);
+            expect(outLensa).not.toMatch(/>\s*Run Scraping\s*</);
+            expect(outLensa).toMatch(/Detail Reservasi Material/);
+
+            const woLensa = await readSrc(
+                'src/app/(DashboardLayout)/apps/wo-lensa-ref/_components/WOLensaRefClient.tsx'
+            );
+            expect(woLensa).toMatch(/Jalankan Scraping/);
+            expect(woLensa).not.toMatch(/>\s*Run Scraping\s*</);
+            expect(woLensa).toMatch(/Detail Material WO Lensa/);
+            expect(woLensa).toMatch(/Nomor WO:/);
+            expect(woLensa).toMatch(/Nomor GI:/);
+        });
+    });
 });

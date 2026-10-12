@@ -119,7 +119,31 @@ Audit ini memeriksa seluruh 10 antarmuka tabel transaksi di dalam aplikasi MTMS 
   1. **Skeleton Loader:** Menggantikan teks statis *"Memuat data, mohon tunggu..."* dengan baris-baris `<Skeleton />` yang merepresentasikan struktur tabel yang sedang dimuat, disertai pengumuman ramah pembaca layar (`<span className="sr-only" role="status">Memuat data...</span>`).
   2. **Optimasi Animasi Stagger:** Animasi framer-motion stagger (`delay: i * 0.02`) dinonaktifkan secara otomatis jika jumlah baris melebihi 25, mencegah lag antarmuka pada 50 atau 100 baris data.
 
-### 3.3 `sidebaritems.ts`
+### 3.3 `ConfirmDialog.tsx` & `LoadingOverlay.tsx`
+* **Fitur & Perbaikan:**
+  1. `ConfirmDialog.tsx`:
+     - Latar belakang footer diubah dari hardcoded `bg-slate-50` menjadi semantic theme token `bg-muted/30 border-t` untuk dukungan konsisten pada mode terang dan gelap.
+     - Mendukung properti `variant?: 'default' | 'destructive'` untuk memberikan sinyal visual yang tepat pada aksi berisiko tinggi.
+     - Mengubah teks default loading saat submit dari `Submitting...` menjadi Bahasa Indonesia `Memproses...`.
+  2. `LoadingOverlay.tsx`: Menambahkan atribut aksesibilitas WAI-ARIA `role="status"`, `aria-live="polite"`, dan `aria-busy="true"`. Mengganti warna hardcoded `text-blue-500` menjadi token semantik `text-primary` dan drop shadow dinamis `var(--color-primary)`.
+
+### 3.4 `UpdateTagModal.tsx` & `CreateTagModal.tsx`
+* **Fitur & Perbaikan:**
+  1. `UpdateTagModal.tsx`:
+     - Mengganti dialog native browser `window.confirm` dengan komponen terintegrasi `ConfirmDialog` variant `destructive` dalam Bahasa Indonesia (`Batalkan Transaksi Tag`).
+     - Melokalisasi seluruh label dan header (`Kode Material`, `Deskripsi`, `Satuan`, `Jumlah`, `Perbarui`, `Tutup`).
+     - Mengganti token warna mentah (`text-red-500`, `bg-amber-50`) menjadi token semantik (`text-destructive`, `bg-destructive/10`, `text-primary`, `bg-warning/10`, `text-warning-foreground`).
+  2. `CreateTagModal.tsx`:
+     - Menghilangkan sisa string bahasa Inggris (`Cancel` -> `Batal`, `Saving...` -> `Menyimpan...`, `Save Tag` -> `Simpan Tag`).
+     - Melokalisasi label dan header (`Gudang Asal`, `Gudang Tujuan`, `Biaya (Rp)`, `Daftar Material`, `Tambah Material`, `Designator / Kode`, `Deskripsi`, `Satuan`, `Stok`, `Jumlah`, `Aksi`).
+     - Pesan validasi dan toast dilokalisasi ke Bahasa Indonesia.
+
+### 3.5 Detail Modals & Scraping Clients
+* **Fitur & Perbaikan:**
+  1. `InOutTagDetailModal.tsx` & `OutMaterialDetailModal.tsx`: Pesan empty state diganti dari `No items found` menjadi `Tidak ada item untuk status tag ini.` dan `Tidak ada item yang ditemukan`. Label header tabel dan informasi header dinasionalkan.
+  2. `OutLensaRefClient.tsx` & `WOLensaRefClient.tsx`: Tombol aksi scraping dilokalisasi (`Jalankan Scraping`), judul dialog detail dilokalisasi (`Detail Reservasi Material`, `Detail Material WO Lensa`), dan label field (`Nomor WO:`, `Nomor GI:`).
+
+### 3.6 `sidebaritems.ts`
 * Memperbaiki typo icon Solar: `solar:pallete-2-linear` -> `solar:palette-2-linear`.
 
 ---
@@ -128,10 +152,10 @@ Audit ini memeriksa seluruh 10 antarmuka tabel transaksi di dalam aplikasi MTMS 
 
 | Perintah | Hasil | Keterangan |
 |---|---|---|
-| `pnpm format` | ✅ Lulus | Seluruh file diformat menggunakan Biome (230 files) |
+| `pnpm format` | ✅ Lulus | Seluruh file diformat menggunakan Biome |
 | `pnpm lint` | ✅ Lulus | 0 error pada static linting & a11y checks |
 | `pnpm tsc --noEmit` | ✅ Lulus | Strict TypeScript soundness terverifikasi (0 error) |
-| `pnpm test:unit` | ✅ Lulus | 138/138 unit tests lulus (termasuk 19 UI/UX contract tests) |
+| `pnpm test:unit` | ✅ Lulus | 165/165 unit tests lulus (termasuk 33 UI/UX contract tests) |
 
 ---
 

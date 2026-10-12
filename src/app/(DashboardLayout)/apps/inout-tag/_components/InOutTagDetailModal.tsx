@@ -41,7 +41,7 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
         <ModalDialog
             isOpen={isOpen}
             onClose={onClose}
-            title={`Tag Items Detail (ID Trx: ${row?.id_trx})`}
+            title={`Detail Item Tag (ID Trx: ${row?.id_trx})`}
             className="sm:max-w-[700px]"
         >
             <div className="py-4">
@@ -51,7 +51,7 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
                     </p>
                 ) : items.length === 0 ? (
                     <p className="text-center text-muted-foreground py-4" role="status">
-                        No items found for this tag status.
+                        Tidak ada item untuk status tag ini.
                     </p>
                 ) : (
                     <div className="rounded-md border overflow-x-auto">
@@ -59,9 +59,9 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
                             <thead className="text-sm text-foreground uppercase bg-muted/50 border-b">
                                 <tr>
                                     <th className="px-4 py-3">No</th>
-                                    <th className="px-4 py-3">Designator / Code</th>
-                                    <th className="px-4 py-3">Description</th>
-                                    <th className="px-4 py-3 text-right">Qty</th>
+                                    <th className="px-4 py-3">Designator / Kode</th>
+                                    <th className="px-4 py-3">Deskripsi</th>
+                                    <th className="px-4 py-3 text-right">Jumlah</th>
                                 </tr>
                             </thead>
                             <tbody>

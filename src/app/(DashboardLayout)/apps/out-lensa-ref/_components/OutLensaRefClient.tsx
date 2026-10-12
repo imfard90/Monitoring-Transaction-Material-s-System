@@ -332,7 +332,7 @@ export default function OutLensaRefClient({
             cell: (info) => (
                 <div className="flex justify-center">
                     {info.getValue() ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        <CheckCircle2 className="h-5 w-5 text-success" />
                     ) : (
                         <span className="text-muted-foreground">-</span>
                     )}
@@ -382,7 +382,7 @@ export default function OutLensaRefClient({
                                     ) : (
                                         <Play className="h-4 w-4 mr-2" />
                                     )}
-                                    Run Scraping
+                                    Jalankan Scraping
                                 </Button>
                             </div>
                         )}
@@ -403,7 +403,7 @@ export default function OutLensaRefClient({
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Detail Material Reservation</DialogTitle>
+                        <DialogTitle>Detail Reservasi Material</DialogTitle>
                     </DialogHeader>
 
                     {selectedHeader && (

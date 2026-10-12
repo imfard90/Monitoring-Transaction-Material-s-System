@@ -395,7 +395,7 @@ export default function WOLensaRefClient({
                                     ) : (
                                         <Play className="h-4 w-4 mr-2" />
                                     )}
-                                    Run Scraping
+                                    Jalankan Scraping
                                 </Button>
                             </div>
                         )}
@@ -422,11 +422,11 @@ export default function WOLensaRefClient({
                     {selectedHeader && (
                         <div className="mb-4 space-y-1">
                             <div>
-                                <span className="font-semibold">WO Number:</span>{' '}
+                                <span className="font-semibold">Nomor WO:</span>{' '}
                                 {selectedHeader.wo_number || '-'}
                             </div>
                             <div>
-                                <span className="font-semibold">GI Number:</span>{' '}
+                                <span className="font-semibold">Nomor GI:</span>{' '}
                                 {selectedHeader.gi_number || '-'}
                             </div>
                         </div>

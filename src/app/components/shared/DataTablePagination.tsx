@@ -78,7 +78,10 @@ export function DataTablePagination<TData>({
                                 }
                             }}
                         >
-                            <SelectTrigger className="h-8 w-[70px] text-xs">
+                            <SelectTrigger
+                                className="h-8 w-[70px] text-xs"
+                                aria-label="Pilih jumlah baris per halaman"
+                            >
                                 <SelectValue placeholder={pageSize} />
                             </SelectTrigger>
                             <SelectContent side="top">
@@ -118,8 +121,10 @@ export function DataTablePagination<TData>({
                         onClick={() => table.setPageIndex(0)}
                         disabled={!table.getCanPreviousPage()}
                         aria-label="Halaman pertama"
+                        title="Halaman pertama"
                     >
                         <ChevronsLeft className="h-4 w-4" />
+                        <span className="sr-only">Halaman pertama</span>
                     </Button>
                     <Button
                         variant="outline"
@@ -152,8 +157,10 @@ export function DataTablePagination<TData>({
                         onClick={() => table.setPageIndex(pageCount - 1)}
                         disabled={!table.getCanNextPage()}
                         aria-label="Halaman terakhir"
+                        title="Halaman terakhir"
                     >
                         <ChevronsRight className="h-4 w-4" />
+                        <span className="sr-only">Halaman terakhir</span>
                     </Button>
                 </div>
             </div>

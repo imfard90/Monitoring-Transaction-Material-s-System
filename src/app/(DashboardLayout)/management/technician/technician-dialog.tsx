@@ -124,7 +124,7 @@ export function TechnicianDialog({
                 <div className="grid gap-4 py-4">
                     <div className="flex flex-col gap-2">
                         <Label htmlFor="nik">
-                            NIK <span className="text-red-500">*</span>
+                            NIK <span className="text-destructive">*</span>
                         </Label>
                         <Input
                             id="nik"
@@ -136,7 +136,7 @@ export function TechnicianDialog({
                     </div>
                     <div className="flex flex-col gap-2">
                         <Label htmlFor="name">
-                            Nama <span className="text-red-500">*</span>
+                            Nama <span className="text-destructive">*</span>
                         </Label>
                         <Input
                             id="name"
@@ -148,7 +148,7 @@ export function TechnicianDialog({
                     </div>
                     <div className="flex flex-col gap-2">
                         <Label htmlFor="branch">
-                            Service Area - Branch <span className="text-red-500">*</span>
+                            Service Area - Branch <span className="text-destructive">*</span>
                         </Label>
                         <Popover open={branchOpen} onOpenChange={setBranchOpen}>
                             <PopoverTrigger asChild>
@@ -210,7 +210,7 @@ export function TechnicianDialog({
                     </div>
                     <div className="flex flex-col gap-2">
                         <Label htmlFor="mitra">
-                            Mitra <span className="text-red-500">*</span>
+                            Mitra <span className="text-destructive">*</span>
                         </Label>
                         <Popover open={mitraOpen} onOpenChange={setMitraOpen}>
                             <PopoverTrigger asChild>
@@ -276,7 +276,7 @@ export function TechnicianDialog({
                         Batal
                     </Button>
                     <Button type="submit" disabled={isPending}>
-                        Simpan
+                        {isPending ? 'Menyimpan...' : 'Simpan'}
                     </Button>
                 </div>
             </form>

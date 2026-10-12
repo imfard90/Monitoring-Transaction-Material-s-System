@@ -53,21 +53,21 @@ export default function OutMaterialDetailModal({
                     <p className="font-medium">{row.id_reservasi || '-'}</p>
                 </div>
                 <div>
-                    <p className="text-muted-foreground mb-1">SAP Number</p>
+                    <p className="text-muted-foreground mb-1">Nomor SAP</p>
                     <p className="font-medium">{row.sap_number || '-'}</p>
                 </div>
             </div>
 
             <div className="mt-6">
-                <h4 className="font-semibold mb-3">List Material</h4>
+                <h4 className="font-semibold mb-3">Daftar Material</h4>
                 <div className="rounded-md border overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="bg-muted/50 text-foreground">
                             <tr>
                                 <th className="px-4 py-3 border-b font-medium">No</th>
                                 <th className="px-4 py-3 border-b font-medium">Designator</th>
-                                <th className="px-4 py-3 border-b font-medium">Qty Req</th>
-                                <th className="px-4 py-3 border-b font-medium">Qty Used</th>
+                                <th className="px-4 py-3 border-b font-medium">Jumlah Diajukan</th>
+                                <th className="px-4 py-3 border-b font-medium">Jumlah Terpakai</th>
                                 <th className="px-4 py-3 border-b font-medium">Status</th>
                             </tr>
                         </thead>
@@ -89,7 +89,7 @@ export default function OutMaterialDetailModal({
                                         className="text-center py-4 text-muted-foreground"
                                         role="status"
                                     >
-                                        No items found
+                                        Tidak ada item yang ditemukan
                                     </td>
                                 </tr>
                             ) : (

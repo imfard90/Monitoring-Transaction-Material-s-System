@@ -177,7 +177,7 @@ export default function HasilRekonTable({
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                        className="h-8 w-8 text-primary hover:text-primary/80 hover:bg-primary/10"
                                         onClick={() => {
                                             if (onEditClick) onEditClick(info.row.original);
                                         }}
@@ -189,9 +189,9 @@ export default function HasilRekonTable({
                                 <TooltipContent>
                                     <p>
                                         {isNewRekon
-                                            ? 'New Rekon cannot be edited'
+                                            ? 'Rekon baru tidak dapat diedit'
                                             : isLensa
-                                              ? 'Rekon Lensa cannot be edited'
+                                              ? 'Rekon lensa tidak dapat diedit'
                                               : 'Edit Rekon'}
                                     </p>
                                 </TooltipContent>

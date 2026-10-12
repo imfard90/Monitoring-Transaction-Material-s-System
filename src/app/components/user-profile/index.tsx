@@ -288,7 +288,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                                 <Button
                                                     variant="link"
                                                     size="sm"
-                                                    className="h-auto p-0 text-xs text-blue-500"
+                                                    className="h-auto p-0 text-xs text-primary"
                                                     onClick={handleSendVerification}
                                                     disabled={isSendingVerification}
                                                 >
@@ -302,13 +302,15 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                             </div>
                             <div>
                                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                                    Account Status
+                                    Status Akun
                                 </p>
                                 <p>
                                     {profileData?.is_active ? (
-                                        <span className="text-success">Active</span>
+                                        <span className="text-success font-medium">Aktif</span>
                                     ) : (
-                                        <span className="text-error">Inactive</span>
+                                        <span className="text-destructive font-medium">
+                                            Nonaktif
+                                        </span>
                                     )}
                                 </p>
                             </div>
@@ -827,7 +829,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                 title="API Key Berhasil Dibuat"
             >
                 <div className="space-y-4 py-2">
-                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-600 dark:text-amber-400 text-sm space-y-1">
+                    <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg text-warning-foreground text-sm space-y-1">
                         <div className="flex items-center gap-2 font-medium">
                             <Icon icon="lucide:alert-triangle" width="16" />
                             Penting: Simpan Kunci Sekarang

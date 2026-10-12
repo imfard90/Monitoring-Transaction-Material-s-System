@@ -194,7 +194,7 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
         >
             {isLoading ? (
                 <div className="py-8 flex justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
             ) : (
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -223,7 +223,7 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
                                             })}
                                         />
                                         {err && (
-                                            <span className="text-xs text-red-500">
+                                            <span className="text-xs text-destructive">
                                                 {err.message}
                                             </span>
                                         )}
@@ -234,7 +234,7 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-1"
+                                            className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-1"
                                             onClick={() => remove(index)}
                                         >
                                             <Trash2 className="w-4 h-4" />

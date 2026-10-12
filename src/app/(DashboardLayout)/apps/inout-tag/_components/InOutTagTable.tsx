@@ -157,13 +157,13 @@ export default function InOutTagTable({
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => onUpdateClick(row)}
-                                            className="h-8 w-8 text-blue-600"
+                                            className="h-8 w-8 text-primary hover:text-primary/80 hover:bg-primary/10"
                                         >
                                             <Edit2 size={16} />
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p>Update Tag</p>
+                                        <p>Perbarui Tag</p>
                                     </TooltipContent>
                                 </Tooltip>
                             )}

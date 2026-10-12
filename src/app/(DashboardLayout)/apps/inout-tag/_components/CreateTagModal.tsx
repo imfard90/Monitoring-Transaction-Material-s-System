@@ -93,11 +93,12 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
     // Mutation
     const createMutation = useMutation({
         mutationFn: async () => {
-            if (!fromWhId || !toWhId) throw new Error('From WH and To WH are required');
-            if (fromWhId === toWhId) throw new Error('From WH and To WH cannot be the same');
-            if (items.length === 0) throw new Error('At least one material is required');
+            if (!fromWhId || !toWhId) throw new Error('Gudang Asal dan Gudang Tujuan wajib diisi');
+            if (fromWhId === toWhId)
+                throw new Error('Gudang Asal dan Gudang Tujuan tidak boleh sama');
+            if (items.length === 0) throw new Error('Minimal satu material harus ditambahkan');
             if (items.some((i) => !i.designator_id || Number(i.qty) <= 0))
-                throw new Error('All materials must be selected and have quantity > 0');
+                throw new Error('Semua material harus dipilih dan memiliki jumlah > 0');
 
             const idemKey = generateIdempotencyKey();
             setIdempotencyKey(idemKey, 'inventoryTx');
@@ -153,7 +154,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                 {/* LEFT COLUMN */}
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label>From WH</Label>
+                        <Label>Gudang Asal</Label>
                         <Popover open={openFrom} onOpenChange={setOpenFrom}>
                             <PopoverTrigger asChild>
                                 <Button
@@ -205,7 +206,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                     </div>
 
                     <div className="space-y-2">
-                        <Label>To WH</Label>
+                        <Label>Gudang Tujuan</Label>
                         <Popover open={openTo} onOpenChange={setOpenTo}>
                             <PopoverTrigger asChild>
                                 <Button
@@ -277,7 +278,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                             </TooltipProvider>
                         </div>
                         <Input
-                            placeholder="e.g. REQ-2026-001"
+                            placeholder="Contoh: REQ-2026-001"
                             value={requestId}
                             onChange={(e) => setRequestId(e.target.value)}
                         />
@@ -293,7 +294,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Cost (Rp)</Label>
+                            <Label>Biaya (Rp)</Label>
                             <Input
                                 type="number"
                                 min="0"
@@ -308,9 +309,9 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
             {/* MATERIALS SECTION */}
             <div className="mt-6 space-y-4">
                 <div className="flex justify-between items-center">
-                    <Label className="text-base font-semibold">Material List</Label>
+                    <Label className="text-base font-semibold">Daftar Material</Label>
                     <Button size="sm" variant="outline" onClick={handleAddItem} className="gap-2">
-                        <Plus size={14} /> Add Material
+                        <Plus size={14} /> Tambah Material
                     </Button>
                 </div>
 
@@ -319,12 +320,12 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                         <TableHeader className="bg-muted/50">
                             <TableRow>
                                 <TableHead className="w-12 text-center">No</TableHead>
-                                <TableHead>Designator/Code</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead className="w-24">Unit</TableHead>
-                                <TableHead className="w-24">Stock</TableHead>
-                                <TableHead className="w-32">Qty</TableHead>
-                                <TableHead className="w-16 text-center">Action</TableHead>
+                                <TableHead>Designator / Kode</TableHead>
+                                <TableHead>Deskripsi</TableHead>
+                                <TableHead className="w-24">Satuan</TableHead>
+                                <TableHead className="w-24">Stok</TableHead>
+                                <TableHead className="w-32">Jumlah</TableHead>
+                                <TableHead className="w-16 text-center">Aksi</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -334,7 +335,8 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                                         colSpan={7}
                                         className="text-center text-muted-foreground py-6"
                                     >
-                                        No materials added. Click "Add Material" to start.
+                                        Belum ada material yang ditambahkan. Klik "Tambah Material"
+                                        untuk memulai.
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -356,10 +358,10 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
 
             <div className="flex justify-end gap-3 mt-6 border-t pt-4">
                 <Button variant="outline" onClick={onClose} disabled={createMutation.isPending}>
-                    Cancel
+                    Batal
                 </Button>
                 <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
-                    {createMutation.isPending ? 'Saving...' : 'Save Tag'}
+                    {createMutation.isPending ? 'Menyimpan...' : 'Simpan Tag'}
                 </Button>
             </div>
         </ModalDialog>
@@ -460,7 +462,7 @@ function MaterialRow({
                             val > selectedMat.qty_stock
                         ) {
                             val = selectedMat.qty_stock;
-                            toast.error(`Maximum quantity is ${selectedMat.qty_stock}`);
+                            toast.error(`Jumlah maksimal adalah ${selectedMat.qty_stock}`);
                         }
                         onItemChange(item.id, 'qty', val);
                     }}
@@ -470,7 +472,7 @@ function MaterialRow({
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-red-500 hover:text-red-700"
+                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={() => onRemoveItem(item.id)}
                 >
                     <Trash2 size={14} />

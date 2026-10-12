@@ -21,6 +21,7 @@ interface ConfirmDialogProps {
     confirmText?: string;
     cancelText?: string;
     icon?: React.ReactNode;
+    variant?: 'default' | 'destructive';
 }
 
 export function ConfirmDialog({
@@ -34,6 +35,7 @@ export function ConfirmDialog({
     confirmText = 'Submit Sekarang',
     cancelText = 'Kembali & Edit',
     icon = <Send size={16} />,
+    variant = 'default',
 }: ConfirmDialogProps) {
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -49,7 +51,7 @@ export function ConfirmDialog({
 
                 <div className="p-6 max-h-[70vh] overflow-y-auto">{children}</div>
 
-                <DialogFooter className="p-6 bg-slate-50 border-t">
+                <DialogFooter className="p-6 bg-muted/30 border-t">
                     <Button
                         variant="outline"
                         onClick={() => onOpenChange(false)}
@@ -57,9 +59,14 @@ export function ConfirmDialog({
                     >
                         {cancelText}
                     </Button>
-                    <Button onClick={onConfirm} disabled={loading} className="gap-2">
+                    <Button
+                        variant={variant === 'destructive' ? 'destructive' : 'default'}
+                        onClick={onConfirm}
+                        disabled={loading}
+                        className="gap-2"
+                    >
                         {icon}
-                        {loading ? 'Submitting...' : confirmText}
+                        {loading ? 'Memproses...' : confirmText}
                     </Button>
                 </DialogFooter>
             </DialogContent>

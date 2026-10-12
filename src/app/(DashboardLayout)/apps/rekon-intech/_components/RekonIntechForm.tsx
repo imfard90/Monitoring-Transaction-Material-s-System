@@ -189,7 +189,7 @@ export default function RekonIntechForm() {
             <CardBox className="p-6">
                 <form onSubmit={handlePreSubmit} className="space-y-8">
                     <StaggerItem>
-                        <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
+                        <h2 className="text-lg font-bold text-foreground mb-4 border-b pb-2">
                             Form Rekon Intech (Pemakaian Material)
                         </h2>
 
@@ -488,7 +488,7 @@ export default function RekonIntechForm() {
                                                     <TableCell className="text-sm">
                                                         {mat?.description}
                                                     </TableCell>
-                                                    <TableCell className="text-center font-bold text-blue-600">
+                                                    <TableCell className="text-center font-bold text-primary">
                                                         {item.qty}
                                                     </TableCell>
                                                 </TableRow>
