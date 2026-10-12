@@ -130,6 +130,7 @@ Sebelum menyatakan tugas selesai, pastikan:
 - [ ] `tsc` + `biome` lolos.
 - [ ] Untuk perubahan UI: checklist UI terpenuhi (primitif `src/components/ui/*`, token tema, responsif, dark mode, a11y, state UI lengkap default/loading/empty/error, salinan Bahasa Indonesia, skill `ui-ux-pro-max`).
 - [ ] External REST API sesuai standar §1.5 (jika membuat/mengubah endpoint publik).
+- [ ] Dokumentasi Keputusan (ADR): jika tugas memperkenalkan perubahan arsitektural lintas modul, skema kritis, atau pustaka baru, catat di `docs/adr/` menggunakan format `docs/adr/TEMPLATE.md` dan daftarkan di `docs/adr/README.md`.
 
 - [ ] `docs/AUDIT_REPORT.md` diperbarui status temuan terkait.
 
