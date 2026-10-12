@@ -113,23 +113,32 @@ export default function UpdateTagModal({
         if (isOpen && row && items.length > 0) {
             setActionId('');
 
-            // Filter items to show latest qty (if they exist).
-            // Assuming we just group by designator_id and take the most recent action qty,
-            // or simply use the initial requests as base for the next step.
-            const baseItems = items
-                .filter((i) => isReturn || i.action === 'request')
-                .map((i) => ({
-                    id: crypto.randomUUID(),
-                    designator_id: Number(i.designator_id) || 0,
-                    code: i.material_code || '',
-                    description: i.material_description || '',
-                    unit: i.material_unit || '',
-                    qty: i.qty,
-                }));
+            // For inout tags: when accepting, default quantities to the sent quantities if available;
+            // when sending, default quantities to requested quantities.
+            // For return: take all items.
+            let relevantItems = items;
+            if (!isReturn) {
+                const sendItems = items.filter((i) => i.action === 'send');
+                const reqItems = items.filter((i) => i.action === 'request');
+                if (actionType === 'accept' && sendItems.length > 0) {
+                    relevantItems = sendItems;
+                } else if (reqItems.length > 0) {
+                    relevantItems = reqItems;
+                }
+            }
+
+            const baseItems = relevantItems.map((i) => ({
+                id: crypto.randomUUID(),
+                designator_id: Number(i.designator_id) || 0,
+                code: i.material_code || '',
+                description: i.material_description || '',
+                unit: i.material_unit || '',
+                qty: i.qty,
+            }));
 
             setMaterialItems(baseItems);
         }
-    }, [isOpen, row, items, isReturn]);
+    }, [isOpen, row, items, isReturn, actionType]);
 
     const updateMutation = useMutation({
         mutationFn: async () => {

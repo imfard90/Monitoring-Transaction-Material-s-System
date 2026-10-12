@@ -51,6 +51,7 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
                 'r.accept_id',
                 'r.end_status',
                 'r.created_at as request_time',
+                'r.warehouse_id as to_wh_id',
                 't.name as from_wh_name',
                 'wh_to.name as to_wh_name',
             ])
@@ -67,8 +68,13 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
             .execute();
 
         // Merge and format
-        const allTags = [
-            ...inoutHeaders.map((h) => ({ ...h, type: 'inout' })),
+        const allTags: InOutTagRow[] = [
+            ...inoutHeaders.map((h) => ({
+                ...h,
+                from_wh_id: Number(h.from_wh_id) || null,
+                to_wh_id: Number(h.to_wh_id) || null,
+                type: 'inout' as const,
+            })),
             ...returnHeaders.map((r) => ({
                 id: r.id,
                 id_trx: r.id_trx,
@@ -85,7 +91,9 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
                 name_vendor: null,
                 from_wh_name: `Technician: ${r.from_wh_name}`,
                 to_wh_name: r.to_wh_name,
-                type: 'return',
+                from_wh_id: null,
+                to_wh_id: Number(r.to_wh_id) || null,
+                type: 'return' as const,
             })),
         ];
 
@@ -460,7 +468,9 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
                 name_vendor,
                 from_wh_name,
                 to_wh_name,
-                type
+                type,
+                wh_from_id as from_wh_id,
+                wh_to_id as to_wh_id
             FROM combined
             ${filterWhere}
             ORDER BY request_time DESC
@@ -468,10 +478,16 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
         `;
         const dataRes = await dataQuery.execute(db);
 
+        const tags = dataRes.rows.map((row) => ({
+            ...row,
+            from_wh_id: row.from_wh_id ? Number(row.from_wh_id) : null,
+            to_wh_id: row.to_wh_id ? Number(row.to_wh_id) : null,
+        }));
+
         return {
             success: true,
             data: {
-                tags: dataRes.rows,
+                tags,
                 total,
                 page,
                 pageSize,

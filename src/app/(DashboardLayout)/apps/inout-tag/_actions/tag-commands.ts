@@ -137,7 +137,7 @@ export async function updateTag(payload: {
         // - request : only non-Staff (Admin/Supervisor/etc.)
         // - send    : only non-Staff OR PIC of the sending warehouse (from_wh_id)
         // - accept  : only non-Staff OR PIC of the receiving warehouse (to_wh_id)
-        const { isStaff, nik } = await getSessionUser();
+        const { isStaff, nik, warehouseIds } = await getSessionUser();
 
         if (isStaff) {
             if (payload.actionType === 'request') {
@@ -150,9 +150,11 @@ export async function updateTag(payload: {
             // Resolve from/to wh + PICs for this header
             const header = await db
                 .selectFrom('inventory.inout_tag_header as h')
-                .innerJoin('inventory.mas_wh as wh_from', 'wh_from.id', 'h.from_wh_id')
-                .innerJoin('inventory.mas_wh as wh_to', 'wh_to.id', 'h.to_wh_id')
+                .leftJoin('inventory.mas_wh as wh_from', 'wh_from.id', 'h.from_wh_id')
+                .leftJoin('inventory.mas_wh as wh_to', 'wh_to.id', 'h.to_wh_id')
                 .select([
+                    'h.from_wh_id',
+                    'h.to_wh_id',
                     'wh_from.pic_1 as from_pic_1',
                     'wh_from.pic_2 as from_pic_2',
                     'wh_to.pic_1 as to_pic_1',
@@ -165,8 +167,15 @@ export async function updateTag(payload: {
                 return { success: false, error: 'Transaksi tidak ditemukan.' };
             }
 
-            const isSenderPic = nik === header.from_pic_1 || nik === header.from_pic_2;
-            const isReceiverPic = nik === header.to_pic_1 || nik === header.to_pic_2;
+            const isSenderPic =
+                nik === header.from_pic_1 ||
+                nik === header.from_pic_2 ||
+                (header.from_wh_id !== null && warehouseIds.includes(Number(header.from_wh_id)));
+
+            const isReceiverPic =
+                nik === header.to_pic_1 ||
+                nik === header.to_pic_2 ||
+                (header.to_wh_id !== null && warehouseIds.includes(Number(header.to_wh_id)));
 
             if (payload.actionType === 'send' && !isSenderPic) {
                 return {
@@ -237,6 +246,59 @@ export async function updateTag(payload: {
 
 export async function cancelTag(headerId: number, type?: string) {
     try {
+        const { isStaff, warehouseIds, nik } = await getSessionUser();
+
+        if (isStaff) {
+            if (type === 'return') {
+                const ret = await db
+                    .selectFrom('inventory.return_material_header')
+                    .select('warehouse_id')
+                    .where('id', '=', String(headerId))
+                    .executeTakeFirst();
+
+                if (!ret || !ret.warehouse_id || !warehouseIds.includes(Number(ret.warehouse_id))) {
+                    return {
+                        success: false,
+                        error: 'Akses ditolak: Anda tidak memiliki akses membatalkan transaksi ini.',
+                    };
+                }
+            } else {
+                const header = await db
+                    .selectFrom('inventory.inout_tag_header as h')
+                    .leftJoin('inventory.mas_wh as wh_from', 'wh_from.id', 'h.from_wh_id')
+                    .leftJoin('inventory.mas_wh as wh_to', 'wh_to.id', 'h.to_wh_id')
+                    .select([
+                        'h.from_wh_id',
+                        'h.to_wh_id',
+                        'wh_from.pic_1 as from_pic_1',
+                        'wh_from.pic_2 as from_pic_2',
+                        'wh_to.pic_1 as to_pic_1',
+                        'wh_to.pic_2 as to_pic_2',
+                    ])
+                    .where('h.id', '=', String(headerId))
+                    .executeTakeFirst();
+
+                if (!header) {
+                    return { success: false, error: 'Transaksi tidak ditemukan.' };
+                }
+
+                const hasAccess =
+                    nik === header.from_pic_1 ||
+                    nik === header.from_pic_2 ||
+                    nik === header.to_pic_1 ||
+                    nik === header.to_pic_2 ||
+                    (header.from_wh_id !== null && warehouseIds.includes(Number(header.from_wh_id))) ||
+                    (header.to_wh_id !== null && warehouseIds.includes(Number(header.to_wh_id)));
+
+                if (!hasAccess) {
+                    return {
+                        success: false,
+                        error: 'Akses ditolak: Anda tidak memiliki akses membatalkan transaksi ini.',
+                    };
+                }
+            }
+        }
+
         if (type === 'return') {
             await db
                 .updateTable('inventory.return_material_header')
@@ -278,6 +340,26 @@ export async function acceptReturnTag(headerId: number, acceptId: string, idemKe
     }
 
     try {
+        const { isStaff, warehouseIds } = await getSessionUser();
+        if (isStaff) {
+            const ret = await db
+                .selectFrom('inventory.return_material_header')
+                .select('warehouse_id')
+                .where('id', '=', String(headerId))
+                .executeTakeFirst();
+
+            if (!ret) {
+                return { success: false, error: 'Transaksi tidak ditemukan.' };
+            }
+
+            if (!ret.warehouse_id || !warehouseIds.includes(Number(ret.warehouse_id))) {
+                return {
+                    success: false,
+                    error: 'Akses ditolak: hanya PIC gudang tujuan return yang dapat menerima transaksi ini.',
+                };
+            }
+        }
+
         const { isDuplicate } = await checkAndStoreIdempotency(
             idemKey,
             { headerId, acceptId },
