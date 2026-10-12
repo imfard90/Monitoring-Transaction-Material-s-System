@@ -5,17 +5,17 @@ import { StockIntechOverview } from '../../components/dashboard/StockIntechOverv
 import BreadcrumbComp from '../layout/shared/breadcrumb/BreadcrumbComp';
 
 export const metadata: Metadata = {
-    title: 'Stock Intech',
-    description: 'Overview of stock intech',
+    title: 'Stok Intech',
+    description: 'Monitoring stok material integrasi teknisi',
 };
 
 const BCrumb = [
     {
         to: '/',
-        title: 'Home',
+        title: 'Beranda',
     },
     {
-        title: 'Stock Intech',
+        title: 'Stok Intech',
     },
 ];
 
@@ -23,7 +23,7 @@ const StockIntechPage = () => {
     return (
         <StaggerContainer className="flex flex-col flex-1 h-full min-h-0">
             <StaggerItem className="shrink-0">
-                <BreadcrumbComp title="Stock Intech" items={BCrumb} />
+                <BreadcrumbComp title="Stok Intech" items={BCrumb} />
             </StaggerItem>
             <StaggerItem className="flex flex-col flex-1 min-h-0">
                 <StockIntechOverview />

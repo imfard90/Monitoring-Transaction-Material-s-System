@@ -206,7 +206,7 @@ export default function RekonIntechForm() {
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                                 <div className="space-y-2">
-                                    <Label>WO Type *</Label>
+                                    <Label>Tipe WO *</Label>
                                     <Select
                                         value={globalWoType}
                                         onValueChange={setGlobalWoType}
@@ -226,7 +226,7 @@ export default function RekonIntechForm() {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>WO Number *</Label>
+                                    <Label>Nomor WO *</Label>
                                     <Input
                                         value={globalWoNumber}
                                         onChange={(e) => setGlobalWoNumber(e.target.value)}
@@ -236,7 +236,7 @@ export default function RekonIntechForm() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Notes</Label>
+                                    <Label>Catatan</Label>
                                     <Input
                                         value={globalNotes}
                                         onChange={(e) => setGlobalNotes(e.target.value)}
@@ -259,7 +259,7 @@ export default function RekonIntechForm() {
                                     className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50"
                                     role="status"
                                 >
-                                    Loading materials...
+                                    Memuat data material...
                                 </div>
                             ) : materials.length === 0 ? (
                                 <div
@@ -277,25 +277,25 @@ export default function RekonIntechForm() {
                                                     No
                                                 </TableHead>
                                                 <TableHead className="min-w-[150px] py-1 px-2">
-                                                    Request Time
+                                                    Waktu Permintaan
                                                 </TableHead>
                                                 <TableHead className="min-w-[150px] py-1 px-2">
                                                     ID Trx (SAP)
                                                 </TableHead>
                                                 <TableHead className="min-w-[120px] py-1 px-2">
-                                                    SAP Number
+                                                    Nomor SAP
                                                 </TableHead>
                                                 <TableHead className="min-w-[120px] py-1 px-2">
-                                                    Material Code
+                                                    Kode Material
                                                 </TableHead>
                                                 <TableHead className="min-w-[200px] py-1 px-2">
-                                                    Material Name
+                                                    Nama Material
                                                 </TableHead>
                                                 <TableHead className="text-center w-[100px] py-1 px-2">
-                                                    Qty Intech
+                                                    Jumlah Intech
                                                 </TableHead>
                                                 <TableHead className="w-[120px] py-1 px-2">
-                                                    Qty Used
+                                                    Jumlah Digunakan
                                                 </TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -341,7 +341,7 @@ export default function RekonIntechForm() {
                                                             <TableCell className="text-sm py-1 px-2">
                                                                 {m.description}
                                                             </TableCell>
-                                                            <TableCell className="text-center font-bold text-blue-600 py-1 px-2 text-sm">
+                                                            <TableCell className="text-center font-bold text-primary py-1 px-2 text-sm">
                                                                 {availableQty}
                                                             </TableCell>
                                                             <TableCell className="py-1 px-2">
@@ -367,7 +367,7 @@ export default function RekonIntechForm() {
                                                                         ) {
                                                                             val = availableQty;
                                                                             toast.error(
-                                                                                `Maximum quantity is ${availableQty}`
+                                                                                `Jumlah maksimal adalah ${availableQty}`
                                                                             );
                                                                         }
 
@@ -411,7 +411,7 @@ export default function RekonIntechForm() {
                             }}
                             disabled={loading}
                         >
-                            Cancel
+                            Batal
                         </Button>
                         <Button
                             type="submit"
@@ -419,7 +419,7 @@ export default function RekonIntechForm() {
                             className="gap-2"
                         >
                             <FileText size={16} />
-                            Review Rekon
+                            Tinjau Rekon
                         </Button>
                     </StaggerItem>
                 </form>
@@ -434,25 +434,25 @@ export default function RekonIntechForm() {
                     loading={loading}
                 >
                     <div className="space-y-4">
-                        <p className="rounded-md border border-amber-300 bg-amber-50 p-4 text-lg font-semibold leading-relaxed text-amber-950">
-                            Apakah anda melakukan rekon manual!!, pastikan WO tersebut tidak di
-                            update menggunakan Lensa
+                        <p className="rounded-md border border-warning/40 bg-warning/10 p-4 text-sm font-semibold leading-relaxed text-foreground">
+                            Apakah anda melakukan rekon manual? Pastikan WO tersebut tidak di-update
+                            menggunakan Lensa.
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
                             <div>
-                                <span className="text-gray-500 block mb-1">Teknisi:</span>
+                                <span className="text-muted-foreground block mb-1">Teknisi:</span>
                                 <span className="font-medium">{selectedTechName}</span>
                             </div>
                             <div>
-                                <span className="text-gray-500 block mb-1">WO Type:</span>
+                                <span className="text-muted-foreground block mb-1">Tipe WO:</span>
                                 <span className="font-medium uppercase">{globalWoType}</span>
                             </div>
                             <div>
-                                <span className="text-gray-500 block mb-1">WO Number:</span>
+                                <span className="text-muted-foreground block mb-1">Nomor WO:</span>
                                 <span className="font-medium">{globalWoNumber}</span>
                             </div>
                             <div>
-                                <span className="text-gray-500 block mb-1">Notes:</span>
+                                <span className="text-muted-foreground block mb-1">Catatan:</span>
                                 <span>{globalNotes || '-'}</span>
                             </div>
                         </div>

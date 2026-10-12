@@ -6,8 +6,8 @@ import { getInOutTagFilterOptions, getInOutTagsPaginated } from './_actions/tag-
 import InOutTagClient from './_components/InOutTagClient';
 
 export const metadata = {
-    title: "InOut Tag - Monitoring Transaction Material's System",
-    description: 'Data InOut Tag',
+    title: 'InOut Tag | MTMS',
+    description: 'Monitoring transaksi InOut Tag',
 };
 
 const BCrumb = [{ to: '/', title: 'Home' }, { to: '/apps', title: 'Apps' }, { title: 'InOut Tag' }];

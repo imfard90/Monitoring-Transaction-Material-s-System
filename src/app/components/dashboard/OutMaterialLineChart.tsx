@@ -188,19 +188,19 @@ const OutMaterialLineChart: React.FC = () => {
             <div className="relative z-10 sm:flex items-center justify-between mb-6">
                 <div>
                     <h5 className="text-xl font-bold tracking-tight text-foreground">
-                        Out Material by Day (Last 30 Days)
+                        Out Material per Hari (30 Hari Terakhir)
                     </h5>
                     <p className="text-sm text-muted-foreground font-medium mt-1">
-                        Trend of materials usage
+                        Tren penggunaan material harian
                     </p>
                 </div>
                 <div className="sm:mt-0 mt-4 flex gap-3">
                     <Select value={selectedWh} onValueChange={setSelectedWh}>
                         <SelectTrigger className="w-[140px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
-                            <SelectValue placeholder="Select WH" />
+                            <SelectValue placeholder="Pilih Gudang" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All WH</SelectItem>
+                            <SelectItem value="all">Semua Gudang</SelectItem>
                             {warehouses.map((wh) => (
                                 <SelectItem key={wh.id} value={String(wh.id)}>
                                     {wh.name}
@@ -211,10 +211,10 @@ const OutMaterialLineChart: React.FC = () => {
 
                     <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
                         <SelectTrigger className="w-[180px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
-                            <SelectValue placeholder="Select Material" />
+                            <SelectValue placeholder="Pilih Material" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">Top 10 Materials</SelectItem>
+                            <SelectItem value="all">10 Material Teratas</SelectItem>
                             {chartData.allMatNames.map((mat) => (
                                 <SelectItem key={mat} value={mat}>
                                     {mat}

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
@@ -8,17 +9,22 @@ import UserTable from './user-table';
 
 export const dynamic = 'force-dynamic';
 
+export const metadata: Metadata = {
+    title: 'Manajemen Pengguna',
+    description: 'Manajemen hak akses dan persetujuan pengguna sistem MTMS',
+};
+
 const BCrumb = [
     {
         to: '/',
-        title: 'Home',
+        title: 'Beranda',
     },
     {
         to: '#',
-        title: 'Management',
+        title: 'Manajemen',
     },
     {
-        title: 'Users',
+        title: 'Pengguna',
     },
 ];
 
@@ -35,7 +41,7 @@ export default async function UserManagementPage() {
     return (
         <StaggerContainer className="flex flex-col flex-1 ">
             <StaggerItem className="shrink-0">
-                <BreadcrumbComp title="User Management" items={BCrumb} />
+                <BreadcrumbComp title="Manajemen Pengguna" items={BCrumb} />
             </StaggerItem>
 
             <StaggerItem className="bg-card rounded-lg border shadow-sm mt-4  flex-1 flex flex-col">

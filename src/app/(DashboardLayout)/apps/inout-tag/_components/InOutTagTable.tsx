@@ -77,7 +77,7 @@ export default function InOutTagTable({
 
     const columns = [
         columnHelper.accessor('request_time', {
-            header: 'Request Time',
+            header: 'Waktu Permintaan',
             size: 160,
             cell: (info) =>
                 info.getValue()
@@ -90,22 +90,22 @@ export default function InOutTagTable({
             cell: (info) => <span className="font-medium">{info.getValue()}</span>,
         }),
         columnHelper.accessor('from_wh_name', {
-            header: 'From WH',
+            header: 'Dari Gudang',
             size: 150,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('to_wh_name', {
-            header: 'To WH',
+            header: 'Tujuan Gudang',
             size: 150,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('request_id', {
-            header: 'Request ID',
+            header: 'ID Permintaan',
             size: 140,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('send_id', {
-            header: 'Send ID',
+            header: 'ID Kirim',
             size: 140,
             cell: (info) => info.getValue() || '-',
         }),
@@ -115,7 +115,7 @@ export default function InOutTagTable({
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('accept_id', {
-            header: 'Accept ID',
+            header: 'ID Terima',
             size: 130,
             cell: (info) => info.getValue() || '-',
         }),
@@ -126,7 +126,7 @@ export default function InOutTagTable({
         }),
         columnHelper.display({
             id: 'actions',
-            header: 'Action',
+            header: 'Aksi',
             size: 90,
             cell: (info) => {
                 const row = info.row.original;
@@ -205,12 +205,12 @@ export default function InOutTagTable({
     });
 
     return (
-        <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
-            <StaggerItem className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
+        <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0">
+            <StaggerItem className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 p-0.5">
                 <div className="flex flex-wrap items-center gap-3 flex-1 w-full">
-                    <div className="relative w-full md:w-64">
+                    <div className="relative w-full sm:w-72 md:w-80">
                         <Input
-                            placeholder="Search request, send, accept id..."
+                            placeholder="Cari ID permintaan, kirim, terima..."
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
                             className="pl-9 bg-background"
@@ -305,7 +305,7 @@ export default function InOutTagTable({
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Clear all filters</p>
+                                    <p>Hapus semua filter</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -317,7 +317,8 @@ export default function InOutTagTable({
                         onClick={onCreateClick}
                         className="flex items-center gap-2 w-full md:w-auto"
                     >
-                        <Plus size={16} /> Create Tag
+                        <Plus size={16} />
+                        Buat Tag
                     </Button>
                 )}
             </StaggerItem>
@@ -326,7 +327,7 @@ export default function InOutTagTable({
                 <DataTable
                     table={table}
                     isLoading={isLoading}
-                    emptyMessage="No tags found."
+                    emptyMessage="Tidak ada data tag."
                     className="rounded-md border border-border flex-1 md:overflow-auto relative max-h-[600px]"
                 />
             </StaggerItem>

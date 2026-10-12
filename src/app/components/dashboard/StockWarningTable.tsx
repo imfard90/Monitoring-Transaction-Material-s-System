@@ -47,7 +47,7 @@ export const StockWarningTable = () => {
             <div className="relative z-10 mb-6">
                 <div>
                     <h5 className="text-xl font-bold tracking-tight text-foreground">
-                        Stock Minimum Warning
+                        Peringatan Stok Minimum
                     </h5>
                     <p className="text-sm text-muted-foreground font-medium mt-1">
                         Daftar material yang memerlukan isi ulang stok
@@ -59,14 +59,14 @@ export const StockWarningTable = () => {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>WH</TableHead>
-                            <TableHead>Material</TableHead>
-                            <TableHead className="text-right">Avg Demand</TableHead>
-                            <TableHead className="text-right">Lead Time</TableHead>
-                            <TableHead className="text-right">Safety %</TableHead>
-                            <TableHead className="text-right">Min Qty</TableHead>
-                            <TableHead className="text-right">Stock HI</TableHead>
-                            <TableHead className="text-center">Warning</TableHead>
+                            <TableHead>Gudang</TableHead>
+                            <TableHead>Kode Material</TableHead>
+                            <TableHead className="text-right">Rata-rata Kebutuhan</TableHead>
+                            <TableHead className="text-right">Lead Time (Mg)</TableHead>
+                            <TableHead className="text-right">Safety Stock %</TableHead>
+                            <TableHead className="text-right">Stok Min</TableHead>
+                            <TableHead className="text-right">Stok Saat Ini</TableHead>
+                            <TableHead className="text-center">Status</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -120,14 +120,14 @@ export const StockWarningTable = () => {
                                                         variant="outline"
                                                         className="bg-warning/10 text-warning border-warning/20"
                                                     >
-                                                        Warning
+                                                        Peringatan
                                                     </Badge>
                                                 ) : (
                                                     <Badge
                                                         variant="outline"
                                                         className="bg-success/10 text-success border-success/20"
                                                     >
-                                                        Safe
+                                                        Aman
                                                     </Badge>
                                                 )}
                                             </TableCell>

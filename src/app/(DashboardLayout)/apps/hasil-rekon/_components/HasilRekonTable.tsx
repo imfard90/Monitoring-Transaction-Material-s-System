@@ -152,7 +152,7 @@ export default function HasilRekonTable({
             ),
         }),
         columnHelper.accessor('qty', {
-            header: () => <div className="text-center whitespace-nowrap">Qty</div>,
+            header: () => <div className="text-center whitespace-nowrap">Jumlah</div>,
             size: 65,
             cell: (info) => (
                 <div className="text-center whitespace-nowrap text-sm font-bold text-foreground">
@@ -162,7 +162,7 @@ export default function HasilRekonTable({
         }),
         columnHelper.display({
             id: 'actions',
-            header: () => <div className="text-center">Action</div>,
+            header: () => <div className="text-center">Aksi</div>,
             size: 65,
             cell: (info) => {
                 const isLensa = info.row.original.type === 'lensa';
@@ -234,18 +234,20 @@ export default function HasilRekonTable({
     });
 
     return (
-        <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
+        <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0">
             {/* Toolbar */}
-            <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4 shrink-0">
+            <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4 shrink-0 p-0.5">
                 <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
-                    <div className="relative w-full sm:w-72">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <div className="relative w-full sm:w-72 md:w-80">
                         <Input
-                            type="search"
-                            placeholder="Search TRX, SAP, NIK, or WO..."
+                            placeholder="Cari TRX, SAP, NIK, atau WO..."
                             className="pl-9 bg-background"
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
+                        />
+                        <Search
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                            size={16}
                         />
                     </div>
 
@@ -263,10 +265,10 @@ export default function HasilRekonTable({
                                 value={warehouseFilter || ''}
                                 onValueChange={onWarehouseFilterChange}
                                 options={[
-                                    { value: 'all', label: 'All Warehouses' },
+                                    { value: 'all', label: 'Semua Gudang' },
                                     ...uniqueWarehouses.map((wh) => ({ value: wh, label: wh })),
                                 ]}
-                                placeholder="All Warehouses"
+                                placeholder="Semua Gudang"
                             />
                         </div>
                     )}
@@ -277,13 +279,13 @@ export default function HasilRekonTable({
                                 value={typeFilter || ''}
                                 onValueChange={onTypeFilterChange}
                                 options={[
-                                    { value: 'all', label: 'All Types' },
+                                    { value: 'all', label: 'Semua Tipe' },
                                     ...uniqueTypes.map((t) => ({
                                         value: t,
                                         label: t.toUpperCase(),
                                     })),
                                 ]}
-                                placeholder="All Types"
+                                placeholder="Semua Tipe"
                             />
                         </div>
                     )}
@@ -294,10 +296,10 @@ export default function HasilRekonTable({
                                 value={materialFilter || ''}
                                 onValueChange={onMaterialFilterChange}
                                 options={[
-                                    { value: 'all', label: 'All Materials' },
+                                    { value: 'all', label: 'Semua Material' },
                                     ...uniqueMaterials.map((mat) => ({ value: mat, label: mat })),
                                 ]}
-                                placeholder="All Materials"
+                                placeholder="Semua Material"
                             />
                         </div>
                     )}
@@ -319,7 +321,7 @@ export default function HasilRekonTable({
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Clear all filters</p>
+                                    <p>Hapus semua filter</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -352,7 +354,7 @@ export default function HasilRekonTable({
             <StaggerItem className="flex-1 md:min-h-0 flex flex-col overflow-hidden">
                 <DataTable
                     table={table}
-                    emptyMessage="No records found."
+                    emptyMessage="Tidak ada data yang ditemukan."
                     className="rounded-md border border-border flex-1 md:overflow-auto relative"
                 />
             </StaggerItem>

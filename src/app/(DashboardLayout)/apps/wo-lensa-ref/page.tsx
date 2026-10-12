@@ -5,8 +5,8 @@ import WOLensaRefClient from './_components/WOLensaRefClient';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
-    title: "WO Lensa Ref - Monitoring Transaction Material's System",
-    description: 'Data WO Lensa Ref',
+    title: 'Referensi WO Lensa | MTMS',
+    description: 'Data referensi Work Order Lensa',
 };
 
 const BCrumb = [

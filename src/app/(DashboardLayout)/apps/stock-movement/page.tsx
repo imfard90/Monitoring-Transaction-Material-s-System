@@ -9,8 +9,8 @@ import {
 import StockMovementClient from './_components/StockMovementClient';
 
 export const metadata: Metadata = {
-    title: 'Stock Movement',
-    description: 'Monitor stock movement history',
+    title: 'Pergerakan Stok | MTMS',
+    description: 'Riwayat pergerakan stok inventaris',
 };
 
 const BCrumb = [
@@ -68,7 +68,7 @@ export default async function StockMovementPage({
     ]);
 
     return (
-        <div className="flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
+        <div className="flex flex-col flex-1 md:h-full md:min-h-0">
             <div className="shrink-0">
                 <BreadcrumbComp title="Stock Movement" items={BCrumb} />
             </div>

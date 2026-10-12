@@ -1,10 +1,21 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import {
+    createColumnHelper,
+    getCoreRowModel,
+    getPaginationRowModel,
+    useReactTable,
+} from '@tanstack/react-table';
 import { Search } from 'lucide-react';
 import React, { useState } from 'react';
 import { getStockBalances } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
+import CardBox from '@/app/components/shared/CardBox';
+import { DataTable } from '@/app/components/shared/DataTable';
+import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 
@@ -15,12 +26,6 @@ interface StockBalanceData {
     material_code: string | null;
     qty_stock: number;
 }
-
-import CardBox from '@/app/components/shared/CardBox';
-import { DataTable } from '@/app/components/shared/DataTable';
-import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 
 const columnHelper = createColumnHelper<StockBalanceData>();
 
@@ -64,7 +69,7 @@ export default function StockBalanceOverview() {
 
     const columns = [
         columnHelper.accessor('warehouse_name', {
-            header: 'Warehouse',
+            header: 'Gudang',
             cell: (info) => <span className="font-medium">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('branch_name', {
@@ -72,7 +77,7 @@ export default function StockBalanceOverview() {
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('material_code', {
-            header: 'Material Code',
+            header: 'Kode Material',
             cell: (info) => (
                 <Badge variant="outline" className="font-mono text-xs">
                     {info.getValue() || '-'}
@@ -80,11 +85,11 @@ export default function StockBalanceOverview() {
             ),
         }),
         columnHelper.accessor('material_name', {
-            header: 'Material Name',
+            header: 'Nama Material',
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('qty_stock', {
-            header: () => <div className="text-right">Qty Stock</div>,
+            header: () => <div className="text-right">Jumlah Stok</div>,
             cell: (info) => {
                 const qty = Number(info.getValue());
                 return (
@@ -102,6 +107,8 @@ export default function StockBalanceOverview() {
         data: filteredBalances,
         columns,
         getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        initialState: { pagination: { pageSize: 20 } },
     });
 
     return (
@@ -111,16 +118,16 @@ export default function StockBalanceOverview() {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-4">
                         <div>
                             <h2 className="text-lg font-bold text-foreground">
-                                Real-time Stock Balance
+                                Saldo Stok Real-time
                             </h2>
                             <p className="text-sm text-muted-foreground">
-                                Monitoring material stock per warehouse
+                                Monitoring saldo material per gudang
                             </p>
                         </div>
                         <div className="flex items-center gap-3 w-full sm:w-auto">
                             <div className="relative w-full sm:w-64">
                                 <Input
-                                    placeholder="Search material code/name..."
+                                    placeholder="Cari kode atau nama material..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="pl-9"
@@ -143,8 +150,11 @@ export default function StockBalanceOverview() {
                     <DataTable
                         table={table}
                         isLoading={isLoading}
-                        emptyMessage="No stock balance found."
+                        emptyMessage="Tidak ada data saldo stok."
                     />
+                    <div className="pt-4">
+                        <DataTablePagination table={table} />
+                    </div>
                 </CardBox>
             </StaggerItem>
         </StaggerContainer>

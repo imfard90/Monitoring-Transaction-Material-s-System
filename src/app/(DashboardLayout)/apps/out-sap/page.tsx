@@ -3,7 +3,8 @@ import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/Bre
 import OutSapForm from './_components/OutSapForm';
 
 export const metadata: Metadata = {
-    title: 'Out SAP',
+    title: 'Out SAP | MTMS',
+    description: 'Pencatatan transaksi pengeluaran SAP',
 };
 
 const BCrumb = [

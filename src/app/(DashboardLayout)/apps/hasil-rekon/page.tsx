@@ -6,8 +6,8 @@ import { getHasilRekonFilterOptions, getHasilRekonPaginated } from './_actions/r
 import HasilRekonClient from './_components/HasilRekonClient';
 
 export const metadata: Metadata = {
-    title: 'Hasil Rekon',
-    description: 'Monitor reconciliation results',
+    title: 'Hasil Rekonsiliasi | MTMS',
+    description: 'Monitoring hasil rekonsiliasi material',
 };
 
 const BCrumb = [
@@ -65,7 +65,7 @@ export default async function HasilRekonPage({
     ]);
 
     return (
-        <div className="flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
+        <div className="flex flex-col flex-1 md:h-full md:min-h-0">
             <div className="shrink-0">
                 <BreadcrumbComp title="Hasil Rekon" items={BCrumb} />
             </div>

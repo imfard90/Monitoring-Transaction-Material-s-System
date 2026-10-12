@@ -57,7 +57,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, formPosition = 'right
 
     const formPanel = (
         <div className="w-full lg:w-[35%] flex flex-col justify-between p-6 sm:p-8 lg:p-12 min-h-screen overflow-y-auto bg-background dark:bg-background">
-            <div className="flex-1 flex items-center justify-center w-full">
+            <main className="flex-1 flex items-center justify-center w-full">
                 <div className="w-full max-w-md">
                     {/* Mobile Brand */}
                     <div className="lg:hidden mb-8 text-center">
@@ -69,7 +69,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, formPosition = 'right
                     </div>
                     {children}
                 </div>
-            </div>
+            </main>
             <footer className="mt-8 text-center text-sm text-muted-foreground">
                 {`© ${currentYear} Monitoring Transaction Material's System. All rights reserved.`}
             </footer>

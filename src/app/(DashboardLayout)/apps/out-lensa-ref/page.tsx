@@ -5,8 +5,8 @@ import OutLensaRefClient from './_components/OutLensaRefClient';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
-    title: "Out Lensa Ref - Monitoring Transaction Material's System",
-    description: 'Data Out Lensa Ref',
+    title: 'Referensi Out Lensa | MTMS',
+    description: 'Data referensi Out Lensa',
 };
 
 const BCrumb = [

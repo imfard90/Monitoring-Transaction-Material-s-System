@@ -161,13 +161,43 @@ describe('DataTable premium invariants', () => {
         expect(src).toMatch(/motion-reduce/);
     });
 
-    it('DataTablePagination uses Indonesian copy and ARIA labels', async () => {
+    it('DataTablePagination uses Indonesian copy and ARIA labels and persists page size', async () => {
         const src = await readSrc('src/app/components/shared/DataTablePagination.tsx');
         expect(src).toMatch(/Halaman/);
         expect(src).toMatch(/Sebelumnya/);
         expect(src).toMatch(/Berikutnya/);
         expect(src).toMatch(/<nav|role="navigation"/);
         expect(src).toMatch(/aria-label/);
+        expect(src).toMatch(/mtms_table_page_size/);
+    });
+});
+
+describe('transaction forms & overview pagination invariants', () => {
+    it('StockBalanceOverview and StockIntechOverview use DataTablePagination and Indonesian copy', async () => {
+        const stockBal = await readSrc('src/app/components/dashboard/StockBalanceOverview.tsx');
+        expect(stockBal).toMatch(/DataTablePagination/);
+        expect(stockBal).toMatch(/Saldo Stok Real-time/);
+        expect(stockBal).toMatch(/Jumlah Stok/);
+
+        const stockIntech = await readSrc('src/app/components/dashboard/StockIntechOverview.tsx');
+        expect(stockIntech).toMatch(/DataTablePagination/);
+        expect(stockIntech).toMatch(/Ringkasan Stok Intech/);
+        expect(stockIntech).toMatch(/Jumlah Intech/);
+    });
+
+    it('management tables use ConfirmDialog and forbid browser-native window.confirm', async () => {
+        const userTable = await readSrc(
+            'src/app/(DashboardLayout)/management/users/user-table.tsx'
+        );
+        expect(userTable).toMatch(/ConfirmDialog/);
+        expect(userTable).not.toMatch(/window\.confirm/);
+        expect(userTable).toMatch(/Hapus Pengguna/);
+
+        const techTable = await readSrc(
+            'src/app/(DashboardLayout)/management/technician/technician-table.tsx'
+        );
+        expect(techTable).not.toMatch(/window\.confirm/);
+        expect(techTable).toMatch(/Tambah Teknisi/);
     });
 });
 
@@ -192,5 +222,76 @@ describe('DateRangePicker premium invariants', () => {
     it('restricts selection to today or earlier (disables future dates after today)', async () => {
         const src = await readSrc('src/app/components/shared/DateRangePicker.tsx');
         expect(src).toMatch(/disabled=\{\{\s*after:\s*new Date\(\)\s*\}\}/);
+    });
+});
+
+describe('auth accessibility & landmark invariants', () => {
+    it('AuthLayout contains semantic <main> landmark', async () => {
+        const src = await readSrc('src/app/auth/components/AuthLayout.tsx');
+        expect(src).toMatch(/<main/);
+        expect(src).toMatch(/<\/main>/);
+    });
+
+    it('login page checkbox has accessible aria-label and id connection', async () => {
+        const src = await readSrc('src/app/auth/login/page.tsx');
+        expect(src).toMatch(/aria-label="Ingat perangkat ini"/);
+        expect(src).toMatch(/id="remember"/);
+        expect(src).toMatch(/htmlFor="remember"/);
+    });
+});
+
+describe('executive premium localization invariants', () => {
+    it('dashboard charts use Indonesian placeholders and labels', async () => {
+        const sales = await readSrc('src/app/components/dashboard/SalesOverview.tsx');
+        expect(sales).toMatch(/placeholder="Pilih Gudang"/);
+        expect(sales).toMatch(/placeholder="Pilih Periode"/);
+        expect(sales).toMatch(/Semua Gudang/);
+
+        const outMat = await readSrc('src/app/components/dashboard/OutMaterialLineChart.tsx');
+        expect(outMat).toMatch(/placeholder="Pilih Gudang"/);
+        expect(outMat).toMatch(/placeholder="Pilih Material"/);
+        expect(outMat).toMatch(/10 Material Teratas/);
+    });
+
+    it('dashboard carousel and tables use Indonesian copy', async () => {
+        const carousel = await readSrc('src/app/components/dashboard/TopCardsCarousel.tsx');
+        expect(carousel).toMatch(/Pengguna Online/);
+        expect(carousel).toMatch(/Permintaan Tag/);
+        expect(carousel).toMatch(/Retur Teknisi/);
+
+        const warning = await readSrc('src/app/components/dashboard/StockWarningTable.tsx');
+        expect(warning).toMatch(/Peringatan Stok Minimum/);
+        expect(warning).toMatch(/Kode Material/);
+        expect(warning).toMatch(/Stok Saat Ini/);
+
+        const perf = await readSrc('src/app/components/dashboard/ProductPerformance.tsx');
+        expect(perf).toMatch(/Performa Pengeluaran Gudang/);
+        expect(perf).toMatch(/Nama Gudang/);
+        expect(perf).toMatch(/Persentase/);
+    });
+
+    it('transaction tables use Indonesian search and filter placeholders', async () => {
+        const tag = await readSrc(
+            'src/app/(DashboardLayout)/apps/inout-tag/_components/InOutTagTable.tsx'
+        );
+        expect(tag).toMatch(/placeholder="Cari ID permintaan/);
+
+        const out = await readSrc(
+            'src/app/(DashboardLayout)/apps/out-material/_components/OutMaterialTable.tsx'
+        );
+        expect(out).toMatch(/placeholder="Cari ID permintaan/);
+
+        const move = await readSrc(
+            'src/app/(DashboardLayout)/apps/stock-movement/_components/MovementTable.tsx'
+        );
+        expect(move).toMatch(/Semua Gudang/);
+        expect(move).toMatch(/Semua Material/);
+
+        const rekon = await readSrc(
+            'src/app/(DashboardLayout)/apps/hasil-rekon/_components/HasilRekonTable.tsx'
+        );
+        expect(rekon).toMatch(/Semua Gudang/);
+        expect(rekon).toMatch(/Semua Tipe/);
+        expect(rekon).toMatch(/Semua Material/);
     });
 });

@@ -1,11 +1,13 @@
 import { flexRender, type Table } from '@tanstack/react-table';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface DataTableProps<TData> {
     table: Table<TData>;
     isLoading?: boolean;
     emptyMessage?: string;
     className?: string;
+    skeletonRowCount?: number;
 }
 
 export function DataTable<TData>({
@@ -13,7 +15,11 @@ export function DataTable<TData>({
     isLoading = false,
     emptyMessage = 'Belum ada data yang ditemukan.',
     className,
+    skeletonRowCount = 5,
 }: DataTableProps<TData>) {
+    const rows = table.getRowModel().rows;
+    const shouldAnimate = rows.length > 0 && rows.length <= 25;
+
     return (
         <div className={className || 'rounded-md border overflow-x-auto'} aria-busy={isLoading}>
             <table className="w-full text-sm text-left text-muted-foreground whitespace-nowrap">
@@ -44,20 +50,33 @@ export function DataTable<TData>({
                 </thead>
                 <tbody>
                     {isLoading ? (
+                        Array.from({ length: skeletonRowCount }).map((_, rowIndex) => (
+                            <tr key={`skeleton-${rowIndex}`} className="bg-background border-b">
+                                {table.getAllColumns().map((column, colIndex) => (
+                                    <td
+                                        key={`skeleton-cell-${colIndex}`}
+                                        className="px-3 py-2.5"
+                                        style={
+                                            column.columnDef.size
+                                                ? { width: column.columnDef.size }
+                                                : undefined
+                                        }
+                                    >
+                                        <Skeleton className="h-4 w-full min-w-[50px] max-w-[200px]" />
+                                        {rowIndex === 0 && colIndex === 0 && (
+                                            <span className="sr-only" role="status">
+                                                Memuat data...
+                                            </span>
+                                        )}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))
+                    ) : rows.length === 0 ? (
                         <tr>
                             <td
                                 colSpan={table.getAllColumns().length}
-                                className="px-3 py-4 text-center text-muted-foreground"
-                                role="status"
-                            >
-                                Memuat data, mohon tunggu...
-                            </td>
-                        </tr>
-                    ) : table.getRowModel().rows?.length === 0 ? (
-                        <tr>
-                            <td
-                                colSpan={table.getAllColumns().length}
-                                className="px-3 py-4 text-center text-muted-foreground"
+                                className="px-3 py-8 text-center text-muted-foreground"
                                 role="status"
                             >
                                 {emptyMessage}
@@ -65,12 +84,16 @@ export function DataTable<TData>({
                         </tr>
                     ) : (
                         <AnimatePresence>
-                            {table.getRowModel().rows.map((row, i) => (
+                            {rows.map((row, i) => (
                                 <motion.tr
                                     key={row.id}
-                                    initial={{ opacity: 0, y: 10 }}
+                                    initial={shouldAnimate ? { opacity: 0, y: 10 } : false}
                                     animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.2, delay: i * 0.03 }}
+                                    transition={
+                                        shouldAnimate
+                                            ? { duration: 0.2, delay: i * 0.02 }
+                                            : { duration: 0 }
+                                    }
                                     className="bg-background border-b hover:bg-muted/50 motion-reduce:transition-none"
                                 >
                                     {row.getVisibleCells().map((cell) => (

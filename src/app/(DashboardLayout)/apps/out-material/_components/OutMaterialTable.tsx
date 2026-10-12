@@ -82,7 +82,7 @@ export default function OutMaterialTable({
             cell: (info) => <span className="font-medium">{info.getValue()}</span>,
         }),
         columnHelper.accessor('request_id', {
-            header: 'Request ID',
+            header: 'ID Permintaan',
             size: 140,
             cell: (info) => info.getValue() || '-',
         }),
@@ -112,7 +112,7 @@ export default function OutMaterialTable({
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('sap_number', {
-            header: 'SAP Number',
+            header: 'Nomor SAP',
             size: 140,
             cell: (info) => info.getValue() || '-',
         }),
@@ -123,7 +123,7 @@ export default function OutMaterialTable({
         }),
         columnHelper.display({
             id: 'actions',
-            header: 'Action',
+            header: 'Aksi',
             size: 70,
             cell: (info) => {
                 const row = info.row.original;
@@ -184,11 +184,11 @@ export default function OutMaterialTable({
 
     return (
         <StaggerContainer className="space-y-4">
-            <StaggerItem className="flex justify-between items-center gap-4 mb-4">
+            <StaggerItem className="flex justify-between items-center gap-4 mb-4 p-0.5">
                 <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
                     <div className="relative w-full md:w-80">
                         <Input
-                            placeholder="Search request id, reservasi, sap..."
+                            placeholder="Cari ID permintaan, reservasi, SAP..."
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
                             className="pl-9 bg-background"
@@ -280,7 +280,7 @@ export default function OutMaterialTable({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Clear all filters</p>
+                                <p>Hapus semua filter</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -291,7 +291,7 @@ export default function OutMaterialTable({
                 <DataTable
                     table={table}
                     isLoading={isLoading}
-                    emptyMessage="No materials found."
+                    emptyMessage="Tidak ada data material."
                     className="rounded-md border border-border overflow-auto relative max-h-[600px]"
                 />
             </StaggerItem>

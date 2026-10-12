@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
@@ -10,6 +11,11 @@ import { RecentTransaction } from '../components/dashboard/RecentTransaction';
 import SalesOverview from '../components/dashboard/SalesOverview';
 import { StockWarningTable } from '../components/dashboard/StockWarningTable';
 import { TopCards } from '../components/dashboard/TopCards';
+
+export const metadata: Metadata = {
+    title: 'Dashboard Utama',
+    description: 'Monitoring KPI dan pergerakan material sistem MTMS',
+};
 
 function ProfileSkeleton() {
     return (

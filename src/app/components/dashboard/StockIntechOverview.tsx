@@ -1,11 +1,17 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import {
+    createColumnHelper,
+    getCoreRowModel,
+    getPaginationRowModel,
+    useReactTable,
+} from '@tanstack/react-table';
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { getDashboardStockIntech } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { DataTable } from '@/app/components/shared/DataTable';
+import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { Input } from '@/components/ui/input';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
@@ -62,7 +68,7 @@ export const StockIntechOverview = () => {
             cell: (info) => <span className="font-medium">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('wh_name', {
-            header: 'Warehouse',
+            header: 'Gudang',
             cell: (info) => <span className="text-muted-foreground">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('nik', {
@@ -74,17 +80,17 @@ export const StockIntechOverview = () => {
             cell: (info) => <span className="font-semibold">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('material_code', {
-            header: 'Material Code',
+            header: 'Kode Material',
             cell: (info) => <span className="font-mono text-sm">{info.getValue()}</span>,
         }),
         columnHelper.accessor('material_name', {
-            header: 'Material Name',
+            header: 'Nama Material',
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('qty_intech', {
-            header: () => <div className="text-center">Qty Intech</div>,
+            header: () => <div className="text-center">Jumlah Intech</div>,
             cell: (info) => (
-                <div className="text-center font-bold text-blue-600">{info.getValue()}</div>
+                <div className="text-center font-bold text-primary">{info.getValue()}</div>
             ),
         }),
     ];
@@ -93,6 +99,8 @@ export const StockIntechOverview = () => {
         data: filteredData,
         columns,
         getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        initialState: { pagination: { pageSize: 20 } },
     });
 
     return (
@@ -104,7 +112,7 @@ export const StockIntechOverview = () => {
                         className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                     >
                         <div>
-                            <h5 className="card-title">Stock Intech Overview</h5>
+                            <h5 className="card-title">Ringkasan Stok Intech</h5>
                             <p className="text-sm text-muted-foreground font-normal">
                                 Sisa material yang masih di tangan teknisi (Status: Intech)
                             </p>
@@ -134,6 +142,9 @@ export const StockIntechOverview = () => {
                         isLoading={isLoading}
                         emptyMessage="Tidak ada material Intech."
                     />
+                    <div className="pt-4">
+                        <DataTablePagination table={table} />
+                    </div>
                 </CardBox>
             </StaggerItem>
         </StaggerContainer>

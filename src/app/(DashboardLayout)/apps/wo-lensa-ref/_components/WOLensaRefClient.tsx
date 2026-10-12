@@ -98,6 +98,10 @@ export default function WOLensaRefClient({
     );
     const router = useRouter();
 
+    useEffect(() => {
+        setSelectedGudang(toCanonicalWarehouseName(currentWarehouse));
+    }, [currentWarehouse]);
+
     const uniqueGudang = useMemo(() => {
         if (warehouseOptions && warehouseOptions.length > 0) {
             return warehouseOptions;
@@ -212,7 +216,7 @@ export default function WOLensaRefClient({
             },
         }),
         columnHelper.accessor('type', {
-            header: () => <div className="text-center">Type</div>,
+            header: () => <div className="text-center">Tipe</div>,
             size: 130,
             cell: (info) => {
                 const val = info.getValue();
@@ -226,7 +230,7 @@ export default function WOLensaRefClient({
             },
         }),
         columnHelper.accessor('wo_number', {
-            header: 'WO Number',
+            header: 'Nomor WO',
             size: 200,
             cell: (info) => (
                 <div className="min-w-[160px] max-w-[260px] whitespace-normal break-words font-medium">
@@ -245,7 +249,7 @@ export default function WOLensaRefClient({
             cell: (info) => toCanonicalWarehouseName(info.getValue()) || '-',
         }),
         columnHelper.accessor('gi_number', {
-            header: 'GI Number',
+            header: 'Nomor GI',
             size: 120,
             cell: (info) => info.getValue() || '-',
         }),
@@ -304,7 +308,6 @@ export default function WOLensaRefClient({
         data: filteredData,
         columns,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         manualPagination: !!pagination,
         pageCount: pagination ? pagination.totalPages : undefined,

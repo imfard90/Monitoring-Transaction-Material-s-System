@@ -1,5 +1,3 @@
-import { uniqueId } from 'lodash';
-
 export interface ChildItem {
     id?: number | string;
     name?: string;
@@ -36,23 +34,23 @@ const SidebarContent: MenuItem[] = [
         heading: 'Home',
         children: [
             {
+                id: 'home-dashboard',
                 name: 'Dashboard',
                 icon: 'solar:widget-2-linear',
-                id: uniqueId(),
                 url: '/',
                 isPro: false,
             },
             {
+                id: 'home-stock-inventory',
                 name: 'Stock Inventory',
                 icon: 'solar:box-minimalistic-linear',
-                id: uniqueId(),
                 url: '/stock-inventory',
                 isPro: false,
             },
             {
+                id: 'home-stock-intech',
                 name: 'Stock Intech',
-                icon: 'solar:clipboard-list-linear',
-                id: uniqueId(),
+                icon: 'solar:server-square-linear',
                 url: '/stock-intech',
                 isPro: false,
             },
@@ -62,30 +60,30 @@ const SidebarContent: MenuItem[] = [
         heading: 'Pages',
         children: [
             {
-                id: uniqueId(),
+                id: 'pages-out-sap',
                 name: 'Out SAP',
                 icon: 'solar:box-linear',
                 url: '/apps/out-sap',
                 isPro: false,
             },
             {
-                id: uniqueId(),
+                id: 'pages-rekon-intech',
                 name: 'Rekon Intech',
-                icon: 'solar:clipboard-list-linear',
+                icon: 'solar:checklist-minimalistic-linear',
                 url: '/apps/rekon-intech',
                 isPro: false,
             },
             {
-                id: uniqueId(),
+                id: 'pages-rekon-lensa',
                 name: 'Rekon Lensa',
                 icon: 'solar:clipboard-check-linear',
                 url: '/apps/rekon-lensa',
                 isPro: false,
             },
             {
-                id: uniqueId(),
+                id: 'pages-return-material',
                 name: 'Return',
-                icon: 'solar:refresh-circle-linear',
+                icon: 'solar:restart-circle-linear',
                 url: '/apps/return-material',
                 isPro: false,
             },
@@ -95,30 +93,30 @@ const SidebarContent: MenuItem[] = [
         heading: 'Apps',
         children: [
             {
-                id: uniqueId(),
+                id: 'apps-inout-tag',
                 name: 'InOut Tag',
                 icon: 'solar:tag-linear',
                 url: '/apps/inout-tag',
                 isPro: false,
             },
             {
-                id: uniqueId(),
+                id: 'apps-out-material',
                 name: 'Out Material',
-                icon: 'solar:box-minimalistic-linear',
+                icon: 'solar:delivery-linear',
                 url: '/apps/out-material',
                 isPro: false,
             },
             {
-                id: uniqueId(),
+                id: 'apps-hasil-rekon',
                 name: 'Hasil Rekon',
                 icon: 'solar:document-text-linear',
                 url: '/apps/hasil-rekon',
                 isPro: false,
             },
             {
-                id: uniqueId(),
+                id: 'apps-stock-movement',
                 name: 'Stock Movement',
-                icon: 'solar:sort-from-bottom-to-top-linear',
+                icon: 'solar:history-linear',
                 url: '/apps/stock-movement',
                 isPro: false,
             },
@@ -128,23 +126,23 @@ const SidebarContent: MenuItem[] = [
         heading: 'Management',
         children: [
             {
-                id: uniqueId(),
+                id: 'mgmt-user-profile',
                 name: 'User Profile',
                 icon: 'solar:user-circle-linear',
                 url: '/user-profile',
                 isPro: false,
             },
             {
-                id: uniqueId(),
+                id: 'mgmt-users',
                 name: 'Users',
                 icon: 'solar:users-group-rounded-linear',
                 url: '/management/users',
                 isPro: false,
             },
             {
-                id: uniqueId(),
+                id: 'mgmt-technician',
                 name: 'Technicians',
-                icon: 'solar:user-id-linear',
+                icon: 'solar:shield-user-linear',
                 url: '/management/technician',
                 isPro: false,
             },
@@ -154,23 +152,23 @@ const SidebarContent: MenuItem[] = [
         heading: 'Reference',
         children: [
             {
-                id: uniqueId(),
+                id: 'ref-out-lensa-ref',
                 name: 'Out Lensa Ref',
-                icon: 'solar:download-square-linear',
+                icon: 'solar:import-linear',
                 url: '/apps/out-lensa-ref',
                 isPro: false,
             },
             {
-                id: uniqueId(),
+                id: 'ref-wo-lensa-ref',
                 name: 'WO Lensa Ref',
-                icon: 'solar:clipboard-list-linear',
+                icon: 'solar:notes-linear',
                 url: '/apps/wo-lensa-ref',
                 isPro: false,
             },
             {
-                id: uniqueId(),
+                id: 'ref-iconify-icons',
                 name: 'Iconify Icons',
-                icon: 'solar:structure-linear',
+                icon: 'solar:palette-2-linear',
                 url: '/icons/iconify',
                 isPro: false,
             },

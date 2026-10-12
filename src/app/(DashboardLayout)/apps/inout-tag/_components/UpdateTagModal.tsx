@@ -232,7 +232,7 @@ export default function UpdateTagModal({
                         </p>
                     </div>
                     <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Current Status</p>
+                        <p className="text-sm text-muted-foreground">Status Saat Ini</p>
                         <Badge variant="outline">{row.end_status}</Badge>
                     </div>
                 </div>
@@ -242,7 +242,7 @@ export default function UpdateTagModal({
                         <Label>{idLabel}</Label>
                         {canUpdate ? (
                             <Input
-                                placeholder={`Enter ${idLabel}...`}
+                                placeholder={`Masukkan ${idLabel}...`}
                                 value={actionId}
                                 onChange={(e) => setActionId(e.target.value)}
                             />

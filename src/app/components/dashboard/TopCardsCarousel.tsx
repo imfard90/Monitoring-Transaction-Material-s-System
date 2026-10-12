@@ -24,7 +24,7 @@ interface TopCardsCarouselProps {
 const kpiConfig = [
     {
         key: 'onlineUsers',
-        title: 'Online Users',
+        title: 'Pengguna Online',
         icon: 'solar:users-group-rounded-bold-duotone',
         bgcolor: 'bg-primary/10 dark:bg-primary/10',
         iconColor: 'text-primary',
@@ -32,7 +32,7 @@ const kpiConfig = [
     },
     {
         key: 'requestTag',
-        title: 'Request Tag',
+        title: 'Permintaan Tag',
         icon: 'solar:document-add-bold-duotone',
         bgcolor: 'bg-info/10 dark:bg-info/10',
         iconColor: 'text-info',
@@ -40,7 +40,7 @@ const kpiConfig = [
     },
     {
         key: 'transitTag',
-        title: 'Transit Tag',
+        title: 'Tag Transit',
         icon: 'solar:routing-2-bold-duotone',
         bgcolor: 'bg-warning/10 dark:bg-warning/10',
         iconColor: 'text-warning',
@@ -48,7 +48,7 @@ const kpiConfig = [
     },
     {
         key: 'closeTag',
-        title: 'Close Tag',
+        title: 'Tag Selesai',
         icon: 'solar:check-read-bold-duotone',
         bgcolor: 'bg-success/10 dark:bg-success/10',
         iconColor: 'text-success',
@@ -56,7 +56,7 @@ const kpiConfig = [
     },
     {
         key: 'returnTek',
-        title: 'Return Tek',
+        title: 'Retur Teknisi',
         icon: 'solar:refresh-circle-bold-duotone',
         bgcolor: 'bg-secondary/10 dark:bg-secondary/10',
         iconColor: 'text-secondary',
@@ -64,7 +64,7 @@ const kpiConfig = [
     },
     {
         key: 'intechOpen',
-        title: 'Intech Open',
+        title: 'Intech Terbuka',
         icon: 'solar:box-bold-duotone',
         bgcolor: 'bg-warning/10 dark:bg-warning/10',
         iconColor: 'text-warning',
@@ -72,7 +72,7 @@ const kpiConfig = [
     },
     {
         key: 'intechClose',
-        title: 'Intech Close',
+        title: 'Intech Selesai',
         icon: 'solar:check-circle-bold-duotone',
         bgcolor: 'bg-success/10 dark:bg-success/10',
         iconColor: 'text-success',

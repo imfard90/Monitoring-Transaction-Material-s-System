@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
@@ -8,17 +9,22 @@ import TechnicianTable from './technician-table';
 
 export const dynamic = 'force-dynamic';
 
+export const metadata: Metadata = {
+    title: 'Manajemen Teknisi',
+    description: 'Manajemen data teknisi, branch, dan mitra',
+};
+
 const BCrumb = [
     {
         to: '/',
-        title: 'Home',
+        title: 'Beranda',
     },
     {
         to: '#',
-        title: 'Management',
+        title: 'Manajemen',
     },
     {
-        title: 'Technicians',
+        title: 'Teknisi',
     },
 ];
 
@@ -39,7 +45,7 @@ export default async function TechnicianManagementPage() {
     return (
         <StaggerContainer className="flex flex-col flex-1 ">
             <StaggerItem className="shrink-0">
-                <BreadcrumbComp title="Technician Management" items={BCrumb} />
+                <BreadcrumbComp title="Manajemen Teknisi" items={BCrumb} />
             </StaggerItem>
 
             <StaggerItem className="bg-card rounded-lg border shadow-sm mt-4  flex-1 flex flex-col">

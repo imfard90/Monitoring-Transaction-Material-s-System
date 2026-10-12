@@ -352,16 +352,16 @@ export default function OutSapForm() {
                                                 disabled={
                                                     isScraping || !formData.request_id || isScraped
                                                 }
-                                                className="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white w-full h-full"
+                                                className="whitespace-nowrap w-full h-full"
                                             >
-                                                {isScraping ? 'Memuat data...' : 'Get Data'}
+                                                {isScraping ? 'Memuat data...' : 'Ambil Data'}
                                             </Button>
                                         </motion.div>
                                     </div>
                                 </StaggerItem>
 
                                 <StaggerItem className="space-y-2">
-                                    <Label>Technician *</Label>
+                                    <Label>Teknisi *</Label>
                                     <SearchableSelect
                                         options={technicians.map((t: Record<string, unknown>) => ({
                                             value: String(t.nik),
@@ -371,8 +371,8 @@ export default function OutSapForm() {
                                         onValueChange={handleSelectTechnician}
                                         placeholder={
                                             isScraped && formData.nik_teknisi
-                                                ? 'Technician loaded'
-                                                : 'Select Technician'
+                                                ? 'Teknisi terpilih'
+                                                : 'Pilih Teknisi'
                                         }
                                         disabled={!formData.name_sa || isScraped}
                                     />
@@ -393,13 +393,13 @@ export default function OutSapForm() {
                                                 nik_teknisi: '',
                                             });
                                         }}
-                                        placeholder="Select Area"
+                                        placeholder="Pilih Area"
                                         disabled={!formData.request_id || isScraped}
                                     />
                                 </StaggerItem>
 
                                 <StaggerItem className="space-y-2">
-                                    <Label>From Warehouse *</Label>
+                                    <Label>Dari Gudang *</Label>
                                     <SearchableSelect
                                         options={warehouses.map((w: Record<string, unknown>) => ({
                                             value: w.id?.toString() || '',
@@ -409,13 +409,13 @@ export default function OutSapForm() {
                                         onValueChange={(v) =>
                                             setFormData({ ...formData, warehouse_id: v })
                                         }
-                                        placeholder="Select Warehouse"
+                                        placeholder="Pilih Gudang"
                                         disabled={!formData.nik_teknisi || isScraped}
                                     />
                                 </StaggerItem>
 
                                 <StaggerItem className="space-y-2">
-                                    <Label>Reservasi ID *</Label>
+                                    <Label>ID Reservasi *</Label>
                                     <Input
                                         value={formData.id_reservasi}
                                         onChange={(e) =>
@@ -429,7 +429,7 @@ export default function OutSapForm() {
                                 </StaggerItem>
 
                                 <StaggerItem className="space-y-2">
-                                    <Label>SAP Number *</Label>
+                                    <Label>Nomor SAP *</Label>
                                     <Input
                                         value={formData.sap_number}
                                         onChange={(e) =>
@@ -444,7 +444,7 @@ export default function OutSapForm() {
                         {/* Items Section */}
                         <StaggerItem className="space-y-4 pt-4 border-t">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-base font-semibold">Material Items</h3>
+                                <h3 className="text-base font-semibold">Daftar Material</h3>
                                 <motion.div
                                     whileHover={
                                         !formData.warehouse_id ||
@@ -476,7 +476,7 @@ export default function OutSapForm() {
                                             isScraped
                                         }
                                     >
-                                        <Plus size={16} /> Add Item
+                                        <Plus size={16} /> Tambah Material
                                     </Button>
                                 </motion.div>
                             </div>
@@ -486,7 +486,8 @@ export default function OutSapForm() {
                                     className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50"
                                     role="status"
                                 >
-                                    No items added. Click Add Item to start adding materials.
+                                    Belum ada material yang ditambahkan. Klik Tambah Material untuk
+                                    memilih material.
                                 </div>
                             ) : (
                                 <div className="space-y-3">
@@ -500,10 +501,10 @@ export default function OutSapForm() {
                                             const errorReason = item.designator_id
                                                 ? selectedMat
                                                     ? item.qty_req > (selectedMat.qty as number)
-                                                        ? `Insufficient stock (Available: ${selectedMat.qty})`
+                                                        ? `Stok tidak mencukupi (Tersedia: ${selectedMat.qty})`
                                                         : ''
-                                                    : 'Material not found in warehouse or zero stock'
-                                                : 'Material not selected';
+                                                    : 'Material tidak ditemukan di gudang atau stok habis'
+                                                : 'Material belum dipilih';
 
                                             return (
                                                 <motion.div
@@ -578,15 +579,15 @@ export default function OutSapForm() {
                                                             }
                                                             placeholder={
                                                                 isScraped && item.designator_id
-                                                                    ? 'Material loaded'
-                                                                    : 'Select Material'
+                                                                    ? 'Material terpilih'
+                                                                    : 'Pilih Material'
                                                             }
                                                             disabled={isScraped}
                                                         />
                                                     </div>
 
                                                     <div className="w-full sm:w-32 space-y-2">
-                                                        <Label className="text-xs">Qty *</Label>
+                                                        <Label className="text-xs">Jumlah *</Label>
                                                         <Input
                                                             type="number"
                                                             min="1"
@@ -615,7 +616,7 @@ export default function OutSapForm() {
                                                                 ) {
                                                                     val = selectedMat.qty as number;
                                                                     toast.error(
-                                                                        `Maximum quantity is ${selectedMat.qty}`
+                                                                        `Jumlah maksimal adalah ${selectedMat.qty}`
                                                                     );
                                                                 }
 
@@ -627,7 +628,7 @@ export default function OutSapForm() {
                                                             }}
                                                             className={
                                                                 isError && !isFetchingMaterials
-                                                                    ? 'border-red-300 focus-visible:ring-red-300 bg-red-50/50'
+                                                                    ? 'border-error/50 focus-visible:ring-error/30 bg-error/10'
                                                                     : ''
                                                             }
                                                         />
@@ -639,7 +640,7 @@ export default function OutSapForm() {
                                                         size="icon"
                                                         onClick={() => handleRemoveItem(index)}
                                                         disabled={isScraped}
-                                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2 sm:mt-0"
+                                                        className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-2 sm:mt-0"
                                                     >
                                                         <Trash2 size={16} />
                                                     </Button>
@@ -670,7 +671,7 @@ export default function OutSapForm() {
                                     }}
                                     disabled={loading}
                                 >
-                                    Cancel / Reset
+                                    Batal / Reset
                                 </Button>
                             </motion.div>
                             <motion.div
@@ -691,7 +692,7 @@ export default function OutSapForm() {
                                     className="gap-2"
                                 >
                                     <Send size={16} />
-                                    {loading ? 'Processing...' : 'Review & Submit'}
+                                    {loading ? 'Memproses...' : 'Tinjau & Simpan'}
                                 </Button>
                             </motion.div>
                         </StaggerItem>
@@ -708,28 +709,36 @@ export default function OutSapForm() {
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
                                 <div>
-                                    <span className="text-gray-500 block mb-1">Teknisi:</span>
+                                    <span className="text-muted-foreground block mb-1">
+                                        Teknisi:
+                                    </span>
                                     <span className="font-medium">
                                         {selectedTech?.name} ({selectedTech?.nik})
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-gray-500 block mb-1">Service Area:</span>
+                                    <span className="text-muted-foreground block mb-1">
+                                        Area Layanan:
+                                    </span>
                                     <span className="font-medium">{formData.name_sa || '-'}</span>
                                 </div>
                                 <div>
-                                    <span className="text-gray-500 block mb-1">Gudang Asal:</span>
+                                    <span className="text-muted-foreground block mb-1">
+                                        Gudang Asal:
+                                    </span>
                                     <span className="font-medium">{selectedWh?.name || '-'}</span>
                                 </div>
                                 <div>
-                                    <span className="text-gray-500 block mb-1">No. SAP:</span>
+                                    <span className="text-muted-foreground block mb-1">
+                                        Nomor SAP:
+                                    </span>
                                     <span className="font-medium">
                                         {formData.sap_number || '-'}
                                     </span>
                                 </div>
                                 {formData.id_reservasi && (
                                     <div>
-                                        <span className="text-gray-500 block mb-1">
+                                        <span className="text-muted-foreground block mb-1">
                                             ID Reservasi:
                                         </span>
                                         <span className="font-medium">{formData.id_reservasi}</span>
@@ -737,7 +746,7 @@ export default function OutSapForm() {
                                 )}
                                 {formData.request_id && (
                                     <div>
-                                        <span className="text-gray-500 block mb-1">
+                                        <span className="text-muted-foreground block mb-1">
                                             Request ID:
                                         </span>
                                         <span className="font-medium">{formData.request_id}</span>
@@ -755,7 +764,9 @@ export default function OutSapForm() {
                                                     No
                                                 </TableHead>
                                                 <TableHead>Material</TableHead>
-                                                <TableHead className="text-center">Qty</TableHead>
+                                                <TableHead className="text-center">
+                                                    Jumlah
+                                                </TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>

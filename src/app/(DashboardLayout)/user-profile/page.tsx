@@ -5,12 +5,13 @@ import UserProfile from '@/app/components/user-profile';
 import { getProfileData } from './_actions/profile-actions';
 
 export const metadata: Metadata = {
-    title: 'user-profile',
+    title: 'Profil Pengguna',
+    description: 'Pengaturan akun, sesi, dan integrasi API MTMS',
 };
 
 import { Footer } from '@/app/components/dashboard/Footer';
 
-const Notes = async () => {
+const UserProfilePage = async () => {
     const { data } = await getProfileData();
 
     return (
@@ -21,4 +22,4 @@ const Notes = async () => {
     );
 };
 
-export default Notes;
+export default UserProfilePage;

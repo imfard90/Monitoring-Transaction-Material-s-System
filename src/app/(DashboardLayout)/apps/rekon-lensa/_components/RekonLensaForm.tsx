@@ -253,7 +253,7 @@ export default function RekonLensaForm() {
                                 onClick={handleSubmit}
                                 disabled={loading || selectedWos.size === 0}
                             >
-                                Submit Rekon Lensa
+                                Ajukan Rekon Lensa
                             </Button>
                         )}
                     </div>
@@ -280,8 +280,8 @@ export default function RekonLensaForm() {
                                         <TableRow>
                                             <TableHead className="w-[50px]"></TableHead>
                                             <TableHead>Tanggal Update</TableHead>
-                                            <TableHead className="w-[150px]">WO Number</TableHead>
-                                            <TableHead>Type</TableHead>
+                                            <TableHead className="w-[150px]">Nomor WO</TableHead>
+                                            <TableHead>Tipe</TableHead>
                                             <TableHead>Material Dibutuhkan</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -361,11 +361,11 @@ export default function RekonLensaForm() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>SAP Number</TableHead>
+                                            <TableHead>Nomor SAP</TableHead>
                                             <TableHead>Material</TableHead>
                                             <TableHead className="text-right">Sisa Stok</TableHead>
                                             <TableHead className="text-right">
-                                                Alokasi Used
+                                                Alokasi Terpakai
                                             </TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -394,7 +394,7 @@ export default function RekonLensaForm() {
                                                     <TableRow
                                                         key={mat.sap_out_item_id}
                                                         className={
-                                                            allocated > 0 ? 'bg-green-500/10' : ''
+                                                            allocated > 0 ? 'bg-success/10' : ''
                                                         }
                                                     >
                                                         <TableCell className="font-medium text-xs">
@@ -421,7 +421,7 @@ export default function RekonLensaForm() {
                                                         </TableCell>
                                                         <TableCell className="text-right">
                                                             <span
-                                                                className={`font-bold ${allocated > 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}
+                                                                className={`font-bold ${allocated > 0 ? 'text-success' : 'text-muted-foreground'}`}
                                                             >
                                                                 {allocated}
                                                             </span>

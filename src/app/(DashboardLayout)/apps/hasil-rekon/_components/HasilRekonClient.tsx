@@ -247,9 +247,9 @@ export default function HasilRekonClient({
     };
 
     return (
-        <StaggerContainer className="flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
-            <StaggerItem className="flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
-                <CardBox className="flex flex-col flex-1 p-6 md:h-full md:min-h-0 md:overflow-hidden">
+        <StaggerContainer className="flex flex-col flex-1 md:h-full md:min-h-0">
+            <StaggerItem className="flex flex-col flex-1 md:h-full md:min-h-0">
+                <CardBox className="flex flex-col flex-1 p-6 md:h-full md:min-h-0">
                     <HasilRekonTable
                         data={initialData}
                         pagination={pagination}

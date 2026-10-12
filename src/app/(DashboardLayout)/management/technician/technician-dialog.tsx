@@ -101,10 +101,14 @@ export function TechnicianDialog({
                             ? Number(formData.mitra_id)
                             : null,
                 });
-                toast.success(`Technician successfully ${initialData ? 'updated' : 'inserted'}`);
+                toast.success(
+                    `Data teknisi berhasil ${initialData ? 'diperbarui' : 'ditambahkan'}`
+                );
                 onOpenChange(false);
             } catch (error: unknown) {
-                toast.error(error instanceof Error ? error.message : 'Failed to save technician');
+                toast.error(
+                    error instanceof Error ? error.message : 'Gagal menyimpan data teknisi'
+                );
             }
         });
     };
@@ -113,7 +117,7 @@ export function TechnicianDialog({
         <ModalDialog
             isOpen={open}
             onClose={() => onOpenChange(false)}
-            title={initialData ? 'Edit Technician' : 'Insert Technician'}
+            title={initialData ? 'Edit Teknisi' : 'Tambah Teknisi'}
             className="sm:max-w-[425px]"
         >
             <form onSubmit={handleSubmit}>
@@ -269,10 +273,10 @@ export function TechnicianDialog({
                         onClick={() => onOpenChange(false)}
                         disabled={isPending}
                     >
-                        Cancel
+                        Batal
                     </Button>
                     <Button type="submit" disabled={isPending}>
-                        Save changes
+                        Simpan
                     </Button>
                 </div>
             </form>

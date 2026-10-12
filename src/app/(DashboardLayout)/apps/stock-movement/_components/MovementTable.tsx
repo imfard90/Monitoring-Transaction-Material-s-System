@@ -91,7 +91,7 @@ export default function MovementTable({
 }: MovementTableProps) {
     const columns = [
         columnHelper.accessor('created_at', {
-            header: 'Timestamp',
+            header: 'Waktu',
             size: 160,
             cell: (info) => (
                 <span className="text-sm">
@@ -102,7 +102,7 @@ export default function MovementTable({
             ),
         }),
         columnHelper.accessor('reference_trx', {
-            header: 'Reference TRX',
+            header: 'Referensi TRX',
             size: 220,
             cell: (info) => (
                 <div className="whitespace-normal break-all text-sm font-medium">
@@ -111,17 +111,17 @@ export default function MovementTable({
             ),
         }),
         columnHelper.accessor('warehouse_name', {
-            header: 'Warehouse',
+            header: 'Gudang',
             size: 150,
             cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('material_code', {
-            header: 'Material Code',
+            header: 'Kode Material',
             size: 140,
             cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('material_name', {
-            header: 'Description',
+            header: 'Deskripsi Material',
             size: 200,
             cell: (info) => (
                 <div className="whitespace-normal break-words text-sm text-muted-foreground">
@@ -130,7 +130,7 @@ export default function MovementTable({
             ),
         }),
         columnHelper.accessor('movement_type', {
-            header: () => <div className="text-center">Type</div>,
+            header: () => <div className="text-center">Tipe</div>,
             size: 110,
             cell: (info) => {
                 const val = info.getValue();
@@ -161,12 +161,12 @@ export default function MovementTable({
             },
         }),
         columnHelper.accessor('qty_after', {
-            header: () => <div className="text-center">Balance</div>,
+            header: () => <div className="text-center">Saldo</div>,
             size: 75,
             cell: (info) => <div className="text-center text-sm">{info.getValue()}</div>,
         }),
         columnHelper.accessor('notes', {
-            header: 'Notes',
+            header: 'Catatan',
             size: 200,
             cell: (info) => (
                 <span className="text-sm text-muted-foreground">{info.getValue() || '-'}</span>
@@ -210,18 +210,20 @@ export default function MovementTable({
     });
 
     return (
-        <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0 md:overflow-hidden">
+        <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0">
             {/* Toolbar */}
-            <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4 shrink-0">
+            <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4 shrink-0 p-0.5">
                 <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
-                    <div className="relative w-full sm:w-72">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <div className="relative w-full sm:w-72 md:w-80">
                         <Input
-                            type="search"
-                            placeholder="Search reference, material, etc..."
+                            placeholder="Cari referensi, material, dll..."
                             className="pl-9 bg-background"
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
+                        />
+                        <Search
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                            size={16}
                         />
                     </div>
 
@@ -239,10 +241,10 @@ export default function MovementTable({
                                 value={warehouseFilter || ''}
                                 onValueChange={onWarehouseFilterChange}
                                 options={[
-                                    { value: 'all', label: 'All Warehouses' },
+                                    { value: 'all', label: 'Semua Gudang' },
                                     ...uniqueWarehouses.map((wh) => ({ value: wh, label: wh })),
                                 ]}
-                                placeholder="All Warehouses"
+                                placeholder="Semua Gudang"
                             />
                         </div>
                     )}
@@ -253,10 +255,10 @@ export default function MovementTable({
                                 value={materialFilter || ''}
                                 onValueChange={onMaterialFilterChange}
                                 options={[
-                                    { value: 'all', label: 'All Materials' },
+                                    { value: 'all', label: 'Semua Material' },
                                     ...uniqueMaterials.map((mat) => ({ value: mat, label: mat })),
                                 ]}
-                                placeholder="All Materials"
+                                placeholder="Semua Material"
                             />
                         </div>
                     )}
@@ -270,12 +272,12 @@ export default function MovementTable({
                                         className="w-full justify-between bg-background font-normal"
                                     >
                                         {typeFilter && typeFilter.length > 0
-                                            ? `${typeFilter.length} Type${typeFilter.length > 1 ? 's' : ''} selected`
-                                            : 'All Types'}
+                                            ? `${typeFilter.length} Tipe dipilih`
+                                            : 'Semua Tipe'}
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent className="w-[200px] max-h-[300px] overflow-y-auto">
-                                    <DropdownMenuLabel>Filter by Type</DropdownMenuLabel>
+                                    <DropdownMenuLabel>Filter Berdasarkan Tipe</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     {uniqueTypes.map((type) => {
                                         const label = type
@@ -319,7 +321,7 @@ export default function MovementTable({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Clear all filters</p>
+                                <p>Hapus semua filter</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -330,7 +332,7 @@ export default function MovementTable({
             <StaggerItem className="flex-1 md:min-h-0 flex flex-col overflow-hidden">
                 <DataTable
                     table={table}
-                    emptyMessage="No movements found."
+                    emptyMessage="Tidak ada data pergerakan stok."
                     className="rounded-md border border-border flex-1 md:overflow-auto relative"
                 />
             </StaggerItem>

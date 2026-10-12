@@ -155,10 +155,10 @@ const SalesOverview: React.FC = () => {
                 <div className="sm:mt-0 mt-4 flex gap-3">
                     <Select value={selectedWh} onValueChange={setSelectedWh}>
                         <SelectTrigger className="w-[140px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
-                            <SelectValue placeholder="Select WH" />
+                            <SelectValue placeholder="Pilih Gudang" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All WH</SelectItem>
+                            <SelectItem value="all">Semua Gudang</SelectItem>
                             {warehouses.map((wh) => (
                                 <SelectItem key={wh.id} value={String(wh.id)}>
                                     {wh.name}
@@ -169,7 +169,7 @@ const SalesOverview: React.FC = () => {
 
                     <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                         <SelectTrigger className="w-[160px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
-                            <SelectValue placeholder="Select Period" />
+                            <SelectValue placeholder="Pilih Periode" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="15days">15 Hari Terakhir</SelectItem>

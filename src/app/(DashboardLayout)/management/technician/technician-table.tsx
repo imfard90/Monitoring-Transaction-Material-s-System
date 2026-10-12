@@ -68,16 +68,16 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
         startTransition(async () => {
             try {
                 await toggleTechnicianStatus(id, !currentStatus);
-                toast.success(`Technician status ${currentStatus ? 'deactivated' : 'activated'}`);
+                toast.success(`Status teknisi ${currentStatus ? 'dinonaktifkan' : 'diaktifkan'}`);
             } catch (error: unknown) {
-                toast.error(error instanceof Error ? error.message : 'Failed to update status');
+                toast.error(error instanceof Error ? error.message : 'Gagal memperbarui status');
             }
         });
     };
 
     const columns = [
         columnHelper.accessor('service_area', {
-            header: 'Service Area',
+            header: 'Area Layanan',
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('nik', {
@@ -105,7 +105,7 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
                             disabled={isPending}
                         />
                         <span className="text-sm text-muted-foreground">
-                            {isActive ? 'Active' : 'Inactive'}
+                            {isActive ? 'Aktif' : 'Nonaktif'}
                         </span>
                     </div>
                 );
@@ -113,15 +113,15 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
         }),
         columnHelper.display({
             id: 'actions',
-            header: () => <div className="text-center">Action</div>,
+            header: () => <div className="text-center">Aksi</div>,
             cell: (info) => {
                 return (
                     <div className="flex justify-center items-center gap-2">
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                            title="Edit Technician"
+                            className="h-8 w-8 text-primary hover:text-primary/80 hover:bg-primary/10"
+                            title="Edit Teknisi"
                             onClick={() => {
                                 setSelectedTechnician(info.row.original);
                                 setIsDialogOpen(true);
@@ -157,7 +157,7 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
                     <div className="relative w-full sm:w-[250px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search by NIK..."
+                            placeholder="Cari berdasarkan NIK..."
                             value={nikFilter}
                             onChange={(e) => setNikFilter(e.target.value)}
                             className="pl-9 pr-9"
@@ -177,10 +177,10 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
                     <div className="w-full sm:w-[200px]">
                         <Select value={whFilter} onValueChange={setWhFilter}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Filter by WH" />
+                                <SelectValue placeholder="Filter Area Layanan" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Service Areas</SelectItem>
+                                <SelectItem value="all">Semua Area Layanan</SelectItem>
                                 {serviceAreas.map((area) => (
                                     <SelectItem key={area} value={area}>
                                         {area}
@@ -200,7 +200,7 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
                     }}
                 >
                     <Plus size={16} />
-                    Insert Technician
+                    Tambah Teknisi
                 </Button>
             </div>
 

@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { Search, ShieldAlert, Trash2, X } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { Badge } from '@/components/ui/badge';
@@ -41,15 +42,16 @@ const columnHelper = createColumnHelper<UserItem>();
 export default function UserTable({ data }: UserTableProps) {
     const [isPending, startTransition] = useTransition();
     const [nikFilter, setNikFilter] = useState('');
+    const [userToDelete, setUserToDelete] = useState<UserItem | null>(null);
 
     const handleToggleStatus = (userId: string, currentStatus: boolean) => {
         startTransition(async () => {
             try {
                 await toggleUserStatus(userId, !currentStatus);
-                toast.success(`User status ${currentStatus ? 'deactivated' : 'activated'}`);
+                toast.success(`Status pengguna ${currentStatus ? 'dinonaktifkan' : 'diaktifkan'}`);
             } catch (error: unknown) {
                 toast.error(
-                    error instanceof Error ? error.message : 'Failed to update user status'
+                    error instanceof Error ? error.message : 'Gagal memperbarui status pengguna'
                 );
             }
         });
@@ -59,35 +61,31 @@ export default function UserTable({ data }: UserTableProps) {
         startTransition(async () => {
             try {
                 await toggleUserApiApproval(userId, !currentStatus);
-                toast.success(`API access ${currentStatus ? 'disapproved / revoked' : 'approved'}`);
+                toast.success(`Akses API ${currentStatus ? 'dicabut' : 'disetujui'}`);
             } catch (error: unknown) {
                 toast.error(
-                    error instanceof Error ? error.message : 'Failed to update API approval'
+                    error instanceof Error ? error.message : 'Gagal memperbarui approval API'
                 );
             }
         });
     };
 
-    const handleDelete = (userId: string) => {
-        if (
-            window.confirm(
-                'Are you sure you want to delete this user? This action cannot be undone.'
-            )
-        ) {
-            startTransition(async () => {
-                try {
-                    await deleteUser(userId);
-                    toast.success('User deleted successfully');
-                } catch (error: unknown) {
-                    toast.error(error instanceof Error ? error.message : 'Failed to delete user');
-                }
-            });
-        }
+    const handleConfirmDelete = () => {
+        if (!userToDelete) return;
+        startTransition(async () => {
+            try {
+                await deleteUser(userToDelete.id);
+                toast.success('Pengguna berhasil dihapus');
+                setUserToDelete(null);
+            } catch (error: unknown) {
+                toast.error(error instanceof Error ? error.message : 'Gagal menghapus pengguna');
+            }
+        });
     };
 
     const columns = [
         columnHelper.accessor('name', {
-            header: 'Name',
+            header: 'Nama',
             cell: (info) => {
                 const isOnline = info.row.original.is_online;
                 return (
@@ -110,7 +108,7 @@ export default function UserTable({ data }: UserTableProps) {
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('role', {
-            header: 'Role',
+            header: 'Peran',
             cell: (info) => (
                 <Badge variant="outline" className="bg-muted text-foreground">
                     {info.getValue() || 'Unknown'}
@@ -124,9 +122,9 @@ export default function UserTable({ data }: UserTableProps) {
                 return isLinked ? (
                     <Badge
                         variant="outline"
-                        className="border-green-200 text-green-600 bg-green-50 dark:bg-green-950 dark:border-green-900"
+                        className="border-success/30 text-success bg-success/10"
                     >
-                        Linked
+                        Terhubung
                     </Badge>
                 ) : (
                     <span className="text-muted-foreground">-</span>
@@ -134,7 +132,7 @@ export default function UserTable({ data }: UserTableProps) {
             },
         }),
         columnHelper.accessor('is_active', {
-            header: 'Active',
+            header: 'Aktif',
             cell: (info) => {
                 const isActive = info.getValue() === true;
                 const userId = info.row.original.id;
@@ -146,14 +144,14 @@ export default function UserTable({ data }: UserTableProps) {
                             disabled={isPending}
                         />
                         <span className="text-sm text-muted-foreground">
-                            {isActive ? 'Yes' : 'No'}
+                            {isActive ? 'Ya' : 'Tidak'}
                         </span>
                     </div>
                 );
             },
         }),
         columnHelper.accessor('appr_api', {
-            header: 'API Access',
+            header: 'Akses API',
             cell: (info) => {
                 const isApproved = info.getValue() === true;
                 const hasApiKey = info.row.original.has_api_key === true;
@@ -170,7 +168,7 @@ export default function UserTable({ data }: UserTableProps) {
                             <span
                                 className={`text-xs font-medium ${isApproved ? 'text-success' : 'text-muted-foreground'}`}
                             >
-                                {isApproved ? 'Approved' : 'Off'}
+                                {isApproved ? 'Disetujui' : 'Nonaktif'}
                             </span>
                         </div>
                         <div>
@@ -179,11 +177,11 @@ export default function UserTable({ data }: UserTableProps) {
                                     variant="outline"
                                     className="text-[10px] py-0 px-1.5 border-primary/30 text-primary bg-primary/5"
                                 >
-                                    Key Generated
+                                    Kunci Dibuat
                                 </Badge>
                             ) : (
                                 <span className="text-[10px] text-muted-foreground italic">
-                                    No Key
+                                    Tanpa Kunci
                                 </span>
                             )}
                         </div>
@@ -193,28 +191,28 @@ export default function UserTable({ data }: UserTableProps) {
         }),
         columnHelper.display({
             id: 'actions',
-            header: () => <div className="text-center">Action</div>,
+            header: () => <div className="text-center">Aksi</div>,
             cell: (info) => {
-                const userId = info.row.original.id;
+                const user = info.row.original;
                 return (
                     <div className="flex justify-center items-center gap-2">
                         <Button
                             variant="outline"
                             size="sm"
-                            className="text-orange-500 hover:text-orange-600 gap-1"
+                            className="text-warning hover:text-warning/80 gap-1"
                             disabled={true}
-                            title="Coming Soon"
+                            title="Segera Hadir"
                         >
                             <ShieldAlert size={14} /> Reset MFA
                         </Button>
                         <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleDelete(userId)}
+                            onClick={() => setUserToDelete(user)}
                             disabled={isPending}
                             className="gap-1"
                         >
-                            <Trash2 size={14} /> Delete
+                            <Trash2 size={14} /> Hapus
                         </Button>
                     </div>
                 );
@@ -251,7 +249,7 @@ export default function UserTable({ data }: UserTableProps) {
                 <div className="relative w-full max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by NIK..."
+                        placeholder="Cari berdasarkan NIK..."
                         value={nikFilter}
                         onChange={(e) => setNikFilter(e.target.value)}
                         className="pl-9 pr-9"
@@ -270,6 +268,19 @@ export default function UserTable({ data }: UserTableProps) {
 
             <DataTable table={table} />
             <DataTablePagination table={table} />
+
+            <ConfirmDialog
+                isOpen={!!userToDelete}
+                onOpenChange={(open) => {
+                    if (!open) setUserToDelete(null);
+                }}
+                title="Hapus Pengguna"
+                description={`Apakah Anda yakin ingin menghapus pengguna "${userToDelete?.name || userToDelete?.nik || ''}"? Tindakan ini tidak dapat dibatalkan.`}
+                confirmText="Hapus Pengguna"
+                cancelText="Batal"
+                onConfirm={handleConfirmDelete}
+                loading={isPending}
+            />
         </motion.div>
     );
 }

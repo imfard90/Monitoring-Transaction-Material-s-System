@@ -206,6 +206,7 @@ const LoginForm = () => {
                         <div className="flex items-center gap-2">
                             <Checkbox
                                 id="remember"
+                                aria-label="Ingat perangkat ini"
                                 checked={remember}
                                 onCheckedChange={(checked) =>
                                     setValue('remember', checked as boolean)

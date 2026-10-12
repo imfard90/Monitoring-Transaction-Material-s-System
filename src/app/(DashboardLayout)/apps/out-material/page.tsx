@@ -9,7 +9,8 @@ import {
 import OutMaterialClient from './_components/OutMaterialClient';
 
 export const metadata: Metadata = {
-    title: 'Out Material',
+    title: 'Pengeluaran Material | MTMS',
+    description: 'Monitoring transaksi pengeluaran material',
 };
 
 const BCrumb = [

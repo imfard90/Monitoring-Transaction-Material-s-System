@@ -68,10 +68,10 @@ export const ProductPerformance = () => {
             <div id="product" className="relative z-10 mb-6">
                 <div>
                     <h5 className="text-xl font-bold tracking-tight text-foreground">
-                        Warehouse Performance
+                        Performa Pengeluaran Gudang
                     </h5>
                     <p className="text-sm text-muted-foreground font-medium mt-1">
-                        Overview of warehouse out material completion
+                        Ringkasan persentase penyelesaian transaksi out material per gudang
                     </p>
                 </div>
             </div>
@@ -86,16 +86,16 @@ export const ProductPerformance = () => {
                                             No
                                         </TableHead>
                                         <TableHead className="text-sm font-semibold py-2">
-                                            Nama WH
+                                            Nama Gudang
                                         </TableHead>
                                         <TableHead className="text-sm font-semibold text-center py-2">
                                             Total Trx Out
                                         </TableHead>
                                         <TableHead className="text-sm font-semibold text-center py-2">
-                                            Trx Out Close
+                                            Trx Out Selesai
                                         </TableHead>
                                         <TableHead className="text-sm font-semibold text-center py-2">
-                                            Prosentase
+                                            Persentase
                                         </TableHead>
                                     </TableRow>
                                 </TableHeader>

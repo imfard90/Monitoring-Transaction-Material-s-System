@@ -89,6 +89,10 @@ export default function OutLensaRefClient({
     );
     const router = useRouter();
 
+    useEffect(() => {
+        setSelectedGudang(toCanonicalWarehouseName(currentWarehouse));
+    }, [currentWarehouse]);
+
     const uniqueGudang = useMemo(() => {
         if (warehouseOptions && warehouseOptions.length > 0) {
             return warehouseOptions;
@@ -197,7 +201,7 @@ export default function OutLensaRefClient({
         }),
         columnHelper.accessor('reservation_id', {
             id: 'reservation_id',
-            header: 'Reservation ID',
+            header: 'ID Reservasi',
             size: 140,
             cell: (info) => (
                 <span className="font-medium text-foreground">{info.getValue() || '-'}</span>
@@ -214,12 +218,12 @@ export default function OutLensaRefClient({
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('reservation_id_sap', {
-            header: 'Resv ID SAP',
+            header: 'ID Reservasi SAP',
             size: 130,
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('gi_number', {
-            header: 'GI Number',
+            header: 'Nomor GI',
             size: 130,
             cell: (info) => info.getValue() || '-',
         }),
@@ -279,7 +283,6 @@ export default function OutLensaRefClient({
         data: filteredData,
         columns,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         manualPagination: !!pagination,
         pageCount: pagination ? pagination.totalPages : undefined,

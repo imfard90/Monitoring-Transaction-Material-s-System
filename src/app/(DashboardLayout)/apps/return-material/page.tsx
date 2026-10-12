@@ -3,8 +3,8 @@ import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
 import ReturnForm from './_components/ReturnForm';
 
 export const metadata: Metadata = {
-    title: 'Return Material',
-    description: 'Form for returning unused material',
+    title: 'Pengembalian Material | MTMS',
+    description: 'Formulir pengembalian sisa material',
 };
 
 const BCrumb = [

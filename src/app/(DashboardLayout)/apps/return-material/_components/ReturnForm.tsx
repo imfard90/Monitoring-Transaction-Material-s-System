@@ -115,7 +115,7 @@ export default function ReturnForm() {
                 const maxReturn = newItems[index].maxReturn || 0;
                 if ((value as number) > maxReturn) {
                     newItems[index].qty = maxReturn;
-                    toast.error(`Maximum return quantity is ${maxReturn}`);
+                    toast.error(`Jumlah pengembalian maksimal adalah ${maxReturn}`);
                 }
             }
         }
@@ -126,18 +126,18 @@ export default function ReturnForm() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.sap_out_id) {
-            toast.error('Please select a transaction to return');
+            toast.error('Silakan pilih transaksi yang akan dikembalikan');
             return;
         }
 
         if (items.length === 0) {
-            toast.error('Please add at least one item to return');
+            toast.error('Silakan tambahkan minimal satu material untuk dikembalikan');
             return;
         }
 
         const invalidItems = items.filter((i) => !i.sap_out_item_id || Number(i.qty) <= 0);
         if (invalidItems.length > 0) {
-            toast.error('Please check your item selections and quantities');
+            toast.error('Silakan periksa pilihan material dan jumlah pengembalian');
             return;
         }
 
@@ -164,7 +164,7 @@ export default function ReturnForm() {
 
             const res = await createReturnMaterial(payload);
             if (res.success) {
-                toast.success('Return material submitted successfully!');
+                toast.success('Pengembalian material berhasil diajukan!');
                 // Reset form
                 setFormData({
                     sap_out_id: '',
@@ -179,10 +179,10 @@ export default function ReturnForm() {
                 const sapRes = await getAvailableSapOuts();
                 if (sapRes.success) setSapOuts(sapRes.data);
             } else {
-                toast.error(res.error || 'Failed to submit return');
+                toast.error(res.error || 'Gagal mengajukan pengembalian material');
             }
         } catch (_err: unknown) {
-            toast.error('An error occurred');
+            toast.error('Terjadi kesalahan');
         } finally {
             setLoading(false);
             setIsConfirmModalOpen(false);
@@ -198,12 +198,12 @@ export default function ReturnForm() {
             <CardBox className="p-6">
                 <form onSubmit={handleSubmit} className="space-y-8">
                     <StaggerItem>
-                        <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
-                            Return Transaction (Pengembalian Material)
+                        <h2 className="text-lg font-bold text-foreground mb-4 border-b pb-2">
+                            Pengembalian Material (Return Transaction)
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label>Search Teknisi (Intech)</Label>
+                                <Label>Cari Teknisi (Intech)</Label>
                                 <SearchableSelect
                                     options={sapOuts.map((s: ReturnSapOutOption) => ({
                                         value: s.id.toString(),
@@ -211,18 +211,18 @@ export default function ReturnForm() {
                                     }))}
                                     value={formData.sap_out_id}
                                     onValueChange={handleSapOutChange}
-                                    placeholder="Search Teknisi yang terdapat intech"
+                                    placeholder="Cari teknisi yang memiliki intech..."
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Notes / Reason</Label>
+                                <Label>Catatan / Alasan</Label>
                                 <Input
                                     value={formData.notes}
                                     onChange={(e) =>
                                         setFormData({ ...formData, notes: e.target.value })
                                     }
-                                    placeholder="e.g. Unused from installation"
+                                    placeholder="Contoh: Sisa material instalasi"
                                 />
                             </div>
                         </div>
@@ -230,7 +230,9 @@ export default function ReturnForm() {
 
                     <StaggerItem>
                         <div className="flex justify-between items-center mb-4 border-b pb-2">
-                            <h2 className="text-lg font-bold text-gray-900">Return Items</h2>
+                            <h2 className="text-lg font-bold text-foreground">
+                                Material yang Dikembalikan
+                            </h2>
                             <Button
                                 type="button"
                                 variant="outline"
@@ -238,7 +240,7 @@ export default function ReturnForm() {
                                 onClick={handleAddItem}
                                 disabled={!formData.sap_out_id}
                             >
-                                <Plus className="h-4 w-4 mr-2" /> Add Item
+                                <Plus className="h-4 w-4 mr-2" /> Tambah Material
                             </Button>
                         </div>
 
@@ -251,7 +253,7 @@ export default function ReturnForm() {
                                         animate={{ opacity: 1, height: 'auto', scale: 1 }}
                                         exit={{ opacity: 0, height: 0, scale: 0.9 }}
                                         transition={{ duration: 0.2 }}
-                                        className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-gray-50/50 overflow-hidden"
+                                        className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-muted/40 overflow-hidden"
                                     >
                                         <div className="flex-1 space-y-2">
                                             <Label>Material</Label>
@@ -261,8 +263,8 @@ export default function ReturnForm() {
                                                     handleItemChange(index, 'sap_out_item_id', val)
                                                 }
                                             >
-                                                <SelectTrigger className="bg-white">
-                                                    <SelectValue placeholder="Select Material" />
+                                                <SelectTrigger className="bg-background">
+                                                    <SelectValue placeholder="Pilih Material" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {availableItems.map((ai) => (
@@ -271,7 +273,7 @@ export default function ReturnForm() {
                                                             value={ai.sap_out_item_id.toString()}
                                                         >
                                                             {ai.material_code} - {ai.material_name}{' '}
-                                                            (Max: {ai.maxReturn})
+                                                            (Maks: {ai.maxReturn})
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
@@ -279,7 +281,7 @@ export default function ReturnForm() {
                                         </div>
 
                                         <div className="w-full sm:w-32 space-y-2">
-                                            <Label>Return Qty</Label>
+                                            <Label>Jumlah Kembali</Label>
                                             <Input
                                                 type="number"
                                                 min="1"
@@ -320,9 +322,9 @@ export default function ReturnForm() {
                             </AnimatePresence>
 
                             {items.length === 0 && (
-                                <div className="text-center p-8 border border-dashed rounded-lg text-gray-500">
-                                    No items added yet. Click "Add Item" to select materials to
-                                    return.
+                                <div className="text-center p-8 border border-dashed rounded-lg text-muted-foreground">
+                                    Belum ada material yang ditambahkan. Klik "Tambah Material"
+                                    untuk memilih material.
                                 </div>
                             )}
                         </div>
@@ -339,7 +341,7 @@ export default function ReturnForm() {
                                 className="w-full sm:w-auto"
                             >
                                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Review & Submit Return
+                                Tinjau & Ajukan Pengembalian
                             </Button>
                         </motion.div>
                     </StaggerItem>
@@ -356,17 +358,19 @@ export default function ReturnForm() {
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
                             <div>
-                                <span className="text-gray-500 block mb-1">Transaksi SAP Out:</span>
+                                <span className="text-muted-foreground block mb-1">
+                                    Transaksi SAP Out:
+                                </span>
                                 <span className="font-medium">{selectedTech?.id_trx}</span>
                             </div>
                             <div>
-                                <span className="text-gray-500 block mb-1">Teknisi:</span>
+                                <span className="text-muted-foreground block mb-1">Teknisi:</span>
                                 <span className="font-medium">
                                     {selectedTech?.nama_teknisi} ({selectedTech?.nik_teknisi})
                                 </span>
                             </div>
                             <div className="col-span-2">
-                                <span className="text-gray-500 block mb-1">Notes:</span>
+                                <span className="text-muted-foreground block mb-1">Catatan:</span>
                                 <span>{formData.notes || '-'}</span>
                             </div>
                         </div>
@@ -384,7 +388,7 @@ export default function ReturnForm() {
                                             </TableHead>
                                             <TableHead>Material</TableHead>
                                             <TableHead className="text-center">
-                                                Return Qty
+                                                Jumlah Kembali
                                             </TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -403,7 +407,7 @@ export default function ReturnForm() {
                                                     <TableCell className="text-sm">
                                                         {mat?.material_code} - {mat?.material_name}
                                                     </TableCell>
-                                                    <TableCell className="text-center font-bold text-blue-600">
+                                                    <TableCell className="text-center font-bold text-primary">
                                                         {item.qty}
                                                     </TableCell>
                                                 </TableRow>

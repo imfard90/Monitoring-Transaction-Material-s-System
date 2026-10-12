@@ -37,8 +37,8 @@ export const SidebarAnnouncement = () => {
 
     if (!mounted) {
         return (
-            <div className="w-full rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-                <div className="h-4 w-24 rounded bg-primary/10 animate-pulse" />
+            <div className="w-full rounded-xl border border-border/60 bg-muted/20 p-2.5 text-xs text-muted-foreground">
+                <div className="h-4 w-28 rounded bg-muted animate-pulse" />
             </div>
         );
     }
@@ -51,86 +51,73 @@ export const SidebarAnnouncement = () => {
                         key="minimized"
                         type="button"
                         onClick={toggleMinimized}
-                        initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.95 }}
+                        aria-expanded={false}
+                        aria-label="Tampilkan komitmen integritas MTMS"
+                        initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        whileHover={shouldReduceMotion ? {} : { scale: 1.02 }}
-                        whileTap={shouldReduceMotion ? {} : { scale: 0.98 }}
-                        className="animate-border-blink group flex w-full items-center justify-between gap-2 rounded-lg border border-primary/40 bg-card/90 p-2 text-left shadow-sm backdrop-blur-sm hover:bg-card hover:shadow-md transition-all duration-200 cursor-pointer"
-                        title="Tampilkan pengumuman lengkap"
+                        exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
+                        transition={{ duration: 0.18 }}
+                        whileHover={shouldReduceMotion ? {} : { scale: 1.01 }}
+                        whileTap={shouldReduceMotion ? {} : { scale: 0.99 }}
+                        className="group flex w-full items-center justify-between gap-2 rounded-xl border border-border/80 dark:border-border/60 bg-card/80 dark:bg-card/40 p-2 text-left shadow-2xs backdrop-blur-xs hover:border-primary/40 hover:bg-card transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
-                        <div className="flex items-center gap-2 overflow-hidden">
-                            <span className="relative flex h-2 w-2 shrink-0">
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
-                                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                            </span>
-                            <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
-                                <Icon
-                                    icon="lucide:shield-check"
-                                    width="14"
-                                    className="text-primary"
-                                />
+                        <div className="flex items-center gap-2 overflow-hidden min-w-0">
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <Icon icon="solar:shield-check-bold" width="14" height="14" />
+                            </div>
+                            <span className="truncate text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
                                 Integritas MTMS
                             </span>
                         </div>
                         <Icon
-                            icon="lucide:chevron-up"
+                            icon="solar:alt-arrow-up-linear"
                             width="14"
-                            className="text-muted-foreground group-hover:text-foreground transition-transform duration-200"
+                            height="14"
+                            className="text-muted-foreground/70 group-hover:text-primary transition-colors shrink-0"
                             aria-hidden="true"
                         />
                     </motion.button>
                 ) : (
                     <motion.div
                         key="expanded"
-                        initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+                        id="announcement-content"
+                        role="region"
+                        aria-label="Konten pengumuman integritas"
+                        initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-                        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                        className="animate-border-blink relative overflow-hidden rounded-xl border border-primary/40 bg-gradient-to-b from-primary/10 via-card/95 to-card p-3 shadow-sm backdrop-blur-sm transition-shadow duration-300"
+                        exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                        transition={{ duration: 0.2 }}
+                        className="relative overflow-hidden rounded-xl border border-border/80 dark:border-border/60 bg-card/90 dark:bg-card/60 p-3 shadow-2xs backdrop-blur-xs hover:border-primary/30 transition-colors"
                     >
-                        {/* Ambient decorative aura */}
-                        <div
-                            className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/15 blur-2xl"
-                            aria-hidden="true"
-                        />
-                        <div
-                            className="pointer-events-none absolute -left-6 -bottom-6 h-20 w-20 rounded-full bg-primary/10 blur-xl"
-                            aria-hidden="true"
-                        />
-
-                        {/* Top header row */}
-                        <div className="relative flex items-center justify-between gap-2 pb-2">
+                        {/* Header row with minimize button */}
+                        <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-border/50">
                             <div className="flex items-center gap-1.5">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
-                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                                </span>
+                                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                                    PENGUMUMAN
+                                    KOMITMEN
                                 </span>
                             </div>
 
                             <button
                                 type="button"
                                 onClick={toggleMinimized}
-                                className="flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary transition-colors cursor-pointer"
+                                className="flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground/70 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors cursor-pointer"
+                                aria-expanded={true}
                                 aria-label="Kecilkan widget pengumuman"
                                 title="Kecilkan pengumuman"
                             >
-                                <Icon icon="lucide:minus" width="12" />
+                                <Icon icon="solar:minimize-square-linear" width="13" height="13" />
                             </button>
                         </div>
 
-                        {/* Badge / icon row */}
-                        <div className="relative my-1 flex items-center gap-2">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary shadow-xs">
-                                <Icon icon="lucide:shield-check" width="16" />
+                        {/* Title row */}
+                        <div className="my-2 flex items-center gap-2">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <Icon icon="solar:shield-check-bold" width="16" height="16" />
                             </div>
                             <div className="min-w-0">
                                 <p className="truncate text-xs font-semibold text-foreground">
-                                    Komitmen & Integritas
+                                    Integritas & Kepatuhan
                                 </p>
                                 <p className="text-[10px] text-muted-foreground">
                                     Budaya Operasional MTMS
@@ -139,26 +126,14 @@ export const SidebarAnnouncement = () => {
                         </div>
 
                         {/* Message body */}
-                        <div className="relative mt-2 rounded-lg border border-border/60 bg-background/70 p-2.5 backdrop-blur-xs">
-                            <Icon
-                                icon="lucide:quote"
-                                width="14"
-                                className="mb-1 text-primary/40"
-                                aria-hidden="true"
-                            />
+                        <div className="rounded-lg border border-border/50 bg-muted/40 p-2.5">
                             <p className="text-[11px] leading-relaxed text-muted-foreground">
-                                Terima kasih sudah berkontribusi dengan menjalankan proses MTMS ini
-                                dengan{' '}
+                                Jalankan setiap alur MTMS dengan{' '}
                                 <span className="font-medium text-foreground">
                                     penuh integritas
                                 </span>
-                                , Sebaik apapun{' '}
-                                <span className="font-medium text-foreground">TOOL nya</span> jika
-                                tidak disiplin dan berintegritas,{' '}
-                                <span className="font-semibold text-primary">
-                                    Tidak akan ada artinya
-                                </span>
-                                .
+                                . Ketelitian dan kejujuran data adalah fondasi operasional logistik
+                                kita.
                             </p>
                         </div>
                     </motion.div>

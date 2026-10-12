@@ -1,28 +1,16 @@
 /* tailwind-sidebar package override styles */
+
+/* Hover fix: prevent default hover bg when inside collapsible (handled by MTMS custom styles) */
 [data-slot="collapsible"] [data-slot="sidebar-menu-item"] [data-slot="sidebar-menu-button"]:hover {
     background-color: transparent;
 }
 
+/* Compact badge sizing */
 [data-slot="badge"] {
     font-size: x-small;
 }
 
+/* Sidebar group fills height */
 [data-slot="sidebar-group"] {
     height: 100%;
-}
-
-@keyframes border-blink {
-    0%,
-    100% {
-        border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
-        box-shadow: 0 0 0 0 transparent;
-    }
-    50% {
-        border-color: var(--color-primary);
-        box-shadow: 0 0 14px 2px color-mix(in srgb, var(--color-primary) 50%, transparent);
-    }
-}
-
-.animate-border-blink {
-    animation: border-blink 2s ease-in-out infinite;
 }
