@@ -17,12 +17,14 @@ type State = {
 };
 
 /**
- * ErrorBoundary — fallback error UI premium.
+ * ErrorBoundary — fallback error UI terstandar.
  *
- * Sesuai premium-ui-ux-builder/SKILL.md §2.4 (motion), §3.7 (pesan ID),
- * dan AGENTS.md §2 langkah 8 (tidak ada console.error di server; untuk
- * client boundary andalkan callback `onError` yang disediakan konsumen
- * untuk pelaporan terstruktur, mis. ke endpoint log/api).
+ * Sesuai panduan MTMS (AGENTS.md §3.4 & ui-ux-pro-max):
+ * - Motion terarah & menghormati prefers-reduced-motion.
+ * - Salinan teks Bahasa Indonesia yang sopan dan spesifik.
+ * - AGENTS.md §2 langkah 8 (tidak ada console.error di server; untuk
+ *   client boundary andalkan callback `onError` yang disediakan konsumen
+ *   untuk pelaporan terstruktur, mis. ke endpoint log/api).
  */
 export class ErrorBoundary extends Component<Props, State> {
     constructor(props: Props) {
@@ -36,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
         // Delegate structured reporting to consumer; avoid console.error
-        // as UI feedback channel (premium-ui-ux-builder/SKILL.md §3.7).
+        // as UI feedback channel (AGENTS.md §2 langkah 8).
         this.props.onError?.(error, errorInfo);
     }
 
@@ -58,11 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     role="alert"
                     className="my-4 motion-reduce:transition-none"
                 >
-                    <Icon
-                        icon="mdi:alert-triangle"
-                        className="h-4 w-4"
-                        aria-hidden="true"
-                    />
+                    <Icon icon="mdi:alert-triangle" className="h-4 w-4" aria-hidden="true" />
                     <AlertTitle>Terjadi kesalahan</AlertTitle>
                     <AlertDescription className="mt-2">
                         <p className="mb-4 text-sm">
@@ -76,11 +74,7 @@ export class ErrorBoundary extends Component<Props, State> {
                                 onClick={this.handleReset}
                                 className="gap-2"
                             >
-                                <Icon
-                                    icon="mdi:refresh"
-                                    className="h-4 w-4"
-                                    aria-hidden="true"
-                                />
+                                <Icon icon="mdi:refresh" className="h-4 w-4" aria-hidden="true" />
                                 Coba lagi
                             </Button>
                             <Button
@@ -89,11 +83,7 @@ export class ErrorBoundary extends Component<Props, State> {
                                 onClick={this.handleReload}
                                 className="gap-2"
                             >
-                                <Icon
-                                    icon="mdi:reload"
-                                    className="h-4 w-4"
-                                    aria-hidden="true"
-                                />
+                                <Icon icon="mdi:reload" className="h-4 w-4" aria-hidden="true" />
                                 Muat ulang halaman
                             </Button>
                         </div>

@@ -399,5 +399,3 @@ export async function getHasilRekonFilterOptions() {
         };
     }
 }
-
-

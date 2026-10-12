@@ -15,10 +15,7 @@ export function DataTable<TData>({
     className,
 }: DataTableProps<TData>) {
     return (
-        <div
-            className={className || "rounded-md border overflow-x-auto"}
-            aria-busy={isLoading}
-        >
+        <div className={className || 'rounded-md border overflow-x-auto'} aria-busy={isLoading}>
             <table className="w-full text-sm text-left text-muted-foreground whitespace-nowrap">
                 <thead className="text-sm text-foreground uppercase bg-muted border-b border-border sticky top-0 z-20 shadow-sm">
                     {table.getHeaderGroups().map((headerGroup) => (
@@ -27,7 +24,11 @@ export function DataTable<TData>({
                                 <th
                                     key={header.id}
                                     className="px-3 py-1.5 font-semibold bg-muted"
-                                    style={header.column.columnDef.size ? { width: header.column.columnDef.size } : undefined}
+                                    style={
+                                        header.column.columnDef.size
+                                            ? { width: header.column.columnDef.size }
+                                            : undefined
+                                    }
                                     scope="col"
                                 >
                                     {header.isPlaceholder
@@ -76,7 +77,11 @@ export function DataTable<TData>({
                                         <td
                                             key={cell.id}
                                             className="px-3 py-1.5"
-                                            style={cell.column.columnDef.size ? { width: cell.column.columnDef.size } : undefined}
+                                            style={
+                                                cell.column.columnDef.size
+                                                    ? { width: cell.column.columnDef.size }
+                                                    : undefined
+                                            }
                                         >
                                             {flexRender(
                                                 cell.column.columnDef.cell,

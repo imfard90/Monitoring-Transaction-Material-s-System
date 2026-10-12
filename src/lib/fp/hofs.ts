@@ -69,7 +69,10 @@ export const withErrorHandling =
             return { success: true, data };
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unknown error';
-            actionLogger.error('withErrorHandling caught:', error instanceof Error ? error : new Error(String(error)));
+            actionLogger.error(
+                'withErrorHandling caught:',
+                error instanceof Error ? error : new Error(String(error))
+            );
             return { success: false, error: message };
         }
     };

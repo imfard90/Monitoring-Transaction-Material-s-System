@@ -482,7 +482,10 @@ export default function OutSapForm() {
                             </div>
 
                             {items.length === 0 ? (
-                                <div className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50" role="status">
+                                <div
+                                    className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50"
+                                    role="status"
+                                >
                                     No items added. Click Add Item to start adding materials.
                                 </div>
                             ) : (

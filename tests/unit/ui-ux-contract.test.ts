@@ -5,9 +5,10 @@ import { resolve } from 'node:path';
 /**
  * UI/UX consistency contract tests.
  *
- * Guards the invariants the premium-ui-ux-builder skill relies on:
- *   - The skill file exists at the documented path.
- *   - AGENTS.md references the skill and keeps authorization priority.
+ * Guards the invariants the MTMS design system relies on:
+ *   - The ui-ux-pro-max skill file exists for design intelligence.
+ *   - AGENTS.md establishes UI/UX primitives, theme tokens, and priorities,
+ *     keeping authorization and business rules with highest priority.
  *   - The button primitive contract (CVA variants, sizes, a11y, motion)
  *     stays stable so domain components can keep composing it instead
  *     of duplicating. Asserted via source-text to stay dependency-free
@@ -22,40 +23,36 @@ import { resolve } from 'node:path';
 const repoRoot = resolve(__dirname, '../..');
 const readSrc = (rel: string) => readFile(resolve(repoRoot, rel), 'utf8');
 
-describe('premium-ui-ux-builder skill presence', () => {
+describe('ui-ux-pro-max skill presence', () => {
     it('ships the skill file at the documented path', async () => {
-        const content = await readSrc(
-            '.agents/skills/premium-ui-ux-builder/SKILL.md',
-        );
-        expect(content).toMatch(/name:\s+premium-ui-ux-builder/);
-        expect(content).toMatch(/Premium UI\/UX Builder — MTMS/);
+        const content = await readSrc('.agents/skills/ui-ux-pro-max/SKILL.md');
+        expect(content).toMatch(/name:\s+ui-ux-pro-max/);
     });
 
-    it('documents the reuse-first and token-based design rules', async () => {
-        const content = await readSrc(
-            '.agents/skills/premium-ui-ux-builder/SKILL.md',
-        );
-        expect(content).toMatch(/src\/components\/ui\/\*/);
-        expect(content).toMatch(/--color-primary/);
-        expect(content).toMatch(/focus-visible/);
-        expect(content).toMatch(/prefers-reduced-motion/);
-        expect(content).toMatch(/empty/);
+    it('documents comprehensive design system, accessibility, and styling intelligence', async () => {
+        const content = await readSrc('.agents/skills/ui-ux-pro-max/SKILL.md');
+        expect(content).toMatch(/design system/i);
+        expect(content).toMatch(/accessibility/i);
+        expect(content).toMatch(/color/i);
+        expect(content).toMatch(/typography/i);
     });
 });
 
 describe('AGENTS.md integration', () => {
-    it('references the skill in the Komponen/UI section', async () => {
+    it('references the UI/UX design intelligence and primitives in the Komponen/UI section', async () => {
         const agents = await readSrc('AGENTS.md');
-        expect(agents).toMatch(
-            /\.agents\/skills\/premium-ui-ux-builder\/SKILL\.md/,
-        );
+        expect(agents).toMatch(/ui-ux-pro-max/);
+        expect(agents).toMatch(/src\/components\/ui\/\*/);
+        expect(agents).toMatch(/--color-primary/);
         // Authorization/business rules must remain authoritative on conflict.
-        expect(agents).toMatch(/otorisasi.*business rules.*lebih tinggi/i);
+        expect(agents).toMatch(
+            /otorisasi.*business rules.*lebih tinggi|otorisasi.*business rules.*prioritas tertinggi/i
+        );
     });
 
     it('extends the Definition of Done with the UI checklist gate', async () => {
         const agents = await readSrc('AGENTS.md');
-        expect(agents).toMatch(/premium-ui-ux-builder\/SKILL\.md` §4/);
+        expect(agents).toMatch(/checklist UI terpenuhi.*src\/components\/ui\/\*/);
     });
 });
 
@@ -169,7 +166,7 @@ describe('DataTable premium invariants', () => {
         expect(src).toMatch(/Halaman/);
         expect(src).toMatch(/Sebelumnya/);
         expect(src).toMatch(/Berikutnya/);
-        expect(src).toMatch(/role="navigation"/);
+        expect(src).toMatch(/<nav|role="navigation"/);
         expect(src).toMatch(/aria-label/);
     });
 });
@@ -197,5 +194,3 @@ describe('DateRangePicker premium invariants', () => {
         expect(src).toMatch(/disabled=\{\{\s*after:\s*new Date\(\)\s*\}\}/);
     });
 });
-
-

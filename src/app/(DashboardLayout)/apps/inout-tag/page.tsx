@@ -10,11 +10,7 @@ export const metadata = {
     description: 'Data InOut Tag',
 };
 
-const BCrumb = [
-    { to: '/', title: 'Home' },
-    { to: '/apps', title: 'Apps' },
-    { title: 'InOut Tag' },
-];
+const BCrumb = [{ to: '/', title: 'Home' }, { to: '/apps', title: 'Apps' }, { title: 'InOut Tag' }];
 
 interface SearchParams {
     page?: string;
@@ -26,7 +22,11 @@ interface SearchParams {
     endDate?: string;
 }
 
-export default async function InOutTagPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+export default async function InOutTagPage({
+    searchParams,
+}: {
+    searchParams: Promise<SearchParams>;
+}) {
     const sessionUser = await getSessionUser();
     const canCreateTag = sessionUser.role !== 'Staff';
 

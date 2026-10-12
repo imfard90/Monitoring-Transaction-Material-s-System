@@ -72,10 +72,9 @@ export async function setupContext(username: string, password: string) {
                 return;
             } catch (error: unknown) {
                 if (i === retries) throw error;
-                actionLogger.info(
-                    `Nav to ${url} failed, retrying... (${i + 1}/${retries})`,
-                    { error: error instanceof Error ? error.message : String(error) }
-                );
+                actionLogger.info(`Nav to ${url} failed, retrying... (${i + 1}/${retries})`, {
+                    error: error instanceof Error ? error.message : String(error),
+                });
                 await page.waitForTimeout(2000);
             }
         }
@@ -115,8 +114,6 @@ export interface OutLensaHeader {
     gi_number: string | null;
     status_proses: string | null;
 }
-
-
 
 const OUT_MAX_PAGES = 50;
 const OUT_STOP_ON_EMPTY = 2; // berhenti setelah N halaman kosong berturut-turut
@@ -245,7 +242,10 @@ export async function scrapeLensaHeaders(
 
         return newHeaders;
     } catch (error) {
-        actionLogger.error(`[OUT][${username}] Header sync error:`, error instanceof Error ? error : new Error(String(error)));
+        actionLogger.error(
+            `[OUT][${username}] Header sync error:`,
+            error instanceof Error ? error : new Error(String(error))
+        );
         throw error;
     } finally {
         await context.close();
@@ -418,10 +418,12 @@ async function scrapeDefaultEndpoint(
     let pagesFetched = 1;
 
     const stats1 = processItems(items1, seenIds, results);
- actionLogger.info(`   [Default] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (cutoff=${format(CUTOFF_DATE, 'yyyy-MM-dd')})`);
+    actionLogger.info(
+        `   [Default] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (cutoff=${format(CUTOFF_DATE, 'yyyy-MM-dd')})`
+    );
 
     let consecutiveBelowCutoff = allBeforeCutoff(items1) ? 1 : 0;
- const maxPages = Math.min(lastPage, MAX_PAGES_DEFAULT);
+    const maxPages = Math.min(lastPage, MAX_PAGES_DEFAULT);
 
     for (let p = 2; p <= maxPages; p++) {
         if (consecutiveBelowCutoff >= CONSECUTIVE_STOP_THRESHOLD) break;
@@ -442,7 +444,9 @@ async function scrapeDefaultEndpoint(
         if (items.length === 0) break;
     }
 
-    actionLogger.info(`  [Default] Done pages=${pagesFetched}/${lastPage} (cap ${MAX_PAGES_DEFAULT})`);
+    actionLogger.info(
+        `  [Default] Done pages=${pagesFetched}/${lastPage} (cap ${MAX_PAGES_DEFAULT})`
+    );
 }
 
 async function scrapePrefixEndpoint(
@@ -463,9 +467,11 @@ async function scrapePrefixEndpoint(
     let pagesFetched = 1;
 
     const stats1 = processItems(items1, seenIds, results);
- actionLogger.info(`   [${prefix}] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (cutoff=${format(CUTOFF_DATE, 'yyyy-MM-dd')})`);
+    actionLogger.info(
+        `   [${prefix}] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (cutoff=${format(CUTOFF_DATE, 'yyyy-MM-dd')})`
+    );
 
- const maxPages = Math.min(lastPage, MAX_PAGES_PREFIX);
+    const maxPages = Math.min(lastPage, MAX_PAGES_PREFIX);
 
     for (let p = 2; p <= maxPages; p++) {
         const url = `${LENSA_URL}/teknisi/wo-data?page=${p}&perpage=${perpage}&search=${prefix}&orderBy=tanggal_update&orderDirection=asc`;
@@ -478,7 +484,9 @@ async function scrapePrefixEndpoint(
         if (items.length === 0) break;
     }
 
-    actionLogger.info(`  [${prefix}] Done pages=${pagesFetched}/${lastPage} (cap ${MAX_PAGES_PREFIX})`);
+    actionLogger.info(
+        `  [${prefix}] Done pages=${pagesFetched}/${lastPage} (cap ${MAX_PAGES_PREFIX})`
+    );
 }
 
 /**
@@ -532,7 +540,10 @@ export async function scrapeWOLensaHeaders(
 
         return newHeaders;
     } catch (error) {
-        actionLogger.error('WO Header sync error:', error instanceof Error ? error : new Error(String(error)));
+        actionLogger.error(
+            'WO Header sync error:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         throw error;
     } finally {
         await context.close();
@@ -637,14 +648,17 @@ export async function scrapeLensaDetails(
                 });
             } catch (err) {
                 actionLogger.error(
-                `Failed to scrape detail for reservation_id ${header.reservation_id}:`,
-                err instanceof Error ? err : new Error(String(err))
+                    `Failed to scrape detail for reservation_id ${header.reservation_id}:`,
+                    err instanceof Error ? err : new Error(String(err))
                 );
             }
         }
         return results;
     } catch (error) {
-        actionLogger.error('Detail sync error:', error instanceof Error ? error : new Error(String(error)));
+        actionLogger.error(
+            'Detail sync error:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         throw error;
     } finally {
         await context.close();
@@ -790,7 +804,11 @@ export async function scrapeWOLensaDetails(
         password
     );
 
-    const tryBapbPdfFallback = async (header: { id: number; pemakaian_id: string; type?: string | null }) => {
+    const tryBapbPdfFallback = async (header: {
+        id: number;
+        pemakaian_id: string;
+        type?: string | null;
+    }) => {
         try {
             const candidateTypes = [header.type || 'assurance'];
             if (!candidateTypes.includes('assurance')) candidateTypes.push('assurance');
@@ -798,7 +816,9 @@ export async function scrapeWOLensaDetails(
 
             for (const docType of candidateTypes) {
                 const bapbUrl = `${LENSA_URL}/pemakaian/document-bapb/${header.pemakaian_id}/${docType}`;
-                actionLogger.info(`Attempting fallback to BAPB PDF for WO ${header.pemakaian_id}: ${bapbUrl}`);
+                actionLogger.info(
+                    `Attempting fallback to BAPB PDF for WO ${header.pemakaian_id}: ${bapbUrl}`
+                );
                 const pdfResp = await context.request.get(bapbUrl);
                 if (pdfResp.ok()) {
                     const pdfBuf = await pdfResp.body();
@@ -819,10 +839,9 @@ export async function scrapeWOLensaDetails(
                 }
             }
         } catch (pdfErr) {
-            actionLogger.warn(
-                `BAPB PDF fallback failed for pemakaian_id ${header.pemakaian_id}`,
-                { error: pdfErr instanceof Error ? pdfErr.message : String(pdfErr) }
-            );
+            actionLogger.warn(`BAPB PDF fallback failed for pemakaian_id ${header.pemakaian_id}`, {
+                error: pdfErr instanceof Error ? pdfErr.message : String(pdfErr),
+            });
         }
         return [];
     };
@@ -844,7 +863,9 @@ export async function scrapeWOLensaDetails(
 
                         if (page.url().includes('login')) {
                             await redis.del(sessionKey);
-                            throw new Error('Sesi terputus saat scrap detail WO walau sudah relogin');
+                            throw new Error(
+                                'Sesi terputus saat scrap detail WO walau sudah relogin'
+                            );
                         }
                     }
 
@@ -858,7 +879,10 @@ export async function scrapeWOLensaDetails(
                                 (th) => th.textContent?.trim() || ''
                             );
                             let type = 'unknown';
-                            if (headers.includes('ID MATERIAL') || headers.includes('NAMA MATERIAL')) {
+                            if (
+                                headers.includes('ID MATERIAL') ||
+                                headers.includes('NAMA MATERIAL')
+                            ) {
                                 type = 'materials';
                             }
                             const data = rows.slice(1).map((row) => {
@@ -902,7 +926,10 @@ export async function scrapeWOLensaDetails(
         }
         return results;
     } catch (error) {
-        actionLogger.error('WO Lensa Detail sync error:', error instanceof Error ? error : new Error(String(error)));
+        actionLogger.error(
+            'WO Lensa Detail sync error:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         throw error;
     } finally {
         await context.close();

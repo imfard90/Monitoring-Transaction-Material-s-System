@@ -109,12 +109,7 @@ export async function deleteUser(userId: string) {
 export async function toggleUserApiApproval(userId: string, apprApi: boolean) {
     await requireManagementAccess();
 
-    await db
-        .updateTable('auth.user')
-        .set({ appr_api: apprApi })
-        .where('id', '=', userId)
-        .execute();
+    await db.updateTable('auth.user').set({ appr_api: apprApi }).where('id', '=', userId).execute();
 
     revalidatePath('/management/users');
 }
-

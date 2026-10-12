@@ -178,7 +178,6 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
         }
     };
 
-
     return (
         <>
             <StaggerContainer className="flex flex-col gap-6">
@@ -392,12 +391,23 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                         Lensa Inventory Account
                                     </h5>
                                     <p className="mt-0.5 text-sm text-muted-foreground">
-                                        Kelola koneksi untuk pengambilan detail reservasi secara otomatis.
+                                        Kelola koneksi untuk pengambilan detail reservasi secara
+                                        otomatis.
                                     </p>
                                 </div>
                             </div>
-                            <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${profileData?.lensa_acount ? 'border-success/20 bg-success/10 text-success' : 'border-warning/20 bg-warning/10 text-warning'}`}>
-                                <Icon icon={profileData?.lensa_acount ? 'lucide:check-circle' : 'lucide:alert-circle'} width="14" aria-hidden="true" />
+                            <span
+                                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${profileData?.lensa_acount ? 'border-success/20 bg-success/10 text-success' : 'border-warning/20 bg-warning/10 text-warning'}`}
+                            >
+                                <Icon
+                                    icon={
+                                        profileData?.lensa_acount
+                                            ? 'lucide:check-circle'
+                                            : 'lucide:alert-circle'
+                                    }
+                                    width="14"
+                                    aria-hidden="true"
+                                />
                                 {profileData?.lensa_acount ? 'Terhubung' : 'Belum'}
                             </span>
                         </div>
@@ -406,7 +416,9 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                             <div className="flex flex-col items-start gap-3">
                                 <div className="space-y-1">
                                     <h6 className="font-medium text-foreground">
-                                        {profileData?.lensa_acount ? 'Akun Lensa siap digunakan' : 'Hubungkan akun Lensa Anda'}
+                                        {profileData?.lensa_acount
+                                            ? 'Akun Lensa siap digunakan'
+                                            : 'Hubungkan akun Lensa Anda'}
                                     </h6>
                                     <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
                                         {profileData?.lensa_acount
@@ -416,30 +428,76 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                 </div>
                                 {profileData?.lensa_acount ? (
                                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-border bg-background px-3 py-2 text-sm">
-                                        <Icon icon="lucide:user-round" width="16" className="text-muted-foreground" aria-hidden="true" />
-                                        <span className="text-muted-foreground">Akun terhubung</span>
-                                        <span className="font-medium text-foreground">{String(profileData.lensa_acount.username)}</span>
+                                        <Icon
+                                            icon="lucide:user-round"
+                                            width="16"
+                                            className="text-muted-foreground"
+                                            aria-hidden="true"
+                                        />
+                                        <span className="text-muted-foreground">
+                                            Akun terhubung
+                                        </span>
+                                        <span className="font-medium text-foreground">
+                                            {String(profileData.lensa_acount.username)}
+                                        </span>
                                     </div>
                                 ) : (
                                     <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1"><Icon icon="lucide:lock-keyhole" width="14" aria-hidden="true" />Kredensial terenkripsi</span>
-                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1"><Icon icon="lucide:refresh-cw" width="14" aria-hidden="true" />Dapat diputus kapan saja</span>
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1">
+                                            <Icon
+                                                icon="lucide:lock-keyhole"
+                                                width="14"
+                                                aria-hidden="true"
+                                            />
+                                            Kredensial terenkripsi
+                                        </span>
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1">
+                                            <Icon
+                                                icon="lucide:refresh-cw"
+                                                width="14"
+                                                aria-hidden="true"
+                                            />
+                                            Dapat diputus kapan saja
+                                        </span>
                                     </div>
                                 )}
                                 {profileData?.lensa_acount ? (
-                                    <Button variant="destructive" size="sm" className="w-fit" onClick={handleDeleteLensa} disabled={isPending}>
-                                        <Icon icon="lucide:unplug" width="16" className="mr-1" aria-hidden="true" />
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="w-fit"
+                                        onClick={handleDeleteLensa}
+                                        disabled={isPending}
+                                    >
+                                        <Icon
+                                            icon="lucide:unplug"
+                                            width="16"
+                                            className="mr-1"
+                                            aria-hidden="true"
+                                        />
                                         {isPending ? 'Memutus koneksi...' : 'Disconnect'}
                                     </Button>
                                 ) : (
-                                    <Button size="sm" className="w-fit" onClick={() => setIsLensaDialogOpen(true)}>
-                                        <Icon icon="lucide:link" width="16" className="mr-1" aria-hidden="true" />
+                                    <Button
+                                        size="sm"
+                                        className="w-fit"
+                                        onClick={() => setIsLensaDialogOpen(true)}
+                                    >
+                                        <Icon
+                                            icon="lucide:link"
+                                            width="16"
+                                            className="mr-1"
+                                            aria-hidden="true"
+                                        />
                                         Connect Account
                                     </Button>
                                 )}
                             </div>
 
-                            <div className="relative mx-auto flex h-36 w-full max-w-52 items-center justify-center sm:h-40 sm:w-48" aria-hidden="true">
+                            <div
+                                className="relative mx-auto flex h-36 w-full max-w-52 items-center justify-center sm:h-40 sm:w-48"
+                                aria-hidden="true"
+                            >
                                 <div className="absolute inset-3 rounded-full bg-primary/5" />
                                 <div className="absolute inset-6 rounded-full border border-dashed border-primary/20" />
                                 <div className="absolute left-3 top-5 flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-primary shadow-sm">
@@ -451,16 +509,44 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                 <div className="absolute right-4 top-8 flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm">
                                     <Icon icon="lucide:scan-line" width="18" />
                                 </div>
-                                <svg viewBox="0 0 120 100" className="relative h-28 w-32 text-primary drop-shadow-sm" fill="none">
-                                    <path d="M18 37 60 15l42 22v45L60 96 18 82V37Z" className="fill-primary/10 stroke-primary/40" strokeWidth="2" strokeLinejoin="round" />
-                                    <path d="m18 37 42 23 42-23M60 60v36M39 26l42 22v15" className="stroke-primary/50" strokeWidth="2" strokeLinejoin="round" />
-                                    <path d="m48 44 12 7 12-7v14l-12 7-12-7V44Z" className="fill-card stroke-primary" strokeWidth="2" strokeLinejoin="round" />
-                                    <path d="M52 54h16" className="stroke-primary/50" strokeWidth="2" strokeLinecap="round" />
+                                <svg
+                                    viewBox="0 0 120 100"
+                                    className="relative h-28 w-32 text-primary drop-shadow-sm"
+                                    fill="none"
+                                >
+                                    <path
+                                        d="M18 37 60 15l42 22v45L60 96 18 82V37Z"
+                                        className="fill-primary/10 stroke-primary/40"
+                                        strokeWidth="2"
+                                        strokeLinejoin="round"
+                                    />
+                                    <path
+                                        d="m18 37 42 23 42-23M60 60v36M39 26l42 22v15"
+                                        className="stroke-primary/50"
+                                        strokeWidth="2"
+                                        strokeLinejoin="round"
+                                    />
+                                    <path
+                                        d="m48 44 12 7 12-7v14l-12 7-12-7V44Z"
+                                        className="fill-card stroke-primary"
+                                        strokeWidth="2"
+                                        strokeLinejoin="round"
+                                    />
+                                    <path
+                                        d="M52 54h16"
+                                        className="stroke-primary/50"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                    />
                                     <circle cx="60" cy="8" r="3" className="fill-primary/50" />
                                 </svg>
                                 <div className="absolute bottom-1 right-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">
-                                    <span className={`h-2 w-2 rounded-full ${profileData?.lensa_acount ? 'bg-success' : 'bg-muted-foreground/50'}`} />
-                                    {profileData?.lensa_acount ? 'Koneksi aktif' : 'Menunggu koneksi'}
+                                    <span
+                                        className={`h-2 w-2 rounded-full ${profileData?.lensa_acount ? 'bg-success' : 'bg-muted-foreground/50'}`}
+                                    />
+                                    {profileData?.lensa_acount
+                                        ? 'Koneksi aktif'
+                                        : 'Menunggu koneksi'}
                                 </div>
                             </div>
                         </div>
@@ -483,13 +569,23 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                         MTMS Public API
                                     </h5>
                                     <p className="mt-0.5 text-sm text-muted-foreground">
-                                        Generate kunci akses untuk integrasi sistem eksternal via REST API.
+                                        Generate kunci akses untuk integrasi sistem eksternal via
+                                        REST API.
                                     </p>
                                 </div>
                             </div>
                             {profileData?.has_api_key ? (
-                                <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${profileData.appr_api ? 'border-success/20 bg-success/10 text-success' : 'border-warning/20 bg-warning/10 text-warning'}`}>
-                                    <Icon icon={profileData.appr_api ? 'lucide:check-circle' : 'lucide:clock'} width="14" />
+                                <span
+                                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${profileData.appr_api ? 'border-success/20 bg-success/10 text-success' : 'border-warning/20 bg-warning/10 text-warning'}`}
+                                >
+                                    <Icon
+                                        icon={
+                                            profileData.appr_api
+                                                ? 'lucide:check-circle'
+                                                : 'lucide:clock'
+                                        }
+                                        width="14"
+                                    />
                                     {profileData.appr_api ? 'Disetujui' : 'Menunggu'}
                                 </span>
                             ) : (
@@ -512,20 +608,37 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                         </span>
                                     </div>
                                     <p className="text-sm text-muted-foreground">
-                                        Akses data secara otomatis, dibatasi 1 request per 5 menit per akun.
+                                        Akses data secara otomatis, dibatasi 1 request per 5 menit
+                                        per akun.
                                     </p>
                                 </div>
                                 {profileData?.has_api_key ? (
                                     <div className="space-y-3 w-full">
                                         <div className="flex items-center gap-2 p-2.5 bg-background border border-border rounded-md">
-                                            <Icon icon="lucide:key-round" width="14" className="text-muted-foreground shrink-0" />
+                                            <Icon
+                                                icon="lucide:key-round"
+                                                width="14"
+                                                className="text-muted-foreground shrink-0"
+                                            />
                                             <code className="text-xs text-muted-foreground font-mono flex-1 select-all">
                                                 mtms_live_••••••••••••••••••••••••••••••••
                                             </code>
                                         </div>
                                         <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-background/50 rounded-lg border border-border">
                                             <div className="flex items-center gap-2">
-                                                <Icon icon={profileData.appr_api ? 'lucide:shield-check' : 'lucide:shield-alert'} width="16" className={profileData.appr_api ? 'text-success' : 'text-warning'} />
+                                                <Icon
+                                                    icon={
+                                                        profileData.appr_api
+                                                            ? 'lucide:shield-check'
+                                                            : 'lucide:shield-alert'
+                                                    }
+                                                    width="16"
+                                                    className={
+                                                        profileData.appr_api
+                                                            ? 'text-success'
+                                                            : 'text-warning'
+                                                    }
+                                                />
                                                 <p className="text-xs text-muted-foreground">
                                                     {profileData.appr_api
                                                         ? 'API Key aktif dan siap digunakan untuk integrasi.'
@@ -556,8 +669,14 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                             {isGeneratingKey ? 'Membuat...' : 'Generate API Key'}
                                         </Button>
                                         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1 border border-border"><Icon icon="lucide:lock-keyhole" width="14" />SHA-256 Hash</span>
-                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1 border border-border"><Icon icon="lucide:shield" width="14" />Persetujuan Admin</span>
+                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1 border border-border">
+                                                <Icon icon="lucide:lock-keyhole" width="14" />
+                                                SHA-256 Hash
+                                            </span>
+                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1 border border-border">
+                                                <Icon icon="lucide:shield" width="14" />
+                                                Persetujuan Admin
+                                            </span>
                                         </div>
                                     </div>
                                 )}
@@ -569,38 +688,86 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg animate-pulse" />
                                     <div className="relative w-14 h-14 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 flex items-center justify-center rotate-3 hover:rotate-0 transition-transform duration-500">
-                                        <Icon icon="lucide:server" width="28" className="text-primary/80" />
+                                        <Icon
+                                            icon="lucide:server"
+                                            width="28"
+                                            className="text-primary/80"
+                                        />
                                     </div>
                                 </div>
 
                                 {/* Connected Nodes */}
                                 <div className="absolute top-1 left-3">
                                     <div className="w-7 h-7 rounded-lg bg-background/90 border border-border/60 flex items-center justify-center shadow-sm hover:scale-110 transition-transform duration-300">
-                                        <Icon icon="lucide:code-2" width="12" className="text-primary/70" />
+                                        <Icon
+                                            icon="lucide:code-2"
+                                            width="12"
+                                            className="text-primary/70"
+                                        />
                                     </div>
                                 </div>
                                 <div className="absolute top-4 right-0">
                                     <div className="w-6 h-6 rounded-lg bg-background/90 border border-border/60 flex items-center justify-center shadow-sm hover:scale-110 transition-transform duration-300">
-                                        <Icon icon="lucide:webhook" width="10" className="text-primary/60" />
+                                        <Icon
+                                            icon="lucide:webhook"
+                                            width="10"
+                                            className="text-primary/60"
+                                        />
                                     </div>
                                 </div>
                                 <div className="absolute bottom-3 left-1">
                                     <div className="w-5 h-5 rounded-full bg-background/90 border border-border/60 flex items-center justify-center shadow-sm">
-                                        <Icon icon="lucide:database" width="9" className="text-primary/50" />
+                                        <Icon
+                                            icon="lucide:database"
+                                            width="9"
+                                            className="text-primary/50"
+                                        />
                                     </div>
                                 </div>
                                 <div className="absolute bottom-0 right-4">
                                     <div className="w-5 h-5 rounded-full bg-success/20 border border-success/30 flex items-center justify-center shadow-sm">
-                                        <Icon icon="lucide:arrow-right" width="8" className="text-success/80" />
+                                        <Icon
+                                            icon="lucide:arrow-right"
+                                            width="8"
+                                            className="text-success/80"
+                                        />
                                     </div>
                                 </div>
 
                                 {/* Connection Lines SVG */}
-                                <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 140 140" fill="none">
-                                    <path d="M35 40 Q 55 55, 70 70" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" className="text-primary/30" />
-                                    <path d="M105 42 Q 85 58, 72 70" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" className="text-primary/25" />
-                                    <path d="M32 95 Q 50 82, 68 72" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" className="text-primary/20" />
-                                    <path d="M100 100 Q 88 88, 74 75" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" className="text-success/30" />
+                                <svg
+                                    className="absolute inset-0 w-full h-full pointer-events-none"
+                                    viewBox="0 0 140 140"
+                                    fill="none"
+                                >
+                                    <path
+                                        d="M35 40 Q 55 55, 70 70"
+                                        stroke="currentColor"
+                                        strokeWidth="1"
+                                        strokeDasharray="2 2"
+                                        className="text-primary/30"
+                                    />
+                                    <path
+                                        d="M105 42 Q 85 58, 72 70"
+                                        stroke="currentColor"
+                                        strokeWidth="1"
+                                        strokeDasharray="2 2"
+                                        className="text-primary/25"
+                                    />
+                                    <path
+                                        d="M32 95 Q 50 82, 68 72"
+                                        stroke="currentColor"
+                                        strokeWidth="1"
+                                        strokeDasharray="2 2"
+                                        className="text-primary/20"
+                                    />
+                                    <path
+                                        d="M100 100 Q 88 88, 74 75"
+                                        stroke="currentColor"
+                                        strokeWidth="1"
+                                        strokeDasharray="2 2"
+                                        className="text-success/30"
+                                    />
                                 </svg>
                             </div>
                         </div>
@@ -666,12 +833,16 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                             Penting: Simpan Kunci Sekarang
                         </div>
                         <p className="text-xs leading-relaxed text-muted-foreground">
-                            Kunci ini hanya ditampilkan satu kali demi keamanan. Anda tidak akan bisa melihat kunci ini lagi setelah menutup dialog ini.
+                            Kunci ini hanya ditampilkan satu kali demi keamanan. Anda tidak akan
+                            bisa melihat kunci ini lagi setelah menutup dialog ini.
                         </p>
                     </div>
 
                     <div className="space-y-1.5">
-                        <Label htmlFor="new-api-key" className="text-xs font-semibold uppercase text-muted-foreground">
+                        <Label
+                            htmlFor="new-api-key"
+                            className="text-xs font-semibold uppercase text-muted-foreground"
+                        >
                             Secret API Key
                         </Label>
                         <div className="flex items-center gap-2 p-2 bg-muted rounded-md border border-border">
@@ -685,7 +856,9 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                 size="sm"
                                 variant="outline"
                                 className="shrink-0 h-8 gap-1.5"
-                                onClick={() => newlyGeneratedKey && handleCopyKey(newlyGeneratedKey)}
+                                onClick={() =>
+                                    newlyGeneratedKey && handleCopyKey(newlyGeneratedKey)
+                                }
                             >
                                 <Icon
                                     icon={isKeyCopied ? 'lucide:check' : 'lucide:copy'}
@@ -698,7 +871,8 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                        Status approval API akun Anda telah di-reset ke menunggu persetujuan Admin. Kunci ini akan aktif setelah disetujui di Management User.
+                        Status approval API akun Anda telah di-reset ke menunggu persetujuan Admin.
+                        Kunci ini akan aktif setelah disetujui di Management User.
                     </p>
 
                     <div className="flex justify-end pt-3 border-t">
@@ -708,7 +882,6 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                     </div>
                 </div>
             </ModalDialog>
-
         </>
     );
 };

@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { Pool } from 'pg';
 import 'dotenv/config';
 
@@ -89,10 +89,9 @@ async function runMigrations(): Promise<void> {
             await pool.query('BEGIN');
             try {
                 await pool.query(sql);
-                await pool.query(
-                    `INSERT INTO ${MIGRATION_LOG_TABLE} (filename) VALUES ($1)`,
-                    [file]
-                );
+                await pool.query(`INSERT INTO ${MIGRATION_LOG_TABLE} (filename) VALUES ($1)`, [
+                    file,
+                ]);
                 await pool.query('COMMIT');
                 console.log(`   ✓ DONE: ${file}`);
                 runCount++;
@@ -102,7 +101,9 @@ async function runMigrations(): Promise<void> {
             }
         }
 
-        console.log(`✅ Migration complete. ${runCount} file(s) executed, ${executed.size} skipped.`);
+        console.log(
+            `✅ Migration complete. ${runCount} file(s) executed, ${executed.size} skipped.`
+        );
     } catch (error) {
         console.error('❌ Migration failed:', error);
         process.exit(1);

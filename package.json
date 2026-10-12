@@ -13,7 +13,8 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "migrate": "tsx run-migration.ts"
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.3.2",

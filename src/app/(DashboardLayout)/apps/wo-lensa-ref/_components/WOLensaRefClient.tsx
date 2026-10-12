@@ -103,9 +103,7 @@ export default function WOLensaRefClient({
             return warehouseOptions;
         }
         const list = new Set(
-            initialData
-                .map((d) => toCanonicalWarehouseName(d.nama_gudang))
-                .filter(Boolean)
+            initialData.map((d) => toCanonicalWarehouseName(d.nama_gudang)).filter(Boolean)
         );
         return Array.from(list).sort() as string[];
     }, [initialData, warehouseOptions]);
@@ -194,9 +192,7 @@ export default function WOLensaRefClient({
             header: 'Pemakaian ID',
             size: 130,
             cell: (info) => (
-                <span className="font-medium text-foreground">
-                    {info.getValue() || '-'}
-                </span>
+                <span className="font-medium text-foreground">{info.getValue() || '-'}</span>
             ),
         }),
         columnHelper.accessor('formatted_date', {
@@ -222,10 +218,7 @@ export default function WOLensaRefClient({
                 const val = info.getValue();
                 return (
                     <div className="flex justify-center">
-                        <Badge
-                            variant={getTypeBadgeVariant(val)}
-                            className="capitalize"
-                        >
+                        <Badge variant={getTypeBadgeVariant(val)} className="capitalize">
                             {val || '-'}
                         </Badge>
                     </div>

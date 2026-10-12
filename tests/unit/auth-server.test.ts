@@ -33,9 +33,12 @@ vi.mock('next/headers', () => ({
     headers: vi.fn(async () => new Headers()),
 }));
 
-const { getSessionNik, getSessionUser, requireManagementAccess, requireTechnicianManagementAccess } = await import(
-    '@/lib/auth-server'
-);
+const {
+    getSessionNik,
+    getSessionUser,
+    requireManagementAccess,
+    requireTechnicianManagementAccess,
+} = await import('@/lib/auth-server');
 const { AuthenticationError, AuthorizationError } = await import('@/lib/errors');
 
 function makeSession(nik?: string, role?: string | null) {
@@ -49,9 +52,7 @@ function mockDbReturns(role: string | null, warehouseIds: number[] = []) {
         select: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         executeTakeFirst: vi.fn().mockResolvedValue(employee),
-        execute: vi.fn().mockResolvedValue(
-            warehouseIds.map((id) => ({ id }))
-        ),
+        execute: vi.fn().mockResolvedValue(warehouseIds.map((id) => ({ id }))),
         or: vi.fn().mockReturnThis(),
     };
     mockDbQuery.mockImplementation(() => chain);

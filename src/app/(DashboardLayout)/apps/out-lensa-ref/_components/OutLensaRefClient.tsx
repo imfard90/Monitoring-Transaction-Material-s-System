@@ -94,9 +94,7 @@ export default function OutLensaRefClient({
             return warehouseOptions;
         }
         const list = new Set(
-            initialData
-                .map((d) => toCanonicalWarehouseName(d.nama_gudang))
-                .filter(Boolean)
+            initialData.map((d) => toCanonicalWarehouseName(d.nama_gudang)).filter(Boolean)
         );
         return Array.from(list).sort() as string[];
     }, [initialData, warehouseOptions]);
@@ -202,9 +200,7 @@ export default function OutLensaRefClient({
             header: 'Reservation ID',
             size: 140,
             cell: (info) => (
-                <span className="font-medium text-foreground">
-                    {info.getValue() || '-'}
-                </span>
+                <span className="font-medium text-foreground">{info.getValue() || '-'}</span>
             ),
         }),
         columnHelper.accessor('nama_gudang', {

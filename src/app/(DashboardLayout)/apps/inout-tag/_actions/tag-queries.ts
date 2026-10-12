@@ -133,7 +133,6 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
     }
 }
 
-
 export async function getInOutTagItems(headerId: number, type?: string) {
     try {
         let items: any[];
@@ -185,7 +184,6 @@ export async function getInOutTagItems(headerId: number, type?: string) {
     }
 }
 
-
 export async function getWarehouses() {
     try {
         const whs = await db.selectFrom('inventory.mas_wh').selectAll().execute();
@@ -199,7 +197,6 @@ export async function getWarehouses() {
     }
 }
 
-
 export async function getMaterials() {
     try {
         const mats = await db.selectFrom('inventory.materials').selectAll().execute();
@@ -212,7 +209,6 @@ export async function getMaterials() {
         return { success: false, data: [] };
     }
 }
-
 
 export async function getMaterialsWithStock(fromWhId?: number | null) {
     try {
@@ -256,7 +252,6 @@ export async function getMaterialsWithStock(fromWhId?: number | null) {
     }
 }
 
-
 export async function getInoutTagItemsByHeaderId(headerId: number) {
     try {
         const items = await db
@@ -285,7 +280,6 @@ export async function getInoutTagItemsByHeaderId(headerId: number) {
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
-
 
 export async function getReturnMaterialItemsByHeaderId(headerId: number) {
     try {
@@ -517,7 +511,11 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
 
 export async function getInOutTagFilterOptions() {
     try {
-        const whs = await db.selectFrom('inventory.mas_wh').select('name').orderBy('name', 'asc').execute();
+        const whs = await db
+            .selectFrom('inventory.mas_wh')
+            .select('name')
+            .orderBy('name', 'asc')
+            .execute();
         return {
             toWhOptions: whs.map((w: any) => w.name).filter(Boolean) as string[],
         };

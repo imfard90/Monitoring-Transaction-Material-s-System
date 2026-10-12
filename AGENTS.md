@@ -106,12 +106,16 @@ Sebelum menyatakan tugas selesai, pastikan:
 - Pagination default (`LIMIT`/`OFFSET`) pada query list dashboard.
 - `SECURITY INVOKER` default; hanya gunakan `SECURITY DEFINER` dengan justifikasi tertulis.
 
-### 3.4 Komponen/UI
+### 3.4 Komponen/UI & Desain Sistem
 
-- Gunakan primitif `src/components/ui/*` (Radix-based).
-- State server via React Query/TanStack Table; jangan simpan token/password di `localStorage`.
-- Service worker (`src/sw.ts`) hanya cache aset statis; jangan cache response transaksi sensitif.
-- Saat membuat/memperbaiki UI/UX, ikuti juga skill `.agents/skills/premium-ui-ux-builder/SKILL.md` (sistem desain, aksesibilitas, state UI, motion, checklist UI premium). Pada konflik, otorisasi/business rules di `AGENTS.md` lebih tinggi.
+- **Primitif UI Wajib Dipakai Ulang**: Gunakan primitif yang ada di `src/components/ui/*` (berbasis Radix + CVA). Dilarang membuat primitif baru sebelum mengecek komponen yang sudah ada.
+- **Token Tema & Konsistensi Visual**: Gunakan token tema Tailwind v4 (`--color-primary`, `--radius-*`, `--shadow-*`, `--color-muted`) melalui kelas Tailwind semantik, jangan hardcode nilai literal atau palet warna mentah.
+- **Prioritas UX MTMS**:
+  1. *Form & Transaksi Domain*: Validasi Zod sinkron client-server, feedback loading/pending eksplisit pada tombol submit, dialog konfirmasi untuk aksi destruktif.
+  2. *Dashboard Operasional*: Data table (TanStack Table) dengan pagination server-side (`LIMIT`/`OFFSET`), status badge semantik, empty/error state informatif.
+  3. *Konsistensi & Aksesibilitas Lintas Halaman*: Kontras WCAG AA, navigasi keyboard (`focus-visible`), hormati `prefers-reduced-motion`, dark mode konsisten, salinan teks Bahasa Indonesia yang sopan dan spesifik.
+- **State & Caching**: State server via React Query/TanStack Table; jangan simpan token/password di `localStorage`. Service worker (`src/sw.ts`) hanya cache aset statis; jangan cache response transaksi sensitif.
+- **Panduan UI/UX**: Gunakan skill `ui-ux-pro-max` untuk kecerdasan sistem desain, tipografi, palet, audit a11y, dan pola antarmuka. Pada konflik aturan, otorisasi/business rules di `AGENTS.md` tetap memiliki prioritas tertinggi.
 
 ## 4. Definisi Selesai (Definition of Done)
 
@@ -124,7 +128,7 @@ Sebelum menyatakan tugas selesai, pastikan:
 - [ ] Error handling terstruktur + logger.
 - [ ] Tes minimal untuk SP/authz baru.
 - [ ] `tsc` + `biome` lolos.
-- [ ] Untuk perubahan UI: checklist UI di `premium-ui-ux-builder/SKILL.md` §4 terpenuhi (primitif, token tema, responsif, dark mode, a11y, state UI lengkap).
+- [ ] Untuk perubahan UI: checklist UI terpenuhi (primitif `src/components/ui/*`, token tema, responsif, dark mode, a11y, state UI lengkap default/loading/empty/error, salinan Bahasa Indonesia, skill `ui-ux-pro-max`).
 - [ ] External REST API sesuai standar §1.5 (jika membuat/mengubah endpoint publik).
 
 - [ ] `docs/AUDIT_REPORT.md` diperbarui status temuan terkait.

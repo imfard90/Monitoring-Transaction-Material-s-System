@@ -135,8 +135,7 @@ export default function MovementTable({
             cell: (info) => {
                 const val = info.getValue();
                 let color = 'bg-secondary/10 text-secondary';
-                if (val === 'transfer_in' || val === 'sap_in')
-                    color = 'bg-success/10 text-success';
+                if (val === 'transfer_in' || val === 'sap_in') color = 'bg-success/10 text-success';
                 if (val === 'transfer_out' || val === 'sap_out') color = 'bg-error/10 text-error';
 
                 return (
@@ -153,8 +152,7 @@ export default function MovementTable({
             size: 75,
             cell: (info) => {
                 const val = info.getValue();
-                const color =
-                    val > 0 ? 'text-success' : val < 0 ? 'text-error' : 'text-foreground';
+                const color = val > 0 ? 'text-success' : val < 0 ? 'text-error' : 'text-foreground';
                 return (
                     <div className={`text-center text-sm font-bold ${color}`}>
                         {val > 0 ? `+${val}` : val}

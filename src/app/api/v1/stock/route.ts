@@ -58,7 +58,10 @@ export async function GET(request: Request) {
             type: 'https://mtms-app.credea.biz.id/problems/internal-server-error',
             title: 'Internal Server Error',
             status: 500,
-            detail: error instanceof Error ? error.message : 'Terjadi kesalahan pada sistem saat mengambil saldo stok.',
+            detail:
+                error instanceof Error
+                    ? error.message
+                    : 'Terjadi kesalahan pada sistem saat mengambil saldo stok.',
         });
     }
 }

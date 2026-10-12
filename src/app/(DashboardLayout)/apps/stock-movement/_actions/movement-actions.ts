@@ -107,7 +107,9 @@ export async function getStockMovementsPaginated(options: GetStockMovementsOptio
         }
 
         if (options.types && options.types.length > 0) {
-            baseQuery = baseQuery.where(sql<boolean>`sm.movement_type::text = ANY(${options.types})`);
+            baseQuery = baseQuery.where(
+                sql<boolean>`sm.movement_type::text = ANY(${options.types})`
+            );
         }
 
         if (options.startDate) {

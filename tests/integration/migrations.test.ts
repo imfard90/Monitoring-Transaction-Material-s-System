@@ -43,18 +43,16 @@ describeDb('migration log', () => {
         expect(names).toContain('012_create_sp_submit_rekon_intech.sql');
         expect(names).toContain('013_resolve_duplicate_return_request.sql');
         expect(names).toContain('014_add_dashboard_indexes.sql');
- expect(names).toContain('015_add_qty_used_le_qty_req_check.sql');
-expect(names).toContain('016_revoke_public_execute.sql');
- });
+        expect(names).toContain('015_add_qty_used_le_qty_req_check.sql');
+        expect(names).toContain('016_revoke_public_execute.sql');
+    });
 
     it('does NOT contain the old duplicate 009 file', async () => {
         const rows = await query<{ filename: string }>(`
             SELECT filename FROM inventory._migration_log
             WHERE filename LIKE '009_%'
         `);
-        expect(rows.map((r) => r.filename)).not.toContain(
-            '009_add_rekon_check_to_wo_lensa.sql'
-        );
+        expect(rows.map((r) => r.filename)).not.toContain('009_add_rekon_check_to_wo_lensa.sql');
     });
 });
 
@@ -128,12 +126,12 @@ describeDb('stored procedures & functions (D1, D5)', () => {
               AND p.proname = 'sp_create_return_request'
         `);
         expect(rows.length).toBeLessThanOrEqual(1);
-        });
+    });
 });
 
 describeDb('L1 fix: qty_used <= qty_req CHECK constraint (015)', () => {
- it('sap_out_items_qty_used_le_req constraint exists', async () => {
- const row = await queryOne<{ exists: boolean }>(`
+    it('sap_out_items_qty_used_le_req constraint exists', async () => {
+        const row = await queryOne<{ exists: boolean }>(`
  SELECT EXISTS (
  SELECT 1 FROM pg_constraint con
  JOIN pg_class cl ON cl.oid = con.conrelid
@@ -144,38 +142,38 @@ describeDb('L1 fix: qty_used <= qty_req CHECK constraint (015)', () => {
  AND con.conname = 'sap_out_items_qty_used_le_req'
  ) AS exists
  `);
- expect(row?.exists).toBe(true);
- });
+        expect(row?.exists).toBe(true);
+    });
 
- it('0 rows violate qty_used <= qty_req after L1 fix', async () => {
- const row = await queryOne<{ violations: string }>(`
+    it('0 rows violate qty_used <= qty_req after L1 fix', async () => {
+        const row = await queryOne<{ violations: string }>(`
  SELECT count(*)::text AS violations
  FROM inventory.sap_out_items
  WHERE qty_used > qty_req
  `);
- expect(Number(row?.violations)).toBe(0);
- });
- });
+        expect(Number(row?.violations)).toBe(0);
+    });
+});
 
 describeDb('L3 fix: REVOKE EXECUTE FROM PUBLIC on inventory SPs (016)', () => {
- it('PUBLIC has 0 EXECUTE grants on inventory routines', async () => {
- const row = await queryOne<{ count: string }>(`
+    it('PUBLIC has 0 EXECUTE grants on inventory routines', async () => {
+        const row = await queryOne<{ count: string }>(`
  SELECT count(*)::text AS count
  FROM information_schema.role_routine_grants
  WHERE routine_schema = 'inventory' AND grantee = 'PUBLIC'
  `);
- expect(Number(row?.count)).toBe(0);
- });
+        expect(Number(row?.count)).toBe(0);
+    });
 
- it('imam has EXECUTE on all inventory routines (>= 19 grants)', async () => {
- const row = await queryOne<{ count: string }>(`
+    it('imam has EXECUTE on all inventory routines (>= 19 grants)', async () => {
+        const row = await queryOne<{ count: string }>(`
  SELECT count(*)::text AS count
  FROM information_schema.role_routine_grants
  WHERE routine_schema = 'inventory' AND grantee = 'imam'
  `);
- expect(Number(row?.count)).toBeGreaterThanOrEqual(19);
- });
- });
+        expect(Number(row?.count)).toBeGreaterThanOrEqual(19);
+    });
+});
 
 describeDb('L4 fix: RLS enabled on all tables (017)', () => {
     it('RLS enabled on all 39 tables (inventory, auth, hr)', async () => {
@@ -223,30 +221,30 @@ describeDb('L5 query logging migration tracked (018)', () => {
         expect(names).toContain('018_enable_query_logging.sql');
     });
 
-describeDb('API key and approval columns (020)', () => {
-    it('020_add_api_key_and_appr_api_to_auth_user.sql recorded in migration log', async () => {
-        const rows = await query<{ filename: string }>(`
+    describeDb('API key and approval columns (020)', () => {
+        it('020_add_api_key_and_appr_api_to_auth_user.sql recorded in migration log', async () => {
+            const rows = await query<{ filename: string }>(`
             SELECT filename FROM inventory._migration_log WHERE filename LIKE '020_%'
         `);
-        expect(rows.length).toBe(1);
-        expect(rows[0].filename).toBe('020_add_api_key_and_appr_api_to_auth_user.sql');
-    });
+            expect(rows.length).toBe(1);
+            expect(rows[0].filename).toBe('020_add_api_key_and_appr_api_to_auth_user.sql');
+        });
 
-    it('auth.user table has api_key and appr_api columns', async () => {
-        const rows = await query<{ column_name: string }>(`
+        it('auth.user table has api_key and appr_api columns', async () => {
+            const rows = await query<{ column_name: string }>(`
             SELECT column_name
             FROM information_schema.columns
             WHERE table_schema = 'auth'
               AND table_name = 'user'
               AND column_name IN ('api_key', 'appr_api')
         `);
-        const names = rows.map((r) => r.column_name);
-        expect(names).toContain('api_key');
-        expect(names).toContain('appr_api');
-    });
+            const names = rows.map((r) => r.column_name);
+            expect(names).toContain('api_key');
+            expect(names).toContain('appr_api');
+        });
 
-    it('auth.user has unique index on api_key', async () => {
-        const row = await queryOne<{ exists: boolean }>(`
+        it('auth.user has unique index on api_key', async () => {
+            const row = await queryOne<{ exists: boolean }>(`
             SELECT EXISTS (
                 SELECT 1 FROM pg_indexes
                 WHERE schemaname = 'auth'
@@ -254,9 +252,7 @@ describeDb('API key and approval columns (020)', () => {
                   AND indexname = 'uq_auth_user_api_key'
             ) AS exists
         `);
-        expect(row?.exists).toBe(true);
+            expect(row?.exists).toBe(true);
+        });
     });
 });
-
-});
-

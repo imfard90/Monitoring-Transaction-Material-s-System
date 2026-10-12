@@ -16,9 +16,7 @@ export interface ApiRateLimitResult {
  *
  * @param userId - ID of the user owning the API key
  */
-export async function checkAndConsumeApiRateLimit(
-    userId: string
-): Promise<ApiRateLimitResult> {
+export async function checkAndConsumeApiRateLimit(userId: string): Promise<ApiRateLimitResult> {
     const redisKey = `ratelimit:api:user:${userId}`;
 
     try {
@@ -34,7 +32,9 @@ export async function checkAndConsumeApiRateLimit(
         const count = incrErr ? 1 : Number(results[0]?.[1] ?? 1);
 
         const ttlErr = results[2]?.[0];
-        let ttl = ttlErr ? API_RATE_LIMIT_WINDOW_SECONDS : Number(results[2]?.[1] ?? API_RATE_LIMIT_WINDOW_SECONDS);
+        let ttl = ttlErr
+            ? API_RATE_LIMIT_WINDOW_SECONDS
+            : Number(results[2]?.[1] ?? API_RATE_LIMIT_WINDOW_SECONDS);
         if (ttl <= 0) {
             ttl = API_RATE_LIMIT_WINDOW_SECONDS;
         }

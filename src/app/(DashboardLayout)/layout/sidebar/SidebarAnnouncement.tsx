@@ -44,10 +44,7 @@ export const SidebarAnnouncement = () => {
     }
 
     return (
-        <aside
-            aria-label="Pengumuman Integritas MTMS"
-            className="relative select-none w-full"
-        >
+        <aside aria-label="Pengumuman Integritas MTMS" className="relative select-none w-full">
             <AnimatePresence mode="wait" initial={false}>
                 {isMinimized ? (
                     <motion.button
@@ -69,7 +66,11 @@ export const SidebarAnnouncement = () => {
                                 <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
                             </span>
                             <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
-                                <Icon icon="lucide:shield-check" width="14" className="text-primary" />
+                                <Icon
+                                    icon="lucide:shield-check"
+                                    width="14"
+                                    className="text-primary"
+                                />
                                 Integritas MTMS
                             </span>
                         </div>
@@ -146,10 +147,18 @@ export const SidebarAnnouncement = () => {
                                 aria-hidden="true"
                             />
                             <p className="text-[11px] leading-relaxed text-muted-foreground">
-                                Terima kasih sudah berkontribusi dengan menjalankan proses MTMS ini dengan{' '}
-                                <span className="font-medium text-foreground">penuh integritas</span>,{' '}
-                                Sebaik apapun <span className="font-medium text-foreground">TOOL nya</span> jika tidak disiplin dan berintegritas,{' '}
-                                <span className="font-semibold text-primary">Tidak akan ada artinya</span>.
+                                Terima kasih sudah berkontribusi dengan menjalankan proses MTMS ini
+                                dengan{' '}
+                                <span className="font-medium text-foreground">
+                                    penuh integritas
+                                </span>
+                                , Sebaik apapun{' '}
+                                <span className="font-medium text-foreground">TOOL nya</span> jika
+                                tidak disiplin dan berintegritas,{' '}
+                                <span className="font-semibold text-primary">
+                                    Tidak akan ada artinya
+                                </span>
+                                .
                             </p>
                         </div>
                     </motion.div>

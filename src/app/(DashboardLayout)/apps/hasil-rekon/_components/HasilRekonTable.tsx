@@ -103,16 +103,16 @@ export default function HasilRekonTable({
             header: 'Warehouse',
             size: 130,
             cell: (info) => (
-                <div className="whitespace-nowrap text-sm">
-                    {info.getValue() || '-'}
-                </div>
+                <div className="whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
             ),
         }),
         columnHelper.accessor('nik', {
             header: () => <div className="text-center">NIK</div>,
             size: 80,
             cell: (info) => (
-                <div className="text-center whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
+                <div className="text-center whitespace-nowrap text-sm">
+                    {info.getValue() || '-'}
+                </div>
             ),
         }),
         columnHelper.accessor('type', {

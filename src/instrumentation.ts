@@ -7,7 +7,7 @@ export async function register() {
     if (process.env.NODE_ENV !== 'production') return;
 
     const cron = await import('node-cron');
-	const { actionLogger } = await import('@/lib/logger');
+    const { actionLogger } = await import('@/lib/logger');
     const { internalTriggerScraping } = await import(
         './app/(DashboardLayout)/apps/out-lensa-ref/_actions/out-lensa-actions'
     );
@@ -47,7 +47,10 @@ export async function register() {
             await internalTriggerWOScraping();
             actionLogger.info(`[CRON] WO Lensa scrapers completed.`);
         } catch (error) {
-            actionLogger.error('[CRON] Error during scheduled scraping:', error instanceof Error ? error : new Error(String(error)));
+            actionLogger.error(
+                '[CRON] Error during scheduled scraping:',
+                error instanceof Error ? error : new Error(String(error))
+            );
         }
     };
 

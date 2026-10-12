@@ -112,10 +112,7 @@ export default function UserTable({ data }: UserTableProps) {
         columnHelper.accessor('role', {
             header: 'Role',
             cell: (info) => (
-                <Badge
-                    variant="outline"
-                    className="bg-muted text-foreground"
-                >
+                <Badge variant="outline" className="bg-muted text-foreground">
                     {info.getValue() || 'Unknown'}
                 </Badge>
             ),
@@ -170,7 +167,9 @@ export default function UserTable({ data }: UserTableProps) {
                                 disabled={isPending}
                                 aria-label="Toggle status approval API"
                             />
-                            <span className={`text-xs font-medium ${isApproved ? 'text-success' : 'text-muted-foreground'}`}>
+                            <span
+                                className={`text-xs font-medium ${isApproved ? 'text-success' : 'text-muted-foreground'}`}
+                            >
                                 {isApproved ? 'Approved' : 'Off'}
                             </span>
                         </div>

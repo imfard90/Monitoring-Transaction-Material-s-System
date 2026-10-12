@@ -42,7 +42,9 @@ export function extractTextBlocksFromPdf(pdfBuffer: Buffer): PdfTextBlock[] {
     const blocks: PdfTextBlock[] = [];
     let pos = 0;
 
-    while ((pos = pdfBuffer.indexOf(Buffer.from('stream'), pos)) !== -1) {
+    while (true) {
+        pos = pdfBuffer.indexOf(Buffer.from('stream'), pos);
+        if (pos === -1) break;
         pos += 6;
         if (pdfBuffer[pos] === 0x0d) pos++;
         if (pdfBuffer[pos] === 0x0a) pos++;

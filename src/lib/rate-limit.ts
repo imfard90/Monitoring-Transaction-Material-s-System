@@ -23,10 +23,7 @@ export interface RateLimitResult {
  * @param config   `{ limit, windowMs }` OR pass `limit` + `windowSec` positionally
  * @returns        `{ success, remaining, limit, resetTime? }`
  */
-export async function rateLimit(
-    key: string,
-    config: RateLimitConfig
-): Promise<RateLimitResult>;
+export async function rateLimit(key: string, config: RateLimitConfig): Promise<RateLimitResult>;
 
 export async function rateLimit(
     identifier: string,
@@ -48,24 +45,17 @@ export async function rateLimit(
               };
 
     const windowMs =
-        typeof configOrLimit === 'number'
-            ? windowInSeconds * 1000
-            : configOrLimit.windowMs;
+        typeof configOrLimit === 'number' ? windowInSeconds * 1000 : configOrLimit.windowMs;
 
     try {
         const redisKey = `ratelimit:${key}`;
 
         const [current] =
-            (await redis
-                .multi()
-                .incr(redisKey)
-                .expire(redisKey, windowInSeconds, 'NX')
-                .exec()) || [];
+            (await redis.multi().incr(redisKey).expire(redisKey, windowInSeconds, 'NX').exec()) ||
+            [];
 
         if (!current || current[1] === null) {
-            actionLogger.warn(
-                `[RateLimit] Failed to read current count for ${key}`
-            );
+            actionLogger.warn(`[RateLimit] Failed to read current count for ${key}`);
             return { success: true, remaining: limit, limit };
         }
 
@@ -74,9 +64,7 @@ export async function rateLimit(
         const remaining = Math.max(0, limit - count);
 
         if (!isAllowed) {
-            actionLogger.warn(
-                `[RateLimit] Request blocked for key: ${key}. Count: ${count}`
-            );
+            actionLogger.warn(`[RateLimit] Request blocked for key: ${key}. Count: ${count}`);
         }
 
         return {

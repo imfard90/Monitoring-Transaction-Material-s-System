@@ -105,7 +105,9 @@ export async function getOutMaterialsPaginated(options: GetOutMaterialsPaginated
 
         const countsRes = await baseCountQuery
             .select([
-                sql<number>`count(*) filter (where h.end_status = 'wait_approve')`.as('wait_approve'),
+                sql<number>`count(*) filter (where h.end_status = 'wait_approve')`.as(
+                    'wait_approve'
+                ),
                 sql<number>`count(*) filter (where h.end_status = 'request')`.as('request'),
                 sql<number>`count(*) filter (where h.end_status = 'intech')`.as('intech'),
                 sql<number>`count(*) filter (where h.end_status = 'close')`.as('close'),

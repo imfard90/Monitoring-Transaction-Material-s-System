@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -7,7 +7,22 @@
     "defaultBranch": "main"
   },
   "files": {
-    "ignoreUnknown": true
+    "ignoreUnknown": true,
+    "includes": [
+      "src/**",
+      "tests/**",
+      "public/**",
+      "scripts/**",
+      "docs/**",
+      "*.ts",
+      "*.mjs",
+      "*.js",
+      "*.json",
+      "!**/.agents",
+      "!**/.archive",
+      "!**/_archive",
+      "!**/.cline"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -171,28 +186,38 @@
       }
     },
     {
-    "includes": ["src/components/ui/carousel.tsx"],
-    "linter": {
-    "rules": {
-    "a11y": {
-    "useSemanticElements": "off"
-    }
-    }
-    }
+      "includes": ["src/components/ui/carousel.tsx"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useSemanticElements": "off"
+          }
+        }
+      }
     },
     {
- "includes": ["tests/**", "vitest.config.ts"],
- "linter": {
- "rules": {
- "suspicious": {
- "noExplicitAny": "off",
- "noConsole": "off"
- },
- "style": {
- "noDefaultExport": "off"
- }
- }
- }
- }
- ]
+      "includes": ["tests/**", "vitest.config.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off",
+            "noConsole": "off"
+          },
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["run-migration.ts", "scripts/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    }
+  ]
 }

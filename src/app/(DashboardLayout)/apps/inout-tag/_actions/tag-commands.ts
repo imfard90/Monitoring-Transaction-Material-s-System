@@ -116,7 +116,6 @@ export async function createTag(payload: {
     }
 }
 
-
 export async function updateTag(payload: {
     headerId: number;
     actionType: 'request' | 'send' | 'accept';
@@ -243,7 +242,6 @@ export async function updateTag(payload: {
     }
 }
 
-
 export async function cancelTag(headerId: number, type?: string) {
     try {
         const { isStaff, warehouseIds, nik } = await getSessionUser();
@@ -287,7 +285,8 @@ export async function cancelTag(headerId: number, type?: string) {
                     nik === header.from_pic_2 ||
                     nik === header.to_pic_1 ||
                     nik === header.to_pic_2 ||
-                    (header.from_wh_id !== null && warehouseIds.includes(Number(header.from_wh_id))) ||
+                    (header.from_wh_id !== null &&
+                        warehouseIds.includes(Number(header.from_wh_id))) ||
                     (header.to_wh_id !== null && warehouseIds.includes(Number(header.to_wh_id)));
 
                 if (!hasAccess) {
@@ -329,7 +328,6 @@ export async function cancelTag(headerId: number, type?: string) {
         return { success: false, error: 'Failed to cancel tag.' };
     }
 }
-
 
 export async function acceptReturnTag(headerId: number, acceptId: string, idemKey: string) {
     if (!idemKey) return { success: false, error: 'Security constraint: Idempotency key required' };
@@ -392,5 +390,3 @@ export async function acceptReturnTag(headerId: number, acceptId: string, idemKe
         };
     }
 }
-
-

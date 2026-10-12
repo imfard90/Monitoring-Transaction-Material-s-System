@@ -7,14 +7,9 @@ interface DataTablePaginationProps<TData> {
 
 export function DataTablePagination<TData>({ table }: DataTablePaginationProps<TData>) {
     return (
-        <div
-            className="flex items-center justify-between"
-            role="navigation"
-            aria-label="Navigasi halaman tabel"
-        >
+        <nav className="flex items-center justify-between" aria-label="Navigasi halaman tabel">
             <div className="text-sm text-muted-foreground">
-                Halaman {table.getState().pagination.pageIndex + 1} dari{' '}
-                {table.getPageCount()}
+                Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}
             </div>
             <div className="flex gap-2">
                 <Button
@@ -36,6 +31,6 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
                     Berikutnya
                 </Button>
             </div>
-        </div>
+        </nav>
     );
 }

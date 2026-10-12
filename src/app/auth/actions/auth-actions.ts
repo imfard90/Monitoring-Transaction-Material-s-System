@@ -37,7 +37,10 @@ export async function checkEmployeeNik(nik: string) {
             },
         };
     } catch (error) {
-        actionLogger.error('Error checking employee NIK:', error instanceof Error ? error : new Error(String(error)));
+        actionLogger.error(
+            'Error checking employee NIK:',
+            error instanceof Error ? error : new Error(String(error))
+        );
         return { success: false, message: 'Terjadi kesalahan pada sistem.' };
     }
 }

@@ -51,9 +51,7 @@ vi.mock('@/lib/logger', () => ({
     },
 }));
 
-const { updateTag } = await import(
-    '@/app/(DashboardLayout)/apps/inout-tag/_actions/tag-commands'
-);
+const { updateTag } = await import('@/app/(DashboardLayout)/apps/inout-tag/_actions/tag-commands');
 
 describe('updateTag authorization', () => {
     beforeEach(() => {

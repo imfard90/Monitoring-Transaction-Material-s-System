@@ -13,7 +13,7 @@ const CardBox: React.FC<CardBoxProps> = ({ children, className, ...props }) => {
         <Card
             className={cn(
                 'card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none',
-                className,
+                className
             )}
             {...props}
         >

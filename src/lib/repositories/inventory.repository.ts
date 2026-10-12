@@ -51,17 +51,17 @@ export const createInventoryRepository = (db: Kysely<DB> | Transaction<DB>) => (
     )`.execute(db),
 
     /**
-    * Update InOut Tag (request/send/accept) - atomic operation
-    * Signature matches inventory.sp_update_inout_tag (migration 009)
+     * Update InOut Tag (request/send/accept) - atomic operation
+     * Signature matches inventory.sp_update_inout_tag (migration 009)
      * SP accepts 4 params: p_header_id, p_action, p_action_id, p_items_json
-    */
+     */
     updateInOutTag: (params: {
-    headerId: number;
-    actionType: 'request' | 'send' | 'accept';
-    actionId: string;
+        headerId: number;
+        actionType: 'request' | 'send' | 'accept';
+        actionId: string;
         items: Array<{ designator_id: number; qty: number }>;
     }) =>
-    sql`CALL inventory.sp_update_inout_tag(
+        sql`CALL inventory.sp_update_inout_tag(
     ${params.headerId}::bigint,
     ${params.actionType}::varchar,
     ${params.actionId}::varchar,
@@ -132,7 +132,12 @@ export const createInventoryRepository = (db: Kysely<DB> | Transaction<DB>) => (
         nameSa: string;
         notes: string | null;
         createdBy: string;
-        materials: Array<{ out_sap: string; designator_id: string; qty: number; unit_price: number }>;
+        materials: Array<{
+            out_sap: string;
+            designator_id: string;
+            qty: number;
+            unit_price: number;
+        }>;
     }) =>
         sql`CALL inventory.sp_record_rekon_lensa_v2(
       ${params.idTrx}::varchar,
@@ -160,7 +165,12 @@ export const createInventoryRepository = (db: Kysely<DB> | Transaction<DB>) => (
         nameSa: string;
         nameWh: string;
         createdBy: string;
-        items: Array<{ designator_id: number; sap_out_item_id: number; qty: number; notes: string | null }>;
+        items: Array<{
+            designator_id: number;
+            sap_out_item_id: number;
+            qty: number;
+            notes: string | null;
+        }>;
     }) =>
         sql`CALL inventory.sp_submit_rekon_intech(
       ${params.idTrx}::varchar,

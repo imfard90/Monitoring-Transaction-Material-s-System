@@ -46,7 +46,9 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
         >
             <div className="py-4">
                 {isLoading ? (
-                    <p className="text-center text-muted-foreground py-4" role="status">Memuat data, mohon tunggu...</p>
+                    <p className="text-center text-muted-foreground py-4" role="status">
+                        Memuat data, mohon tunggu...
+                    </p>
                 ) : items.length === 0 ? (
                     <p className="text-center text-muted-foreground py-4" role="status">
                         No items found for this tag status.

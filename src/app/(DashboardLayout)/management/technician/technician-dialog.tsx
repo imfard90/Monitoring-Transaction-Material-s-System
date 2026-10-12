@@ -157,7 +157,9 @@ export function TechnicianDialog({
                                 >
                                     <span className="truncate">
                                         {formData.branch_id
-                                            ? branches.find((b) => String(b.id) === formData.branch_id)
+                                            ? branches.find(
+                                                  (b) => String(b.id) === formData.branch_id
+                                              )
                                                 ? `${branches.find((b) => String(b.id) === formData.branch_id)?.service_area} - ${branches.find((b) => String(b.id) === formData.branch_id)?.branch}`
                                                 : 'Pilih Service Area'
                                             : 'Pilih Service Area'}

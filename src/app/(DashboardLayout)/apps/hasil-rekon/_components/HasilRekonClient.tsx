@@ -296,10 +296,7 @@ export default function HasilRekonClient({
                 isExporting={isExporting}
             />
 
-            <ExportLoadingOverlay
-                isVisible={isExporting}
-                periodLabel={exportPeriodLabel}
-            />
+            <ExportLoadingOverlay isVisible={isExporting} periodLabel={exportPeriodLabel} />
         </StaggerContainer>
     );
 }

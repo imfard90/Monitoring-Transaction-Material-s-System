@@ -27,7 +27,13 @@ describe('API Response Formatter', () => {
 
     it('formats Success Envelope with data and meta correctly', async () => {
         const data = [
-            { branch: 'Lamongan', warehouse: 'SO Lamongan', material_code: 'MAT-01', designator: 'FO 1 Core', qty_stock: 100 },
+            {
+                branch: 'Lamongan',
+                warehouse: 'SO Lamongan',
+                material_code: 'MAT-01',
+                designator: 'FO 1 Core',
+                qty_stock: 100,
+            },
         ];
         const response = apiSuccessResponse(data);
 

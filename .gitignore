@@ -108,14 +108,15 @@ temp/
 *.log
 
 # --------------------------------------------------
-# Agent / Scaffolding tooling (local only)
+# Agent / Scaffolding tooling
 # --------------------------------------------------
-# Ignore local agent data, but keep committed skills for team collaboration
+# Keep committed skills, agents, rules, and workflows for team collaboration
 .agents/*
 !.agents/skills/
-.cline/
-.archive/
-setup-cline-mcp.sh
+!.agents/agents/
+!.agents/rules/
+!.agents/workflows/
+
 # --------------------------------------------------
 # IDE / Workspace
 # --------------------------------------------------
@@ -148,6 +149,8 @@ AGENTS.md
 ARCHITECTURE_AUDIT.md
 ARCHITECTURE_IMPROVEMENT_PLAN.md
 CLINE.md
+!CLINE.md
 CLINE_QUICK_START.md
 VIBECODING_*.md
 bispro.md
+!bispro.md

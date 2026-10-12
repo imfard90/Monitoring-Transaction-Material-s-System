@@ -2,10 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
-import {
-    getHasilRekonFilterOptions,
-    getHasilRekonPaginated,
-} from './_actions/rekon-actions';
+import { getHasilRekonFilterOptions, getHasilRekonPaginated } from './_actions/rekon-actions';
 import HasilRekonClient from './_components/HasilRekonClient';
 
 export const metadata: Metadata = {

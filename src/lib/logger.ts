@@ -5,24 +5,24 @@ const baseLogger = pino(
     {
         level: process.env.NODE_ENV === 'production' ? 'warn' : 'debug',
         timestamp: pino.stdTimeFunctions.isoTime,
-  // Redact sensitive fields by path — avoid blanket redaction of entire `err`/`error`/`stack`
-  // which strips diagnostic context from server error logs.
-  ...(process.env.NODE_ENV === 'production' && {
-    redact: {
-      paths: [
-        'password',
-        'token',
-        'authorization',
-        '*.password',
-        '*.token',
-        '*.authorization',
-        '*.secret',
-        'cookies',
-        '*.cookies',
-      ],
-      censor: '[REDACTED]',
-    },
-  }),
+        // Redact sensitive fields by path — avoid blanket redaction of entire `err`/`error`/`stack`
+        // which strips diagnostic context from server error logs.
+        ...(process.env.NODE_ENV === 'production' && {
+            redact: {
+                paths: [
+                    'password',
+                    'token',
+                    'authorization',
+                    '*.password',
+                    '*.token',
+                    '*.authorization',
+                    '*.secret',
+                    'cookies',
+                    '*.cookies',
+                ],
+                censor: '[REDACTED]',
+            },
+        }),
     },
     // In development, use pino-pretty for colored output; in production, no transport (JSON to stdout)
     process.env.NODE_ENV === 'production'

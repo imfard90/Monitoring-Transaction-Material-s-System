@@ -71,7 +71,9 @@ export async function checkIdempotency<T = unknown>(
             }
         }
     } catch (e) {
-        securityLogger.warn('[Idempotency] Redis unavailable or error, skipping check', { error: String(e) });
+        securityLogger.warn('[Idempotency] Redis unavailable or error, skipping check', {
+            error: String(e),
+        });
     }
 
     return { isDuplicate: false, cachedResult: null };
@@ -95,7 +97,9 @@ export async function storeIdempotencyResult<T = unknown>(
             ttl: config.ttl,
         });
     } catch (e) {
-        securityLogger.warn('[Idempotency] Redis unavailable or error, skipping store', { error: String(e) });
+        securityLogger.warn('[Idempotency] Redis unavailable or error, skipping store', {
+            error: String(e),
+        });
     }
 }
 

@@ -13,9 +13,9 @@ export type EmptyStateProps = {
 };
 
 /**
- * EmptyState — state kosong premium.
+ * EmptyState — state kosong terstandar.
  *
- * Sesuai premium-ui-ux-builder/SKILL.md §3.7 & §2.4:
+ * Sesuai panduan MTMS (AGENTS.md §3.4 & ui-ux-pro-max):
  * - Pesan pengguna dalam Bahasa Indonesia, sopan, dan konkret.
  * - Menghormati prefers-reduced-motion.
  * - Menyediakan ruang aksi (CTA) bila diberikan pemanggil.
@@ -33,27 +33,18 @@ export function EmptyState({
             className={cn(
                 'flex min-h-[320px] flex-col items-center justify-center gap-4 p-8 text-center',
                 'motion-reduce:transition-none',
-                className,
+                className
             )}
         >
             <div
                 className="rounded-full bg-muted p-5 text-muted-foreground transition-colors motion-reduce:transition-none"
                 aria-hidden="true"
             >
-                {icon ?? (
-                    <Icon
-                        icon="mdi:inbox-outline"
-                        className="h-10 w-10"
-                    />
-                )}
+                {icon ?? <Icon icon="mdi:inbox-outline" className="h-10 w-10" />}
             </div>
             <div className="space-y-1.5">
-                <h3 className="text-lg font-semibold text-foreground">
-                    {title}
-                </h3>
-                <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-                    {description}
-                </p>
+                <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+                <p className="mx-auto max-w-sm text-sm text-muted-foreground">{description}</p>
             </div>
             {action && <div className="mt-2">{action}</div>}
         </div>

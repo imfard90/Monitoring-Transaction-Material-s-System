@@ -255,12 +255,18 @@ export default function RekonIntechForm() {
 
                         {selectedNik ? (
                             isLoadingMaterials ? (
-                                <div className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50" role="status">
-                                Loading materials...
+                                <div
+                                    className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50"
+                                    role="status"
+                                >
+                                    Loading materials...
                                 </div>
                             ) : materials.length === 0 ? (
-                                <div className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50" role="status">
-                                Tidak ada material (Intech) untuk teknisi ini.
+                                <div
+                                    className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50"
+                                    role="status"
+                                >
+                                    Tidak ada material (Intech) untuk teknisi ini.
                                 </div>
                             ) : (
                                 <div className="border rounded-md overflow-x-auto">
@@ -383,8 +389,11 @@ export default function RekonIntechForm() {
                                 </div>
                             )
                         ) : (
-                            <div className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50" role="status">
-                            Silakan pilih teknisi terlebih dahulu.
+                            <div
+                                className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50"
+                                role="status"
+                            >
+                                Silakan pilih teknisi terlebih dahulu.
                             </div>
                         )}
                     </StaggerItem>

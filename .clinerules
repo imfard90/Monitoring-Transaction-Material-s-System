@@ -1,0 +1,52 @@
+# MTMS Cline Workspace Rules (.clinerules)
+
+> Monitoring Transaction Material's System (MTMS)
+> Stack: Next.js 15, React 19, TypeScript, PostgreSQL (Kysely), Biome, Vitest, Better Auth.
+
+## 1. Core Operating Principles
+
+1. **Authorization (P0)**:
+   - Every Server Action must call `getSessionUser()` / `getSessionNik()` at the start.
+   - Enforce warehouse scoping for Staff users (`warehouseIds`/PIC); Admin/Supervisor for non-staff.
+   - **Never fail-open**: throw `errors.auth()` / `AuthorizationError` on invalid session.
+2. **Business Rules in Stored Procedures (P0)**:
+   - Critical inventory mutations (stock deduction, returns, reconciliations) MUST execute via PostgreSQL stored procedures in the `inventory` schema.
+   - All transaction sequences use database sequences (`nextval`), not `COUNT(*)`.
+3. **Repository Pattern (P1)**:
+   - Data access must flow through `src/lib/repositories/*.repository.ts`.
+   - Never run raw inline queries in server actions or UI components when a repository exists.
+4. **External REST API Security (P0)**:
+   - Endpoints in `src/app/api/v1/*` must call `authenticateApiRequest(req)` first.
+   - API keys are hashed with SHA-256 (`hashApiKey()`); never log plaintext keys.
+   - Enforce admin approval gate (`appr_api === true`) and atomic per-user Redis rate limiting (300s window).
+   - Use RFC 9457 Problem Details for errors and standard envelopes for responses.
+
+## 2. Quality & Verification Toolchain
+
+Always verify changes using project-local commands:
+- **Format**: `pnpm format` (Biome write)
+- **Lint**: `pnpm lint` (Biome check)
+- **Type Check**: `pnpm tsc --noEmit`
+- **Unit Tests**: `pnpm test:unit` (Vitest)
+- **Integration Tests**: `pnpm test:integration` (requires `DATABASE_URL`)
+- **Database Migrations**: `pnpm migrate` (runs `run-migration.ts`)
+
+## 3. Workflows (Slash Commands)
+
+Execute tasks through native workflows in `.cline/workflows/`:
+- `/commit` — Pre-commit quality checks (tsc, format, lint, test:unit), conventional commit message staging & push.
+- `/review` — Mandatory code review, TypeScript check, Biome lint, test execution, and security inspection.
+- `/test` — Vitest unit & integration test runner with coverage guidance.
+- `/migrate` — Sequential, idempotent database migration runner and verification.
+- `/security` — OWASP Top 10, auth validation, and external REST API security audit.
+- `/db-check` — PostgreSQL introspection and Kysely type verification via MCP.
+- `/new-page` — Scaffold new dashboard pages using MTMS shared components and sidebar wiring.
+- `/perf` — React 19 / Next.js performance and waterfall audit.
+
+## 4. Specialized Roles
+
+When tackling distinct phases of development, embody these personas:
+- **Planner / Architect**: Focus on `bispro.md`, schema design, DDD, and SP contracts.
+- **Code Builder**: Focus on clean implementations, Server Actions, Zod schemas, and UI design system.
+- **Code Reviewer**: Focus on static type soundness, Biome linting, authz checks, and fail-closed rules.
+- **Security & Test Specialist**: Focus on OWASP audits, rate-limiting, and Vitest test coverage (≥80%).

@@ -32,10 +32,7 @@ export function LoadingSkeleton({
             {Array.from({ length: rows }).map((_, rowIndex) => (
                 <div key={`row-${rowIndex}`} className="flex gap-4">
                     {Array.from({ length: columns }).map((_, colIndex) => (
-                        <Skeleton
-                            key={`cell-${rowIndex}-${colIndex}`}
-                            className="h-12 w-full"
-                        />
+                        <Skeleton key={`cell-${rowIndex}-${colIndex}`} className="h-12 w-full" />
                     ))}
                 </div>
             ))}

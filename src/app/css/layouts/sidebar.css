@@ -12,7 +12,8 @@
 }
 
 @keyframes border-blink {
-    0%, 100% {
+    0%,
+    100% {
         border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
         box-shadow: 0 0 0 0 transparent;
     }
@@ -25,4 +26,3 @@
 .animate-border-blink {
     animation: border-blink 2s ease-in-out infinite;
 }
-
