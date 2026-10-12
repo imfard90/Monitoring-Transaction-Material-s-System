@@ -387,8 +387,13 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
 
         const allNewHeaders = headerResults.flat();
 
-        const uniqueHeadersMap = new Map<string, (typeof allNewHeaders)[number]>();
-        for (const h of allNewHeaders) {
+        // Filter out headers with "REJECTED" in wo_number — these are cancelled/not-used orders
+        const filteredHeaders = allNewHeaders.filter(
+            (h) => !h.wo_number?.toUpperCase().includes('REJECTED')
+        );
+
+        const uniqueHeadersMap = new Map<string, (typeof filteredHeaders)[number]>();
+        for (const h of filteredHeaders) {
             uniqueHeadersMap.set(h.pemakaian_id, h);
         }
         const deduplicatedHeaders = Array.from(uniqueHeadersMap.values());
