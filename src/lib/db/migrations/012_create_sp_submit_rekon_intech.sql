@@ -45,6 +45,11 @@ BEGIN
     -- Cast sap_out_id to bigint once
     v_sap_out_id_bigint := p_sap_out_id::bigint;
 
+    -- Validate and cast wo_type with schema qualification and case/space normalization
+    IF p_wo_type IS NULL OR TRIM(p_wo_type) = '' THEN
+        RAISE EXCEPTION 'WO Type tidak boleh kosong';
+    END IF;
+
     -- 1. Check duplicate id_trx
     SELECT id INTO v_existing_header
     FROM inventory.transaction_used_header
@@ -71,7 +76,7 @@ BEGIN
         name_sa, name_wh, created_by, created_at
     )
     VALUES (
-        p_id_trx, v_sap_out_id_bigint, p_nik, p_wo_number, p_wo_type::enum_wo_type,
+        p_id_trx, v_sap_out_id_bigint, p_nik, p_wo_number, LOWER(TRIM(REPLACE(p_wo_type, ' ', '_')))::inventory.enum_wo_type,
         p_name_sa, p_name_wh, p_created_by, NOW()
     )
     RETURNING id INTO v_header_id;

@@ -136,4 +136,31 @@ describe('rekon-intech-actions Unit Tests', () => {
         );
         expect(mockRevalidatePath).toHaveBeenCalledWith('/apps/rekon-intech');
     });
+
+    it('normalizes wo_type casing and whitespace before passing to repository', async () => {
+        const itemWithUppercaseWoType = {
+            ...validItem,
+            wo_type: 'Lintas Arta',
+        };
+
+        const res = await submitRekonIntech('TKN01', [itemWithUppercaseWoType], 'idem-key-5');
+
+        expect(res.success).toBe(true);
+        expect(mockSubmitRekonIntechRepo).toHaveBeenCalledWith(
+            expect.objectContaining({
+                woType: 'lintas_arta',
+            })
+        );
+    });
+
+    it('rejects when wo_type is empty', async () => {
+        const itemWithEmptyWoType = {
+            ...validItem,
+            wo_type: '',
+        };
+
+        const res = await submitRekonIntech('TKN01', [itemWithEmptyWoType], 'idem-key-6');
+        expect(res.success).toBe(false);
+        expect(res.error).toContain('Invalid input data');
+    });
 });

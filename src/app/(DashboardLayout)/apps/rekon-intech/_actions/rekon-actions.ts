@@ -18,7 +18,7 @@ const rekonItemSchema = z.object({
     designator_id: z.number().int().positive(),
     sap_out_item_id: z.string().min(1),
     qty: z.number().positive(),
-    wo_type: z.any(),
+    wo_type: z.string().min(1),
     wo_number: z.string().min(1),
     notes: z.string(),
 });
@@ -105,7 +105,7 @@ export type RekonItemPayload = {
     designator_id: number;
     sap_out_item_id: string;
     qty: number;
-    wo_type: any;
+    wo_type: string;
     wo_number: string;
     notes: string;
 };
@@ -184,12 +184,15 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
 
                         // Call SP via repository — atomic insert header, items, update sap_out_items, audit movement, auto-close (P0-D1 fix)
                         const repo = createInventoryRepository(trx);
+                        const normalizedWoType = first.wo_type
+                            ? first.wo_type.trim().toLowerCase().replace(/\s+/g, '_')
+                            : null;
                         await repo.submitRekonIntech({
                             idTrx: generatedIdTrx,
                             nik: data.nik,
                             sapOutId: String(first.sap_out_id),
                             woNumber: first.wo_number,
-                            woType: first.wo_type ?? null,
+                            woType: normalizedWoType,
                             nameSa: first.name_sa,
                             nameWh: first.name_wh || '',
                             createdBy,

@@ -255,4 +255,25 @@ describeDb('L5 query logging migration tracked (018)', () => {
             expect(row?.exists).toBe(true);
         });
     });
+    describeDb('Fix sp_submit_rekon_intech enum_wo_type qualification (022)', () => {
+        it('022_fix_sp_submit_rekon_intech_enum_wo_type.sql recorded in migration log', async () => {
+            const rows = await query<{ filename: string }>(`
+                SELECT filename FROM inventory._migration_log WHERE filename LIKE '022_%'
+            `);
+            expect(rows.length).toBe(1);
+            expect(rows[0].filename).toBe('022_fix_sp_submit_rekon_intech_enum_wo_type.sql');
+        });
+
+        it('sp_submit_rekon_intech uses inventory.enum_wo_type schema qualification', async () => {
+            const row = await queryOne<{ def: string }>(`
+                SELECT pg_get_functiondef(p.oid) AS def
+                FROM pg_proc p
+                JOIN pg_namespace n ON n.oid = p.pronamespace
+                WHERE n.nspname = 'inventory'
+                  AND p.proname = 'sp_submit_rekon_intech'
+            `);
+            expect(row?.def).toContain('inventory.enum_wo_type');
+            expect(row?.def).not.toMatch(/::\s*enum_wo_type\b/);
+        });
+    });
 });
