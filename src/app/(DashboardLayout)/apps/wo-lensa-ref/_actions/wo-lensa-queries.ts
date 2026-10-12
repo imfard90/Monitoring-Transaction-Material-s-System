@@ -7,8 +7,10 @@ import { expandWarehouseAliases } from '@/lib/warehouse-helper';
 
 export interface WOLensaHeader {
     id: number | string;
+    pemakaian_id: string | null;
     tanggal_update: string | null;
-    no_transaksi: string | null;
+    formatted_date: string | Date | null;
+    no_transaksi?: string | null;
     type: string | null;
     wo_number: string | null;
     nik_pemakai: string | null;
@@ -48,44 +50,76 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
 
-        let baseQuery = db.selectFrom('inventory.wo_lensa_header').selectAll();
-
-        // P0-A1: Staff must be scoped to their assigned warehouses
+        let whNames: string[] = [];
         if (isStaff && warehouseIds.length > 0) {
             const allowedWhNames = await db
                 .selectFrom('inventory.mas_wh')
                 .select('name')
-                .where('id', 'in', warehouseIds)
+                .where('id', 'in', warehouseIds as number[])
                 .execute();
 
-            const expandedNames = allowedWhNames.flatMap((w) =>
-                w.name ? expandWarehouseAliases(w.name) : []
+            whNames = expandWarehouseAliases(
+                allowedWhNames.map((w: Record<string, unknown>) => w.name as string).filter(Boolean)
             );
-
-            if (expandedNames.length > 0) {
-                baseQuery = baseQuery.where('nama_gudang', 'in', expandedNames);
-            }
         }
 
+        if (isStaff && whNames.length === 0) {
+            return {
+                success: true,
+                data: {
+                    headers: [],
+                    total: 0,
+                    page,
+                    pageSize,
+                    totalPages: 0,
+                },
+            };
+        }
+
+        // Determine warehouse filter (staff warehouse list or custom filter)
+        let filterWarehouse: string[] | undefined;
         if (warehouseFilter && warehouseFilter !== 'all') {
-            const filterExpanded = expandWarehouseAliases(warehouseFilter);
-            baseQuery = baseQuery.where('nama_gudang', 'in', filterExpanded);
+            filterWarehouse = expandWarehouseAliases(warehouseFilter);
+        } else if (isStaff && whNames.length > 0) {
+            filterWarehouse = whNames;
         }
+
+        // Auto-update rekon_check: flag WO entries that have been submitted to rekon_used_header
+        await sql`
+            UPDATE inventory.wo_lensa_header wlh
+            SET rekon_check = TRUE
+            FROM inventory.rekon_used_header ruh
+            WHERE CAST(wlh.pemakaian_id AS VARCHAR) = ruh.id_pemakaian
+              AND (wlh.rekon_check IS FALSE OR wlh.rekon_check IS NULL)
+        `.execute(db);
 
         // Hitung total data
-        const countResult = await baseQuery
-            .select(sql<number>`count(*)::int`.as('total'))
-            .executeTakeFirst();
-        const total = countResult?.total ?? 0;
+        let countQuery = db
+            .selectFrom('inventory.wo_lensa_header')
+            .select((eb) => eb.fn.count('id').as('total'));
+
+        if (filterWarehouse && filterWarehouse.length > 0) {
+            countQuery = countQuery.where('nama_gudang', 'in', filterWarehouse);
+        }
+
+        const countResult = await countQuery.executeTakeFirst();
+        const total = Number(countResult?.total ?? 0);
 
         // Ambil data halaman aktif
         const offset = (page - 1) * pageSize;
-        const headers = await baseQuery
+        let headerQuery = db
+            .selectFrom('inventory.wo_lensa_header')
             .selectAll()
-            .orderBy('tanggal_update', 'desc')
+            .orderBy('formatted_date', 'desc')
+            .orderBy(sql<number>`pemakaian_id`, 'desc')
             .limit(pageSize)
-            .offset(offset)
-            .execute();
+            .offset(offset);
+
+        if (filterWarehouse && filterWarehouse.length > 0) {
+            headerQuery = headerQuery.where('nama_gudang', 'in', filterWarehouse);
+        }
+
+        const headers = await headerQuery.execute();
 
         if (headers.length === 0) {
             return {
@@ -95,7 +129,7 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
                     total,
                     page,
                     pageSize,
-                    totalPages: Math.ceil(total / pageSize),
+                    totalPages: Math.ceil(total / pageSize) || 1,
                 },
             };
         }
@@ -108,8 +142,10 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             .where('header_id', 'in', headerIds)
             .execute();
 
-        const result = headers.map((h) => ({
+        const result: WOLensaHeader[] = headers.map((h) => ({
             ...h,
+            id: String(h.id),
+            pemakaian_id: h.pemakaian_id ? String(h.pemakaian_id) : null,
             materials: details.filter((d) => String(d.header_id) === String(h.id)),
         }));
 
@@ -120,7 +156,7 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
                 total,
                 page,
                 pageSize,
-                totalPages: Math.ceil(total / pageSize),
+                totalPages: Math.ceil(total / pageSize) || 1,
             },
         };
     } catch (error: unknown) {
