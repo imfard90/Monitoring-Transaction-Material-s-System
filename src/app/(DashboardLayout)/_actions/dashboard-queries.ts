@@ -210,7 +210,6 @@ export async function getStockWarnings() {
             .orderBy('deficit', 'desc')
             .orderBy('w.name')
             .orderBy('m.code')
-            .limit(15)
             .execute();
 
         return { success: true, data };
