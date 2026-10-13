@@ -428,7 +428,7 @@ Untuk menjaga keakuratan, batas minimum (Minimum Stock) dapat dikalkulasi secara
 **Minimum Stock = (Average Demand × Lead Time) + Safety Stock**
 
 Keterangan parameter:
-- **Average Demand:** Rata-rata pengeluaran material (berdasarkan data historis transaksi seperti SAP Out / Transaction Used) dalam rentang waktu **1 minggu**.
+- **Average Demand:** Rata-rata pengeluaran material dari transaksi `sap_out` dalam 12 minggu terakhir (total 84 hari dibagi 12). Transaksi `transfer_out` mengurangi saldo stok, tetapi tidak dihitung sebagai konsumsi material untuk rata-rata demand.
 - **Lead Time:** Waktu tunggu dari pemesanan hingga barang tiba. Ditetapkan konstan **2 minggu**.
 - **Safety Stock:** Buffer tambahan untuk fluktuasi, ditetapkan sebesar **10%** dari total kebutuhan lead time `(Average Demand × Lead Time)`.
 

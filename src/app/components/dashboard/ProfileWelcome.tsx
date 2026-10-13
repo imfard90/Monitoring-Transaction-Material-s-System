@@ -24,13 +24,14 @@ export default async function ProfileWelcome() {
 
     const name = session?.user?.name ?? 'User';
 
-    let image = null;
     const publicDir = path.join(process.cwd(), 'public');
-    if (fs.existsSync(path.join(publicDir, `images/profile/${sessionUser.nik}.png`))) {
-        image = `/images/profile/${sessionUser.nik}.png`;
-    } else if (fs.existsSync(path.join(publicDir, `images/profile/${sessionUser.nik}.jpg`))) {
-        image = `/images/profile/${sessionUser.nik}.jpg`;
-    }
+    const pngProfile = path.join(publicDir, `images/profile/${sessionUser.nik}.png`);
+    const jpgProfile = path.join(publicDir, `images/profile/${sessionUser.nik}.jpg`);
+    const image = fs.existsSync(pngProfile)
+        ? `/images/profile/${sessionUser.nik}.png`
+        : fs.existsSync(jpgProfile)
+          ? `/images/profile/${sessionUser.nik}.jpg`
+          : null;
 
     const role = sessionUser.role ?? '';
     const branch = sessionUser.branchName ?? '';
@@ -75,10 +76,11 @@ export default async function ProfileWelcome() {
             <div className="hidden sm:block absolute right-7 bottom-0 z-10 drop-shadow-xl transition-transform hover:scale-105 duration-500">
                 <Image
                     src="/images/dashboard/customer-support-img.png"
-                    alt="support-img"
+                    alt=""
                     width={145}
                     height={95}
-                    className="object-contain"
+                    sizes="145px"
+                    className="h-auto w-[145px] object-contain"
                 />
             </div>
         </div>

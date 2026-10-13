@@ -21,6 +21,22 @@ export async function getStockBalances() {
                 'm.code as material_code',
                 'm.description as material_name',
                 'sb.qty_stock',
+                sql<number | null>`(
+                    SELECT SUM(ABS(sm.qty_delta)) / 12.0
+                    FROM inventory.stock_movement AS sm
+                    WHERE sm.warehouse_id = sb.warehouse_id
+                      AND sm.designator_id = sb.designator_id
+                      AND sm.movement_type = 'sap_out'
+                      AND sm.created_at >= CURRENT_DATE - INTERVAL '84 days'
+                )`.as('average_demand_weekly'),
+                sql<boolean>`EXISTS (
+                    SELECT 1
+                    FROM inventory.stock_movement AS sm
+                    WHERE sm.warehouse_id = sb.warehouse_id
+                      AND sm.designator_id = sb.designator_id
+                      AND sm.movement_type = 'sap_out'
+                      AND sm.created_at >= CURRENT_DATE - INTERVAL '84 days'
+                )`.as('has_out_material_history'),
             ])
             .orderBy('w.name', 'asc')
             .orderBy('m.code', 'asc')
@@ -33,6 +49,71 @@ export async function getStockBalances() {
             error instanceof Error ? error : new Error(String(error))
         );
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export async function getLensaWarehousePerformance() {
+    try {
+        const { isStaff, warehouseIds } = await getSessionUser();
+        if (isStaff && warehouseIds.length === 0) {
+            return { success: true, data: { outLensa: [], rekonLensa: [] } };
+        }
+
+        let outLensaQuery = db
+            .selectFrom('inventory.out_lensa_ref_header as olh')
+            .innerJoin('inventory.mas_wh as wh', 'wh.name', 'olh.nama_gudang')
+            .select([
+                'wh.id as key',
+                'wh.name as name',
+                sql<number>`COUNT(olh.id)`.as('total'),
+                sql<number>`COUNT(olh.id) FILTER (WHERE olh.sap_out_check IS TRUE)`.as('completed'),
+            ])
+            .groupBy(['wh.id', 'wh.name']);
+
+        let rekonLensaQuery = db
+            .selectFrom('inventory.wo_lensa_header as wlh')
+            .innerJoin('inventory.mas_wh as wh', 'wh.name', 'wlh.nama_gudang')
+            .select([
+                'wh.id as key',
+                'wh.name as name',
+                sql<number>`COUNT(wlh.id)`.as('total'),
+                sql<number>`COUNT(wlh.id) FILTER (WHERE wlh.rekon_check IS TRUE)`.as('completed'),
+            ])
+            .groupBy(['wh.id', 'wh.name']);
+
+        if (isStaff) {
+            outLensaQuery = outLensaQuery.where('wh.id', 'in', warehouseIds as number[]);
+            rekonLensaQuery = rekonLensaQuery.where('wh.id', 'in', warehouseIds as number[]);
+        }
+
+        const [outLensa, rekonLensa] = await Promise.all([
+            outLensaQuery.execute(),
+            rekonLensaQuery.execute(),
+        ]);
+
+        const sortByCompletion = <
+            T extends { total: number | string; completed: number | string; name: string },
+        >(
+            rows: T[]
+        ): T[] =>
+            [...rows].sort((left, right) => {
+                const leftTotal = Number(left.total);
+                const rightTotal = Number(right.total);
+                const leftPercent = leftTotal === 0 ? 0 : Number(left.completed) / leftTotal;
+                const rightPercent = rightTotal === 0 ? 0 : Number(right.completed) / rightTotal;
+                return rightPercent - leftPercent || left.name.localeCompare(right.name);
+            });
+
+        const sortedOutLensa = sortByCompletion(outLensa);
+        const sortedRekonLensa = sortByCompletion(rekonLensa);
+
+        return { success: true, data: { outLensa: sortedOutLensa, rekonLensa: sortedRekonLensa } };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch Lensa warehouse performance:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return { success: false, data: null };
     }
 }
 

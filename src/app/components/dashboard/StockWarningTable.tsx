@@ -61,9 +61,15 @@ export const StockWarningTable = () => {
                         <TableRow>
                             <TableHead>Gudang</TableHead>
                             <TableHead>Kode Material</TableHead>
-                            <TableHead className="text-right">Rata-rata Kebutuhan</TableHead>
-                            <TableHead className="text-right">Lead Time (Mg)</TableHead>
-                            <TableHead className="text-right">Safety Stock %</TableHead>
+                            <TableHead className="max-w-24 whitespace-normal px-1 text-right leading-tight">
+                                Rata-rata Kebutuhan
+                            </TableHead>
+                            <TableHead className="max-w-16 whitespace-normal px-1 text-right leading-tight">
+                                Lead Time (Mg)
+                            </TableHead>
+                            <TableHead className="max-w-16 whitespace-normal px-1 text-right leading-tight">
+                                Safety Stock %
+                            </TableHead>
                             <TableHead className="text-right">Stok Min</TableHead>
                             <TableHead className="text-right">Stok Saat Ini</TableHead>
                             <TableHead className="text-center">Status</TableHead>
@@ -98,7 +104,7 @@ export const StockWarningTable = () => {
                                                 {w.material_code}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                {Number(w.average_demand_weekly).toFixed(2)}
+                                                {Number(w.average_demand_weekly).toFixed(2)} / mgg
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 {w.lead_time_weeks}

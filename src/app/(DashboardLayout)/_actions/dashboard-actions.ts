@@ -14,6 +14,7 @@ export {
     getWarehouses,
     getStockWarnings,
     getDashboardKpis,
+    getLensaWarehousePerformance,
 } from './dashboard-queries';
 
 export {

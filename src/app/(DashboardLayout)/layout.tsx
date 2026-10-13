@@ -1,7 +1,8 @@
 'use client';
 
-import { PresenceHeartbeat } from '@/components/PresenceHeartbeat';
 import Image from 'next/image';
+import { PresenceHeartbeat } from '@/components/PresenceHeartbeat';
+import { FloatingSupportWidget } from '@/components/support/FloatingSupportWidget';
 import Header from './layout/header/Header';
 import Sidebar from './layout/sidebar/Sidebar';
 
@@ -37,7 +38,7 @@ export default function Layout({
                             fill
                             priority
                             sizes="(max-width: 1280px) 100vw, calc(100vw - 270px)"
-                            className="object-cover object-center opacity-[0.035] dark:opacity-[0.05] transition-opacity duration-300"
+                            className="object-contain object-center opacity-[0.035] dark:opacity-[0.05] transition-opacity duration-300"
                         />
                     </div>
 
@@ -50,6 +51,7 @@ export default function Layout({
                     >
                         {children}
                     </main>
+                    <FloatingSupportWidget />
                 </div>
             </div>
         </div>

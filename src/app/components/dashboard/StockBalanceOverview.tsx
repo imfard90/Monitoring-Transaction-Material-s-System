@@ -25,6 +25,8 @@ interface StockBalanceData {
     material_name: string | null;
     material_code: string | null;
     qty_stock: number;
+    average_demand_weekly: number | null;
+    has_out_material_history: boolean;
 }
 
 const columnHelper = createColumnHelper<StockBalanceData>();
@@ -97,6 +99,43 @@ export default function StockBalanceOverview() {
                         <span className={qty <= 0 ? 'text-error' : 'text-foreground'}>
                             {qty.toLocaleString()}
                         </span>
+                    </div>
+                );
+            },
+        }),
+        columnHelper.display({
+            id: 'days_until_empty',
+            header: () => <div className="text-right">Estimasi Stok Habis</div>,
+            cell: ({ row }) => {
+                const averageWeekly = Number(row.original.average_demand_weekly ?? 0);
+                const hasHistory = row.original.has_out_material_history;
+                const daysUntilEmpty =
+                    averageWeekly > 0
+                        ? Math.ceil((Number(row.original.qty_stock) / averageWeekly) * 7)
+                        : null;
+
+                return (
+                    <div className="text-right">
+                        {hasHistory ? (
+                            daysUntilEmpty === null ? (
+                                <span className="text-muted-foreground">Tidak habis</span>
+                            ) : (
+                                <>
+                                    <div className="font-medium">
+                                        Habis dalam {daysUntilEmpty} hari
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                        Rata-rata{' '}
+                                        {averageWeekly.toLocaleString(undefined, {
+                                            maximumFractionDigits: 2,
+                                        })}{' '}
+                                        / minggu
+                                    </div>
+                                </>
+                            )
+                        ) : (
+                            <span className="text-muted-foreground">Belum ada data</span>
+                        )}
                     </div>
                 );
             },

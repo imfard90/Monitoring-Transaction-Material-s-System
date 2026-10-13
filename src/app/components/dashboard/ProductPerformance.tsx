@@ -49,13 +49,14 @@ export const ProductPerformance = () => {
         .map((item) => {
             const percentage =
                 item.trxOut === 0 ? 0 : Math.round((item.trxClose / item.trxOut) * 100);
+            const clampedPercentage = Math.min(100, Math.max(0, percentage));
             let badgeColor = 'bg-success text-white';
             if (percentage < 50) badgeColor = 'bg-error text-white';
             else if (percentage < 80) badgeColor = 'bg-warning text-white';
 
             return {
                 ...item,
-                percentage,
+                percentage: clampedPercentage,
                 badgeColor,
             };
         })
@@ -63,7 +64,7 @@ export const ProductPerformance = () => {
 
     return (
         <CardBox className="w-full relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-success/5 to-transparent pointer-events-none" />
+            <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 bg-gradient-to-bl from-success/5 to-transparent" />
 
             <div id="product" className="relative z-10 mb-6">
                 <div>
@@ -75,80 +76,78 @@ export const ProductPerformance = () => {
                     </p>
                 </div>
             </div>
-            <div className="relative z-10 flex flex-col">
-                <div className="-m-1.5 overflow-x-auto">
-                    <div className="p-1.5 min-w-full inline-block align-middle">
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="text-sm font-semibold py-2">
-                                            No
-                                        </TableHead>
-                                        <TableHead className="text-sm font-semibold py-2">
-                                            Nama Gudang
-                                        </TableHead>
-                                        <TableHead className="text-sm font-semibold text-center py-2">
-                                            Total Trx Out
-                                        </TableHead>
-                                        <TableHead className="text-sm font-semibold text-center py-2">
-                                            Trx Out Selesai
-                                        </TableHead>
-                                        <TableHead className="text-sm font-semibold text-center py-2">
-                                            Persentase
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
+            <div className="relative z-10 min-w-0 overflow-x-auto">
+                <Table className="table-fixed min-w-[420px]">
+                    <colgroup>
+                        <col className="w-7" />
+                        <col className="w-[30%]" />
+                        <col className="w-12" />
+                        <col className="w-12" />
+                        <col className="w-14" />
+                    </colgroup>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="px-1 py-1 text-xs font-semibold">No</TableHead>
+                            <TableHead className="px-1 py-1 text-xs font-semibold">
+                                Nama Gudang
+                            </TableHead>
+                            <TableHead className="px-1 py-1 text-center text-xs font-semibold">
+                                Total Out
+                            </TableHead>
+                            <TableHead className="px-1 py-1 text-center text-xs font-semibold">
+                                Selesai
+                            </TableHead>
+                            <TableHead className="px-1 py-1 text-center text-xs font-semibold">
+                                Persentase
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
 
-                                <TableBody>
-                                    <AnimatePresence>
-                                        {performaceData.map((item, index) => (
-                                            <motion.tr
-                                                key={item.key}
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ duration: 0.2, delay: index * 0.03 }}
-                                                className="border-b border-border transition-colors hover:bg-muted/50"
-                                            >
-                                                <TableCell className="py-2">
-                                                    <p className="text-muted-foreground font-medium text-sm">
-                                                        {index + 1}
-                                                    </p>
-                                                </TableCell>
-
-                                                <TableCell className="ps-0 min-w-[200px] py-2">
-                                                    <h6 className="text-sm font-semibold">
-                                                        {item.name}
-                                                    </h6>
-                                                </TableCell>
-
-                                                <TableCell className="text-center py-2">
-                                                    <p className="font-medium text-muted-foreground text-sm">
-                                                        {item.trxOut}
-                                                    </p>
-                                                </TableCell>
-
-                                                <TableCell className="text-center py-2">
-                                                    <p className="font-medium text-muted-foreground text-sm">
-                                                        {item.trxClose}
-                                                    </p>
-                                                </TableCell>
-
-                                                <TableCell className="text-center py-2">
-                                                    <Badge
-                                                        className={`text-[13px] px-3 rounded-full justify-center py-0.5 ${item.badgeColor}`}
-                                                    >
-                                                        {item.percentage}%
-                                                    </Badge>
-                                                </TableCell>
-                                            </motion.tr>
-                                        ))}
-                                    </AnimatePresence>
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </div>
-                </div>
+                    <TableBody>
+                        <AnimatePresence>
+                            {performaceData.map((item, index) => (
+                                <motion.tr
+                                    key={item.key}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.2, delay: index * 0.03 }}
+                                    className="border-b border-border transition-colors hover:bg-muted/50"
+                                >
+                                    <TableCell className="px-1 py-1">
+                                        <p className="text-muted-foreground font-medium text-xs">
+                                            {index + 1}
+                                        </p>
+                                    </TableCell>
+                                    <TableCell className="max-w-0 px-1 py-1">
+                                        <h6
+                                            className="truncate text-sm font-semibold"
+                                            title={item.name}
+                                        >
+                                            {item.name}
+                                        </h6>
+                                    </TableCell>
+                                    <TableCell className="px-1 py-1 text-center">
+                                        <p className="font-medium text-muted-foreground text-xs">
+                                            {item.trxOut}
+                                        </p>
+                                    </TableCell>
+                                    <TableCell className="px-1 py-1 text-center">
+                                        <p className="font-medium text-muted-foreground text-xs">
+                                            {item.trxClose}
+                                        </p>
+                                    </TableCell>
+                                    <TableCell className="px-1 py-1 text-center">
+                                        <Badge
+                                            className={`text-xs px-2 rounded-full justify-center py-0.5 ${item.badgeColor}`}
+                                        >
+                                            {item.percentage}%
+                                        </Badge>
+                                    </TableCell>
+                                </motion.tr>
+                            ))}
+                        </AnimatePresence>
+                    </TableBody>
+                </Table>
             </div>
         </CardBox>
     );

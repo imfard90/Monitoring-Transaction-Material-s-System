@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Footer } from '../components/dashboard/Footer';
 import OutMaterialLineChart from '../components/dashboard/OutMaterialLineChart';
 import { ProductPerformance } from '../components/dashboard/ProductPerformance';
+import { LensaPerformance } from '@/components/dashboard/LensaPerformance';
 import ProfileWelcome from '../components/dashboard/ProfileWelcome';
 import { RecentTransaction } from '../components/dashboard/RecentTransaction';
 import SalesOverview from '../components/dashboard/SalesOverview';
@@ -67,12 +68,17 @@ export default function Page() {
                     <OutMaterialLineChart />
                 </StaggerItem>
 
-                <StaggerItem className="col-span-12 lg:col-span-8 flex">
+                <StaggerItem className="col-span-12 lg:col-span-8 flex min-w-0">
                     <StockWarningTable />
                 </StaggerItem>
 
-                <StaggerItem className="col-span-12 lg:col-span-4 flex">
-                    <ProductPerformance />
+                <StaggerItem className="col-span-12 lg:col-span-4 flex min-w-0">
+                    <div className="grid w-full min-w-0 grid-cols-1 gap-4">
+                        <ProductPerformance />
+                        <Suspense fallback={<KpiSkeleton />}>
+                            <LensaPerformance />
+                        </Suspense>
+                    </div>
                 </StaggerItem>
             </StaggerContainer>
             <Footer />

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import SimpleBar from 'simplebar-react';
-import { AMMenu, AMMenuItem, AMSidebar, AMSubmenu } from 'tailwind-sidebar';
+import { AMMenu, AMSidebar, AMSubmenu } from 'tailwind-sidebar';
 import { getSidebarUserAccess, type SidebarUserAccess } from '../../management/users/actions';
 import FullLogo from '../shared/logo/FullLogo';
 import { SidebarAnnouncement } from './SidebarAnnouncement';
@@ -74,22 +74,30 @@ const renderSidebarItems = (
                 }}
                 key={item.id || index}
             >
-                <AMMenuItem
-                    key={item.id}
-                    icon={iconElement}
-                    isSelected={isSelected}
-                    link={item.url || undefined}
+                <Link
+                    href={item.url || '#'}
                     target={linkTarget}
-                    badge={!!item.isPro}
-                    badgeColor="bg-lightsecondary"
-                    badgeTextColor="text-secondary"
-                    disabled={item.disabled}
-                    badgeContent={item.isPro ? 'Pro' : undefined}
-                    component={Link}
-                    className={`${itemClassNames}`}
+                    aria-current={isSelected ? 'page' : undefined}
+                    aria-disabled={item.disabled || undefined}
+                    onClick={(event) => {
+                        if (item.disabled) {
+                            event.preventDefault();
+                            return;
+                        }
+                        onClose?.();
+                    }}
+                    className={`flex items-center gap-2 ${itemClassNames} ${
+                        item.disabled ? 'pointer-events-none opacity-50' : ''
+                    }`}
                 >
+                    {iconElement}
                     <span className="truncate flex-1">{item.title || item.name}</span>
-                </AMMenuItem>
+                    {item.isPro && (
+                        <span className="rounded bg-lightsecondary px-1.5 py-0.5 text-xs text-secondary">
+                            Pro
+                        </span>
+                    )}
+                </Link>
             </div>
         );
     });
@@ -120,7 +128,7 @@ const SidebarSection = ({
     return (
         // biome-ignore lint/a11y/noStaticElementInteractions: Sidebar section wrapper
         <div
-            className="mb-2"
+            className="relative mb-3 pb-2 after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-border after:to-transparent last:after:hidden"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >

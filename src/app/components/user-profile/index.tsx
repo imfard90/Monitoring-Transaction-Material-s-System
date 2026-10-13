@@ -2,7 +2,8 @@
 import { Icon } from '@iconify/react/dist/iconify.js';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import {
     deleteLensaAccount,
@@ -44,24 +45,14 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
     const [lensaPassword, setLensaPassword] = useState('');
     const [isPending, startTransition] = useTransition();
     const [isSendingVerification, setIsSendingVerification] = useState(false);
-    const [imgSrc, setImgSrc] = useState('/images/profile/user-1.jpg');
-    const [imgErrorCount, setImgErrorCount] = useState(0);
-
-    useEffect(() => {
-        if (profileData?.nik) {
-            setImgSrc(`/images/profile/${profileData.nik}.jpg`);
-            setImgErrorCount(0);
-        }
-    }, [profileData?.nik]);
-
-    const handleImageError = () => {
-        if (imgErrorCount === 0 && profileData?.nik) {
-            setImgSrc(`/images/profile/${profileData.nik}.png`);
-            setImgErrorCount(1);
-        } else {
-            setImgSrc('/images/profile/user-1.jpg');
-        }
-    };
+    const profileImage = profileData?.nik ? `/images/profile/${profileData.nik}.png` : undefined;
+    const profileInitials =
+        profileData?.name
+            ?.split(/\s+/)
+            .slice(0, 2)
+            .map((part) => part[0])
+            .join('')
+            .toUpperCase() || 'U';
 
     const handleSendVerification = async () => {
         if (!profileData?.email) return;
@@ -190,14 +181,18 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                         <div className="px-6 pb-6 relative">
                             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-12 sm:-mt-16 relative z-10 w-full break-words">
                                 <div className="relative">
-                                    <Image
-                                        src={imgSrc}
-                                        alt="Profile Picture"
-                                        width={120}
-                                        height={120}
-                                        className="rounded-full object-cover object-top border-4 border-background shadow-lg bg-background"
-                                        onError={handleImageError}
-                                    />
+                                    <Avatar className="size-[120px] rounded-full border-4 border-background shadow-lg">
+                                        {profileImage ? (
+                                            <AvatarImage
+                                                src={profileImage}
+                                                alt=""
+                                                className="object-cover object-top"
+                                            />
+                                        ) : null}
+                                        <AvatarFallback className="bg-primary/10 text-primary text-2xl font-semibold">
+                                            {profileInitials}
+                                        </AvatarFallback>
+                                    </Avatar>
                                 </div>
                                 <div className="flex flex-wrap gap-4 justify-center sm:justify-between items-center w-full mt-2 sm:mt-0">
                                     <div className="flex flex-col sm:text-left text-center gap-1.5">
@@ -380,7 +375,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3 flex-1">
                                 <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 shrink-0">
-                                    <img
+                                    <Image
                                         src="/images/svgs/icon-lensa-account.svg"
                                         alt="Lensa Account"
                                         width={32}
@@ -558,7 +553,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3 flex-1">
                                 <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 shrink-0">
-                                    <img
+                                    <Image
                                         src="/images/svgs/icon-api-key.svg"
                                         alt="API Key"
                                         width={32}

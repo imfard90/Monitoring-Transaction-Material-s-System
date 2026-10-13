@@ -29,7 +29,7 @@ const Header = () => {
                             type="button"
                             onClick={() => setIsOpen(true)}
                             className="xl:hidden px-3 hover:text-primary text-foreground relative after:absolute after:w-10 after:h-10 after:rounded-full hover:after:bg-lightprimary after:bg-transparent rounded-full flex justify-center items-center cursor-pointer"
-                            aria-label="Open sidebar menu"
+                            aria-label="Buka menu navigasi"
                         >
                             <Icon icon="solar:hamburger-menu-linear" height={24} width={24} />
                         </button>
@@ -79,7 +79,7 @@ const Header = () => {
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 <SheetContent side="left" className="w-[270px] p-0 border-r-0">
                     <VisuallyHidden>
-                        <SheetTitle>sidebar</SheetTitle>
+                        <SheetTitle>Navigasi utama</SheetTitle>
                     </VisuallyHidden>
                     <SidebarLayout onClose={() => setIsOpen(false)} isMobile={true} />
                 </SheetContent>

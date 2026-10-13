@@ -1,10 +1,9 @@
 'use client';
 
 import { Icon } from '@iconify/react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import SimpleBar from 'simplebar-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,34 +22,32 @@ const Profile = () => {
     // biome-ignore lint/suspicious/noExplicitAny: Better Auth client types might not include custom fields
     const user = session?.user as any;
 
-    const [imgSrc, setImgSrc] = useState('/images/profile/user-1.jpg');
+    const profileImage = user?.nik ? `/images/profile/${user.nik}.png` : undefined;
+    const profileFallback =
+        user?.name
+            ?.split(/\s+/)
+            .slice(0, 2)
+            .map((part: string) => part[0])
+            .join('')
+            .toUpperCase() || 'U';
 
-    useEffect(() => {
-        if (user?.nik) {
-            const img = new window.Image();
-            img.src = `/images/profile/${user.nik}.jpg`;
-            img.onload = () => setImgSrc(`/images/profile/${user.nik}.jpg`);
-            img.onerror = () => {
-                const imgPng = new window.Image();
-                imgPng.src = `/images/profile/${user.nik}.png`;
-                imgPng.onload = () => setImgSrc(`/images/profile/${user.nik}.png`);
-                imgPng.onerror = () => setImgSrc('/images/profile/user-1.jpg');
-            };
-        }
-    }, [user?.nik]);
+    const renderAvatar = (size: number) => (
+        <Avatar className="rounded-full shadow-sm" style={{ width: size, height: size }}>
+            {profileImage ? (
+                <AvatarImage src={profileImage} alt="" className="object-cover object-top" />
+            ) : null}
+            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                {profileFallback}
+            </AvatarFallback>
+        </Avatar>
+    );
 
     return (
         <div className="relative group/menu ps-15 shrink-0">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <span className="hover:text-primary hover:bg-lightprimary rounded-full flex justify-center items-center cursor-pointer group-hover/menu:bg-lightprimary group-hover/menu:text-primary transition-colors duration-200">
-                        <Image
-                            src={imgSrc}
-                            alt="Profile"
-                            height={35}
-                            width={35}
-                            className="rounded-full object-cover object-top h-[35px] w-[35px] shadow-sm"
-                        />
+                        {renderAvatar(35)}
                     </span>
                 </DropdownMenuTrigger>
 
@@ -59,13 +56,7 @@ const Profile = () => {
                     className="w-screen sm:w-[250px] pb-4 pt-2 rounded-xl shadow-lg border-border"
                 >
                     <div className="px-4 py-3 flex items-center gap-3">
-                        <Image
-                            src={imgSrc}
-                            alt="Profile"
-                            height={40}
-                            width={40}
-                            className="rounded-full object-cover object-top h-[40px] w-[40px] shadow-sm"
-                        />
+                        {renderAvatar(40)}
                         <div className="flex flex-col overflow-hidden">
                             <span className="text-sm font-semibold truncate text-foreground">
                                 {user?.name || 'User'}

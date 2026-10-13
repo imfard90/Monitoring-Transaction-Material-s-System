@@ -56,9 +56,11 @@ const BreadcrumbComp = ({ items = [], title }: BreadCrumbType) => {
                     <div className="hidden sm:block absolute right-7 bottom-0">
                         <Image
                             src="/images/dashboard/customer-support-img.png"
-                            alt="support-img"
+                            alt=""
                             width={145}
                             height={95}
+                            sizes="145px"
+                            className="h-auto w-[145px] object-contain"
                         />
                     </div>
                 </div>

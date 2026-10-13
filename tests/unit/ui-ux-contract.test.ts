@@ -178,6 +178,11 @@ describe('transaction forms & overview pagination invariants', () => {
         expect(stockBal).toMatch(/DataTablePagination/);
         expect(stockBal).toMatch(/Saldo Stok Real-time/);
         expect(stockBal).toMatch(/Jumlah Stok/);
+        expect(stockBal).toMatch(/Estimasi Stok Habis/);
+        expect(stockBal).toMatch(/Belum ada data/);
+        expect(stockBal).toMatch(/Tidak habis/);
+        expect(stockBal).toMatch(/Habis dalam/);
+        expect(stockBal).toMatch(/average_demand_weekly/);
 
         const stockIntech = await readSrc('src/app/components/dashboard/StockIntechOverview.tsx');
         expect(stockIntech).toMatch(/DataTablePagination/);
@@ -198,6 +203,37 @@ describe('transaction forms & overview pagination invariants', () => {
         );
         expect(techTable).not.toMatch(/window\.confirm/);
         expect(techTable).toMatch(/Tambah Teknisi/);
+    });
+});
+
+describe('dashboard sidebar accessibility invariants', () => {
+    it('marks the current sidebar page and labels the mobile navigation dialog in Indonesian', async () => {
+        const sidebar = await readSrc('src/app/(DashboardLayout)/layout/sidebar/Sidebar.tsx');
+        expect(sidebar).toMatch(/aria-current=\{isSelected \? 'page' : undefined\}/);
+
+        const header = await readSrc('src/app/(DashboardLayout)/layout/header/Header.tsx');
+        expect(header).toMatch(/aria-label="Buka menu navigasi"/);
+        expect(header).toMatch(/<SheetTitle>Navigasi utama<\/SheetTitle>/);
+    });
+});
+
+describe('floating support widget invariants', () => {
+    it('provides secure external support links and a clear coming-soon agent state', async () => {
+        const config = await readSrc('src/components/support/support.config.ts');
+        const menu = await readSrc('src/components/support/SupportMenu.tsx');
+        const agentPanel = await readSrc('src/components/support/AgentChatPanel.tsx');
+        const widget = await readSrc('src/components/support/FloatingSupportWidget.tsx');
+        const layout = await readSrc('src/app/(DashboardLayout)/layout.tsx');
+
+        expect(config).toMatch(/https:\/\/wa\.me\/6282334447478/);
+        expect(config).toMatch(/https:\/\/t\.me\/imfard/);
+        expect(menu.match(/target="_blank"/g)).toHaveLength(2);
+        expect(menu.match(/rel="noopener noreferrer"/g)).toHaveLength(2);
+        expect(menu).toMatch(/Segera hadir/);
+        expect(agentPanel).toMatch(/role="status"/);
+        expect(agentPanel).toMatch(/segera tersedia/i);
+        expect(widget).toMatch(/aria-label="Buka kanal bantuan"/);
+        expect(layout).toMatch(/<FloatingSupportWidget \/>/);
     });
 });
 
