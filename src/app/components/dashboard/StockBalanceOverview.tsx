@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
+import { sortStockBalancesByRunout } from '@/lib/utils/stock-balance-order';
 
 interface StockBalanceData {
     warehouse_name: string | null;
@@ -68,6 +69,11 @@ export default function StockBalanceOverview() {
             return matchesWh && matchesSearch;
         });
     }, [balances, searchQuery, whFilter]);
+
+    const sortedBalances = React.useMemo(
+        () => sortStockBalancesByRunout(filteredBalances),
+        [filteredBalances]
+    );
 
     const columns = [
         columnHelper.accessor('warehouse_name', {
@@ -143,7 +149,7 @@ export default function StockBalanceOverview() {
     ];
 
     const table = useReactTable({
-        data: filteredBalances,
+        data: sortedBalances,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
