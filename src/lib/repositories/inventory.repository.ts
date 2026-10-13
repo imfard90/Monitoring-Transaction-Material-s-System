@@ -3,9 +3,10 @@
  * Priority: Use stored procedures for atomicity and data integrity
  * All critical operations go through stored procedures in inventory schema
  */
+
+import { type Kysely, sql, type Transaction } from 'kysely';
 import type { DB } from '@/lib/db/database.types';
 import { db } from '@/lib/db/db';
-import { type Kysely, type Transaction, sql } from 'kysely';
 
 export type InOutTagFilters = {
     status?: 'OPEN' | 'IN_TRANSIT' | 'CLOSED' | 'CANCEL';
@@ -69,7 +70,7 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
         items: Array<{ designator_id: number; qty: number }>;
     }) =>
         sql`CALL inventory.sp_update_inout_tag(
-            ${params.headerId}::bigint,
+            ${params.headerId}::integer,
             ${params.actionType}::varchar,
             ${params.actionId}::varchar,
             ${JSON.stringify(params.items)}::jsonb

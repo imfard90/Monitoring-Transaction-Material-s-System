@@ -1,14 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockSqlExecute = vi.fn();
+const mockSqlCalls: Array<{ strings: TemplateStringsArray; values: unknown[] }> = [];
 const mockDbSelectFrom = vi.fn();
 
 vi.mock('kysely', () => {
-    const fakeSql = (strings: TemplateStringsArray, ...values: any[]) => ({
-        strings,
-        values,
-        execute: mockSqlExecute,
-    });
+    const fakeSql = (strings: TemplateStringsArray, ...values: any[]) => {
+        mockSqlCalls.push({ strings, values });
+        return {
+            strings,
+            values,
+            execute: mockSqlExecute,
+        };
+    };
     return {
         sql: fakeSql,
     };
@@ -27,6 +31,7 @@ const { createInventoryRepository, inventoryRepository } = await import(
 describe('InventoryRepository Unit Tests', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockSqlCalls.length = 0;
     });
 
     it('exports a singleton inventoryRepository instance', () => {
@@ -101,6 +106,28 @@ describe('InventoryRepository Unit Tests', () => {
         });
 
         expect(mockSqlExecute).toHaveBeenCalledTimes(1);
+        const call = mockSqlCalls.at(-1);
+        expect(call?.strings.join('?')).toContain('CALL inventory.sp_update_inout_tag');
+        expect(call?.strings[1]).toContain('::integer');
+        expect(call?.values).toEqual([55, 'send', 'SEND-01', '[{"designator_id":10,"qty":2}]']);
+    });
+
+    it('updateInOutTag sends accept ID as the action ID for the accept action', async () => {
+        mockSqlExecute.mockResolvedValueOnce({ rows: [] });
+
+        const repo = createInventoryRepository({} as any);
+        await repo.updateInOutTag({
+            headerId: 55,
+            actionType: 'accept',
+            actionId: 'ACCEPT-01',
+            items: [{ designator_id: 10, qty: 2 }],
+        });
+
+        const call = mockSqlCalls.at(-1);
+        expect(call?.strings.join('?')).toContain('CALL inventory.sp_update_inout_tag');
+        expect(call?.strings[1]).toContain('::integer');
+        expect(call?.strings[2]).toContain('::varchar');
+        expect(call?.values).toEqual([55, 'accept', 'ACCEPT-01', '[{"designator_id":10,"qty":2}]']);
     });
 
     it('recordReturnMaterial invokes sp_return_material with header and accept ID', async () => {

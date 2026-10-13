@@ -43,7 +43,7 @@ function KpiSkeleton() {
 export default function Page() {
     return (
         <div className="flex flex-col flex-1 h-full gap-6">
-            <StaggerContainer className="grid grid-cols-12 gap-6">
+            <StaggerContainer className="grid grid-cols-12 gap-6 lg:items-stretch">
                 <StaggerItem className="col-span-12">
                     <Suspense fallback={<ProfileSkeleton />}>
                         <ProfileWelcome />
@@ -68,12 +68,14 @@ export default function Page() {
                     <OutMaterialLineChart />
                 </StaggerItem>
 
-                <StaggerItem className="col-span-12 lg:col-span-8 flex min-w-0">
-                    <StockWarningTable />
+                <StaggerItem className="col-span-12 flex min-w-0 lg:col-span-8">
+                    <div className="flex h-full w-full min-w-0 flex-col gap-4">
+                        <StockWarningTable />
+                    </div>
                 </StaggerItem>
 
-                <StaggerItem className="col-span-12 lg:col-span-4 flex min-w-0">
-                    <div className="grid w-full min-w-0 grid-cols-1 gap-4">
+                <StaggerItem className="col-span-12 flex min-w-0 lg:col-span-4">
+                    <div className="grid w-full min-w-0 grid-cols-1 content-start gap-4">
                         <ProductPerformance />
                         <Suspense fallback={<KpiSkeleton />}>
                             <LensaPerformance />

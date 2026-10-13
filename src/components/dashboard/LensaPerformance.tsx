@@ -51,28 +51,35 @@ function MetricTable({
     hasError: boolean;
 }) {
     return (
-        <Card className="min-w-0 xl:col-span-1">
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                <CardDescription>{description}</CardDescription>
+        <Card className="min-w-0 p-4">
+            <CardHeader className="space-y-0.5 p-0">
+                <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+                <CardDescription className="text-sm">{description}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
                 {isLoading ? (
-                    <div className="space-y-3" role="status" aria-label={`Memuat ${title}`}>
-                        <Skeleton className="h-8 w-full" />
-                        <Skeleton className="h-8 w-full" />
+                    <div className="space-y-2" role="status" aria-label={`Memuat ${title}`}>
+                        <Skeleton className="h-6 w-full" />
+                        <Skeleton className="h-6 w-full" />
                     </div>
                 ) : hasError ? (
-                    <p className="py-4 text-center text-sm text-destructive">
+                    <p className="py-2 text-center text-sm text-destructive">
                         Data performa tidak dapat dimuat saat ini.
                     </p>
                 ) : rows.length === 0 ? (
-                    <p className="py-4 text-center text-sm text-muted-foreground">
+                    <p className="py-2 text-center text-sm text-muted-foreground">
                         Belum ada data.
                     </p>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[420px] text-xs">
+                        <table className="w-full table-fixed min-w-[420px] text-sm">
+                            <colgroup>
+                                <col className="w-7" />
+                                <col className="w-[30%]" />
+                                <col className="w-12" />
+                                <col className="w-12" />
+                                <col className="w-14" />
+                            </colgroup>
                             <thead>
                                 <tr className="border-b text-left text-muted-foreground">
                                     <th
@@ -98,7 +105,7 @@ function MetricTable({
                             <tbody>
                                 {sortByCompletion(rows).map((row, index) => (
                                     <tr key={row.key} className="border-b last:border-0">
-                                        <td className="px-1 py-1 text-left font-medium text-muted-foreground">
+                                        <td className="px-1 py-1 text-left text-sm font-medium text-muted-foreground">
                                             {index + 1}
                                         </td>
                                         <th

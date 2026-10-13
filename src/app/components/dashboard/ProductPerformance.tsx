@@ -66,38 +66,38 @@ export const ProductPerformance = () => {
         <CardBox className="w-full relative overflow-hidden">
             <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 bg-gradient-to-bl from-success/5 to-transparent" />
 
-            <div id="product" className="relative z-10 mb-6">
+            <div id="product" className="relative z-10 mb-2">
                 <div>
-                    <h5 className="text-xl font-bold tracking-tight text-foreground">
+                    <h5 className="text-lg font-semibold tracking-tight text-foreground">
                         Performa Pengeluaran Gudang
                     </h5>
-                    <p className="text-sm text-muted-foreground font-medium mt-1">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                         Ringkasan persentase penyelesaian transaksi out material per gudang
                     </p>
                 </div>
             </div>
             <div className="relative z-10 min-w-0 overflow-x-auto">
-                <Table className="table-fixed min-w-[420px]">
+                <Table className="table-fixed min-w-[420px] text-sm">
                     <colgroup>
-                        <col className="w-7" />
-                        <col className="w-[30%]" />
+                        <col className="w-6" />
+                        <col className="w-[28%]" />
+                        <col className="w-10" />
+                        <col className="w-10" />
                         <col className="w-12" />
-                        <col className="w-12" />
-                        <col className="w-14" />
                     </colgroup>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="px-1 py-1 text-xs font-semibold">No</TableHead>
-                            <TableHead className="px-1 py-1 text-xs font-semibold">
+                            <TableHead className="px-1 py-0.5 text-sm font-semibold">No</TableHead>
+                            <TableHead className="px-1 py-0.5 text-sm font-semibold">
                                 Nama Gudang
                             </TableHead>
-                            <TableHead className="px-1 py-1 text-center text-xs font-semibold">
+                            <TableHead className="px-1 py-0.5 text-center text-sm font-semibold">
                                 Total Out
                             </TableHead>
-                            <TableHead className="px-1 py-1 text-center text-xs font-semibold">
+                            <TableHead className="px-1 py-0.5 text-center text-sm font-semibold">
                                 Selesai
                             </TableHead>
-                            <TableHead className="px-1 py-1 text-center text-xs font-semibold">
+                            <TableHead className="px-1 py-0.5 text-center text-sm font-semibold">
                                 Persentase
                             </TableHead>
                         </TableRow>
@@ -113,12 +113,12 @@ export const ProductPerformance = () => {
                                     transition={{ duration: 0.2, delay: index * 0.03 }}
                                     className="border-b border-border transition-colors hover:bg-muted/50"
                                 >
-                                    <TableCell className="px-1 py-1">
-                                        <p className="text-muted-foreground font-medium text-xs">
+                                    <TableCell className="px-1 py-1 text-sm">
+                                        <p className="text-muted-foreground font-medium">
                                             {index + 1}
                                         </p>
                                     </TableCell>
-                                    <TableCell className="max-w-0 px-1 py-1">
+                                    <TableCell className="max-w-0 px-1 py-1 text-sm">
                                         <h6
                                             className="truncate text-sm font-semibold"
                                             title={item.name}
@@ -126,19 +126,19 @@ export const ProductPerformance = () => {
                                             {item.name}
                                         </h6>
                                     </TableCell>
-                                    <TableCell className="px-1 py-1 text-center">
-                                        <p className="font-medium text-muted-foreground text-xs">
+                                    <TableCell className="px-1 py-1 text-center text-sm">
+                                        <p className="font-medium text-muted-foreground">
                                             {item.trxOut}
                                         </p>
                                     </TableCell>
-                                    <TableCell className="px-1 py-1 text-center">
-                                        <p className="font-medium text-muted-foreground text-xs">
+                                    <TableCell className="px-1 py-1 text-center text-sm">
+                                        <p className="font-medium text-muted-foreground">
                                             {item.trxClose}
                                         </p>
                                     </TableCell>
                                     <TableCell className="px-1 py-1 text-center">
                                         <Badge
-                                            className={`text-xs px-2 rounded-full justify-center py-0.5 ${item.badgeColor}`}
+                                            className={`text-sm px-2 rounded-full justify-center py-0.5 ${item.badgeColor}`}
                                         >
                                             {item.percentage}%
                                         </Badge>

@@ -61,18 +61,31 @@ export async function getLensaWarehousePerformance() {
 
         let outLensaQuery = db
             .selectFrom('inventory.out_lensa_ref_header as olh')
-            .innerJoin('inventory.mas_wh as wh', 'wh.name', 'olh.nama_gudang')
+            .innerJoin('inventory.mas_wh as wh', (join) =>
+                join.on(
+                    sql<string>`LOWER(REGEXP_REPLACE(wh.name, '\\s+', '', 'g'))`,
+                    '=',
+                    sql<string>`LOWER(REGEXP_REPLACE(olh.nama_gudang, '\\s+', '', 'g'))`
+                )
+            )
             .select([
                 'wh.id as key',
                 'wh.name as name',
                 sql<number>`COUNT(olh.id)`.as('total'),
                 sql<number>`COUNT(olh.id) FILTER (WHERE olh.sap_out_check IS TRUE)`.as('completed'),
             ])
+            .where('olh.formatted_date', '=', sql<Date>`CURRENT_DATE`)
             .groupBy(['wh.id', 'wh.name']);
 
         let rekonLensaQuery = db
             .selectFrom('inventory.wo_lensa_header as wlh')
-            .innerJoin('inventory.mas_wh as wh', 'wh.name', 'wlh.nama_gudang')
+            .innerJoin('inventory.mas_wh as wh', (join) =>
+                join.on(
+                    sql<string>`LOWER(REGEXP_REPLACE(wh.name, '\\s+', '', 'g'))`,
+                    '=',
+                    sql<string>`LOWER(REGEXP_REPLACE(wlh.nama_gudang, '\\s+', '', 'g'))`
+                )
+            )
             .select([
                 'wh.id as key',
                 'wh.name as name',

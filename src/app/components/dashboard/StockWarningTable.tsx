@@ -41,10 +41,10 @@ export const StockWarningTable = () => {
     }, []);
 
     return (
-        <CardBox className="h-full w-full relative overflow-hidden">
+        <CardBox className="relative flex min-h-0 flex-1 w-full flex-col overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-warning/5 to-transparent pointer-events-none" />
 
-            <div className="relative z-10 mb-6">
+            <div className="relative z-10 mb-3 shrink-0">
                 <div>
                     <h5 className="text-xl font-bold tracking-tight text-foreground">
                         Peringatan Stok Minimum
@@ -55,7 +55,7 @@ export const StockWarningTable = () => {
                 </div>
             </div>
 
-            <div className="relative z-10 overflow-x-auto">
+            <div className="relative z-10 min-h-0 flex-1 overflow-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>

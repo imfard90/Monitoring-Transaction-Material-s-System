@@ -66,6 +66,8 @@ Sebelum menyatakan tugas selesai, pastikan:
 11. **Rate limiting** — gunakan `lib/rate-limit.ts` (unified, P2-S3); dua signature: `rateLimit(key, {limit, windowMs})` atau `rateLimit(identifier, limit, windowSec)`.
 12. **Action file structure** — file action besar (>400 baris) dipecah jadi `*-queries.ts` (read) + `*-commands.ts` (write, `'use server'`) + barrel re-export (P2-M2). Lihat `tag-actions.ts`/`out-lensa-actions.ts` sebagai pola.
 13. **Dashboard queries** — semua query list/dashboard harus punya `.limit()` + `.orderBy()` eksplisit (P2-P1).
+- **Tanggal Lensa Ref** — query untuk `inventory.wo_lensa_header` (WO Lensa Ref) dan `inventory.out_lensa_ref_header` (Out Lensa Ref) wajib menggunakan kolom `formatted_date` sebagai sumber tanggal; jangan mengganti dengan timestamp atau kolom tanggal lain tanpa verifikasi skema dan kebutuhan bisnis. Sebelum menambahkan/mengubah filter tanggal seperti “hari ini”, rentang tanggal, atau zona waktu, verifikasi dulu tipe kolom, nilai/data aktual, dan arti tanggal bisnis. Jangan mengasumsikan bahwa `formatted_date = CURRENT_DATE` sesuai untuk semua query; pertahankan filter yang diminta secara spesifik.
+14. **Logging redaction** — redact field spesifik (`password`, `token`, `authorization`, `*.secret`, `cookies`), bukan seluruh `err`/`stack` (P3-Q2).
 14. **Logging redaction** — redact field spesifik (`password`, `token`, `authorization`, `*.secret`, `cookies`), bukan seluruh `err`/`stack` (P3-Q2).
 15. **Server logging** — tidak ada `console.*` di server code; gunakan `actionLogger`/`securityLogger`/`dbLogger`/`cacheLogger` dari `lib/logger.ts` (P3-Q3).
 16. **Encryption keys** — gunakan `crypto.createHash('sha256').digest()` untuk derive 32-byte key dari env secret, bukan `slice(0,32)` (P3-S6).
