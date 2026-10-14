@@ -6,13 +6,11 @@ The Feature Implementation Workflow describes the development pipeline: research
 
 ## Feature Implementation Workflow
 
-0. **Research & Reuse** _(mandatory before any new implementation)_
-   - **GitHub code search first:** Run `gh search repos` and `gh search code` to find existing implementations, templates, and patterns before writing anything new.
-   - **Library docs second:** Use Context7 or primary vendor docs to confirm API behavior, package usage, and version-specific details before implementing.
-   - **Exa only when the first two are insufficient:** Use Exa for broader web research or discovery after GitHub search and primary docs.
-   - **Check package registries:** Search npm, PyPI, crates.io, and other registries before writing utility code. Prefer battle-tested libraries over hand-rolled solutions.
-   - **Search for adaptable implementations:** Look for open-source projects that solve 80%+ of the problem and can be forked, ported, or wrapped.
-   - Prefer adopting or porting a proven approach over writing net-new code when it meets the requirement.
+0. **Research & Reuse** _(scale research to the task)_
+   - **Inspect the project first:** Read relevant local code, tests, package versions, and project guidance; reuse established patterns before introducing new ones.
+   - **Verify external behavior when needed:** Consult Context7 or primary vendor documentation when implementation depends on library/framework/API behavior, version-specific details, or an unfamiliar integration. Context7 is an option, not a requirement for every coding task; do not look up documentation for straightforward changes already covered by local patterns and tests.
+   - **Research reuse opportunities when useful:** For new dependencies, substantial new functionality, or when local patterns are insufficient, search GitHub implementations and package registries before writing a bespoke solution. Use broader web research (such as Exa) only if primary docs and targeted code search do not answer the question.
+   - Prefer adopting or adapting a proven approach when it fits the requirement; avoid external research that does not reduce uncertainty or implementation risk.
 
 1. **Plan First**
    - Use **planner** agent to create implementation plan
