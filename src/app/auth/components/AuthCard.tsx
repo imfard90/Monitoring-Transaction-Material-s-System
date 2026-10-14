@@ -12,10 +12,12 @@ const AuthCard: React.FC<AuthCardProps> = ({ children, title, description, class
     return (
         <Card className={`border-border shadow-sm ${className ?? ''}`}>
             <CardContent className="pt-6">
-                <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground mb-2">
-                        {title}
-                    </h1>
+                <div className={title || description ? 'text-center mb-8' : 'mb-0'}>
+                    {title ? (
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground mb-2">
+                            {title}
+                        </h1>
+                    ) : null}
                     {description && <p className="text-sm text-muted-foreground">{description}</p>}
                 </div>
                 {children}

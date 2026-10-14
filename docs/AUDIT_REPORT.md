@@ -49,7 +49,9 @@ Aplikasi: Next.js (App Router) + TypeScript strict, PostgreSQL via Kysely, Redis
   - `getOutSapItemsByHeaderId(headerId)`, `getTechnicianByNik`, `getTechnicians`, `getMaterials`, `getMaterialsInWarehouse` tidak melakukan cek sesi/wh access.
 
 - `src/app/(DashboardLayout)/apps/return-material/_actions/return-actions.ts`
-  - `getSapOutItemsForReturn(headerId)` membaca item SAP tanpa cek kepemilikan warehouse.
+  - `getSapOutItemsForReturn(headerId)` membatasi Staff berdasarkan warehouse PIC; bila Staff tidak memiliki warehouse, action kini mengembalikan data kosong secara fail-closed (14 Okt 2026). Validasi akses lintas gudang yang eksplisit untuk semua ID tetap perlu ditinjau.
+- `src/app/(DashboardLayout)/apps/hasil-rekon/_actions/edit-rekon-actions.ts`
+  - `getRekonEditData` kini menolak ID non-numerik dan mengembalikan data kosong untuk Staff tanpa warehouse (14 Okt 2026). `submitEditRekon` tetap belum memverifikasi hubungan/akses header dan SAP item sebelum memanggil SP; perlu ditutup setelah kontrak skema dikonfirmasi.
 
 - `src/app/(DashboardLayout)/management/technician/actions.ts`
   - `getTechnicians`, `getBranches`, `getMitras`, `toggleTechnicianStatus`, `upsertTechnician` memanggil `getSessionUser` tetapi **tidak membatasi peran**; hanya cek `isStaff` di beberapa tempat. Semua level non-Staff dapat mengelola teknisi.
@@ -68,6 +70,7 @@ Aplikasi: Next.js (App Router) + TypeScript strict, PostgreSQL via Kysely, Redis
 - `src/app/auth/login/_actions/login-actions.ts` mengimpor `rateLimit` dari `@/lib/rate-limit` (signature `{limit, windowMs}`) sementara `src/app/api/presence/route.ts` mengimpor dari `@/lib/security/rate-limit` (signature `limit, seconds`). Dua implementasi duplikat:
   - `src/lib/rate-limit.ts` (window-based, fail-open)
   - `src/lib/security/rate-limit.ts`
+- **Status parsial (14 Okt 2026):** limiter API publik khusus (`src/lib/security/api-rate-limit.ts`) kini fail-closed saat Redis gagal atau pipeline mengembalikan hasil tidak lengkap/error. Unit test mencakup gangguan Redis dan hasil pipeline tidak valid. Duplikasi modul limiter umum masih terbuka dan belum dikonsolidasikan.
 
 **Risiko:** Inkonsistensi batas, kesulitan pemeliharaan, potensi salah signature.
 

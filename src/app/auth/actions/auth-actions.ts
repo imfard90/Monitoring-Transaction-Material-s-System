@@ -3,7 +3,14 @@
 import { db } from '@/lib/db/db';
 
 import { actionLogger } from '@/lib/logger';
-export async function checkEmployeeNik(nik: string) {
+import { verifyTurnstileToken } from '@/lib/security/turnstile';
+
+export async function checkEmployeeNik(nik: string, turnstileToken: string) {
+    const captcha = await verifyTurnstileToken(turnstileToken);
+    if (!captcha.success) {
+        return { success: false, message: 'Verifikasi keamanan gagal. Silakan coba lagi.' };
+    }
+
     try {
         const employee = await db
             .selectFrom('hr.employees')

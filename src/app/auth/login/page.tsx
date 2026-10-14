@@ -4,12 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import AuthCard from '@/app/auth/components/AuthCard';
 import AuthLayout from '@/app/auth/components/AuthLayout';
+import TurnstileWidget from '@/app/auth/components/TurnstileWidget';
 import { ModalDialog } from '@/app/components/shared/ModalDialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -34,6 +35,8 @@ const LoginForm = () => {
     );
     const [pendingLogin, setPendingLogin] = useState<LoginFormValues | null>(null);
     const [isRevoking, setIsRevoking] = useState(false);
+    const [turnstileToken, setTurnstileToken] = useState<string>('');
+    const [turnstileError, setTurnstileError] = useState<string | null>(null);
 
     const {
         register,
@@ -48,13 +51,57 @@ const LoginForm = () => {
 
     const remember = watch('remember');
 
+    const handleTurnstileToken = useCallback((token: string) => {
+        setTurnstileToken(token);
+        setTurnstileError(null);
+    }, []);
+
+    const handleTurnstileExpire = useCallback(() => {
+        setTurnstileToken('');
+    }, []);
+
+    const handleTurnstileError = useCallback((code: string) => {
+        setTurnstileToken('');
+        setTurnstileError(
+            'Verifikasi keamanan gagal dimuat. Silakan muat ulang halaman untuk mencoba lagi.'
+        );
+        // `code` is intentionally not surfaced to end-users to avoid leaking
+        // internal Cloudflare error families.
+        if (process.env.NODE_ENV !== 'production') {
+            // biome-ignore lint/suspicious/noConsole: dev-only diagnostic
+            console.warn('[Turnstile] widget error', code);
+        }
+    }, []);
+
     const onSubmit = async (data: LoginFormValues) => {
         setErrorMsg(null);
+
+        // 0. Cloudflare Turnstile — server-side validation.
+        //    Fail-closed: missing token or failed verification blocks login.
+        if (!turnstileToken) {
+            setErrorMsg({
+                type: 'error',
+                text: 'Mohon selesaikan verifikasi keamanan (CAPTCHA) terlebih dahulu.',
+            });
+            return;
+        }
+
         try {
             // 1. Lakukan pre-check terlebih dahulu
             const { precheckLogin } = await import('./_actions/login-actions');
-            const precheck = await precheckLogin(data.email);
+            const precheck = await precheckLogin(data.email, turnstileToken);
 
+            if (precheck.status === 'turnstile_failed') {
+                setErrorMsg({
+                    type: 'error',
+                    text: 'Verifikasi keamanan gagal. Silakan coba lagi.',
+                });
+                setTurnstileToken('');
+                const resetFn = (window as unknown as { __turnstileReset?: () => void })
+                    .__turnstileReset;
+                resetFn?.();
+                return;
+            }
             if (precheck.status === 'not_found') {
                 setErrorMsg({ type: 'error', text: 'User tidak terdaftar' });
                 return;
@@ -74,6 +121,7 @@ const LoginForm = () => {
                 email: data.email,
                 password: data.password,
                 rememberMe: data.remember,
+                fetchOptions: { headers: { 'x-captcha-response': turnstileToken } },
             });
 
             if (result.error) {
@@ -102,14 +150,26 @@ const LoginForm = () => {
         if (!pendingLogin) return;
         setIsRevoking(true);
         setErrorMsg(null);
+
         try {
             const { revokeAllUserSessions } = await import('./_actions/login-actions');
             await revokeAllUserSessions(pendingLogin.email);
+
+            const token = (window as Window & { __mtmsTurnstileToken?: string })
+                .__mtmsTurnstileToken;
+            if (!token) {
+                setErrorMsg({
+                    type: 'error',
+                    text: 'Silakan selesaikan verifikasi CAPTCHA kembali.',
+                });
+                return;
+            }
 
             const result = await authClient.signIn.email({
                 email: pendingLogin.email,
                 password: pendingLogin.password,
                 rememberMe: pendingLogin.remember,
+                fetchOptions: { headers: { 'x-captcha-response': token } },
             });
 
             if (result.error) {
@@ -224,7 +284,19 @@ const LoginForm = () => {
                         </Link>
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    <TurnstileWidget
+                        onToken={handleTurnstileToken}
+                        onExpire={handleTurnstileExpire}
+                        onError={handleTurnstileError}
+                        action="login"
+                        className="mb-4"
+                    />
+
+                    <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={isSubmitting || !turnstileToken || !!turnstileError}
+                    >
                         {isSubmitting ? (
                             <>
                                 <Loader2 className="size-4 animate-spin mr-2" />

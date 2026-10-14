@@ -1,6 +1,7 @@
 import { render } from '@react-email/render';
 import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
+import { captcha } from 'better-auth/plugins';
 import { Pool } from 'pg';
 import { Resend } from 'resend';
 import { ResetPasswordEmail } from './emails/reset-password-email';
@@ -82,7 +83,15 @@ export const auth = betterAuth({
             return result;
         },
     },
-    plugins: [nextCookies()],
+    plugins: [
+        nextCookies(),
+        captcha({
+            provider: 'cloudflare-turnstile',
+            secretKey: process.env.TURNSTILE_SECRET_KEY ?? '',
+            endpoints: ['/sign-in/email', '/sign-up/email'],
+            allowedHostnames: ['mtms-app.credea.biz.id', 'localhost', '127.0.0.1'],
+        }),
+    ],
     user: {
         modelName: 'auth.user',
         additionalFields: {

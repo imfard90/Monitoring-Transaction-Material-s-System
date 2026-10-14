@@ -25,17 +25,31 @@ export async function checkAndConsumeApiRateLimit(userId: string): Promise<ApiRa
         pipeline.expire(redisKey, API_RATE_LIMIT_WINDOW_SECONDS, 'NX');
         pipeline.ttl(redisKey);
 
-        const results = (await pipeline.exec()) || [];
+        const results = await pipeline.exec();
+        if (results?.length !== 3) {
+            throw new Error('Redis rate-limit pipeline returned an incomplete result');
+        }
 
-        // results: [[null, incrResult], [null, expireResult], [null, ttlResult]]
-        const incrErr = results[0]?.[0];
-        const count = incrErr ? 1 : Number(results[0]?.[1] ?? 1);
+        // Never treat command errors or malformed values as a successful allowance.
+        const incrResult = results[0];
+        if (
+            incrResult?.[0] ||
+            !Number.isSafeInteger(Number(incrResult?.[1])) ||
+            Number(incrResult?.[1]) < 1
+        ) {
+            throw new Error('Redis rate-limit increment failed');
+        }
+        const count = Number(incrResult[1]);
 
-        const ttlErr = results[2]?.[0];
-        let ttl = ttlErr
-            ? API_RATE_LIMIT_WINDOW_SECONDS
-            : Number(results[2]?.[1] ?? API_RATE_LIMIT_WINDOW_SECONDS);
-        if (ttl <= 0) {
+        const ttlResult = results[2];
+        if (ttlResult?.[0]) {
+            throw new Error('Redis rate-limit TTL lookup failed');
+        }
+        let ttl = Number(ttlResult?.[1]);
+        if (!Number.isSafeInteger(ttl)) {
+            throw new Error('Redis rate-limit TTL is invalid');
+        }
+        if (ttl < 1) {
             ttl = API_RATE_LIMIT_WINDOW_SECONDS;
         }
 
@@ -63,11 +77,12 @@ export async function checkAndConsumeApiRateLimit(userId: string): Promise<ApiRa
             `[ApiRateLimit] Redis error for user: ${userId}`,
             error instanceof Error ? error : new Error(String(error))
         );
-        // Fail open if Redis is down so critical integrations don't completely lock out
+        // Fail closed: API access must not bypass its required limit when Redis is unavailable.
+        const retryAt = new Date(Date.now() + API_RATE_LIMIT_WINDOW_SECONDS * 1000).toISOString();
         return {
-            allowed: true,
-            retryAfterSeconds: 0,
-            retryAt: null,
+            allowed: false,
+            retryAfterSeconds: API_RATE_LIMIT_WINDOW_SECONDS,
+            retryAt,
         };
     }
 }

@@ -8,7 +8,12 @@ import { redis } from '@/lib/redis';
 
 const emailSchema = z.string().email();
 
-export async function precheckLogin(email: string) {
+export async function precheckLogin(email: string, turnstileToken: string) {
+    // Better Auth performs the authoritative Siteverify check on /sign-in/email.
+    // Do not consume this single-use token here: doing so makes sign-in fail.
+    const parsedToken = z.string().trim().min(1).max(2048).safeParse(turnstileToken);
+    if (!parsedToken.success) return { status: 'turnstile_failed' as const };
+
     const parsed = emailSchema.safeParse(email);
     if (!parsed.success) return { status: 'error' };
 

@@ -4,13 +4,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { checkEmployeeNik } from '@/app/auth/actions/auth-actions';
 import AuthCard from '@/app/auth/components/AuthCard';
 import AuthLayout from '@/app/auth/components/AuthLayout';
+import TurnstileWidget from '@/app/auth/components/TurnstileWidget';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,6 +52,22 @@ export default function RegisterPage() {
     const [step, setStep] = useState<1 | 2>(1);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [turnstileToken, setTurnstileToken] = useState('');
+    const [turnstileError, setTurnstileError] = useState<string | null>(null);
+
+    const handleTurnstileToken = useCallback((token: string) => {
+        setTurnstileToken(token);
+        setTurnstileError(null);
+    }, []);
+
+    const handleTurnstileExpire = useCallback(() => {
+        setTurnstileToken('');
+    }, []);
+
+    const handleTurnstileError = useCallback((_code: string) => {
+        setTurnstileToken('');
+        setTurnstileError('Verifikasi keamanan gagal dimuat. Silakan muat ulang halaman.');
+    }, []);
 
     // Form Step 1
     const nikForm = useForm<NikFormValues>({
@@ -65,8 +82,13 @@ export default function RegisterPage() {
     });
 
     const onNikSubmit = async (data: NikFormValues) => {
+        if (!turnstileToken) {
+            toast.error('Mohon selesaikan verifikasi keamanan terlebih dahulu.');
+            return;
+        }
+
         try {
-            const res = await checkEmployeeNik(data.nik);
+            const res = await checkEmployeeNik(data.nik, turnstileToken);
             if (!res.success || !res.data) {
                 throw new Error(res.message);
             }
@@ -76,6 +98,8 @@ export default function RegisterPage() {
             registerForm.setValue('name', res.data.nama || '');
 
             toast.success('NIK terverifikasi');
+            setTurnstileToken('');
+            (window as Window & { __mtmsTurnstileToken?: string }).__mtmsTurnstileToken = '';
             setStep(2);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Gagal memverifikasi NIK';
@@ -84,6 +108,11 @@ export default function RegisterPage() {
     };
 
     const onRegisterSubmit = async (data: RegisterFormValues) => {
+        if (!turnstileToken) {
+            toast.error('Mohon selesaikan verifikasi keamanan terlebih dahulu.');
+            return;
+        }
+
         try {
             const result = await authClient.signUp.email({
                 name: data.name,
@@ -91,6 +120,7 @@ export default function RegisterPage() {
                 password: data.password,
                 // @ts-expect-error - nik is passed as additional field
                 nik: data.nik,
+                fetchOptions: { headers: { 'x-captcha-response': turnstileToken } },
             });
 
             if (result.error) {
@@ -136,10 +166,26 @@ export default function RegisterPage() {
                             )}
                         </div>
 
+                        <TurnstileWidget
+                            onToken={handleTurnstileToken}
+                            onExpire={handleTurnstileExpire}
+                            onError={handleTurnstileError}
+                            action="register-nik"
+                            className="mb-4"
+                        />
+                        {turnstileError ? (
+                            <p role="alert" className="text-sm text-destructive mb-3">
+                                {turnstileError}
+                            </p>
+                        ) : null}
                         <Button
                             type="submit"
                             className="w-full"
-                            disabled={nikForm.formState.isSubmitting}
+                            disabled={
+                                nikForm.formState.isSubmitting ||
+                                !turnstileToken ||
+                                !!turnstileError
+                            }
                         >
                             {nikForm.formState.isSubmitting ? (
                                 <>
@@ -157,6 +203,18 @@ export default function RegisterPage() {
 
                 {step === 2 && (
                     <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} noValidate>
+                        <TurnstileWidget
+                            onToken={handleTurnstileToken}
+                            onExpire={handleTurnstileExpire}
+                            onError={handleTurnstileError}
+                            action="register"
+                            className="mb-4"
+                        />
+                        {turnstileError ? (
+                            <p role="alert" className="text-sm text-destructive mb-3">
+                                {turnstileError}
+                            </p>
+                        ) : null}
                         <div className="mb-4">
                             <Label htmlFor="reg-nik" className="font-medium text-muted-foreground">
                                 NIK (Terverifikasi)
@@ -275,7 +333,11 @@ export default function RegisterPage() {
                         <Button
                             type="submit"
                             className="w-full"
-                            disabled={registerForm.formState.isSubmitting}
+                            disabled={
+                                registerForm.formState.isSubmitting ||
+                                !turnstileToken ||
+                                !!turnstileError
+                            }
                         >
                             {registerForm.formState.isSubmitting ? (
                                 <>
@@ -291,7 +353,13 @@ export default function RegisterPage() {
                             type="button"
                             variant="ghost"
                             className="w-full mt-2"
-                            onClick={() => setStep(1)}
+                            onClick={() => {
+                                setTurnstileToken('');
+                                (
+                                    window as Window & { __mtmsTurnstileToken?: string }
+                                ).__mtmsTurnstileToken = '';
+                                setStep(1);
+                            }}
                             disabled={registerForm.formState.isSubmitting}
                         >
                             Kembali
