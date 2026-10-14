@@ -43,6 +43,7 @@ function KpiSkeleton() {
 export default function Page() {
     return (
         <div className="flex flex-col flex-1 h-full gap-6">
+            <h1 className="sr-only">Dashboard Utama</h1>
             <StaggerContainer className="grid grid-cols-12 gap-6 lg:items-stretch">
                 <StaggerItem className="col-span-12">
                     <Suspense fallback={<ProfileSkeleton />}>

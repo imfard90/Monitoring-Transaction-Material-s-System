@@ -88,9 +88,9 @@ const RecentTransaction: React.FC = () => {
             />
 
             <div className="relative z-10 flex flex-col mb-6">
-                <h5 className="text-xl font-bold tracking-tight text-foreground">
+                <h2 className="text-xl font-bold tracking-tight text-foreground">
                     Top Out Material
-                </h5>
+                </h2>
                 <p className="text-sm text-muted-foreground font-medium mt-1">30 Hari Terakhir</p>
             </div>
             <div className="relative z-10 -mx-2">

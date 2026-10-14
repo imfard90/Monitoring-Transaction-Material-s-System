@@ -84,7 +84,7 @@ export default function ReturnForm() {
     };
 
     const handleAddItem = () => {
-        setItems([...items, { sap_out_item_id: '', designator_id: '', qty: 1, maxReturn: 0 }]);
+        setItems([...items, { sap_out_item_id: '', designator_id: '', qty: '', maxReturn: 0 }]);
     };
 
     const handleRemoveItem = (index: number) => {
@@ -104,16 +104,15 @@ export default function ReturnForm() {
                     sap_out_item_id: value,
                     designator_id: selectedItem.designator_id,
                     maxReturn: selectedItem.maxReturn,
-                    qty: 1,
+                    qty: '',
                 };
             }
         } else {
             newItems[index] = { ...newItems[index], [field]: value };
 
-            // Validation for max
-            if (field === 'qty') {
+            if (field === 'qty' && value !== '') {
                 const maxReturn = newItems[index].maxReturn || 0;
-                if ((value as number) > maxReturn) {
+                if (Number(value) > maxReturn) {
                     newItems[index].qty = maxReturn;
                     toast.error(`Jumlah pengembalian maksimal adalah ${maxReturn}`);
                 }

@@ -161,11 +161,11 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
                                         <p className="text-sm text-muted-foreground font-medium mb-0.5">
                                             {item.title}
                                         </p>
-                                        <h4
+                                        <p
                                             className={`text-2xl font-bold tracking-tight ${item.iconColor}`}
                                         >
                                             {kpis[item.key as KpiKey]?.toLocaleString() ?? 0}
-                                        </h4>
+                                        </p>
                                     </div>
                                 </div>
                             </CardBox>

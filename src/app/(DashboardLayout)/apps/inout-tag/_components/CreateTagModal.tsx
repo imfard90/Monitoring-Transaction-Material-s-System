@@ -86,7 +86,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
             setRequestId('');
             setVendorName('');
             setCost(0);
-            setItems([{ id: crypto.randomUUID(), designator_id: null, qty: 1 }]);
+            setItems([{ id: crypto.randomUUID(), designator_id: null, qty: '' }]);
         }
     }, [isOpen]);
 
@@ -131,7 +131,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
     });
 
     const handleAddItem = () => {
-        setItems([...items, { id: crypto.randomUUID(), designator_id: null, qty: 1 }]);
+        setItems([...items, { id: crypto.randomUUID(), designator_id: null, qty: '' }]);
     };
 
     const handleRemoveItem = (id: string) => {

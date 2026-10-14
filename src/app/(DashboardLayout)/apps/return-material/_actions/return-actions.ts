@@ -10,6 +10,9 @@ import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 export async function getAvailableSapOuts() {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
+        if (isStaff && warehouseIds.length === 0) {
+            return { success: true, data: [] };
+        }
 
         // Only get Out SAPs where there are items with qty_req > qty_used
         let query = db
@@ -47,6 +50,9 @@ export async function getAvailableSapOuts() {
 export async function getSapOutItemsForReturn(headerId: number | string) {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
+        if (isStaff && warehouseIds.length === 0) {
+            return { success: true, data: [] };
+        }
 
         let query = db
             .selectFrom('inventory.sap_out_items as i')

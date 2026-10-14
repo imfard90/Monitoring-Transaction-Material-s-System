@@ -17,7 +17,11 @@ const editItemSchema = z
         item_id: z.string().optional(),
         designator_id: z.number(),
         sap_out_item_id: z.string(),
-        new_qty: z.number().min(1, 'Qty minimal 1'),
+        new_qty: z
+            .number({ error: 'Qty wajib diisi dengan angka yang valid' })
+            .finite()
+            .int()
+            .min(1, 'Qty minimal 1'),
         old_qty: z.number(),
         max_qty: z.number(),
         material_name: z.string(),
@@ -218,8 +222,12 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
                                     <div className="w-32 flex flex-col gap-1">
                                         <Input
                                             type="number"
+                                            min="1"
+                                            step="1"
+                                            placeholder="0"
                                             {...form.register(`items.${index}.new_qty`, {
-                                                valueAsNumber: true,
+                                                setValueAs: (value: string) =>
+                                                    value === '' ? Number.NaN : Number(value),
                                             })}
                                         />
                                         {err && (

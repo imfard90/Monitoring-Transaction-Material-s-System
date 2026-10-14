@@ -52,12 +52,12 @@ export default async function ProfileWelcome() {
                     </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col gap-1">
-                    <h5 className="text-2xl font-bold tracking-tight text-foreground">
+                    <h2 className="text-2xl font-bold tracking-tight text-foreground">
                         Selamat datang, {name}{' '}
                         <span className="inline-block origin-[70%_70%] animate-[wave_2s_ease-in-out_infinite]">
                             👋
                         </span>
-                    </h5>
+                    </h2>
                     <p className="text-muted-foreground text-sm font-medium flex items-center gap-2">
                         <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary">
                             <Icon icon="solar:shield-user-bold-duotone" width={14} />

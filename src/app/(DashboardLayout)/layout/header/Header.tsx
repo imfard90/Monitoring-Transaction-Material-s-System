@@ -21,7 +21,10 @@ const Header = () => {
     return (
         <>
             <header className="sticky top-0 z-10 w-full shrink-0 bg-background/80 backdrop-blur-md border-b border-border transition-colors duration-200">
-                <nav className="flex justify-between items-center py-3 px-4 sm:px-6 lg:px-8 max-w-full">
+                <nav
+                    aria-label="Navigasi utama"
+                    className="flex justify-between items-center py-3 px-4 sm:px-6 lg:px-8 max-w-full"
+                >
                     {/* LEFT SECTION */}
                     <div className="flex items-center gap-2">
                         {/* Hamburger for mobile */}

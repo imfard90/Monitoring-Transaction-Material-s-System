@@ -46,9 +46,9 @@ export const StockWarningTable = () => {
 
             <div className="relative z-10 mb-3 shrink-0">
                 <div>
-                    <h5 className="text-xl font-bold tracking-tight text-foreground">
+                    <h2 className="text-xl font-bold tracking-tight text-foreground">
                         Peringatan Stok Minimum
-                    </h5>
+                    </h2>
                     <p className="text-sm text-muted-foreground font-medium mt-1">
                         Daftar material yang memerlukan isi ulang stok
                     </p>

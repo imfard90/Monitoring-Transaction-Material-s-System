@@ -112,7 +112,7 @@ export const StockIntechOverview = () => {
                         className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                     >
                         <div>
-                            <h5 className="card-title">Ringkasan Stok Intech</h5>
+                            <h2 className="card-title">Ringkasan Stok Intech</h2>
                             <p className="text-sm text-muted-foreground font-normal">
                                 Sisa material yang masih di tangan teknisi (Status: Intech)
                             </p>

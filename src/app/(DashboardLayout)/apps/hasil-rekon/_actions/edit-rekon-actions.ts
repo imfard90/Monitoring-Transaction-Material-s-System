@@ -5,10 +5,35 @@ import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 import { createInventoryRepository } from '@/lib/repositories';
+import { z } from 'zod';
+
+const editRekonAccessSchema = z.object({
+    header_id: z.string().regex(/^\d+$/),
+    sap_out_id: z.string().regex(/^\d+$/),
+});
 
 export async function getRekonEditData(header_id: string, sap_out_id: string) {
     try {
+        const parsed = editRekonAccessSchema.safeParse({ header_id, sap_out_id });
+        if (!parsed.success) return { success: false, error: 'ID transaksi tidak valid' };
+
         const { isStaff, warehouseIds } = await getSessionUser();
+        if (isStaff && warehouseIds.length === 0) {
+            return { success: true, existingItems: [], sapItems: [] };
+        }
+
+        const accessQuery = db
+            .selectFrom('inventory.transaction_used_header as tuh')
+            .innerJoin('inventory.sap_out_header as soh', 'soh.id', 'tuh.sap_out_id')
+            .select('tuh.id')
+            .where('tuh.id', '=', parsed.data.header_id)
+            .where('soh.id', '=', parsed.data.sap_out_id);
+        const scopedAccessQuery = isStaff
+            ? accessQuery.where('soh.warehouse_id', 'in', warehouseIds)
+            : accessQuery;
+        if (!(await scopedAccessQuery.executeTakeFirst())) {
+            return { success: false, error: 'Transaksi tidak ditemukan atau akses ditolak' };
+        }
 
         // Fetch items already in this transaction
         const existingItems = await db
@@ -57,6 +82,20 @@ export async function getRekonEditData(header_id: string, sap_out_id: string) {
     }
 }
 
+const submitEditRekonSchema = z.object({
+    headerId: z.string().regex(/^\d+$/),
+    sapOutId: z.string().regex(/^\d+$/),
+    items: z.array(
+        z.object({
+            item_id: z.string().regex(/^\d+$/).optional(),
+            designator_id: z.number().int().positive(),
+            sap_out_item_id: z.string().regex(/^\d+$/),
+            new_qty: z.number().nonnegative(),
+            old_qty: z.number().nonnegative(),
+        })
+    ),
+});
+
 export async function submitEditRekon(
     _header_id: string,
     _sap_out_id: string,
@@ -69,8 +108,57 @@ export async function submitEditRekon(
     }>
 ) {
     try {
-        await getSessionUser();
+        const parsed = submitEditRekonSchema.safeParse({
+            headerId: _header_id,
+            sapOutId: _sap_out_id,
+            items,
+        });
+        if (!parsed.success) return { success: false, error: 'Data edit rekon tidak valid' };
+
+        const { isStaff, warehouseIds } = await getSessionUser();
+        if (isStaff && warehouseIds.length === 0) {
+            return { success: false, error: 'Akses gudang tidak tersedia' };
+        }
         const createdBy = await getSessionNik();
+        const headerQuery = db
+            .selectFrom('inventory.transaction_used_header as tuh')
+            .innerJoin('inventory.sap_out_header as soh', 'soh.id', 'tuh.sap_out_id')
+            .select('tuh.id')
+            .where('tuh.id', '=', parsed.data.headerId)
+            .where('soh.id', '=', parsed.data.sapOutId);
+        const scopedHeaderQuery = isStaff
+            ? headerQuery.where('soh.warehouse_id', 'in', warehouseIds)
+            : headerQuery;
+        if (!(await scopedHeaderQuery.executeTakeFirst())) {
+            return { success: false, error: 'Transaksi tidak ditemukan atau akses ditolak' };
+        }
+
+        if (items.length > 0) {
+            const itemQuery = db
+                .selectFrom('inventory.sap_out_items as soi')
+                .select(['soi.id', 'soi.designator_id'])
+                .where('soi.header_id', '=', parsed.data.sapOutId)
+                .where(
+                    'soi.id',
+                    'in',
+                    items.map((item) => item.sap_out_item_id)
+                );
+            const validItems = await itemQuery.execute();
+            if (
+                validItems.length !== items.length ||
+                validItems.some((validItem) => {
+                    const item = items.find(
+                        (candidate) => candidate.sap_out_item_id === validItem.id
+                    );
+                    return (
+                        !item ||
+                        item.designator_id.toString() !== validItem.designator_id.toString()
+                    );
+                })
+            ) {
+                return { success: false, error: 'Item tidak sesuai dengan transaksi SAP Out' };
+            }
+        }
 
         await db.transaction().execute(async (trx) => {
             const repo = createInventoryRepository(trx);

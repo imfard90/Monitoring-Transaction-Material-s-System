@@ -49,7 +49,7 @@ export default function RekonIntechForm() {
     const [globalNotes, setGlobalNotes] = useState<string>('');
 
     // State for form rows (only qty now), keyed by sap_out_item_id
-    const [rowStates, setRowStates] = useState<Record<string, number | ''>>({});
+    const [rowStates, setRowStates] = useState<Record<string, string>>({});
 
     // Modal state
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -78,7 +78,7 @@ export default function RekonIntechForm() {
     useEffect(() => {
         const mats = materialsData?.data;
         if (mats && mats.length > 0) {
-            const initial: Record<string, number | ''> = {};
+            const initial: Record<string, string> = {};
             mats.forEach((m: any) => {
                 initial[m.sap_out_item_id] = '';
             });
@@ -88,7 +88,7 @@ export default function RekonIntechForm() {
         }
     }, [materialsData?.data]);
 
-    const handleQtyChange = (itemId: number, value: string | number) => {
+    const handleQtyChange = (itemId: number, value: string) => {
         setRowStates((prev) => ({
             ...prev,
             [itemId]: value,
@@ -118,9 +118,16 @@ export default function RekonIntechForm() {
 
         for (const m of materials) {
             const rawQty = rowStates[m.sap_out_item_id];
-            if (rawQty === '' || rawQty === undefined || rawQty === 0) continue;
+            if (rawQty === '' || rawQty === undefined) continue;
 
-            const qty = typeof rawQty === 'string' ? parseInt(rawQty, 10) : rawQty;
+            const qty = Number(rawQty);
+            if (!Number.isFinite(qty) || !Number.isInteger(qty)) {
+                toast.error(
+                    `Quantity for material ${m.material_code} must be a valid whole number.`
+                );
+                return;
+            }
+            if (qty === 0) continue;
 
             if (qty < 0) {
                 toast.error(`Quantity for material ${m.material_code} cannot be negative.`);
@@ -354,10 +361,8 @@ export default function RekonIntechForm() {
                                                                         let val: string | number =
                                                                             e.target.value === ''
                                                                                 ? ''
-                                                                                : parseInt(
-                                                                                      e.target
-                                                                                          .value,
-                                                                                      10
+                                                                                : Number(
+                                                                                      e.target.value
                                                                                   );
 
                                                                         if (
@@ -373,7 +378,7 @@ export default function RekonIntechForm() {
 
                                                                         handleQtyChange(
                                                                             m.sap_out_item_id,
-                                                                            val
+                                                                            String(val)
                                                                         );
                                                                     }}
                                                                     className="h-8 text-center text-sm"

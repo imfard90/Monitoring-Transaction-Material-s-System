@@ -115,7 +115,7 @@ export interface OutMaterialItem {
 export interface OutSapFormItem {
     id: string;
     designator_id: string | number;
-    qty_req: number;
+    qty_req: number | '';
     material_description?: string | null;
     unit?: string | null;
     notes?: string | null;

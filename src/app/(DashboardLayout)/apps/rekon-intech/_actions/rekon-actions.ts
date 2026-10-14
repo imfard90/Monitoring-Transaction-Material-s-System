@@ -215,6 +215,7 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
         }
 
         revalidatePath('/apps/rekon-intech');
+        revalidatePath('/apps/out-material');
         return { success: true };
     } catch (error: unknown) {
         actionLogger.error(

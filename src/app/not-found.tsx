@@ -9,24 +9,22 @@ export const metadata: Metadata = {
 };
 const NotFoundPage = () => {
     return (
-        <div className="h-screen flex items-center justify-center bg-background">
+        <main className="h-screen flex items-center justify-center bg-background">
             <div className="text-center">
                 <Image
                     src={'/images/backgrounds/errorimg.svg'}
-                    alt="error"
+                    alt=""
                     className="mb-4"
                     width={400}
                     height={300}
                 />
-                <h1 className="text-ld text-4xl mb-6">Opps!!!</h1>
-                <h6 className="text-xl text-ld">
-                    This page you are looking for could not be found.
-                </h6>
+                <h1 className="text-ld text-4xl mb-6">Halaman tidak ditemukan</h1>
+                <p className="text-xl text-ld">Halaman yang Anda cari tidak dapat ditemukan.</p>
                 <Button asChild className="mt-6 mx-auto">
-                    <Link href="/">Go Back to Home</Link>
+                    <Link href="/">Kembali ke Beranda</Link>
                 </Button>
             </div>
-        </div>
+        </main>
     );
 };
 

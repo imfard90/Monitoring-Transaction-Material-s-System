@@ -145,9 +145,9 @@ const SalesOverview: React.FC = () => {
 
             <div className="relative z-10 sm:flex items-center justify-between mb-6">
                 <div>
-                    <h5 className="text-xl font-bold tracking-tight text-foreground">
+                    <h2 className="text-xl font-bold tracking-tight text-foreground">
                         Out Material vs Hasil Rekon
-                    </h5>
+                    </h2>
                     <p className="text-sm text-muted-foreground font-medium mt-1">
                         Perbandingan per hari
                     </p>

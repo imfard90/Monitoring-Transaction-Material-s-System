@@ -226,18 +226,20 @@ const SidebarLayout = ({
 
                 {/* Sidebar items */}
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    <SimpleBar className="h-full">
-                        <div className="px-4 pb-2">
-                            {filteredSidebarContent.map((section, index) => (
-                                <SidebarSection
-                                    key={section.heading || index}
-                                    section={section}
-                                    pathname={pathname}
-                                    onClose={onClose}
-                                />
-                            ))}
-                        </div>
-                    </SimpleBar>
+                    <nav aria-label="Navigasi sidebar">
+                        <SimpleBar className="h-full">
+                            <div className="px-4 pb-2">
+                                {filteredSidebarContent.map((section, index) => (
+                                    <SidebarSection
+                                        key={section.heading || index}
+                                        section={section}
+                                        pathname={pathname}
+                                        onClose={onClose}
+                                    />
+                                ))}
+                            </div>
+                        </SimpleBar>
+                    </nav>
                 </div>
 
                 {/* Announcement Widget - Pinned at the bottom with spacing */}

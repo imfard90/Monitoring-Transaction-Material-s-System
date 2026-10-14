@@ -68,9 +68,9 @@ export const ProductPerformance = () => {
 
             <div id="product" className="relative z-10 mb-2">
                 <div>
-                    <h5 className="text-lg font-semibold tracking-tight text-foreground">
+                    <h2 className="text-lg font-semibold tracking-tight text-foreground">
                         Performa Pengeluaran Gudang
-                    </h5>
+                    </h2>
                     <p className="text-sm text-muted-foreground mt-0.5">
                         Ringkasan persentase penyelesaian transaksi out material per gudang
                     </p>
@@ -119,12 +119,12 @@ export const ProductPerformance = () => {
                                         </p>
                                     </TableCell>
                                     <TableCell className="max-w-0 px-1 py-1 text-sm">
-                                        <h6
+                                        <h3
                                             className="truncate text-sm font-semibold"
                                             title={item.name}
                                         >
                                             {item.name}
-                                        </h6>
+                                        </h3>
                                     </TableCell>
                                     <TableCell className="px-1 py-1 text-center text-sm">
                                         <p className="font-medium text-muted-foreground">

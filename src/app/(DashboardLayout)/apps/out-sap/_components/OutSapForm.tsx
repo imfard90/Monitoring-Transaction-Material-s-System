@@ -201,7 +201,7 @@ export default function OutSapForm() {
     };
 
     const handleAddItem = () => {
-        setItems([...items, { id: crypto.randomUUID(), designator_id: '', qty_req: 1 }]);
+        setItems([...items, { id: crypto.randomUUID(), designator_id: '', qty_req: '' }]);
     };
 
     const handleRemoveItem = (index: number) => {
@@ -236,7 +236,12 @@ export default function OutSapForm() {
         }
 
         for (const item of items) {
-            if (!item.designator_id || item.qty_req <= 0) {
+            if (
+                !item.designator_id ||
+                item.qty_req === '' ||
+                !Number.isFinite(Number(item.qty_req)) ||
+                Number(item.qty_req) <= 0
+            ) {
                 toast.error('Invalid item data. Please select material and valid quantity.');
                 return;
             }
@@ -294,12 +299,12 @@ export default function OutSapForm() {
 
     const checkItemError = (item: OutSapFormItem) => {
         if (isFetchingMaterials) return false;
-        if (!item.designator_id) return true;
+        if (!item.designator_id || item.qty_req === '' || Number(item.qty_req) <= 0) return true;
         const selectedMat = materials.find(
             (m: Record<string, unknown>) => m.id?.toString() === item.designator_id
         );
         if (!selectedMat) return true;
-        if (item.qty_req > selectedMat.qty) return true;
+        if (Number(item.qty_req) > Number(selectedMat.qty)) return true;
         return false;
     };
 
@@ -500,7 +505,7 @@ export default function OutSapForm() {
                                             );
                                             const errorReason = item.designator_id
                                                 ? selectedMat
-                                                    ? item.qty_req > (selectedMat.qty as number)
+                                                    ? Number(item.qty_req) > Number(selectedMat.qty)
                                                         ? `Stok tidak mencukupi (Tersedia: ${selectedMat.qty})`
                                                         : ''
                                                     : 'Material tidak ditemukan di gudang atau stok habis'
