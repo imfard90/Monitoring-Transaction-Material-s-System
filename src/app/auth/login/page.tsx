@@ -3,8 +3,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Suspense, useCallback, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -29,6 +29,7 @@ type LoginFormValues = z.infer<typeof LoginSchema>;
 
 const LoginForm = () => {
     const _router = useRouter();
+    const searchParams = useSearchParams();
     const [showPassword, setShowPassword] = useState(false);
     const [errorMsg, setErrorMsg] = useState<{ type: 'error' | 'warning'; text: string } | null>(
         null
@@ -50,6 +51,12 @@ const LoginForm = () => {
     });
 
     const remember = watch('remember');
+
+    useEffect(() => {
+        if (searchParams.get('reason') === 'idle') {
+            toast.info('Anda telah logout otomatis setelah 1 jam tanpa aktivitas.');
+        }
+    }, [searchParams]);
 
     const handleTurnstileToken = useCallback((token: string) => {
         setTurnstileToken(token);

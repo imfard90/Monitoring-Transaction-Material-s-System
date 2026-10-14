@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 import { ResetPasswordEmail } from './emails/reset-password-email';
 import { VerificationEmail } from './emails/verification-email';
 import { redis } from './redis';
+import { enforceAbsoluteSessionLifetime } from './session-lifetime';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -52,8 +53,9 @@ export const auth = betterAuth({
     },
     session: {
         modelName: 'auth.session',
-        expiresIn: 60 * 60 * 24 * 7, // 7 days
-        updateAge: 60 * 60 * 24, // 1 day
+        expiresIn: 60 * 60 * 10, // Absolute 10-hour maximum session lifetime.
+        updateAge: 0, // Disable sliding expiration; login time remains the hard deadline.
+        disableSessionRefresh: true,
     },
     secondaryStorage: {
         get: async (key) => {
@@ -143,7 +145,7 @@ export const auth = betterAuth({
                             );
                         }
                     }
-                    return { data: session };
+                    return { data: enforceAbsoluteSessionLifetime(session) };
                 },
             },
         },

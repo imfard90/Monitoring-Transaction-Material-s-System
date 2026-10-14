@@ -2,6 +2,21 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { IDLE_TIMEOUT_MS, resetIdleTimeout } from '@/lib/idle-timeout';
+
+const USER_ACTIVITY_EVENTS = [
+    'keydown',
+    'pointerdown',
+    'pointermove',
+    'scroll',
+    'touchstart',
+] as const;
+
+async function signOutAndRedirect(router: ReturnType<typeof useRouter>): Promise<void> {
+    const { authClient } = await import('@/lib/auth-client');
+    await authClient.signOut();
+    router.replace('/auth/login?reason=idle');
+}
 
 /**
  * PresenceHeartbeat — fires POST /api/presence every 30s.
@@ -19,11 +34,39 @@ export function PresenceHeartbeat() {
         if (stoppedRef.current) return;
 
         let isMounted = true;
-        let interval: NodeJS.Timeout;
-        let timeout: NodeJS.Timeout;
+        let isSigningOut = false;
+        let interval: ReturnType<typeof setInterval>;
+        let heartbeatTimeout: ReturnType<typeof setTimeout>;
+        let idleTimeout: ReturnType<typeof setTimeout>;
+
+        const resetIdleTimer = () => {
+            clearTimeout(idleTimeout);
+            if (document.visibilityState === 'visible' && !isSigningOut) {
+                idleTimeout = resetIdleTimeout(() => {
+                    isSigningOut = true;
+                    void signOutAndRedirect(router).catch(() => {
+                        window.location.assign('/auth/login?reason=idle');
+                    });
+                }, IDLE_TIMEOUT_MS);
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                clearTimeout(idleTimeout);
+            } else {
+                resetIdleTimer();
+            }
+        };
+
+        for (const eventName of USER_ACTIVITY_EVENTS) {
+            window.addEventListener(eventName, resetIdleTimer, { passive: true });
+        }
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        resetIdleTimer();
 
         const sendHeartbeat = async () => {
-            if (!isMounted || stoppedRef.current) return;
+            if (!isMounted || stoppedRef.current || isSigningOut) return;
             try {
                 const res = await fetch('/api/presence', { method: 'POST' });
 
@@ -31,10 +74,8 @@ export function PresenceHeartbeat() {
                     try {
                         const data = await res.json();
                         if (data?.forceLogout === true) {
-                            // Dynamic import to avoid loading auth-client before needed
-                            const { authClient } = await import('@/lib/auth-client');
-                            await authClient.signOut();
-                            router.push('/auth/login');
+                            isSigningOut = true;
+                            await signOutAndRedirect(router);
                         }
                     } catch {
                         // Ignore JSON parse errors
@@ -46,7 +87,7 @@ export function PresenceHeartbeat() {
                             // Server says skip — permanently stop heartbeat
                             stoppedRef.current = true;
                             isMounted = false;
-                            clearTimeout(timeout);
+                            clearTimeout(heartbeatTimeout);
                             clearInterval(interval);
                         }
                     } catch {
@@ -59,7 +100,7 @@ export function PresenceHeartbeat() {
         };
 
         // Small delay before first heartbeat so page has settled
-        timeout = setTimeout(() => {
+        heartbeatTimeout = setTimeout(() => {
             sendHeartbeat();
         }, 5000);
 
@@ -67,8 +108,13 @@ export function PresenceHeartbeat() {
 
         return () => {
             isMounted = false;
-            clearTimeout(timeout);
+            clearTimeout(heartbeatTimeout);
+            clearTimeout(idleTimeout);
             clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            for (const eventName of USER_ACTIVITY_EVENTS) {
+                window.removeEventListener(eventName, resetIdleTimer);
+            }
         };
     }, [router]);
 
