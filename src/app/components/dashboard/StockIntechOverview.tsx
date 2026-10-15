@@ -7,13 +7,12 @@ import {
     getPaginationRowModel,
     useReactTable,
 } from '@tanstack/react-table';
-import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { getDashboardStockIntech } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { SearchField } from '@/app/components/shared/SearchField';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
-import { Input } from '@/components/ui/input';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import CardBox from '../shared/CardBox';
@@ -81,7 +80,11 @@ export const StockIntechOverview = () => {
         }),
         columnHelper.accessor('material_code', {
             header: 'Kode Material',
-            cell: (info) => <span className="font-mono text-sm">{info.getValue()}</span>,
+            cell: (info) => (
+                <span className="inline-flex rounded-md border border-border/70 bg-muted/60 px-2 py-1 font-mono text-[11px] font-semibold tracking-wide text-foreground shadow-sm">
+                    {info.getValue() || '-'}
+                </span>
+            ),
         }),
         columnHelper.accessor('material_name', {
             header: 'Nama Material',
@@ -118,16 +121,14 @@ export const StockIntechOverview = () => {
                             </p>
                         </div>
                         <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <div className="relative w-full sm:w-64">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    type="search"
-                                    placeholder="Cari NIK/Teknisi/Material..."
-                                    className="pl-9 bg-background"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
+                            <SearchField
+                                wrapperClassName="w-full sm:w-64"
+                                type="search"
+                                placeholder="Cari NIK/Teknisi/Material..."
+                                className="bg-background"
+                                value={searchQuery}
+                                onValueChange={setSearchQuery}
+                            />
                             <WarehouseCombobox
                                 value={whFilter}
                                 onValueChange={setWhFilter}

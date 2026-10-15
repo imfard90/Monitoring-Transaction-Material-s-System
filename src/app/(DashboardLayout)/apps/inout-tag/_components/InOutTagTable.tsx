@@ -5,11 +5,12 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { Check, ChevronsUpDown, Edit2, Eye, FilterX, Plus, Search } from 'lucide-react';
+import { Check, ChevronsUpDown, Edit2, Eye, FilterX, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { SearchField } from '@/app/components/shared/SearchField';
 import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { StatusBadge } from '@/app/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,6 @@ import {
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
-import { Input } from '@/components/ui/input';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -208,18 +208,13 @@ export default function InOutTagTable({
         <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0">
             <StaggerItem className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 p-0.5">
                 <div className="flex flex-wrap items-center gap-3 flex-1 w-full">
-                    <div className="relative w-full sm:w-72 md:w-80">
-                        <Input
-                            placeholder="Cari ID permintaan, kirim, terima..."
-                            value={searchQuery}
-                            onChange={(e) => onSearchChange(e.target.value)}
-                            className="pl-9 bg-background"
-                        />
-                        <Search
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                            size={16}
-                        />
-                    </div>
+                    <SearchField
+                        wrapperClassName="w-full sm:w-72 md:w-80"
+                        placeholder="Cari ID permintaan, kirim, terima..."
+                        className="bg-background"
+                        value={searchQuery}
+                        onValueChange={onSearchChange}
+                    />
 
                     <DateRangePicker
                         date={dateFilter}

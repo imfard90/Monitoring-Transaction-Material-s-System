@@ -3,7 +3,6 @@
 import {
     createColumnHelper,
     getCoreRowModel,
-    getPaginationRowModel,
     getSortedRowModel,
     useReactTable,
 } from '@tanstack/react-table';
@@ -294,14 +293,11 @@ export default function WOLensaRefClient({
         }),
     ];
 
-    const [{ pageIndex, pageSize }, setPagination] = useState({
-        pageIndex: pagination ? pagination.page - 1 : 0,
-        pageSize: pagination ? pagination.pageSize : 20,
-    });
+    const [localPagination, setLocalPagination] = useState({ pageIndex: 0, pageSize: 20 });
 
     const paginationState = {
-        pageIndex: pagination ? pagination.page - 1 : pageIndex,
-        pageSize: pagination ? pagination.pageSize : pageSize,
+        pageIndex: pagination ? pagination.page - 1 : localPagination.pageIndex,
+        pageSize: pagination ? pagination.pageSize : localPagination.pageSize,
     };
 
     const table = useReactTable({
@@ -321,19 +317,17 @@ export default function WOLensaRefClient({
             pagination: paginationState,
         },
         onPaginationChange: (updater) => {
-            if (typeof updater === 'function') {
-                const newState = updater(paginationState);
-                setPagination(newState);
+            const newState = typeof updater === 'function' ? updater(paginationState) : updater;
 
-                if (pagination) {
-                    const params = new URLSearchParams(window.location.search);
-                    params.set('page', (newState.pageIndex + 1).toString());
-                    params.set('pageSize', newState.pageSize.toString());
-                    router.push(`/apps/wo-lensa-ref?${params.toString()}`);
-                }
-            } else {
-                setPagination(updater);
+            if (pagination) {
+                const params = new URLSearchParams(window.location.search);
+                params.set('page', (newState.pageIndex + 1).toString());
+                params.set('pageSize', newState.pageSize.toString());
+                router.push(`/apps/wo-lensa-ref?${params.toString()}`);
+                return;
             }
+
+            setLocalPagination(newState);
         },
     });
 

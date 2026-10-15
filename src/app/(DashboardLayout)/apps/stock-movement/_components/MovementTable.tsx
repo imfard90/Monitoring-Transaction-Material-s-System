@@ -7,10 +7,11 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { FilterX, Search } from 'lucide-react';
+import { FilterX } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { SearchField } from '@/app/components/shared/SearchField';
 import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +24,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -214,18 +214,13 @@ export default function MovementTable({
             {/* Toolbar */}
             <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4 shrink-0 p-0.5">
                 <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
-                    <div className="relative w-full sm:w-72 md:w-80">
-                        <Input
-                            placeholder="Cari referensi, material, dll..."
-                            className="pl-9 bg-background"
-                            value={searchQuery}
-                            onChange={(e) => onSearchChange(e.target.value)}
-                        />
-                        <Search
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                            size={16}
-                        />
-                    </div>
+                    <SearchField
+                        wrapperClassName="w-full sm:w-72 md:w-80"
+                        placeholder="Cari referensi, material, dll..."
+                        className="bg-background"
+                        value={searchQuery}
+                        onValueChange={onSearchChange}
+                    />
 
                     {onDateRangeChange && (
                         <DateRangePicker

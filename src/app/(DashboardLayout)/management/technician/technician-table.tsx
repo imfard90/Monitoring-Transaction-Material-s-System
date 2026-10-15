@@ -7,13 +7,13 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
-import { Pencil, Plus, Search, X } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { SearchField } from '@/app/components/shared/SearchField';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
@@ -58,9 +58,13 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
     // Apply filters
     const filteredData = useMemo(() => {
         return data.filter((item) => {
-            const matchNik = item.nik?.toLowerCase().includes(nikFilter.toLowerCase()) ?? false;
+            const search = nikFilter.trim().toLowerCase();
+            const matchSearch =
+                !search ||
+                item.nik?.toLowerCase().includes(search) ||
+                item.name?.toLowerCase().includes(search);
             const matchWh = whFilter === 'all' || item.service_area === whFilter;
-            return matchNik && matchWh;
+            return Boolean(matchSearch) && matchWh;
         });
     }, [data, nikFilter, whFilter]);
 
@@ -140,7 +144,7 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        initialState: { pagination: { pageSize: 15 } },
+        initialState: { pagination: { pageSize: 20 } },
     });
 
     return (
@@ -154,24 +158,13 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                     {/* Search by NIK */}
-                    <div className="relative w-full sm:w-[250px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Cari berdasarkan NIK..."
-                            value={nikFilter}
-                            onChange={(e) => setNikFilter(e.target.value)}
-                            className="pl-9 pr-9"
-                        />
-                        {nikFilter && (
-                            <button
-                                type="button"
-                                onClick={() => setNikFilter('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground flex items-center justify-center"
-                            >
-                                <X size={14} />
-                            </button>
-                        )}
-                    </div>
+                    <SearchField
+                        wrapperClassName="w-full sm:w-[250px]"
+                        placeholder="Cari berdasarkan NIK atau nama..."
+                        value={nikFilter}
+                        onValueChange={setNikFilter}
+                        clearLabel="Hapus filter NIK teknisi"
+                    />
 
                     {/* Filter by WH */}
                     <div className="w-full sm:w-[200px]">
@@ -205,7 +198,7 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
             </div>
 
             {/* Table */}
-            <DataTable table={table} />
+            <DataTable table={table} maxHeight="min(65vh, 720px)" />
 
             {/* Pagination Controls */}
             <DataTablePagination table={table} />

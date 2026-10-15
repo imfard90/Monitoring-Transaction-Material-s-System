@@ -8,15 +8,15 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
-import { Search, ShieldAlert, Trash2, X } from 'lucide-react';
+import { ShieldAlert, Trash2 } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { SearchField } from '@/app/components/shared/SearchField';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { deleteUser, toggleUserApiApproval, toggleUserStatus } from './actions';
 
@@ -226,7 +226,7 @@ export default function UserTable({ data }: UserTableProps) {
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
-        initialState: { pagination: { pageSize: 15 } },
+        initialState: { pagination: { pageSize: 20 } },
         state: {
             globalFilter: nikFilter,
         },
@@ -246,27 +246,16 @@ export default function UserTable({ data }: UserTableProps) {
             className="space-y-4 flex flex-col p-4"
         >
             <div className="flex items-center gap-2">
-                <div className="relative w-full max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Cari berdasarkan NIK..."
-                        value={nikFilter}
-                        onChange={(e) => setNikFilter(e.target.value)}
-                        className="pl-9 pr-9"
-                    />
-                    {nikFilter && (
-                        <button
-                            type="button"
-                            onClick={() => setNikFilter('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground flex items-center justify-center"
-                        >
-                            <X size={14} />
-                        </button>
-                    )}
-                </div>
+                <SearchField
+                    wrapperClassName="w-full max-w-sm"
+                    placeholder="Cari berdasarkan NIK..."
+                    value={nikFilter}
+                    onValueChange={setNikFilter}
+                    clearLabel="Hapus filter NIK pengguna"
+                />
             </div>
 
-            <DataTable table={table} />
+            <DataTable table={table} maxHeight="min(65vh, 720px)" />
             <DataTablePagination table={table} />
 
             <ConfirmDialog
