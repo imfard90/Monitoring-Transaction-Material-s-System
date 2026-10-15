@@ -1,6 +1,6 @@
 import type { Table } from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,6 +11,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100];
+
 interface DataTablePaginationProps<TData> {
     table: Table<TData>;
     pageSizeOptions?: number[];
@@ -20,7 +22,7 @@ interface DataTablePaginationProps<TData> {
 
 export function DataTablePagination<TData>({
     table,
-    pageSizeOptions = [10, 20, 30, 50, 100],
+    pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
     showPageJump = true,
     showPageSize = true,
 }: DataTablePaginationProps<TData>) {
@@ -28,20 +30,6 @@ export function DataTablePagination<TData>({
     const pageCount = table.getPageCount();
     const pageSize = table.getState().pagination.pageSize;
     const [jumpPage, setJumpPage] = useState('');
-
-    useEffect(() => {
-        try {
-            const saved = localStorage.getItem('mtms_table_page_size');
-            if (saved) {
-                const parsed = Number(saved);
-                if (pageSizeOptions.includes(parsed) && parsed !== pageSize) {
-                    table.setPageSize(parsed);
-                }
-            }
-        } catch {
-            // ignore localStorage error on SSR/disabled cookies
-        }
-    }, [pageSizeOptions, table, pageSize]);
 
     const handleJump = (e: React.FormEvent) => {
         e.preventDefault();
@@ -71,11 +59,6 @@ export function DataTablePagination<TData>({
                             onValueChange={(val) => {
                                 const size = Number(val);
                                 table.setPageSize(size);
-                                try {
-                                    localStorage.setItem('mtms_table_page_size', String(size));
-                                } catch {
-                                    // ignore localStorage errors
-                                }
                             }}
                         >
                             <SelectTrigger

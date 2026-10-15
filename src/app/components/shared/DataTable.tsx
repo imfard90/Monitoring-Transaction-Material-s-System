@@ -7,6 +7,7 @@ interface DataTableProps<TData> {
     isLoading?: boolean;
     emptyMessage?: string;
     className?: string;
+    maxHeight?: string;
     skeletonRowCount?: number;
 }
 
@@ -15,13 +16,18 @@ export function DataTable<TData>({
     isLoading = false,
     emptyMessage = 'Belum ada data yang ditemukan.',
     className,
+    maxHeight,
     skeletonRowCount = 5,
 }: DataTableProps<TData>) {
     const rows = table.getRowModel().rows;
     const shouldAnimate = rows.length > 0 && rows.length <= 25;
 
     return (
-        <div className={className || 'rounded-md border overflow-x-auto'} aria-busy={isLoading}>
+        <div
+            className={className || 'rounded-md border overflow-auto'}
+            style={maxHeight ? { maxHeight } : undefined}
+            aria-busy={isLoading}
+        >
             <table className="w-full text-sm text-left text-muted-foreground whitespace-nowrap">
                 <thead className="text-sm text-foreground uppercase bg-muted border-b border-border sticky top-0 z-20 shadow-sm">
                     {table.getHeaderGroups().map((headerGroup) => (
