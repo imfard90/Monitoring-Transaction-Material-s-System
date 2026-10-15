@@ -4,6 +4,8 @@ const mockGetSessionUser = vi.fn();
 const mockSqlExecute = vi.fn();
 const mockCountExecuteTakeFirst = vi.fn();
 const mockHeadersExecute = vi.fn();
+const mockWarehouseOptionsExecute = vi.fn();
+const mockWarehouseOptionsWhere = vi.fn();
 const mockDetailsExecute = vi.fn();
 const mockWhExecute = vi.fn();
 
@@ -41,18 +43,25 @@ vi.mock('@/lib/db/db', () => ({
                 };
             }
             // inventory.wo_lensa_header
+            const headerQuery = {
+                where: vi.fn().mockReturnThis(),
+                orderBy: vi.fn().mockReturnThis(),
+                limit: vi.fn().mockReturnThis(),
+                offset: vi.fn().mockReturnThis(),
+                execute: mockHeadersExecute,
+                executeTakeFirst: mockCountExecuteTakeFirst,
+            };
+            const warehouseOptionsQuery = {
+                where: mockWarehouseOptionsWhere.mockReturnThis(),
+                distinct: vi.fn().mockReturnThis(),
+                orderBy: vi.fn().mockReturnThis(),
+                execute: mockWarehouseOptionsExecute,
+            };
             return {
-                select: vi.fn().mockReturnValue({
-                    where: vi.fn().mockReturnThis(),
-                    executeTakeFirst: mockCountExecuteTakeFirst,
-                }),
-                selectAll: vi.fn().mockReturnValue({
-                    where: vi.fn().mockReturnThis(),
-                    orderBy: vi.fn().mockReturnThis(),
-                    limit: vi.fn().mockReturnThis(),
-                    offset: vi.fn().mockReturnThis(),
-                    execute: mockHeadersExecute,
-                }),
+                select: vi.fn((field: string) =>
+                    field === 'nama_gudang' ? warehouseOptionsQuery : headerQuery
+                ),
+                selectAll: vi.fn().mockReturnValue(headerQuery),
                 where: vi.fn().mockReturnThis(),
             };
         }),
@@ -75,6 +84,11 @@ describe('wo-lensa-queries Unit Tests', () => {
         });
         mockSqlExecute.mockResolvedValue({ rows: [] });
         mockCountExecuteTakeFirst.mockResolvedValue({ total: 1 });
+        mockWarehouseOptionsExecute.mockResolvedValue([
+            { nama_gudang: 'SO Gresik' },
+            { nama_gudang: 'SO Surabaya' },
+            { nama_gudang: 'SO Gresik' },
+        ]);
         mockHeadersExecute.mockResolvedValue([
             {
                 id: '100',
@@ -112,6 +126,7 @@ describe('wo-lensa-queries Unit Tests', () => {
         expect(result.data?.headers[0].id).toBe('100');
         expect(result.data?.headers[0].materials).toHaveLength(1);
         expect(result.data?.headers[0].materials?.[0].material_id).toBe('CLAMP-HOOK');
+        expect(result.data?.warehouses).toEqual(['SO Gresik', 'SO Surabaya']);
     });
 
     it('returns empty array if Staff user has no assigned warehouses', async () => {
@@ -128,6 +143,30 @@ describe('wo-lensa-queries Unit Tests', () => {
         expect(result.success).toBe(true);
         expect(result.data?.total).toBe(0);
         expect(result.data?.headers).toEqual([]);
+    });
+
+    it('limits warehouse options to the Staff warehouse scope', async () => {
+        mockGetSessionUser.mockResolvedValue({
+            id: '2',
+            nik: 'STAFF01',
+            role: 'Staff',
+            isStaff: true,
+            warehouseIds: [7],
+        });
+        mockWhExecute.mockResolvedValue([{ name: 'SO Gresik' }]);
+        mockWarehouseOptionsExecute.mockResolvedValue([
+            { nama_gudang: 'SO Gresik' },
+            { nama_gudang: 'SO Surabaya' },
+        ]);
+
+        const result = await getWOLensaList({ page: 1, pageSize: 20 });
+
+        expect(result.success).toBe(true);
+        expect(mockWarehouseOptionsWhere).toHaveBeenCalledWith(
+            'nama_gudang',
+            'in',
+            expect.arrayContaining(['SO Gresik'])
+        );
     });
 
     it('retrieves filter options correctly', async () => {

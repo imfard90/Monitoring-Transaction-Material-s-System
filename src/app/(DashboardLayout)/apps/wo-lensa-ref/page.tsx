@@ -1,6 +1,6 @@
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
 import { getSessionUser } from '@/lib/auth-server';
-import { getWOLensaFilterOptions, getWOLensaList } from './_actions/wo-lensa-actions';
+import { getWOLensaList } from './_actions/wo-lensa-actions';
 import WOLensaRefClient from './_components/WOLensaRefClient';
 
 export const dynamic = 'force-dynamic';
@@ -41,10 +41,7 @@ export default async function WOLensaRefPage({
     const pageSize = Math.min(100, Math.max(10, parseInt(params.pageSize ?? '20', 10)));
     const warehouse = params.warehouse ?? 'all';
 
-    const [result, filterOptions] = await Promise.all([
-        getWOLensaList({ page, pageSize, warehouseFilter: warehouse }),
-        getWOLensaFilterOptions(),
-    ]);
+    const result = await getWOLensaList({ page, pageSize, warehouseFilter: warehouse });
 
     return (
         <div className="flex flex-col flex-1 gap-6 md:h-full md:min-h-0 md:overflow-hidden">
@@ -67,7 +64,7 @@ export default async function WOLensaRefPage({
                 error={result.success ? undefined : result.error}
                 isStaff={isStaff}
                 currentWarehouse={warehouse}
-                warehouseOptions={filterOptions.warehouses}
+                warehouseOptions={result.success ? (result.data?.warehouses ?? []) : []}
             />
         </div>
     );

@@ -372,11 +372,19 @@ export async function getHasilRekonFilterOptions() {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
 
-        let whQuery = db.selectFrom('inventory.mas_wh').select('name').orderBy('name', 'asc');
-        if (isStaff && warehouseIds.length > 0) {
-            whQuery = whQuery.where('id', 'in', warehouseIds as number[]);
+        let whQuery = db
+            .selectFrom('inventory.rekon_used_header as ruh')
+            .select('ruh.name_gudang as name')
+            .distinct()
+            .orderBy('ruh.name_gudang', 'asc');
+        if (isStaff) {
+            whQuery = whQuery
+                .innerJoin('inventory.rekon_used_list as rul', 'rul.rekon_used_id', 'ruh.id')
+                .innerJoin('inventory.sap_out_header as soh', 'soh.sap_number', 'rul.out_sap')
+                .where('soh.warehouse_id', 'in', warehouseIds as number[]);
         }
         const whs = await whQuery.execute();
+        const warehouses = Array.from(new Set(whs.map((w) => w.name).filter(Boolean))) as string[];
 
         const mats = await db
             .selectFrom('inventory.materials')
@@ -385,7 +393,7 @@ export async function getHasilRekonFilterOptions() {
             .execute();
 
         return {
-            warehouses: whs.map((w) => w.name).filter(Boolean) as string[],
+            warehouses,
             materials: mats.map((m) => m.code).filter(Boolean) as string[],
             types: ['psb', 'lensa', 'mt', 'ro'],
         };

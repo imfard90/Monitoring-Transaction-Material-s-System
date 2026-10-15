@@ -194,11 +194,17 @@ export async function getStockMovementFilterOptions() {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
 
-        let whQuery = db.selectFrom('inventory.mas_wh').select('name').orderBy('name', 'asc');
-        if (isStaff && warehouseIds.length > 0) {
-            whQuery = whQuery.where('id', 'in', warehouseIds as number[]);
+        let whQuery = db
+            .selectFrom('inventory.stock_movement as sm')
+            .innerJoin('inventory.mas_wh as w', 'w.id', 'sm.warehouse_id')
+            .select('w.name')
+            .distinct()
+            .orderBy('w.name', 'asc');
+        if (isStaff) {
+            whQuery = whQuery.where('sm.warehouse_id', 'in', warehouseIds as number[]);
         }
         const whs = await whQuery.execute();
+        const warehouses = Array.from(new Set(whs.map((w) => w.name).filter(Boolean))) as string[];
 
         const mats = await db
             .selectFrom('inventory.materials')
@@ -214,7 +220,7 @@ export async function getStockMovementFilterOptions() {
             .execute();
 
         return {
-            warehouses: whs.map((w) => w.name).filter(Boolean) as string[],
+            warehouses,
             materials: mats.map((m) => m.code).filter(Boolean) as string[],
             types: types.map((t) => t.movement_type).filter(Boolean) as string[],
         };

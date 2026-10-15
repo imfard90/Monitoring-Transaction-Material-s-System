@@ -212,14 +212,20 @@ export async function getOutMaterialFilterOptions() {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
 
-        let whQuery = db.selectFrom('inventory.mas_wh').select('name').orderBy('name', 'asc');
-        if (isStaff && warehouseIds.length > 0) {
-            whQuery = whQuery.where('id', 'in', warehouseIds as number[]);
+        let whQuery = db
+            .selectFrom('inventory.sap_out_header as h')
+            .innerJoin('inventory.mas_wh as wh', 'wh.id', 'h.warehouse_id')
+            .select('wh.name')
+            .distinct()
+            .orderBy('wh.name', 'asc');
+        if (isStaff) {
+            whQuery = whQuery.where('h.warehouse_id', 'in', warehouseIds as number[]);
         }
         const whs = await whQuery.execute();
+        const warehouses = Array.from(new Set(whs.map((w) => w.name).filter(Boolean))) as string[];
 
         return {
-            warehouses: whs.map((w) => w.name).filter(Boolean) as string[],
+            warehouses,
         };
     } catch (error) {
         actionLogger.error(

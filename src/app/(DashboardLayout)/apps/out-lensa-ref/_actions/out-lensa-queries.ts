@@ -32,6 +32,7 @@ export interface OutLensaDetail {
 
 export interface PaginatedOutLensaResult {
     headers: OutLensaHeader[];
+    warehouses: string[];
     total: number;
     page: number;
     pageSize: number;
@@ -63,7 +64,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
         if (isStaff && whNames.length === 0) {
             return {
                 success: true,
-                data: { headers: [], total: 0, page: 1, pageSize, totalPages: 0 },
+                data: { headers: [], warehouses: [], total: 0, page: 1, pageSize, totalPages: 0 },
             };
         }
 
@@ -95,6 +96,23 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
         const countResult = await countQuery.executeTakeFirst();
         const total = Number(countResult?.total ?? 0);
 
+        let warehouseOptionsQuery = db
+            .selectFrom('inventory.out_lensa_ref_header')
+            .select('nama_gudang')
+            .distinct()
+            .orderBy('nama_gudang', 'asc');
+        if (isStaff && whNames.length > 0) {
+            warehouseOptionsQuery = warehouseOptionsQuery.where('nama_gudang', 'in', whNames);
+        }
+        const warehouseRows = await warehouseOptionsQuery.execute();
+        const warehouses = Array.from(
+            new Set(
+                warehouseRows
+                    .map((row) => row.nama_gudang)
+                    .filter((name): name is string => Boolean(name))
+            )
+        );
+
         // Fetch paginated headers
         let headerQuery = db
             .selectFrom('inventory.out_lensa_ref_header')
@@ -114,6 +132,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                 success: true,
                 data: {
                     headers: [],
+                    warehouses,
                     total,
                     page,
                     pageSize,
@@ -217,6 +236,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             success: true,
             data: {
                 headers: result,
+                warehouses,
                 total,
                 page,
                 pageSize,

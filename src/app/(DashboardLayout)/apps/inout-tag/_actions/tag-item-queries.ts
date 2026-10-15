@@ -1,5 +1,6 @@
 'use server';
 
+import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 import type { InOutTagItem } from '@/lib/types/inventory';
@@ -184,14 +185,19 @@ export async function getReturnMaterialItemsByHeaderId(headerId: number) {
 
 export async function getInOutTagFilterOptions() {
     try {
-        const whs = await db
-            .selectFrom('inventory.mas_wh')
-            .select('name')
-            .orderBy('name', 'asc')
-            .execute();
-        return {
-            toWhOptions: whs.map((w) => w.name).filter(Boolean) as string[],
-        };
+        const { isStaff, warehouseIds } = await getSessionUser();
+        let whQuery = db
+            .selectFrom('inventory.inout_tag_header as h')
+            .innerJoin('inventory.mas_wh as wh', 'wh.id', 'h.to_wh_id')
+            .select('wh.name')
+            .distinct()
+            .orderBy('wh.name', 'asc');
+        if (isStaff) {
+            whQuery = whQuery.where('h.to_wh_id', 'in', warehouseIds as number[]);
+        }
+        const whs = await whQuery.execute();
+        const toWhOptions = Array.from(new Set(whs.map((w) => w.name).filter(Boolean))) as string[];
+        return { toWhOptions };
     } catch (error) {
         actionLogger.error(
             'Error fetching inout tag filter options:',

@@ -2,6 +2,7 @@
 
 import { sql } from 'kysely';
 import { z } from 'zod';
+import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
@@ -22,6 +23,7 @@ const getOutMaterialLineChartDataSchema = z.object({
 });
 
 export async function getSalesOverviewData(wh_id: string, daysCount: number, endDate: Date) {
+    const user = await getSessionUser();
     const parsed = getSalesOverviewDataSchema.safeParse({ wh_id, daysCount, endDate });
     if (!parsed.success) {
         actionLogger.warn('Invalid params for getSalesOverviewData', {
@@ -37,9 +39,17 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             outMaterial: number[];
             hasilRekon: number[];
         }>('dashboard', cacheKey);
-        if (cached) {
+        if (cached && !user.isStaff) {
             actionLogger.debug(`Cache hit for ${cacheKey}`);
             return { success: true, data: cached };
+        }
+
+        if (
+            user.isStaff &&
+            (user.warehouseIds.length === 0 ||
+                (wh_id !== 'all' && !user.warehouseIds.includes(Number(wh_id))))
+        ) {
+            return { success: false, error: 'Akses gudang ditolak' };
         }
 
         const startDate = new Date(endDate);
@@ -60,6 +70,9 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             .where(sql`COALESCE(soh.sap_time, soh.request_time)`, '<=', endDate)
             .groupBy(sql`TO_CHAR(COALESCE(soh.sap_time, soh.request_time), 'YYYY-MM-DD')`);
 
+        if (user.isStaff) {
+            outQuery = outQuery.where('soh.warehouse_id', 'in', user.warehouseIds);
+        }
         if (wh_id && wh_id !== 'all') {
             outQuery = outQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
         }
@@ -79,11 +92,42 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             .where('tu.created_at', '<=', endDate)
             .groupBy(sql`TO_CHAR(tu.created_at, 'YYYY-MM-DD')`);
 
+        if (user.isStaff) {
+            rekonQuery = rekonQuery.where('soh.warehouse_id', 'in', user.warehouseIds);
+        }
         if (wh_id && wh_id !== 'all') {
             rekonQuery = rekonQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
         }
 
-        const rekonData = await rekonQuery.execute();
+        const intechRekonData = await rekonQuery.execute();
+
+        let lensaRekonQuery = db
+            .selectFrom('inventory.rekon_used_header as ruh')
+            .innerJoin('inventory.rekon_used_list as rul', 'rul.rekon_used_id', 'ruh.id')
+            .innerJoin('inventory.sap_out_header as soh', 'soh.sap_number', 'rul.out_sap')
+            .select([
+                sql<string>`TO_CHAR(ruh.create_at, 'YYYY-MM-DD')`.as('date_val'),
+                sql<number>`COALESCE(SUM(rul.qty), 0)`.as('total_qty'),
+            ])
+            .where('ruh.create_at', '>=', startDate)
+            .where('ruh.create_at', '<=', endDate)
+            .groupBy(sql`TO_CHAR(ruh.create_at, 'YYYY-MM-DD')`);
+
+        if (user.isStaff) {
+            lensaRekonQuery = lensaRekonQuery.where('soh.warehouse_id', 'in', user.warehouseIds);
+        }
+        if (wh_id && wh_id !== 'all') {
+            lensaRekonQuery = lensaRekonQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
+        }
+
+        const lensaRekonData = await lensaRekonQuery.execute();
+        const rekonData = [...intechRekonData, ...lensaRekonData].reduce((dailyTotals, row) => {
+            dailyTotals.set(
+                row.date_val,
+                (dailyTotals.get(row.date_val) ?? 0) + Number(row.total_qty)
+            );
+            return dailyTotals;
+        }, new Map<string, number>());
 
         // 3. Format dates
         const dates = [];
@@ -100,14 +144,16 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             dates.push(`${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`);
 
             const outVal = outData.find((o) => o.date_val === dateStr)?.total_qty || 0;
-            const rekonVal = rekonData.find((r) => r.date_val === dateStr)?.total_qty || 0;
+            const rekonVal = rekonData.get(dateStr) || 0;
 
             outMaterial.push(Number(outVal));
             hasilRekon.push(-Number(rekonVal)); // Negative for chart layout
         }
 
         const finalData = { dates, outMaterial, hasilRekon };
-        await encryptedCache.setGeneral('dashboard', finalData, cacheKey, 300); // Cache for 5 mins
+        if (!user.isStaff) {
+            await encryptedCache.setGeneral('dashboard', finalData, cacheKey, 300); // Cache for 5 mins
+        }
 
         return { success: true, data: finalData };
     } catch (error: unknown) {

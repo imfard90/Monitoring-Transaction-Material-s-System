@@ -32,6 +32,7 @@ export interface WOLensaDetail {
 
 export interface PaginatedWOLensaResult {
     headers: WOLensaHeader[];
+    warehouses: string[];
     total: number;
     page: number;
     pageSize: number;
@@ -68,6 +69,7 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
                 success: true,
                 data: {
                     headers: [],
+                    warehouses: [],
                     total: 0,
                     page,
                     pageSize,
@@ -105,6 +107,23 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
         const countResult = await countQuery.executeTakeFirst();
         const total = Number(countResult?.total ?? 0);
 
+        let warehouseOptionsQuery = db
+            .selectFrom('inventory.wo_lensa_header')
+            .select('nama_gudang')
+            .distinct()
+            .orderBy('nama_gudang', 'asc');
+        if (isStaff && whNames.length > 0) {
+            warehouseOptionsQuery = warehouseOptionsQuery.where('nama_gudang', 'in', whNames);
+        }
+        const warehouseRows = await warehouseOptionsQuery.execute();
+        const warehouses = Array.from(
+            new Set(
+                warehouseRows
+                    .map((row) => row.nama_gudang)
+                    .filter((name): name is string => Boolean(name))
+            )
+        );
+
         // Ambil data halaman aktif
         const offset = (page - 1) * pageSize;
         let headerQuery = db
@@ -126,6 +145,7 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
                 success: true,
                 data: {
                     headers: [],
+                    warehouses,
                     total,
                     page,
                     pageSize,
@@ -153,6 +173,7 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             success: true,
             data: {
                 headers: result,
+                warehouses,
                 total,
                 page,
                 pageSize,
