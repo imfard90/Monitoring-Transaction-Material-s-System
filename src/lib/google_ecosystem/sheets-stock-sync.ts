@@ -78,6 +78,47 @@ function writeCacheFile(cache: OtherStockCache): void {
     fs.renameSync(CACHE_FILE_TMP, CACHE_FILE);
 }
 
+// ─── Stock value normalization ────────────────────────────────────────────────
+
+/**
+ * Normalize a spreadsheet quantity into a number independent of locale-specific
+ * thousands/decimal separators. A lone separator followed by three digits is
+ * treated as a thousands separator; otherwise it is treated as decimal.
+ */
+export function normalizeStockQuantity(value: unknown): number | null {
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : null;
+    }
+    if (typeof value !== 'string') return null;
+
+    const cleaned = value.trim().replace(/[\s\u00a0]/g, '');
+    if (!/^[+-]?(?:\d+|\d{1,3}(?:[.,]\d{3})+)(?:[.,]\d+)?$/.test(cleaned)) {
+        return null;
+    }
+    if (!/[\d]/.test(cleaned)) return null;
+
+    const lastComma = cleaned.lastIndexOf(',');
+    const lastDot = cleaned.lastIndexOf('.');
+    let normalized = cleaned;
+
+    if (lastComma >= 0 && lastDot >= 0) {
+        const decimalSeparator = lastComma > lastDot ? ',' : '.';
+        const thousandsSeparator = decimalSeparator === ',' ? '.' : ',';
+        normalized = cleaned.split(thousandsSeparator).join('').replace(decimalSeparator, '.');
+    } else {
+        const separator = lastComma >= 0 ? ',' : lastDot >= 0 ? '.' : null;
+        if (separator) {
+            const parts = cleaned.split(separator);
+            const isThousandsFormat =
+                parts.length > 1 && parts.slice(1).every((part) => part.length === 3);
+            normalized = isThousandsFormat ? parts.join('') : cleaned.replace(separator, '.');
+        }
+    }
+
+    const quantity = Number(normalized);
+    return Number.isFinite(quantity) ? quantity : null;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -145,11 +186,12 @@ export async function syncOtherStock(): Promise<void> {
         const items: OtherStockItem[] = [];
 
         for (const row of rows) {
-            const rawQty = String(row[7] ?? '')
-                .replace(/\./g, '')
-                .replace(',', '.');
-            const qty = Number.parseFloat(rawQty);
-            if (!Number.isFinite(qty) || qty <= 0) continue;
+            const qty = normalizeStockQuantity(row[7]);
+            if (qty === null) continue;
+            // Persist canonical numeric values only; formatted separators never
+            // leak into the cache consumed by the modal.
+            const cleanQty = Number(qty.toFixed(3));
+            if (cleanQty <= 0) continue;
 
             items.push({
                 regional: String(row[10] ?? '-').trim(),
@@ -157,7 +199,7 @@ export async function syncOtherStock(): Promise<void> {
                 gudang: String(row[3] ?? '-').trim(),
                 materialCode: String(row[5] ?? '').trim(),
                 materialName: String(row[6] ?? '-').trim(),
-                stockH1: qty,
+                stockH1: cleanQty,
             });
         }
 
