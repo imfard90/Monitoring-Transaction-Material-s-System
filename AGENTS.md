@@ -7,6 +7,7 @@
 - **Audit & task perbaikan:** `docs/AUDIT_REPORT.md` (lihat matriks prioritas sebelum mulai tugas).
 - **Kontrak database:** `src/lib/db/migrations/*.sql` + `src/lib/repositories/inventory.repository.ts`.
 - **Otorisasi:** `src/lib/auth-server.ts` (`getSessionUser`, `getSessionNik`).
+- **Google Sheets:** `src/lib/google_ecosystem/README.md` dan skill `.agents/skills/google-sheets/SKILL.md`.
 
 ## 1. Prinsip Mutlak
 
@@ -38,7 +39,16 @@
 - Runner **wajib** `process.exit(1)` saat gagal.
 - Setiap migrasi bersifat idempoten (`CREATE OR REPLACE`, `IF NOT EXISTS`) kecuali perlu migrasi data; dokumentasikan rollback.
 
-### 1.5 External REST API & API Key (P0)
+### 1.5 Integrasi Google Sheets (P1)
+
+- Akses Google Sheets dari kode aplikasi wajib memakai library resmi `googleapis` melalui modul server-only `src/lib/google_ecosystem/google-sheets-api.ts`; jangan membuat ulang autentikasi/request REST secara manual di fitur aplikasi.
+- Credential service account hanya dibaca dari `GOOGLE_APPLICATION_CREDENTIALS` yang menunjuk ke file JSON lokal/secret manager. Jangan commit, mencetak, atau mengirim isi credential ke client/log.
+- Scope minimum: read menggunakan `spreadsheets.readonly`; fungsi update menggunakan `spreadsheets` hanya saat diperlukan. Write tetap memerlukan autentikasi, otorisasi, validasi input/domain, dan akses Editor spreadsheet.
+- Pertahankan batas range 250 baris dan eksplisit; jangan menjalankan write nyata tanpa persetujuan dan target nonproduksi/range uji yang disetujui.
+- MCP Google Sheets lokal hanya untuk development, read-only, dan terpisah dari API aplikasi. Jangan menambahkan tool write atau menaikkan scope MCP.
+- Ikuti skill `.agents/skills/google-sheets/SKILL.md` dan dokumentasi `src/lib/google_ecosystem/README.md`.
+
+### 1.6 External REST API & API Key (P0)
 
 - **Autentikasi & Otorisasi:** Setiap endpoint publik/eksternal (`src/app/api/v1/...`) **wajib** memanggil `authenticateApiRequest(req)` dari `@/lib/security/api-auth` di baris pertama handler.
 - **Hashing API Key:** Format key adalah `mtms_live_<64-hex>`. Plaintext key hanya ditampilkan **satu kali** saat dibuat di User Profile. Kolom `auth.user.api_key` **hanya** menyimpan hash SHA-256 (`hashApiKey()` dari `@/lib/security/api-key`). **Dilarang keras** menyimpan atau mencatat plaintext key di log.
@@ -76,7 +86,7 @@ Sebelum menyatakan tugas selesai, pastikan:
 19. **pg_cron scheduling** — jadwal cron dipisah ke `scripts/post-deploy/`; migrasi hanya membuat extension + procedure (P3-D6).
 20. **Environment template** — `.env.example` wajib di-commit sebagai template; `.env` tidak boleh di-commit (P3-S5).
 21. **reactStrictMode** — `true` di `next.config.mjs` (P3-Q4).
-22. **External REST API endpoints** — route handler di `src/app/api/v1/*` wajib menerapkan autentikasi bearer key SHA-256, rate limiting 5 menit atomik per-user via Redis, validasi gate `appr_api`, RFC 9457 Problem Details error envelope, dan metadata success envelope (§1.5).
+22. **External REST API endpoints** — route handler di `src/app/api/v1/*` wajib menerapkan autentikasi bearer key SHA-256, rate limiting 5 menit atomik per-user via Redis, validasi gate `appr_api`, RFC 9457 Problem Details error envelope, dan metadata success envelope (§1.6).
 
 
 ## 3. Aturan Kode Spesifik
@@ -111,6 +121,7 @@ Sebelum menyatakan tugas selesai, pastikan:
 ### 3.4 Komponen/UI & Desain Sistem
 
 - **Primitif UI Wajib Dipakai Ulang**: Gunakan primitif yang ada di `src/components/ui/*` (berbasis Radix + CVA). Dilarang membuat primitif baru sebelum mengecek komponen yang sudah ada.
+- **Search field terkontrol**: Gunakan `src/app/components/shared/SearchField.tsx` untuk input pencarian terkontrol lintas halaman. Field harus mempertahankan callback/filter yang ada, memiliki label aksesibel untuk tombol clear, dan menyembunyikan affordance clear native browser bila komponen menyediakan tombol clear sendiri (termasuk `type="search"`). Placeholder menyebutkan bidang yang dapat dicari; filter teknisi mencocokkan NIK atau nama.
 - **Token Tema & Konsistensi Visual**: Gunakan token tema Tailwind v4 (`--color-primary`, `--radius-*`, `--shadow-*`, `--color-muted`) melalui kelas Tailwind semantik, jangan hardcode nilai literal atau palet warna mentah.
 - **Prioritas UX MTMS**:
   1. *Form & Transaksi Domain*: Validasi Zod sinkron client-server, feedback loading/pending eksplisit pada tombol submit, dialog konfirmasi untuk aksi destruktif.
@@ -131,7 +142,7 @@ Sebelum menyatakan tugas selesai, pastikan:
 - [ ] Tes minimal untuk SP/authz baru.
 - [ ] `tsc` + `biome` lolos.
 - [ ] Untuk perubahan UI: checklist UI terpenuhi (primitif `src/components/ui/*`, token tema, responsif, dark mode, a11y, state UI lengkap default/loading/empty/error, salinan Bahasa Indonesia, skill `ui-ux-pro-max`).
-- [ ] External REST API sesuai standar §1.5 (jika membuat/mengubah endpoint publik).
+- [ ] External REST API sesuai standar §1.6 (jika membuat/mengubah endpoint publik).
 - [ ] Dokumentasi Keputusan (ADR): jika tugas memperkenalkan perubahan arsitektural lintas modul, skema kritis, atau pustaka baru, catat di `docs/adr/` menggunakan format `docs/adr/TEMPLATE.md` dan daftarkan di `docs/adr/README.md`.
 
 - [ ] `docs/AUDIT_REPORT.md` diperbarui status temuan terkait.

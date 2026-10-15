@@ -78,6 +78,7 @@ Audit ini mengevaluasi seluruh permukaan antarmuka Monitoring Transaction Materi
 | **Profil Pengguna** (`user-profile/page.tsx`) | Metadata placeholder `title: 'user-profile'`; komponen diberi nama `Notes`. | Diperbaiki: Metadata diubah menjadi `Profil Pengguna`, deskripsi fitur integrasi API, dan nama komponen diekstrak menjadi `UserProfilePage`. | **Selesai Diperbaiki** |
 | **Saldo Stok** (`stock-inventory/page.tsx`) | Metadata `Stock Inventory`, breadcrumb `Home > Stock Inventory`. | Diperbaiki: Metadata dan breadcrumb diselaraskan menjadi `Saldo Stok`. | **Selesai Diperbaiki** |
 | **Stok Intech** (`stock-intech/page.tsx`) | Metadata `Stock Intech`, breadcrumb `Home > Stock Intech`. | Diperbaiki: Metadata dan breadcrumb diselaraskan menjadi `Stok Intech`. | **Selesai Diperbaiki** |
+| **Pencarian Teknisi & Stok Intech** (`SearchField.tsx`, `technician-table.tsx`, `StockIntechOverview.tsx`) | Ikon clear native pada pencarian Stok Intech muncul bersama tombol clear khusus; pencarian teknisi hanya memeriksa NIK. | Diperbaiki: clear native disembunyikan saat tombol clear khusus tersedia; filter teknisi mencari NIK atau nama. | **Selesai Diperbaiki** |
 
 ---
 

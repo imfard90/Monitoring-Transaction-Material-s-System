@@ -38,6 +38,13 @@ The rules are organized into:
     └── web-hooks.md
 ```
 
+## Integrasi Google Sheets MTMS
+
+- API aplikasi menggunakan library resmi `googleapis` dari modul server-only `src/lib/google_ecosystem/google-sheets-api.ts` untuk read/write yang tervalidasi.
+- MCP development `mtms-google-sheets` tetap read-only dan memakai scope `spreadsheets.readonly`; jangan menambahkan tool mutasi ke MCP.
+- Credential service account hanya melalui `GOOGLE_APPLICATION_CREDENTIALS`, tidak boleh dicatat atau di-commit. Write memerlukan izin Editor dan tidak diuji ke data nyata tanpa persetujuan.
+- Lihat `src/lib/google_ecosystem/README.md` dan `.agents/skills/google-sheets/SKILL.md` untuk langkah pemakaian dan pengamanan.
+
 ## Tooling & Verification
 
 The project enforces quality with **Biome**, **TypeScript (tsc)**, and **Vitest**:

@@ -86,6 +86,8 @@ Audit ini memeriksa seluruh 10 antarmuka tabel transaksi di dalam aplikasi MTMS 
   - Mengganti utility warna mentah dengan token semantik (`text-success`, `bg-success/10`, `text-warning`, `text-primary`).
 
 ### 2.8 Ringkasan Stok (`StockBalanceOverview.tsx`, `StockIntechOverview.tsx`)
+* **Penyempurnaan pencarian (SearchField):** Field pencarian dashboard dan tabel transaksi/manajemen menggunakan komponen terkontrol bersama `src/app/components/shared/SearchField.tsx`, dengan tombol clear berlabel aksesibel. Untuk `type="search"`, ikon clear bawaan browser disembunyikan agar tidak tampil ganda. Di halaman Teknisi, pencarian mencocokkan NIK maupun nama tanpa membedakan kapitalisasi.
+
 * **Kondisi Sebelum:**
   - Tabel saldo stok tidak memiliki pagination, merender seluruh ratusan baris sekaligus ke DOM.
   - Header dan label dalam Bahasa Inggris (*Warehouse*, *Material Code*, *Qty Stock*, *Qty Intech*).
@@ -110,7 +112,7 @@ Audit ini memeriksa seluruh 10 antarmuka tabel transaksi di dalam aplikasi MTMS 
 * **Fitur Baru:**
   1. **Lompat ke Halaman (*Jump to Page*):** Input angka mini yang memungkinkan pengguna langsung berpindah ke halaman spesifik tanpa perlu mengklik berulang kali.
   2. **Pemilih Ukuran Halaman (*Page Size Selector*):** Opsi 10, 20, 30, 50, dan 100 baris per halaman.
-  3. **Persistensi Preferensi Halaman (*Fase 3 UX*):** Menyimpan preferensi ukuran baris pengguna ke `localStorage` (`mtms_table_page_size`) dan memulihkannya secara otomatis saat membuka tabel lain.
+  3. **Ukuran Halaman:** Default 20 baris untuk setiap tabel. Perubahan ukuran berlaku pada tabel/rute aktif dan tidak dipersistenkan lintas halaman agar pengambilan data tetap terkendali.
   4. **Navigasi Cepat:** Tombol *First Page* (`<<`) dan *Last Page* (`>>`).
   5. **Aksesibilitas:** Menambahkan label ARIA dalam Bahasa Indonesia (`Halaman pertama`, `Halaman sebelumnya`, `Halaman berikutnya`, `Halaman terakhir`).
 

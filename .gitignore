@@ -129,6 +129,19 @@ tsconfig.tsbuildinfo
 *.tsbuildinfo
 
 # --------------------------------------------------
+# Certificates and Google service-account credentials
+# --------------------------------------------------
+*.pem
+*.key
+src/lib/google_ecosystem/*.json
+src/lib/google_ecosystem/**/credentials*.json
+src/lib/google_ecosystem/**/service-account*.json
+.cline/data/settings/cline_mcp_settings.json
+.cline/data/settings/google-sheets.env
+.cline/data/settings/google-sheets-mcp.env
+**/google-sheets-mcp.local.json
+
+# --------------------------------------------------
 # Certificates
 # --------------------------------------------------
 *.pem
