@@ -10,7 +10,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import CardBox from '../shared/CardBox';
+import { Card } from '@/components/ui/card';
 
 interface WarehousePerformance {
     key: number;
@@ -63,7 +63,7 @@ export const ProductPerformance = () => {
         .sort((a, b) => b.percentage - a.percentage);
 
     return (
-        <CardBox className="w-full relative overflow-hidden">
+        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none w-full relative overflow-hidden">
             <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 bg-gradient-to-bl from-success/5 to-transparent" />
 
             <div id="product" className="relative z-10 mb-2">
@@ -149,6 +149,6 @@ export const ProductPerformance = () => {
                     </TableBody>
                 </Table>
             </div>
-        </CardBox>
+        </Card>
     );
 };

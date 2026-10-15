@@ -11,7 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import CardBox from '../shared/CardBox';
+import { Card } from '@/components/ui/card';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -137,7 +137,7 @@ const SalesOverview: React.FC = () => {
     }, []);
 
     return (
-        <CardBox className="pb-0 h-full w-full relative overflow-hidden motion-reduce:transition-none">
+        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none pb-0 h-full w-full relative overflow-hidden motion-reduce:transition-none">
             <div
                 className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"
                 aria-hidden="true"
@@ -192,7 +192,7 @@ const SalesOverview: React.FC = () => {
                     width="100%"
                 />
             </div>
-        </CardBox>
+        </Card>
     );
 };
 

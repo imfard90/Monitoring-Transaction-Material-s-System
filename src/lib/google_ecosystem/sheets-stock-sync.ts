@@ -14,6 +14,8 @@ const CACHE_FILE_TMP = path.join(DATA_DIR, 'other-stock.json.tmp');
 
 const SPREADSHEET_ID = '1-oFsEmoyLk6VuVxQVKerB6235-kkaXNTndVWkCRAF6c';
 const SHEET_RANGE = "'DATA KEMARIN'!A2:K50000";
+export const OTHER_STOCK_SYNC_LOCK_KEY = 'lock:other_stock_sync';
+export const OTHER_STOCK_SYNC_LOCK_TTL_SECONDS = 10 * 60;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -117,8 +119,9 @@ export async function syncOtherStock(): Promise<void> {
 
     const credentialPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
     if (!credentialPath) {
+        const error = new Error('GOOGLE_APPLICATION_CREDENTIALS is not set.');
         actionLogger.error(`${label} GOOGLE_APPLICATION_CREDENTIALS is not set — aborting sync.`);
-        return;
+        throw error;
     }
 
     try {
@@ -175,7 +178,8 @@ export async function syncOtherStock(): Promise<void> {
             `${label} Sync failed:`,
             error instanceof Error ? error : new Error(String(error))
         );
-        // Do not rethrow — cron should continue running future schedules even
-        // if one sync attempt fails.
+        // Rethrow so callers (startup retry, manual trigger) can react.
+        // Cron call sites must catch() to keep the scheduler alive.
+        throw error;
     }
 }

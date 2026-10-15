@@ -114,6 +114,10 @@ specific to this codebase:
 When tempted to flag one of the above, ask: "Would a senior engineer on this
 team actually change this in review?" If no, skip.
 
+## MTMS Shared UI Placement
+
+When reviewing shared component changes, verify the repository's layering rules in `AGENTS.md`: generic primitives belong in `src/components/ui/`; TanStack DataTable compositions remain application-level; domain-aware controls stay feature/domain-scoped. Check migrations for updated imports and stale paths in agent/skill/workflow docs. Prefer composing `Card` directly over thin duplicate wrappers such as `CardBox`.
+
 ## Review Checklist
 
 ### Security (CRITICAL)

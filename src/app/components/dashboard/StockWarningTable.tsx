@@ -11,7 +11,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import CardBox from '../shared/CardBox';
+import { Card } from '@/components/ui/card';
 
 interface StockWarning {
     warehouse_name: string | null;
@@ -41,7 +41,7 @@ export const StockWarningTable = () => {
     }, []);
 
     return (
-        <CardBox className="relative flex min-h-0 flex-1 w-full flex-col overflow-hidden">
+        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none relative flex min-h-0 flex-1 w-full flex-col overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-warning/5 to-transparent pointer-events-none" />
 
             <div className="relative z-10 mb-3 shrink-0">
@@ -145,6 +145,6 @@ export const StockWarningTable = () => {
                     </TableBody>
                 </Table>
             </div>
-        </CardBox>
+        </Card>
     );
 };

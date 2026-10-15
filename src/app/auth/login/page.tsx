@@ -11,7 +11,7 @@ import { z } from 'zod';
 import AuthCard from '@/app/auth/components/AuthCard';
 import AuthLayout from '@/app/auth/components/AuthLayout';
 import TurnstileWidget from '@/app/auth/components/TurnstileWidget';
-import { ModalDialog } from '@/app/components/shared/ModalDialog';
+import { ModalDialog } from '@/components/ui/modal-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';

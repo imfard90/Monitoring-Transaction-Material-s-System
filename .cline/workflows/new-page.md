@@ -16,14 +16,13 @@ argument-hint: "<page-name> [description]"
 3. Before creating any files, read `bispro.md` if the page involves:
    - Inventory, stock, transactions, materials, warehouse, or technician data
 
-4. Check existing shared components BEFORE building custom UI:
-   - `src/app/components/shared/DataTable.tsx`
-   - `src/app/components/shared/DataTablePagination.tsx`
-   - `src/app/components/shared/DateRangePicker.tsx`
-   - `src/app/components/shared/StatusBadge.tsx`
-   - `src/app/components/shared/ModalDialog.tsx`
-   - `src/app/components/shared/ConfirmDialog.tsx`
-   - `src/app/components/shared/SearchableSelect.tsx`
+4. Check existing UI primitives and app-level shared components BEFORE building custom UI:
+   - `src/components/ui/search-field.tsx` — generic controlled search input.
+   - `src/components/ui/card.tsx` — compose `Card` directly; do not create/use a `CardBox` wrapper.
+   - `src/app/components/shared/DataTable.tsx` and `DataTablePagination.tsx` — TanStack-specific app table pattern.
+   - `src/app/components/shared/DateRangePicker.tsx`, `StatusBadge.tsx`, `ConfirmDialog.tsx`, and `SearchableSelect.tsx` — app-level shared patterns.
+   - Check the actual current path for dialogs before importing; do not assume a removed shared `ModalDialog.tsx` exists.
+   - Keep warehouse/regional selectors and other domain-aware controls in their app/domain layer.
 
 5. Scaffold the page following MTMS conventions:
    - Route: `src/app/(DashboardLayout)/apps/<page-slug>/page.tsx`

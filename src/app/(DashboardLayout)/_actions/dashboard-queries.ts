@@ -1,12 +1,23 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { sql } from 'kysely';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
-import { loadOtherStockCache, type OtherStockItem } from '@/lib/google_ecosystem/sheets-stock-sync';
+import {
+    loadOtherStockCache,
+    OTHER_STOCK_SYNC_LOCK_KEY,
+    OTHER_STOCK_SYNC_LOCK_TTL_SECONDS,
+    syncOtherStock,
+    type OtherStockItem,
+} from '@/lib/google_ecosystem/sheets-stock-sync';
 import { actionLogger } from '@/lib/logger';
+import { AuthorizationError, ConflictError } from '@/lib/errors';
+import { redis } from '@/lib/redis';
+
+const triggerOtherStockSyncSchema = z.object({}).strict();
 
 export async function getStockBalances() {
     try {
@@ -322,6 +333,60 @@ export type { OtherStockItem };
 const otherStockInputSchema = z.object({
     materialCode: z.string().min(1).max(100).trim(),
 });
+
+export async function triggerOtherStockSync(
+    input: unknown = {}
+): Promise<{ success: true } | { success: false; error: string }> {
+    const user = await getSessionUser();
+    if (user.isStaff) {
+        throw new AuthorizationError('Staff tidak diizinkan menjalankan sinkronisasi stok.');
+    }
+
+    const parsed = triggerOtherStockSyncSchema.safeParse(input);
+    if (!parsed.success) {
+        return { success: false, error: 'Permintaan sinkronisasi tidak valid.' };
+    }
+
+    const lockToken = randomUUID();
+    const acquired = await redis.set(
+        OTHER_STOCK_SYNC_LOCK_KEY,
+        lockToken,
+        'EX',
+        OTHER_STOCK_SYNC_LOCK_TTL_SECONDS,
+        'NX'
+    );
+    if (!acquired) {
+        throw new ConflictError('Sinkronisasi stok sedang berjalan. Silakan coba lagi nanti.');
+    }
+
+    try {
+        await syncOtherStock();
+        return { success: true };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Manual other-stock sync failed',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return {
+            success: false,
+            error: 'Sinkronisasi gagal. Periksa koneksi dan konfigurasi Google Sheets.',
+        };
+    } finally {
+        try {
+            await redis.eval(
+                "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+                1,
+                OTHER_STOCK_SYNC_LOCK_KEY,
+                lockToken
+            );
+        } catch (error: unknown) {
+            actionLogger.error(
+                'Failed to release other-stock sync lock',
+                error instanceof Error ? error : new Error(String(error))
+            );
+        }
+    }
+}
 
 export async function getOtherWarehouseStock(
     materialCode: string

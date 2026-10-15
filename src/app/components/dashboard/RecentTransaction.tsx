@@ -4,7 +4,7 @@ import type { ApexOptions } from 'apexcharts';
 import dynamic from 'next/dynamic';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import CardBox from '../shared/CardBox';
+import { Card } from '@/components/ui/card';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -77,8 +77,8 @@ const RecentTransaction: React.FC = () => {
     ];
 
     return (
-        <CardBox
-            className="h-full w-full relative overflow-hidden motion-reduce:transition-none"
+        <Card
+            className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none h-full w-full relative overflow-hidden motion-reduce:transition-none"
             role="img"
             aria-label="Grafik bar Total Out Material 30 hari terakhir"
         >
@@ -102,7 +102,7 @@ const RecentTransaction: React.FC = () => {
                     width="100%"
                 />
             </div>
-        </CardBox>
+        </Card>
     );
 };
 

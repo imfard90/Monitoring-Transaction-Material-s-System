@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { ModalDialog } from '@/app/components/shared/ModalDialog';
+import { ModalDialog } from '@/components/ui/modal-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getRekonEditData, submitEditRekon } from '../_actions/edit-rekon-actions';

@@ -3,7 +3,7 @@
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { ModalDialog } from '@/app/components/shared/ModalDialog';
+import { ModalDialog } from '@/components/ui/modal-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Command,

@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 export async function register() {
     if (process.env.NEXT_RUNTIME !== 'nodejs') return;
 
@@ -14,7 +16,9 @@ export async function register() {
     const { internalTriggerWOScraping } = await import(
         './app/(DashboardLayout)/apps/wo-lensa-ref/_actions/wo-lensa-actions'
     );
-    const { syncOtherStock } = await import('@/lib/google_ecosystem/sheets-stock-sync');
+    const { OTHER_STOCK_SYNC_LOCK_KEY, OTHER_STOCK_SYNC_LOCK_TTL_SECONDS, syncOtherStock } =
+        await import('@/lib/google_ecosystem/sheets-stock-sync');
+    const { redis } = await import('@/lib/redis');
 
     // Schedule: 04.00, 09.30, 12.30, 15.00, 18.00, 21.00, 23.00 WIB
     // WIB is UTC+7.
@@ -66,26 +70,88 @@ export async function register() {
             });
         }
 
-        // Daily Google Sheets → JSON cache sync at 09:00 WIB.
-        // Tab DATA KEMARIN is updated by the external team each morning, so
-        // 09:00 WIB is the earliest reliable time to pull fresh data.
-        cron.schedule('0 9 * * *', () => syncOtherStock(), {
+        // Daily Google Sheets → JSON cache sync at 09:00 WIB and fallback at 14:00.
+        // Tab DATA KEMARIN is updated by the external team each morning.
+        const runLockedStockSync = async (context: string): Promise<boolean> => {
+            const lockToken = randomUUID();
+            const acquired = await redis.set(
+                OTHER_STOCK_SYNC_LOCK_KEY,
+                lockToken,
+                'EX',
+                OTHER_STOCK_SYNC_LOCK_TTL_SECONDS,
+                'NX'
+            );
+            if (!acquired) {
+                actionLogger.warn(
+                    `[${context}] Sheets stock sync skipped; another sync is running.`
+                );
+                return false;
+            }
+
+            try {
+                await syncOtherStock();
+                return true;
+            } finally {
+                await redis.eval(
+                    "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+                    1,
+                    OTHER_STOCK_SYNC_LOCK_KEY,
+                    lockToken
+                );
+            }
+        };
+
+        const runWithRetry = async (context: string, maxAttempts = 3): Promise<void> => {
+            const delaysMs = [30_000, 60_000];
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                try {
+                    const completed = await runLockedStockSync(context);
+                    if (!completed) throw new Error('Another stock sync currently holds the lock.');
+                    actionLogger.info(
+                        `[${context}] Sheets stock sync succeeded (attempt ${attempt}/${maxAttempts}).`
+                    );
+                    return;
+                } catch (err) {
+                    actionLogger.error(
+                        `[${context}] Sheets stock sync attempt ${attempt}/${maxAttempts} failed:`,
+                        err instanceof Error ? err : new Error(String(err))
+                    );
+                    if (attempt < maxAttempts) {
+                        const delayMs = delaysMs[Math.min(attempt - 1, delaysMs.length - 1)];
+                        actionLogger.info(
+                            `[${context}] Retrying Sheets stock sync in ${delayMs / 1000}s.`
+                        );
+                        await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+                    }
+                }
+            }
+            actionLogger.error(`[${context}] All ${maxAttempts} Sheets sync attempts failed.`);
+        };
+
+        const runScheduledStockSync = (scheduleLabel: string) =>
+            runWithRetry(`CRON ${scheduleLabel}`).catch((err: unknown) => {
+                actionLogger.error(
+                    `[CRON] Sheets other-stock sync (${scheduleLabel}) failed:`,
+                    err instanceof Error ? err : new Error(String(err))
+                );
+            });
+
+        cron.schedule('0 9 * * *', () => runScheduledStockSync('09:00'), {
+            timezone: 'Asia/Jakarta',
+        });
+        cron.schedule('0 14 * * *', () => runScheduledStockSync('14:00 fallback'), {
             timezone: 'Asia/Jakarta',
         });
 
         actionLogger.info('[CRON] Scheduled Lensa scrapers registered for Asia/Jakarta timezone.');
-        actionLogger.info('[CRON] Scheduled Sheets other-stock sync at 09:00 WIB.');
+        actionLogger.info(
+            '[CRON] Scheduled Sheets other-stock sync at 09:00 WIB and 14:00 WIB fallback.'
+        );
 
-        // ── Startup sync ──────────────────────────────────────────────────────
-        // Run an immediate sync on server start so data is available right away,
-        // even if the server restarts after 09:00 or is freshly deployed.
-        // Runs in the background — does not block startup.
-        actionLogger.info('[STARTUP] Triggering initial Sheets other-stock sync in background…');
-        syncOtherStock().catch((err: unknown) => {
-            actionLogger.error(
-                '[STARTUP] Initial Sheets other-stock sync failed:',
-                err instanceof Error ? err : new Error(String(err))
-            );
-        });
+        // Startup sync uses the same retry and lock policy as scheduled syncs.
+        actionLogger.info(
+            '[STARTUP] Triggering initial Sheets other-stock sync with retry in background…'
+        );
+        void runWithRetry('STARTUP');
     }
 }

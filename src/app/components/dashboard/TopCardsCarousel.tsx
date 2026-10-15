@@ -7,7 +7,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardKpis } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
-import CardBox from '../shared/CardBox';
+import { Card } from '@/components/ui/card';
 
 interface TopCardsCarouselProps {
     kpis: {
@@ -137,7 +137,7 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
                 {kpiConfig.map((item) => (
                     <SwiperSlide key={item.key} className="py-2">
                         <Link href={item.url} className="block group">
-                            <CardBox
+                            <Card
                                 className={`relative overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 motion-reduce:transition-none ${item.bgcolor} w-full border border-white/20 dark:border-white/5 py-6 group-hover:-translate-y-1 motion-reduce:group-hover:translate-y-0`}
                             >
                                 {/* Decorative gradient blob */}
@@ -168,7 +168,7 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
                                         </p>
                                     </div>
                                 </div>
-                            </CardBox>
+                            </Card>
                         </Link>
                     </SwiperSlide>
                 ))}

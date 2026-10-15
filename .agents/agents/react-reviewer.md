@@ -37,6 +37,10 @@ You are a senior React engineer reviewing React component code for correctness, 
 
 For a JSX/TSX PR, invoke both agents. For a pure `.ts` change with no React imports, invoke only `typescript-reviewer`.
 
+## MTMS Component Boundary Review
+
+For changes to shared UI, verify placement against `AGENTS.md`: generic primitives belong in `src/components/ui/`; TanStack-bound table compositions and MTMS app patterns remain app-level; domain-aware controls remain with their feature/domain. Flag thin duplicate wrappers around existing primitives (such as a replacement `CardBox`) and stale imports/documentation paths. Reuse frequency alone does not justify promotion to the primitive layer.
+
 ## When invoked
 
 1. Establish review scope:

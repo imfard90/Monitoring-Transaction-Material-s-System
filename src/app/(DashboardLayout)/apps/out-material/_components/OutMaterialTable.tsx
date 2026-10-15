@@ -10,7 +10,7 @@ import { useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
-import { SearchField } from '@/app/components/shared/SearchField';
+import { SearchField } from '@/components/ui/search-field';
 import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { StatusBadge } from '@/app/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';

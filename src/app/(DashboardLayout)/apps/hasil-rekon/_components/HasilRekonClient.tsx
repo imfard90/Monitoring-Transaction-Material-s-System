@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
-import CardBox from '@/app/components/shared/CardBox';
+import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { exportHasilRekonData } from '../_actions/rekon-export-actions';
@@ -249,7 +249,7 @@ export default function HasilRekonClient({
     return (
         <StaggerContainer className="flex flex-col flex-1 md:h-full md:min-h-0">
             <StaggerItem className="flex flex-col flex-1 md:h-full md:min-h-0">
-                <CardBox className="flex flex-col flex-1 p-6 md:h-full md:min-h-0">
+                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none flex flex-col flex-1 p-6 md:h-full md:min-h-0">
                     <HasilRekonTable
                         data={initialData}
                         pagination={pagination}
@@ -274,7 +274,7 @@ export default function HasilRekonClient({
                         }}
                         onExportClick={() => setIsExportModalOpen(true)}
                     />
-                </CardBox>
+                </Card>
             </StaggerItem>
 
             {editRowData && (

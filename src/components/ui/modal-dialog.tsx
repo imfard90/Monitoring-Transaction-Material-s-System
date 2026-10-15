@@ -40,17 +40,13 @@ export function ModalDialog({
         <Dialog
             open={isOpen}
             onOpenChange={(open) => {
-                if (!open) {
-                    onClose();
-                }
+                if (!open) onClose();
             }}
         >
             <DialogContent
                 className={cn('sm:max-w-md max-h-[90vh] overflow-y-auto', className)}
-                onInteractOutside={(e) => {
-                    if (preventOutsideClose) {
-                        e.preventDefault();
-                    }
+                onInteractOutside={(event) => {
+                    if (preventOutsideClose) event.preventDefault();
                 }}
             >
                 {(title || description) && (
@@ -59,7 +55,7 @@ export function ModalDialog({
                         {description && <DialogDescription>{description}</DialogDescription>}
                     </DialogHeader>
                 )}
-                <div className="py-2">{children}</div>
+                <div className="flex min-h-0 flex-col py-2">{children}</div>
             </DialogContent>
         </Dialog>
     );

@@ -86,7 +86,7 @@ Audit ini memeriksa seluruh 10 antarmuka tabel transaksi di dalam aplikasi MTMS 
   - Mengganti utility warna mentah dengan token semantik (`text-success`, `bg-success/10`, `text-warning`, `text-primary`).
 
 ### 2.8 Ringkasan Stok (`StockBalanceOverview.tsx`, `StockIntechOverview.tsx`)
-* **Penyempurnaan pencarian (SearchField):** Field pencarian dashboard dan tabel transaksi/manajemen menggunakan komponen terkontrol bersama `src/app/components/shared/SearchField.tsx`, dengan tombol clear berlabel aksesibel. Untuk `type="search"`, ikon clear bawaan browser disembunyikan agar tidak tampil ganda. Di halaman Teknisi, pencarian mencocokkan NIK maupun nama tanpa membedakan kapitalisasi.
+* **Penyempurnaan pencarian (SearchField):** Field pencarian dashboard dan tabel transaksi/manajemen menggunakan komponen terkontrol bersama `src/components/ui/search-field.tsx`, dengan tombol clear berlabel aksesibel. Untuk `type="search"`, ikon clear bawaan browser disembunyikan agar tidak tampil ganda. Di halaman Teknisi, pencarian mencocokkan NIK maupun nama tanpa membedakan kapitalisasi.
 
 * **Kondisi Sebelum:**
   - Tabel saldo stok tidak memiliki pagination, merender seluruh ratusan baris sekaligus ke DOM.

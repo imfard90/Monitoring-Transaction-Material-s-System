@@ -1,6 +1,8 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { IconRefresh } from '@tabler/icons-react';
+import { toast } from 'sonner';
 import {
     createColumnHelper,
     getCoreRowModel,
@@ -9,11 +11,15 @@ import {
 } from '@tanstack/react-table';
 import { IconBuildingWarehouse } from '@tabler/icons-react';
 import React, { useState } from 'react';
-import { getStockBalances } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
-import CardBox from '@/app/components/shared/CardBox';
+import { getSidebarUserAccess } from '@/app/(DashboardLayout)/management/users/actions';
+import {
+    getStockBalances,
+    triggerOtherStockSync,
+} from '@/app/(DashboardLayout)/_actions/dashboard-actions';
+import { Card } from '@/components/ui/card';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
-import { SearchField } from '@/app/components/shared/SearchField';
+import { SearchField } from '@/components/ui/search-field';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { OtherStockModal } from '@/app/components/dashboard/OtherStockModal';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +45,46 @@ export default function StockBalanceOverview() {
     const [searchQuery, setSearchQuery] = useState('');
     const [whFilter, setWhFilter] = useState<string>('all');
     const [openCombo, setOpenCombo] = useState(false);
-    const [selectedMaterialCode, setSelectedMaterialCode] = useState<string | null>(null);
+    const [selectedMaterial, setSelectedMaterial] = useState<{
+        code: string;
+        name: string;
+    } | null>(null);
+    const [canTriggerSync, setCanTriggerSync] = useState(false);
+    const queryClient = useQueryClient();
+
+    React.useEffect(() => {
+        let isMounted = true;
+        getSidebarUserAccess()
+            .then((access) => {
+                if (isMounted) setCanTriggerSync(!access.isStaff);
+            })
+            .catch(() => {
+                if (isMounted) setCanTriggerSync(false);
+            });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const syncMutation = useMutation({
+        mutationFn: () => triggerOtherStockSync(),
+        onSuccess: async (result) => {
+            if (!result.success) {
+                toast.error(result.error);
+                return;
+            }
+            toast.success('Stock lokasi lain berhasil disinkronkan.');
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['otherWarehouseStock'] }),
+                queryClient.invalidateQueries({ queryKey: ['stockBalances'] }),
+            ]);
+        },
+        onError: (error: unknown) => {
+            toast.error(
+                error instanceof Error ? error.message : 'Gagal menyinkronkan stok lokasi lain.'
+            );
+        },
+    });
 
     const { data, isLoading } = useQuery({
         queryKey: ['stockBalances'],
@@ -174,7 +219,7 @@ export default function StockBalanceOverview() {
             id: 'other_location_stock',
             size: 48,
             header: () => (
-                <div className="flex justify-center">
+                <div className="flex items-center justify-center gap-1">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <span className="inline-flex cursor-default">
@@ -188,6 +233,33 @@ export default function StockBalanceOverview() {
                             <p>Stock lokasi lain</p>
                         </TooltipContent>
                     </Tooltip>
+                    {canTriggerSync && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                    aria-label="Sinkronkan stock lokasi lain"
+                                    disabled={syncMutation.isPending}
+                                    onClick={() => syncMutation.mutate()}
+                                >
+                                    <IconRefresh
+                                        className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`}
+                                        aria-hidden="true"
+                                    />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                                <p>
+                                    {syncMutation.isPending
+                                        ? 'Menyinkronkan stock lokasi lain…'
+                                        : 'Sinkronkan stock lokasi lain'}
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
                 </div>
             ),
             cell: ({ row }) => {
@@ -203,7 +275,12 @@ export default function StockBalanceOverview() {
                                     size="icon"
                                     aria-label={`Lihat stock material ${code} di gudang lain`}
                                     className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                                    onClick={() => setSelectedMaterialCode(code)}
+                                    onClick={() =>
+                                        setSelectedMaterial({
+                                            code,
+                                            name: row.original.material_name ?? '',
+                                        })
+                                    }
                                 >
                                     <IconBuildingWarehouse className="h-4 w-4" aria-hidden="true" />
                                 </Button>
@@ -229,7 +306,7 @@ export default function StockBalanceOverview() {
     return (
         <StaggerContainer className="flex flex-col flex-1 min-h-0">
             <StaggerItem className="flex flex-col flex-1 min-h-0">
-                <CardBox className="flex flex-col flex-1 min-h-0 p-6">
+                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none flex flex-col flex-1 min-h-0 p-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-4">
                         <div>
                             <h2 className="text-lg font-bold text-foreground">
@@ -265,14 +342,15 @@ export default function StockBalanceOverview() {
                     <div className="pt-4">
                         <DataTablePagination table={table} />
                     </div>
-                </CardBox>
+                </Card>
             </StaggerItem>
             {/* Modal stock lokasi lain */}
-            {selectedMaterialCode && (
+            {selectedMaterial && (
                 <OtherStockModal
-                    isOpen={selectedMaterialCode !== null}
-                    onClose={() => setSelectedMaterialCode(null)}
-                    materialCode={selectedMaterialCode}
+                    isOpen={selectedMaterial !== null}
+                    onClose={() => setSelectedMaterial(null)}
+                    materialCode={selectedMaterial.code}
+                    materialName={selectedMaterial.name}
                 />
             )}
         </StaggerContainer>

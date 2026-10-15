@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import CardBox from '@/app/components/shared/CardBox';
+import { Card } from '@/components/ui/card';
 
 interface BreadcrumbItem {
     title: string;
@@ -16,7 +16,7 @@ interface BreadCrumbType {
 
 const BreadcrumbComp = ({ items = [], title }: BreadCrumbType) => {
     return (
-        <CardBox className="mb-6 py-4 bg-lightsecondary overflow-hidden rounded-md border-none shadow-none relative">
+        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none mb-6 py-4 bg-lightsecondary overflow-hidden rounded-md border-none shadow-none relative">
             <div className="grid grid-cols-12 gap-6 items-center">
                 <div className="col-span-10">
                     <h4 className="font-semibold text-xl mb-3">{title}</h4>
@@ -65,7 +65,7 @@ const BreadcrumbComp = ({ items = [], title }: BreadCrumbType) => {
                     </div>
                 </div>
             </div>
-        </CardBox>
+        </Card>
     );
 };
 

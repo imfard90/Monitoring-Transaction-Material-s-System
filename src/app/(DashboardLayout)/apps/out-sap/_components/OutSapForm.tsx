@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import CardBox from '@/app/components/shared/CardBox';
+import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { LoadingOverlay } from '@/app/components/shared/LoadingOverlay';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
@@ -317,7 +317,7 @@ export default function OutSapForm() {
                 text={isScraping ? 'Menarik Data Lensa...' : 'Memproses Transaksi...'}
             />
             <StaggerContainer>
-                <CardBox className="p-6">
+                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none p-6">
                     <form onSubmit={handleSubmit} className="space-y-8">
                         <div>
                             <h2 className="text-lg font-bold text-foreground mb-4 border-b pb-2">
@@ -801,7 +801,7 @@ export default function OutSapForm() {
                             </div>
                         </div>
                     </ConfirmDialog>
-                </CardBox>
+                </Card>
             </StaggerContainer>
         </>
     );

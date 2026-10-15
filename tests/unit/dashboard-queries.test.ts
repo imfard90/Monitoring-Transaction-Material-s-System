@@ -7,7 +7,20 @@ vi.mock('server-only', () => ({}));
 const mockLoadOtherStockCache = vi.fn();
 vi.mock('@/lib/google_ecosystem/sheets-stock-sync', () => ({
     loadOtherStockCache: mockLoadOtherStockCache,
+    OTHER_STOCK_SYNC_LOCK_KEY: 'lock:other_stock_sync',
+    OTHER_STOCK_SYNC_LOCK_TTL_SECONDS: 600,
+    syncOtherStock: vi.fn(),
 }));
+const mockRedisSet = vi.fn<(...args: unknown[]) => Promise<string | null>>();
+const mockRedisEval = vi.fn<(...args: unknown[]) => Promise<number>>();
+vi.mock('@/lib/redis', () => ({
+    redis: { set: mockRedisSet, eval: mockRedisEval },
+}));
+vi.mock('@/lib/errors', () => ({
+    AuthorizationError: class AuthorizationError extends Error {},
+    ConflictError: class ConflictError extends Error {},
+}));
+vi.mock('node:crypto', () => ({ randomUUID: vi.fn(() => 'test-lock-token') }));
 
 const mockGetSessionUser = vi.fn();
 const mockExecute = vi.fn();
@@ -87,12 +100,51 @@ vi.mock('@/lib/db/db', () => ({
     },
 }));
 
-const { getLensaWarehousePerformance, getOtherWarehouseStock } = await import(
-    '@/app/(DashboardLayout)/_actions/dashboard-queries'
+const { getLensaWarehousePerformance, getOtherWarehouseStock, triggerOtherStockSync } =
+    await import('@/app/(DashboardLayout)/_actions/dashboard-queries');
+const { syncOtherStock: mockSyncOtherStock } = await import(
+    '@/lib/google_ecosystem/sheets-stock-sync'
 );
 const { getSalesOverviewData } = await import(
     '@/app/(DashboardLayout)/_actions/dashboard-charts-queries'
 );
+
+describe('triggerOtherStockSync', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockGetSessionUser.mockResolvedValue({ isStaff: false, warehouseIds: [] });
+        mockRedisSet.mockResolvedValue('OK');
+        mockRedisEval.mockResolvedValue(1);
+        vi.mocked(mockSyncOtherStock).mockResolvedValue(undefined);
+    });
+
+    it('rejects Staff before trying to acquire the sync lock', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [2] });
+
+        await expect(triggerOtherStockSync()).rejects.toThrow('Staff tidak diizinkan');
+        expect(mockRedisSet).not.toHaveBeenCalled();
+        expect(mockSyncOtherStock).not.toHaveBeenCalled();
+    });
+
+    it('reports a conflict when another sync already holds the lock', async () => {
+        mockRedisSet.mockResolvedValue(null);
+
+        await expect(triggerOtherStockSync()).rejects.toThrow('sedang berjalan');
+        expect(mockSyncOtherStock).not.toHaveBeenCalled();
+    });
+
+    it('runs the sync and releases only its own lock', async () => {
+        await expect(triggerOtherStockSync()).resolves.toEqual({ success: true });
+
+        expect(mockSyncOtherStock).toHaveBeenCalledOnce();
+        expect(mockRedisEval).toHaveBeenCalledWith(
+            expect.stringContaining("redis.call('get', KEYS[1]) == ARGV[1]"),
+            1,
+            'lock:other_stock_sync',
+            'test-lock-token'
+        );
+    });
+});
 
 describe('getLensaWarehousePerformance', () => {
     beforeEach(() => {

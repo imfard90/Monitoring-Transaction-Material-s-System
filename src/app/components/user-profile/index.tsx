@@ -14,14 +14,14 @@ import {
     deleteUserApiKey,
     generateUserApiKey,
 } from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
-import { ModalDialog } from '@/app/components/shared/ModalDialog';
+import { ModalDialog } from '@/components/ui/modal-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { authClient } from '@/lib/auth-client';
-import CardBox from '../shared/CardBox';
+import { Card } from '@/components/ui/card';
 
 const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
     const socialLinks = [
@@ -173,7 +173,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
         <>
             <StaggerContainer className="flex flex-col gap-6">
                 <StaggerItem>
-                    <CardBox className="overflow-hidden p-0 border-none shadow-sm">
+                    <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none overflow-hidden p-0 border-none shadow-sm">
                         <div className="relative w-full h-32 sm:h-48 bg-gradient-to-r from-primary/80 to-primary/40">
                             {/* Banner Background */}
                             <div className="absolute inset-0 bg-[url('/images/backgrounds/profile-bg.jpg')] bg-cover bg-center opacity-20 mix-blend-overlay"></div>
@@ -230,7 +230,7 @@ const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
                                 </div>
                             </div>
                         </div>
-                    </CardBox>
+                    </Card>
                 </StaggerItem>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

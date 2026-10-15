@@ -11,11 +11,11 @@ import { useMemo, useState } from 'react';
 import { getDashboardStockIntech } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
-import { SearchField } from '@/app/components/shared/SearchField';
+import { SearchField } from '@/components/ui/search-field';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
-import CardBox from '../shared/CardBox';
+import { Card } from '@/components/ui/card';
 
 interface StockIntechItem {
     branch: string | null;
@@ -109,7 +109,7 @@ export const StockIntechOverview = () => {
     return (
         <StaggerContainer className="flex flex-col flex-1 min-h-0">
             <StaggerItem className="flex flex-col flex-1 min-h-0">
-                <CardBox className="flex flex-col flex-1 min-h-0 p-6">
+                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none flex flex-col flex-1 min-h-0 p-6">
                     <div
                         id="stock-intech"
                         className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
@@ -146,7 +146,7 @@ export const StockIntechOverview = () => {
                     <div className="pt-4">
                         <DataTablePagination table={table} />
                     </div>
-                </CardBox>
+                </Card>
             </StaggerItem>
         </StaggerContainer>
     );

@@ -63,7 +63,9 @@ Rules:
 - **Server Components Default**: Keep the page as a Server Component. Do not use `"use client"` here unless strictly necessary.
 - **Data Fetching**: Use Server Actions (`"use server"`) for standard data fetching and mutations. Use TanStack Query only for complex interactive Client Components.
 - **Modular Components**: Do not build a monolithic page. Extract sections into focused sub-components.
-- **UI Primitives**: Prefer `shadcn/ui` primitives (`src/components/ui/`) over raw HTML.
+- **UI Primitives**: Prefer existing primitives (`src/components/ui/`) over raw HTML. Reuse `search-field.tsx` for controlled search and compose `Card` from `card.tsx` directly; there is no `CardBox` abstraction.
+- **Component boundaries**: TanStack `DataTable`/`DataTablePagination` and MTMS patterns stay app-level under `src/app/components/shared/`. Keep warehouse/regional controls and other domain-aware behavior in the relevant feature/domain layer; do not promote them to primitives solely because they are reused.
+- Before importing shared UI, confirm the file's current location in the repository rather than relying on historical paths (notably dialog wrappers).
 - **Naming**: `[PageName]` = `[PAGE_LABEL]` in PascalCase (e.g. `Reports` → `ReportsPage`).
 - Do NOT touch the sidebar in this file.
 

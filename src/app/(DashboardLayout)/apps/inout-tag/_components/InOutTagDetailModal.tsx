@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { ModalDialog } from '@/app/components/shared/ModalDialog';
+import { ModalDialog } from '@/components/ui/modal-dialog';
 import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
 import { getInOutTagItems } from '../_actions/tag-actions';
 

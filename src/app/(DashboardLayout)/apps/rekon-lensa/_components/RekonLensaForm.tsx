@@ -6,7 +6,7 @@ import { FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import CardBox from '@/app/components/shared/CardBox';
+import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Button } from '@/components/ui/button';
@@ -232,7 +232,7 @@ export default function RekonLensaForm() {
     return (
         <StaggerContainer className="space-y-6">
             <StaggerItem>
-                <CardBox className="p-6">
+                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none p-6">
                     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                         <div className="flex-1 space-y-2 max-w-md">
                             <Label>Pilih Teknisi</Label>
@@ -257,7 +257,7 @@ export default function RekonLensaForm() {
                             </Button>
                         )}
                     </div>
-                </CardBox>
+                </Card>
             </StaggerItem>
 
             <AnimatePresence mode="wait">
@@ -269,7 +269,7 @@ export default function RekonLensaForm() {
                         className="grid grid-cols-1 lg:grid-cols-5 gap-6"
                     >
                         {/* WO Lensa Table */}
-                        <CardBox className="p-6 flex flex-col h-full lg:col-span-3">
+                        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none p-6 flex flex-col h-full lg:col-span-3">
                             <div className="flex items-center gap-2 mb-4">
                                 <FileText className="h-5 w-5 text-primary" />
                                 <h3 className="text-lg font-semibold">Work Order Lensa</h3>
@@ -347,10 +347,10 @@ export default function RekonLensaForm() {
                                     </TableBody>
                                 </Table>
                             </div>
-                        </CardBox>
+                        </Card>
 
                         {/* Material di Tangan Teknisi Table */}
-                        <CardBox className="p-6 flex flex-col h-full lg:col-span-2">
+                        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none p-6 flex flex-col h-full lg:col-span-2">
                             <div className="flex items-center gap-2 mb-4">
                                 <FileText className="h-5 w-5 text-primary" />
                                 <h3 className="text-lg font-semibold">
@@ -433,7 +433,7 @@ export default function RekonLensaForm() {
                                     </TableBody>
                                 </Table>
                             </div>
-                        </CardBox>
+                        </Card>
                     </motion.div>
                 )}
             </AnimatePresence>

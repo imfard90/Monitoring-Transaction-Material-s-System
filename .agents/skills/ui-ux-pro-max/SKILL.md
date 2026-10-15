@@ -309,6 +309,10 @@ For web/desktop work, apply the relevant Quick Reference sections and focused se
 
 ---
 
+## MTMS Repository Component Boundaries
+
+When implementing UI in MTMS, consult `AGENTS.md` and reuse existing primitives under `src/components/ui/`. The generic controlled search component is `src/components/ui/search-field.tsx`; compose `Card` from `src/components/ui/card.tsx` directly rather than creating a `CardBox` wrapper. Keep TanStack table components and application/domain-aware patterns in `src/app/components/shared/` or their feature layer. Do not promote a component solely because it has many call sites; check whether it is truly generic and independent of MTMS policy/data behavior.
+
 ## Common Rules for Professional UI
 
 These are frequently overlooked issues that make UI look unprofessional:

@@ -12,7 +12,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
-import { SearchField } from '@/app/components/shared/SearchField';
+import { SearchField } from '@/components/ui/search-field';
 import { Button } from '@/components/ui/button';
 import {
     Select,

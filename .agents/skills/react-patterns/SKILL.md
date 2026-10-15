@@ -244,6 +244,12 @@ Wrap a component in `React.memo` only when:
 - Provide stable `key` props (database id, not array index)
 - Virtualize long lists with `@tanstack/react-virtual` or `react-window` once visible item count exceeds ~50 with non-trivial rows
 
+## MTMS Component Layering
+
+For this repository, place generic, domain-independent building blocks in `src/components/ui/` (for example, the controlled `search-field.tsx` and existing `card.tsx`). Compose existing primitives rather than adding thin wrappers such as `CardBox`.
+
+Keep TanStack-specific table compositions (`DataTable`, `DataTablePagination`) and MTMS app patterns in `src/app/components/shared/`; keep warehouse/regional selectors, toast wiring, error boundaries, and domain behavior in the app or feature layer. Reuse frequency alone is not a reason to promote a component to a primitive. Check `AGENTS.md` for the authoritative component boundary and current paths.
+
 ## Accessibility-First Composition
 
 - Always render semantic HTML (`<button>`, `<a>`, `<nav>`, `<main>`) before reaching for `role` attributes

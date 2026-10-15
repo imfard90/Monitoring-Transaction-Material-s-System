@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
-import CardBox from '@/app/components/shared/CardBox';
+import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import type { OutMaterialRow } from '@/lib/types/inventory';
@@ -132,7 +132,7 @@ export default function OutMaterialClient({
             </StaggerItem>
 
             <StaggerItem>
-                <CardBox className="p-4 w-full">
+                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none p-4 w-full">
                     <OutMaterialTable
                         data={initialData}
                         pagination={pagination}
@@ -147,7 +147,7 @@ export default function OutMaterialClient({
                         onViewDetail={(row) => setDetailRow(row)}
                         onClearFilters={handleClearFilters}
                     />
-                </CardBox>
+                </Card>
             </StaggerItem>
 
             <OutMaterialDetailModal

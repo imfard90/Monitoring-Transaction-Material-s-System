@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
 
 /**
  * UI/UX consistency contract tests.
@@ -83,6 +83,34 @@ describe('cn util contract', () => {
 });
 
 describe('shared components premium invariants', () => {
+    it('places the reusable controlled SearchField in the UI primitive layer', async () => {
+        const src = await readSrc('src/components/ui/search-field.tsx');
+        expect(src).toMatch(/export function SearchField/);
+        expect(src).toMatch(/onValueChange\(''\)/);
+        expect(src).toMatch(/aria-label=\{clearLabel\}/);
+        expect(src).toMatch(/::-webkit-search-cancel-button/);
+        expect(src).toMatch(/@\/components\/ui\/input/);
+        await expect(readSrc('src/app/components/shared/SearchField.tsx')).rejects.toThrow();
+    });
+
+    it('composes CardBox usages with the existing Card primitive instead of keeping a duplicate wrapper', async () => {
+        const files = await import('node:fs/promises').then(({ readdir }) =>
+            readdir(resolve(repoRoot, 'src'), { recursive: true })
+        );
+        const sourceFiles = files.filter(
+            (file): file is string => typeof file === 'string' && file.endsWith('.tsx')
+        );
+        const sources = await Promise.all(sourceFiles.map((file) => readSrc(`src/${file}`)));
+        expect(sources.join('\n')).not.toMatch(/CardBox/);
+        await expect(readSrc('src/app/components/shared/CardBox.tsx')).rejects.toThrow();
+    });
+
+    it('keeps TanStack table and domain-specific controls in the application shared layer', async () => {
+        const agents = await readSrc('AGENTS.md');
+        expect(agents).toMatch(/DataTable.*DataTablePagination/);
+        expect(agents).toMatch(/DataTable.*TanStack Table/);
+    });
+
     it('StatusBadge uses semantic tokens, not raw color literals', async () => {
         const src = await readSrc('src/app/components/shared/StatusBadge.tsx');
         // Raw palette literals are forbidden (SKILL §2.1).
@@ -142,14 +170,14 @@ describe('UI primitives premium invariants', () => {
 
 describe('SearchField clear behavior', () => {
     it('renders a labeled clear button only when a search value is present', async () => {
-        const src = await readSrc('src/app/components/shared/SearchField.tsx');
+        const src = await readSrc('src/components/ui/search-field.tsx');
         expect(src).toMatch(/aria-label=\{clearLabel\}/);
         expect(src).toMatch(/onClick=\{\(\) => onValueChange\(''\)\}/);
         expect(src).toMatch(/\{value && \(/);
     });
 
     it('hides the browser-native search clear affordance when using a custom clear button', async () => {
-        const src = await readSrc('src/app/components/shared/SearchField.tsx');
+        const src = await readSrc('src/components/ui/search-field.tsx');
         expect(src).toMatch(/\[&::-webkit-search-cancel-button\]:hidden/);
         expect(src).toMatch(/\[&::-ms-clear\]:hidden/);
     });
