@@ -39,6 +39,7 @@ const mockSelect = vi.fn();
 const mockInnerJoin = vi.fn();
 const mockWhere = vi.fn();
 const mockWhereByTable = vi.fn();
+const mockOnRef = vi.fn();
 const mockJoinOn = vi.fn();
 
 vi.mock('kysely', () => ({ sql: mockSql }));
@@ -60,6 +61,10 @@ vi.mock('@/lib/db/db', () => ({
                         const joinBuilder = {
                             on: (...onArgs: unknown[]) => {
                                 mockJoinOn(...onArgs);
+                                return joinBuilder;
+                            },
+                            onRef: (...onRefArgs: unknown[]) => {
+                                mockOnRef(...onRefArgs);
                                 return joinBuilder;
                             },
                         };
@@ -89,10 +94,16 @@ vi.mock('@/lib/db/db', () => ({
                     mockWhereByTable(table, ...args);
                     return query;
                 },
+                whereRef: (...args: unknown[]) => {
+                    mockWhere(...args);
+                    return query;
+                },
                 groupBy: (...args: unknown[]) => {
                     mockGroupBy(...args);
                     return query;
                 },
+                orderBy: vi.fn(() => query),
+                limit: vi.fn(() => query),
                 execute: mockExecute,
             };
             return query;
@@ -100,8 +111,16 @@ vi.mock('@/lib/db/db', () => ({
     },
 }));
 
-const { getLensaWarehousePerformance, getOtherWarehouseStock, triggerOtherStockSync } =
-    await import('@/app/(DashboardLayout)/_actions/dashboard-queries');
+const {
+    getLensaWarehousePerformance,
+    getOtherWarehouseStock,
+    triggerOtherStockSync,
+    getStockWarnings,
+    getWarehouses,
+} = await import('@/app/(DashboardLayout)/_actions/dashboard-queries');
+const { getTopOutMaterials, getOutMaterialLineChartData } = await import(
+    '@/app/(DashboardLayout)/_actions/dashboard-charts-queries'
+);
 const { syncOtherStock: mockSyncOtherStock } = await import(
     '@/lib/google_ecosystem/sheets-stock-sync'
 );
@@ -143,6 +162,69 @@ describe('triggerOtherStockSync', () => {
             'lock:other_stock_sync',
             'test-lock-token'
         );
+    });
+});
+
+describe('dashboard warehouse scoping', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockCacheGet.mockResolvedValue(null);
+        mockExecute.mockResolvedValue([]);
+    });
+
+    it('scopes every panel query to assigned warehouses for Staff', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [2, 4] });
+
+        await getTopOutMaterials();
+        expect(mockWhere).toHaveBeenCalledWith('soh.warehouse_id', 'in', [2, 4]);
+
+        vi.clearAllMocks();
+        mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [2, 4] });
+        await getOutMaterialLineChartData('all');
+        expect(mockWhere).toHaveBeenCalledWith('soh.warehouse_id', 'in', [2, 4]);
+
+        vi.clearAllMocks();
+        mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [2, 4] });
+        await getStockWarnings();
+        expect(mockWhere).toHaveBeenCalledWith('p.warehouse_id', 'in', [2, 4]);
+    });
+
+    it('returns no results for Staff without assigned warehouses', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [] });
+
+        await expect(getTopOutMaterials()).resolves.toMatchObject({ success: true, data: [] });
+        await expect(getOutMaterialLineChartData('all')).resolves.toMatchObject({
+            success: true,
+            data: [],
+        });
+        await expect(getStockWarnings()).resolves.toMatchObject({ success: true, data: [] });
+        expect(mockSelectFrom).not.toHaveBeenCalled();
+    });
+
+    it('rejects attempted access to an unassigned warehouse for Staff', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [2] });
+
+        await expect(getTopOutMaterials(7, '99')).resolves.toMatchObject({ success: false });
+        await expect(getOutMaterialLineChartData('99')).resolves.toMatchObject({ success: false });
+        await expect(getStockWarnings('99')).resolves.toMatchObject({ success: false });
+        expect(mockSelectFrom).not.toHaveBeenCalled();
+    });
+
+    it('preserves all-warehouse access for non-Staff', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: false, warehouseIds: [] });
+
+        await getTopOutMaterials();
+        await getOutMaterialLineChartData('all');
+        await getStockWarnings();
+
+        expect(mockWhere).not.toHaveBeenCalledWith('soh.warehouse_id', 'in', expect.anything());
+        expect(mockWhere).not.toHaveBeenCalledWith('p.warehouse_id', 'in', expect.anything());
+    });
+
+    it('returns only assigned warehouse choices to Staff', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [2] });
+        await getWarehouses();
+        expect(mockWhere).toHaveBeenCalledWith('id', 'in', [2]);
     });
 });
 

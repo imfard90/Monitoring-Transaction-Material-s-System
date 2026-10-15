@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import { LensaPerformance } from '@/components/dashboard/LensaPerformance';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getSessionUser } from '@/lib/auth-server';
 import { Footer } from '../components/dashboard/Footer';
 import OutMaterialLineChart from '../components/dashboard/OutMaterialLineChart';
 import { ProductPerformance } from '../components/dashboard/ProductPerformance';
-import { LensaPerformance } from '@/components/dashboard/LensaPerformance';
 import ProfileWelcome from '../components/dashboard/ProfileWelcome';
 import { RecentTransaction } from '../components/dashboard/RecentTransaction';
 import SalesOverview from '../components/dashboard/SalesOverview';
@@ -40,7 +41,16 @@ function KpiSkeleton() {
     );
 }
 
-export default function Page() {
+export default async function Page() {
+    const [{ isStaff }, warehouseResult] = await Promise.all([
+        getSessionUser(),
+        import('./_actions/dashboard-actions').then(({ getWarehouses }) => getWarehouses()),
+    ]);
+    const warehouses =
+        warehouseResult.success && warehouseResult.data
+            ? warehouseResult.data.map(({ id, name }) => ({ id, name }))
+            : [];
+
     return (
         <div className="flex flex-col flex-1 h-full gap-6">
             <h1 className="sr-only">Dashboard Utama</h1>
@@ -58,20 +68,20 @@ export default function Page() {
                 </StaggerItem>
 
                 <StaggerItem className="col-span-12 lg:col-span-8">
-                    <SalesOverview />
+                    <SalesOverview isStaff={isStaff} warehouses={warehouses} />
                 </StaggerItem>
 
                 <StaggerItem className="col-span-12 lg:col-span-4">
-                    <RecentTransaction />
+                    <RecentTransaction isStaff={isStaff} warehouses={warehouses} />
                 </StaggerItem>
 
                 <StaggerItem className="col-span-12">
-                    <OutMaterialLineChart />
+                    <OutMaterialLineChart isStaff={isStaff} warehouses={warehouses} />
                 </StaggerItem>
 
                 <StaggerItem className="col-span-12 flex min-w-0 lg:col-span-8">
                     <div className="flex h-full w-full min-w-0 flex-col gap-4">
-                        <StockWarningTable />
+                        <StockWarningTable isStaff={isStaff} warehouses={warehouses} />
                     </div>
                 </StaggerItem>
 

@@ -96,7 +96,7 @@ export function OtherStockModal({
                 setSelectedRegional('all');
                 onClose();
             }}
-            className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-5xl"
+            className="flex max-h-[85dvh] w-[calc(100vw-2rem)] flex-col overflow-hidden p-4 sm:w-full sm:p-6 sm:max-w-5xl"
             title={
                 <span className="flex min-w-0 items-center gap-2 text-base font-semibold">
                     <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
@@ -153,9 +153,9 @@ export function OtherStockModal({
                 )}
 
                 {/* Table: only this region scrolls; the dialog heading and filters stay in place. */}
-                <div className="min-h-0 flex-1 rounded-lg border border-border/60">
-                    <div className="h-full overflow-auto">
-                        <div className="min-w-[760px]">
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border/60">
+                    <div className="min-h-0 flex-1 overflow-auto overscroll-contain [&_[data-slot=table-container]]:overflow-visible">
+                        <div className="min-w-[760px] sm:min-w-0">
                             <Table>
                                 <TableHeader className="sticky top-0 z-10 bg-background">
                                     <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -235,7 +235,7 @@ export function OtherStockModal({
 
                 {/* Footer summary */}
                 {!isLoading && rows.length > 0 && (
-                    <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
+                    <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border/60 pt-2 text-xs text-muted-foreground">
                         <span>
                             {rows.length} gudang ditemukan
                             {isFiltered && (

@@ -4,6 +4,7 @@ import type { ApexOptions } from 'apexcharts';
 import dynamic from 'next/dynamic';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { Card } from '@/components/ui/card';
 import {
     Select,
     SelectContent,
@@ -11,7 +12,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Card } from '@/components/ui/card';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -19,7 +19,12 @@ const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
 };
 
-const SalesOverview: React.FC = () => {
+type WarehouseOption = { id: number; name: string };
+
+const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] }> = ({
+    isStaff,
+    warehouses,
+}) => {
     const [selectedWh, setSelectedWh] = useState<string>('all');
     const [selectedMonth, setSelectedMonth] = useState<string>('15days');
     const [chartData, setChartData] = useState<{
@@ -116,26 +121,6 @@ const SalesOverview: React.FC = () => {
         return options;
     }, []);
 
-    const [warehouses, setWarehouses] = useState<{ id: number; name: string }[]>([]);
-
-    useEffect(() => {
-        const loadWarehouses = async () => {
-            const { getWarehouses } = await import(
-                '@/app/(DashboardLayout)/_actions/dashboard-actions'
-            );
-            const result = await getWarehouses();
-            if (result.success && result.data) {
-                setWarehouses(
-                    result.data.map((w: { id: number; name: string; branch: string }) => ({
-                        id: w.id,
-                        name: w.name,
-                    }))
-                );
-            }
-        };
-        loadWarehouses();
-    }, []);
-
     return (
         <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none pb-0 h-full w-full relative overflow-hidden motion-reduce:transition-none">
             <div
@@ -153,19 +138,21 @@ const SalesOverview: React.FC = () => {
                     </p>
                 </div>
                 <div className="sm:mt-0 mt-4 flex gap-3">
-                    <Select value={selectedWh} onValueChange={setSelectedWh}>
-                        <SelectTrigger className="w-[140px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
-                            <SelectValue placeholder="Pilih Gudang" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Gudang</SelectItem>
-                            {warehouses.map((wh) => (
-                                <SelectItem key={wh.id} value={String(wh.id)}>
-                                    {wh.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    {!isStaff && (
+                        <Select value={selectedWh} onValueChange={setSelectedWh}>
+                            <SelectTrigger className="w-[140px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
+                                <SelectValue placeholder="Pilih Gudang" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Gudang</SelectItem>
+                                {warehouses.map((wh) => (
+                                    <SelectItem key={wh.id} value={String(wh.id)}>
+                                        {wh.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
 
                     <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                         <SelectTrigger className="w-[160px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">

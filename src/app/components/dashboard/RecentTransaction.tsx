@@ -5,23 +5,37 @@ import dynamic from 'next/dynamic';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
-const RecentTransaction: React.FC = () => {
+type WarehouseOption = { id: number; name: string };
+
+const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] }> = ({
+    isStaff,
+    warehouses,
+}) => {
+    const [selectedWh, setSelectedWh] = useState('all');
     const [chartData, setChartData] = useState<{ categories: string[]; seriesData: number[] }>({
         categories: [],
         seriesData: [],
     });
 
     useEffect(() => {
+        let isActive = true;
         const loadData = async () => {
             const { getTopOutMaterials } = await import(
                 '@/app/(DashboardLayout)/_actions/dashboard-actions'
             );
-            const result = await getTopOutMaterials(7);
+            const result = await getTopOutMaterials(7, isStaff ? 'all' : selectedWh);
 
-            if (result.success && result.data) {
+            if (isActive && result.success && result.data) {
                 const categories = result.data.map(
                     (d: { material_name: string | null; total_qty: number }) =>
                         d.material_name || ''
@@ -33,8 +47,11 @@ const RecentTransaction: React.FC = () => {
             }
         };
 
-        loadData();
-    }, []);
+        void loadData();
+        return () => {
+            isActive = false;
+        };
+    }, [selectedWh, isStaff]);
     const ChartOptions: ApexOptions = {
         chart: {
             toolbar: { show: false },
@@ -87,11 +104,33 @@ const RecentTransaction: React.FC = () => {
                 aria-hidden="true"
             />
 
-            <div className="relative z-10 flex flex-col mb-6">
-                <h2 className="text-xl font-bold tracking-tight text-foreground">
-                    Top Out Material
-                </h2>
-                <p className="text-sm text-muted-foreground font-medium mt-1">30 Hari Terakhir</p>
+            <div className="relative z-10 mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 className="text-xl font-bold tracking-tight text-foreground">
+                        Top Out Material
+                    </h2>
+                    <p className="text-sm text-muted-foreground font-medium mt-1">
+                        30 Hari Terakhir
+                    </p>
+                </div>
+                {!isStaff && (
+                    <Select value={selectedWh} onValueChange={setSelectedWh}>
+                        <SelectTrigger
+                            aria-label="Filter gudang top out material"
+                            className="w-full sm:w-52"
+                        >
+                            <SelectValue placeholder="Pilih Gudang" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua Gudang</SelectItem>
+                            {warehouses.map((warehouse) => (
+                                <SelectItem key={warehouse.id} value={String(warehouse.id)}>
+                                    {warehouse.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
             </div>
             <div className="relative z-10 -mx-2">
                 <Chart

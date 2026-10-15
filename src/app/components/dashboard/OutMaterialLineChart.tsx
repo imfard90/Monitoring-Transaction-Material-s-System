@@ -4,6 +4,7 @@ import type { ApexOptions } from 'apexcharts';
 import dynamic from 'next/dynamic';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { Card } from '@/components/ui/card';
 import {
     Select,
     SelectContent,
@@ -11,11 +12,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Card } from '@/components/ui/card';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
-const OutMaterialLineChart: React.FC = () => {
+type WarehouseOption = { id: number; name: string };
+
+const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] }> = ({
+    isStaff,
+    warehouses,
+}) => {
     const [selectedWh, setSelectedWh] = useState<string>('all');
     const [selectedMaterial, setSelectedMaterial] = useState<string>('all');
 
@@ -34,7 +39,7 @@ const OutMaterialLineChart: React.FC = () => {
             const { getOutMaterialLineChartData } = await import(
                 '@/app/(DashboardLayout)/_actions/dashboard-actions'
             );
-            const result = await getOutMaterialLineChartData(selectedWh);
+            const result = await getOutMaterialLineChartData(isStaff ? 'all' : selectedWh);
 
             const resData = result.data as {
                 topMats: { material_code: string; material_name: string; total_qty: number }[];
@@ -103,7 +108,7 @@ const OutMaterialLineChart: React.FC = () => {
         };
 
         loadData();
-    }, [selectedWh]);
+    }, [selectedWh, isStaff]);
 
     // Filter series based on selected material
     const filteredSeries = useMemo(() => {
@@ -161,26 +166,6 @@ const OutMaterialLineChart: React.FC = () => {
         },
     };
 
-    const [warehouses, setWarehouses] = useState<{ id: number; name: string }[]>([]);
-
-    useEffect(() => {
-        const loadWarehouses = async () => {
-            const { getWarehouses } = await import(
-                '@/app/(DashboardLayout)/_actions/dashboard-actions'
-            );
-            const result = await getWarehouses();
-            if (result.success && result.data) {
-                setWarehouses(
-                    result.data.map((w: { id: number; name: string; branch: string }) => ({
-                        id: w.id,
-                        name: w.name,
-                    }))
-                );
-            }
-        };
-        loadWarehouses();
-    }, []);
-
     return (
         <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none pb-0 h-full w-full relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
@@ -195,19 +180,21 @@ const OutMaterialLineChart: React.FC = () => {
                     </p>
                 </div>
                 <div className="sm:mt-0 mt-4 flex gap-3">
-                    <Select value={selectedWh} onValueChange={setSelectedWh}>
-                        <SelectTrigger className="w-[140px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
-                            <SelectValue placeholder="Pilih Gudang" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Gudang</SelectItem>
-                            {warehouses.map((wh) => (
-                                <SelectItem key={wh.id} value={String(wh.id)}>
-                                    {wh.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    {!isStaff && (
+                        <Select value={selectedWh} onValueChange={setSelectedWh}>
+                            <SelectTrigger className="w-[140px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
+                                <SelectValue placeholder="Pilih Gudang" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Gudang</SelectItem>
+                                {warehouses.map((wh) => (
+                                    <SelectItem key={wh.id} value={String(wh.id)}>
+                                        {wh.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
 
                     <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
                         <SelectTrigger className="w-[180px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">

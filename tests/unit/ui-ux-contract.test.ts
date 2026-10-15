@@ -403,6 +403,40 @@ describe('executive premium localization invariants', () => {
         expect(warning).toMatch(/Peringatan Stok Minimum/);
         expect(warning).toMatch(/Kode Material/);
         expect(warning).toMatch(/Stok Saat Ini/);
+        expect(warning).toMatch(/toLocaleString\('id-ID'\)/);
+        expect(warning).toMatch(/Pilih Gudang/);
+        expect(warning).toMatch(/onValueChange/);
+        const topOut = await readSrc('src/app/components/dashboard/RecentTransaction.tsx');
+        expect(topOut).toMatch(/Pilih Gudang/);
+        expect(topOut).toMatch(/onValueChange/);
+        expect(topOut).toMatch(/getTopOutMaterials\(7, isStaff \? 'all' : selectedWh\)/);
+        expect(topOut).toMatch(/!isStaff && \(/);
+        const salesOverview = await readSrc('src/app/components/dashboard/SalesOverview.tsx');
+        const outMaterialChart = await readSrc(
+            'src/app/components/dashboard/OutMaterialLineChart.tsx'
+        );
+        const stockWarning = await readSrc('src/app/components/dashboard/StockWarningTable.tsx');
+        for (const source of [salesOverview, outMaterialChart, stockWarning]) {
+            expect(source).toMatch(/!isStaff && \(/);
+        }
+        const dashboardQueries = await readSrc(
+            'src/app/(DashboardLayout)/_actions/dashboard-queries.ts'
+        );
+        expect(dashboardQueries).toMatch(/getStockWarnings\(warehouseId: string = 'all'\)/);
+        expect(dashboardQueries).toMatch(
+            /where\('p\.warehouse_id', '=', Number\(parsed\.data\.warehouseId\)\)/
+        );
+        expect(dashboardQueries).not.toMatch(/outLensaQuery = outLensaQuery\.where/);
+        expect(dashboardQueries).not.toMatch(/rekonLensaQuery = rekonLensaQuery\.where/);
+        const dashboardCharts = await readSrc(
+            'src/app/(DashboardLayout)/_actions/dashboard-charts-queries.ts'
+        );
+        expect(dashboardCharts).toMatch(
+            /getTopOutMaterials\(limit: number = 7, warehouseId: string = 'all'\)/
+        );
+        expect(dashboardCharts).toMatch(
+            /where\('soh\.warehouse_id', '=', Number\(parsed\.data\.warehouseId\)\)/
+        );
 
         const perf = await readSrc('src/app/components/dashboard/ProductPerformance.tsx');
         expect(perf).toMatch(/Performa Pengeluaran Gudang/);
