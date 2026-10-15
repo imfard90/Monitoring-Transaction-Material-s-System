@@ -19,7 +19,7 @@ const rekonItemSchema = z.object({
     sap_out_item_id: z.string().min(1),
     qty: z.number().positive(),
     wo_type: z.string().min(1),
-    wo_number: z.string().min(1),
+    wo_number: z.string().min(1).max(50, 'Nomor WO maksimal 50 karakter'),
     notes: z.string(),
 });
 

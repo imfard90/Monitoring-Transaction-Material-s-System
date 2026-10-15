@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// server-only is a Next.js build-time guard — stub it in unit tests
+vi.mock('server-only', () => ({}));
+
+// Mock the Sheets sync module so unit tests don't touch the filesystem
+const mockLoadOtherStockCache = vi.fn();
+vi.mock('@/lib/google_ecosystem/sheets-stock-sync', () => ({
+    loadOtherStockCache: mockLoadOtherStockCache,
+}));
+
 const mockGetSessionUser = vi.fn();
 const mockExecute = vi.fn();
 const mockCacheGet = vi.fn();
@@ -78,7 +87,7 @@ vi.mock('@/lib/db/db', () => ({
     },
 }));
 
-const { getLensaWarehousePerformance } = await import(
+const { getLensaWarehousePerformance, getOtherWarehouseStock } = await import(
     '@/app/(DashboardLayout)/_actions/dashboard-queries'
 );
 const { getSalesOverviewData } = await import(
@@ -150,5 +159,100 @@ describe('getLensaWarehousePerformance', () => {
             })
         );
         expect(mockExecute).toHaveBeenCalledTimes(2);
+    });
+});
+
+// ─── getOtherWarehouseStock ────────────────────────────────────────────────────
+
+describe('getOtherWarehouseStock', () => {
+    const MOCK_ITEMS = [
+        {
+            regional: 'JATIM',
+            branch: 'SBY',
+            gudang: 'GDG-01',
+            materialCode: 'MAT001',
+            materialName: 'Lensa XR',
+            stockH1: 50,
+        },
+        {
+            regional: 'JATIM',
+            branch: 'MLG',
+            gudang: 'GDG-02',
+            materialCode: 'MAT001',
+            materialName: 'Lensa XR',
+            stockH1: 120,
+        },
+        {
+            regional: 'JABAR',
+            branch: 'BDG',
+            gudang: 'GDG-03',
+            materialCode: 'MAT002',
+            materialName: 'Kabel UTP',
+            stockH1: 10,
+        },
+    ];
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockGetSessionUser.mockResolvedValue({ isStaff: false, warehouseIds: [] });
+        mockLoadOtherStockCache.mockReturnValue({
+            syncedAt: new Date().toISOString(),
+            rowCount: MOCK_ITEMS.length,
+            items: MOCK_ITEMS,
+        });
+    });
+
+    it('returns only items matching the requested materialCode (case-insensitive)', async () => {
+        const result = await getOtherWarehouseStock('mat001');
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data).toHaveLength(2);
+            expect(result.data.every((i) => i.materialCode === 'MAT001')).toBe(true);
+        }
+    });
+
+    it('sorts results descending by stockH1', async () => {
+        const result = await getOtherWarehouseStock('MAT001');
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data[0].stockH1).toBe(120);
+            expect(result.data[1].stockH1).toBe(50);
+        }
+    });
+
+    it('returns empty array when no items match the code', async () => {
+        const result = await getOtherWarehouseStock('NOTEXIST');
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data).toHaveLength(0);
+        }
+    });
+
+    it('returns error when cache is null (not yet synced)', async () => {
+        mockLoadOtherStockCache.mockReturnValue(null);
+
+        const result = await getOtherWarehouseStock('MAT001');
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+            expect(result.error).toContain('belum tersinkronisasi');
+        }
+    });
+
+    it('returns error when materialCode is empty string', async () => {
+        const result = await getOtherWarehouseStock('');
+
+        expect(result.success).toBe(false);
+    });
+
+    it('rejects unauthenticated callers', async () => {
+        mockGetSessionUser.mockRejectedValue(new Error('AuthenticationError'));
+
+        const result = await getOtherWarehouseStock('MAT001');
+
+        expect(result.success).toBe(false);
     });
 });

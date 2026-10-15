@@ -14,6 +14,7 @@ export async function register() {
     const { internalTriggerWOScraping } = await import(
         './app/(DashboardLayout)/apps/wo-lensa-ref/_actions/wo-lensa-actions'
     );
+    const { syncOtherStock } = await import('@/lib/google_ecosystem/sheets-stock-sync');
 
     // Schedule: 04.00, 09.30, 12.30, 15.00, 18.00, 21.00, 23.00 WIB
     // WIB is UTC+7.
@@ -64,6 +65,27 @@ export async function register() {
                 timezone: 'Asia/Jakarta',
             });
         }
+
+        // Daily Google Sheets → JSON cache sync at 09:00 WIB.
+        // Tab DATA KEMARIN is updated by the external team each morning, so
+        // 09:00 WIB is the earliest reliable time to pull fresh data.
+        cron.schedule('0 9 * * *', () => syncOtherStock(), {
+            timezone: 'Asia/Jakarta',
+        });
+
         actionLogger.info('[CRON] Scheduled Lensa scrapers registered for Asia/Jakarta timezone.');
+        actionLogger.info('[CRON] Scheduled Sheets other-stock sync at 09:00 WIB.');
+
+        // ── Startup sync ──────────────────────────────────────────────────────
+        // Run an immediate sync on server start so data is available right away,
+        // even if the server restarts after 09:00 or is freshly deployed.
+        // Runs in the background — does not block startup.
+        actionLogger.info('[STARTUP] Triggering initial Sheets other-stock sync in background…');
+        syncOtherStock().catch((err: unknown) => {
+            actionLogger.error(
+                '[STARTUP] Initial Sheets other-stock sync failed:',
+                err instanceof Error ? err : new Error(String(err))
+            );
+        });
     }
 }

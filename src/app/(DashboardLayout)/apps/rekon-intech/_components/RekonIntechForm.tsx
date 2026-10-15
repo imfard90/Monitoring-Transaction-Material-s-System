@@ -229,6 +229,7 @@ export default function RekonIntechForm() {
                                             <SelectItem value="qe/gamas">QE/Gamas</SelectItem>
                                             <SelectItem value="mtel">MTel</SelectItem>
                                             <SelectItem value="lintas_arta">Lintas Arta</SelectItem>
+                                            <SelectItem value="project">Project</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -240,6 +241,7 @@ export default function RekonIntechForm() {
                                         className="h-10"
                                         placeholder="WO-123..."
                                         disabled={!selectedNik}
+                                        maxLength={50}
                                     />
                                 </div>
                                 <div className="space-y-2">

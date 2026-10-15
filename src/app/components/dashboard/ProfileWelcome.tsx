@@ -1,8 +1,8 @@
 import { Icon } from '@iconify/react';
-import fs from 'fs';
+import fs from 'node:fs';
 import { headers } from 'next/headers';
 import Image from 'next/image';
-import path from 'path';
+import path from 'node:path';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { auth } from '@/lib/auth';
 import { getSessionUser } from '@/lib/auth-server';

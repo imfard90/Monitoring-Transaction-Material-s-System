@@ -31,6 +31,7 @@ export type InventoryEnumWoType =
     | 'lintas_arta'
     | 'mtel'
     | 'myrep'
+    | 'project'
     | 'psb'
     | 'qe/gamas';
 

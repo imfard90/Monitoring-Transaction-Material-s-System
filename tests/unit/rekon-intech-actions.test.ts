@@ -153,6 +153,64 @@ describe('rekon-intech-actions Unit Tests', () => {
         );
     });
 
+    it('accepts "project" as a valid wo_type and passes it normalized to repository', async () => {
+        const itemWithProjectWoType = {
+            ...validItem,
+            wo_type: 'project',
+        };
+
+        const res = await submitRekonIntech('TKN01', [itemWithProjectWoType], 'idem-key-7');
+
+        expect(res.success).toBe(true);
+        expect(mockSubmitRekonIntechRepo).toHaveBeenCalledWith(
+            expect.objectContaining({
+                woType: 'project',
+            })
+        );
+    });
+
+    it('accepts mixed-case "Project" wo_type and normalizes to lowercase', async () => {
+        const itemWithMixedProjectType = {
+            ...validItem,
+            wo_type: 'Project',
+        };
+
+        const res = await submitRekonIntech('TKN01', [itemWithMixedProjectType], 'idem-key-8');
+
+        expect(res.success).toBe(true);
+        expect(mockSubmitRekonIntechRepo).toHaveBeenCalledWith(
+            expect.objectContaining({
+                woType: 'project',
+            })
+        );
+    });
+
+    it('rejects wo_number longer than 50 characters', async () => {
+        const itemWithLongWoNumber = {
+            ...validItem,
+            wo_number: `WO-${'A'.repeat(50)}`, // 53 characters total
+        };
+
+        const res = await submitRekonIntech('TKN01', [itemWithLongWoNumber], 'idem-key-9');
+        expect(res.success).toBe(false);
+        expect(res.error).toContain('Invalid input data');
+    });
+
+    it('accepts wo_number of exactly 50 characters', async () => {
+        const itemWithMaxWoNumber = {
+            ...validItem,
+            wo_number: 'W'.repeat(50), // exactly 50 characters
+        };
+
+        const res = await submitRekonIntech('TKN01', [itemWithMaxWoNumber], 'idem-key-10');
+        expect(res.success).toBe(true);
+        expect(mockSubmitRekonIntechRepo).toHaveBeenCalledWith(
+            expect.objectContaining({
+                woNumber: 'W'.repeat(50),
+            })
+        );
+    });
+
     it('rejects when wo_type is empty', async () => {
         const itemWithEmptyWoType = {
             ...validItem,

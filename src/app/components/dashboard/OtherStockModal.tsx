@@ -2,9 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, MapPin } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { getOtherWarehouseStock } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import type { OtherStockItem } from '@/app/(DashboardLayout)/_actions/dashboard-queries';
 import { ModalDialog } from '@/app/components/shared/ModalDialog';
+import { RegionalCombobox } from '@/app/components/shared/RegionalCombobox';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -41,6 +43,8 @@ function SkeletonRows() {
 }
 
 export function OtherStockModal({ isOpen, onClose, materialCode }: OtherStockModalProps) {
+    const [selectedRegional, setSelectedRegional] = useState<string>('all');
+
     const { data, isLoading, isError, error } = useQuery({
         queryKey: ['otherWarehouseStock', materialCode],
         queryFn: () => getOtherWarehouseStock(materialCode),
@@ -49,7 +53,10 @@ export function OtherStockModal({ isOpen, onClose, materialCode }: OtherStockMod
         retry: 1,
     });
 
-    const rows: OtherStockItem[] = data?.success ? data.data : [];
+    // Reset filter when modal opens with a new material
+    // (using key on modal instead would remount; useState reset on isOpen change is simpler)
+    const allRows: OtherStockItem[] = data?.success ? data.data : [];
+
     const fetchError = isError
         ? error instanceof Error
             ? error.message
@@ -58,10 +65,31 @@ export function OtherStockModal({ isOpen, onClose, materialCode }: OtherStockMod
           ? data.error
           : null;
 
+    // Derive sorted unique regionals from all rows
+    const regionalOptions = useMemo(
+        () => [...new Set(allRows.map((r) => r.regional))].sort(),
+        [allRows]
+    );
+
+    // Apply regional filter client-side (data already fetched)
+    const rows = useMemo(
+        () =>
+            selectedRegional === 'all' || selectedRegional === ''
+                ? allRows
+                : allRows.filter((r) => r.regional === selectedRegional),
+        [allRows, selectedRegional]
+    );
+
+    const totalStock = rows.reduce((s, r) => s + r.stockH1, 0);
+    const isFiltered = selectedRegional !== 'all' && selectedRegional !== '';
+
     return (
         <ModalDialog
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={() => {
+                setSelectedRegional('all');
+                onClose();
+            }}
             className="sm:max-w-4xl max-h-[85vh]"
             title={
                 <span className="flex items-center gap-2 text-base font-semibold">
@@ -92,6 +120,29 @@ export function OtherStockModal({ isOpen, onClose, materialCode }: OtherStockMod
                     <span>{fetchError}</span>
                 </div>
             )}
+
+            {/* Toolbar: regional filter */}
+            {!isLoading && !fetchError && allRows.length > 0 && (
+                <div className="flex items-center gap-2 pb-2">
+                    <span className="text-xs text-muted-foreground shrink-0">Filter:</span>
+                    <RegionalCombobox
+                        value={selectedRegional}
+                        onValueChange={setSelectedRegional}
+                        regionals={regionalOptions}
+                        disabled={isLoading}
+                    />
+                    {isFiltered && (
+                        <button
+                            type="button"
+                            onClick={() => setSelectedRegional('all')}
+                            className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition-colors"
+                        >
+                            Reset
+                        </button>
+                    )}
+                </div>
+            )}
+
             {/* Table */}
             <div className="rounded-lg border border-border/60 overflow-hidden">
                 <div className="overflow-x-auto">
@@ -111,7 +162,7 @@ export function OtherStockModal({ isOpen, onClose, materialCode }: OtherStockMod
                                     Kode Material
                                 </TableHead>
                                 <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
-                                    Uraian Material
+                                    Nama Material
                                 </TableHead>
                                 <TableHead className="text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
                                     Stock H-1
@@ -127,7 +178,9 @@ export function OtherStockModal({ isOpen, onClose, materialCode }: OtherStockMod
                                         colSpan={6}
                                         className="py-10 text-center text-sm text-muted-foreground"
                                     >
-                                        Tidak ada stok material ini di gudang lain.
+                                        {isFiltered
+                                            ? `Tidak ada stok untuk regional "${selectedRegional}".`
+                                            : 'Tidak ada stok material ini di gudang lain.'}
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -166,14 +219,22 @@ export function OtherStockModal({ isOpen, onClose, materialCode }: OtherStockMod
                     </Table>
                 </div>
             </div>
+
             {/* Footer summary */}
             {!isLoading && rows.length > 0 && (
                 <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
-                    <span>{rows.length} gudang ditemukan</span>
+                    <span>
+                        {rows.length} gudang ditemukan
+                        {isFiltered && (
+                            <span className="ml-1 text-primary font-medium">
+                                · {selectedRegional}
+                            </span>
+                        )}
+                    </span>
                     <span>
                         Total:{' '}
                         <span className="font-semibold text-foreground tabular-nums">
-                            {rows.reduce((s, r) => s + r.stockH1, 0).toLocaleString('id-ID')}
+                            {totalStock.toLocaleString('id-ID')}
                         </span>
                     </span>
                 </div>
