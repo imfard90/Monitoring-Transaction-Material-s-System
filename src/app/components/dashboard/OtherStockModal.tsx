@@ -1,0 +1,183 @@
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import { AlertCircle, MapPin } from 'lucide-react';
+import { getOtherWarehouseStock } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
+import type { OtherStockItem } from '@/app/(DashboardLayout)/_actions/dashboard-queries';
+import { ModalDialog } from '@/app/components/shared/ModalDialog';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+
+interface OtherStockModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    materialCode: string;
+}
+
+function SkeletonRows() {
+    return (
+        <>
+            {Array.from({ length: 5 }).map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholder rows
+                <TableRow key={i}>
+                    {Array.from({ length: 6 }).map((__, j) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholder cells
+                        <TableCell key={j}>
+                            <Skeleton className="h-4 w-full" />
+                        </TableCell>
+                    ))}
+                </TableRow>
+            ))}
+        </>
+    );
+}
+
+export function OtherStockModal({ isOpen, onClose, materialCode }: OtherStockModalProps) {
+    const { data, isLoading, isError, error } = useQuery({
+        queryKey: ['otherWarehouseStock', materialCode],
+        queryFn: () => getOtherWarehouseStock(materialCode),
+        enabled: isOpen && materialCode.length > 0,
+        staleTime: 1000 * 60 * 5,
+        retry: 1,
+    });
+
+    const rows: OtherStockItem[] = data?.success ? data.data : [];
+    const fetchError = isError
+        ? error instanceof Error
+            ? error.message
+            : 'Terjadi kesalahan.'
+        : !data?.success && data?.error
+          ? data.error
+          : null;
+
+    return (
+        <ModalDialog
+            isOpen={isOpen}
+            onClose={onClose}
+            className="sm:max-w-4xl max-h-[85vh]"
+            title={
+                <span className="flex items-center gap-2 text-base font-semibold">
+                    <MapPin className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
+                    {'Stock Material '}
+                    <Badge
+                        variant="outline"
+                        className="rounded-md border-border/70 bg-muted/60 px-2 py-0.5 font-mono text-[11px] font-semibold tracking-wide text-foreground shadow-sm"
+                    >
+                        {materialCode}
+                    </Badge>
+                </span>
+            }
+            description={
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span
+                        className="inline-flex h-1.5 w-1.5 rounded-full bg-amber-400"
+                        aria-hidden="true"
+                    />
+                    Stock di gudang lainnya posisi H-1
+                </span>
+            }
+        >
+            {/* Error state */}
+            {fetchError && !isLoading && (
+                <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>{fetchError}</span>
+                </div>
+            )}
+            {/* Table */}
+            <div className="rounded-lg border border-border/60 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
+                                    Regional
+                                </TableHead>
+                                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
+                                    Branch
+                                </TableHead>
+                                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
+                                    Gudang
+                                </TableHead>
+                                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
+                                    Kode Material
+                                </TableHead>
+                                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
+                                    Uraian Material
+                                </TableHead>
+                                <TableHead className="text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
+                                    Stock H-1
+                                </TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <SkeletonRows />
+                            ) : rows.length === 0 && !fetchError ? (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={6}
+                                        className="py-10 text-center text-sm text-muted-foreground"
+                                    >
+                                        Tidak ada stok material ini di gudang lain.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                rows.map((row, idx) => (
+                                    <TableRow
+                                        // biome-ignore lint/suspicious/noArrayIndexKey: rows sorted server-side, no stable ID
+                                        key={`${row.gudang}-${row.branch}-${idx}`}
+                                        className="transition-colors hover:bg-muted/30"
+                                    >
+                                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                            {row.regional}
+                                        </TableCell>
+                                        <TableCell className="text-sm font-medium whitespace-nowrap">
+                                            {row.branch}
+                                        </TableCell>
+                                        <TableCell className="text-sm whitespace-nowrap">
+                                            {row.gudang}
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="inline-flex rounded-md border border-border/70 bg-muted/60 px-2 py-1 font-mono text-[11px] font-semibold tracking-wide text-foreground shadow-sm whitespace-nowrap">
+                                                {row.materialCode}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-sm max-w-[240px] truncate">
+                                            <span title={row.materialName}>{row.materialName}</span>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <span className="font-bold tabular-nums text-primary">
+                                                {row.stockH1.toLocaleString('id-ID')}
+                                            </span>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </div>
+            {/* Footer summary */}
+            {!isLoading && rows.length > 0 && (
+                <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
+                    <span>{rows.length} gudang ditemukan</span>
+                    <span>
+                        Total:{' '}
+                        <span className="font-semibold text-foreground tabular-nums">
+                            {rows.reduce((s, r) => s + r.stockH1, 0).toLocaleString('id-ID')}
+                        </span>
+                    </span>
+                </div>
+            )}
+        </ModalDialog>
+    );
+}

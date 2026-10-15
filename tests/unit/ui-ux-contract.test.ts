@@ -140,6 +140,48 @@ describe('UI primitives premium invariants', () => {
     });
 });
 
+describe('SearchField clear behavior', () => {
+    it('renders a labeled clear button only when a search value is present', async () => {
+        const src = await readSrc('src/app/components/shared/SearchField.tsx');
+        expect(src).toMatch(/aria-label=\{clearLabel\}/);
+        expect(src).toMatch(/onClick=\{\(\) => onValueChange\(''\)\}/);
+        expect(src).toMatch(/\{value && \(/);
+    });
+
+    it('hides the browser-native search clear affordance when using a custom clear button', async () => {
+        const src = await readSrc('src/app/components/shared/SearchField.tsx');
+        expect(src).toMatch(/\[&::-webkit-search-cancel-button\]:hidden/);
+        expect(src).toMatch(/\[&::-ms-clear\]:hidden/);
+    });
+
+    it('technician search matches NIK or name, case-insensitively', async () => {
+        const src = await readSrc(
+            'src/app/(DashboardLayout)/management/technician/technician-table.tsx'
+        );
+        expect(src).toMatch(/item\.nik\?\.toLowerCase\(\)\.includes\(search\)/);
+        expect(src).toMatch(/item\.name\?\.toLowerCase\(\)\.includes\(search\)/);
+        expect(src).toMatch(/Cari berdasarkan NIK atau nama/);
+    });
+
+    it('is used by the controlled search fields without changing page filter callbacks', async () => {
+        const components = [
+            'src/app/components/dashboard/StockBalanceOverview.tsx',
+            'src/app/components/dashboard/StockIntechOverview.tsx',
+            'src/app/(DashboardLayout)/apps/hasil-rekon/_components/HasilRekonTable.tsx',
+            'src/app/(DashboardLayout)/apps/inout-tag/_components/InOutTagTable.tsx',
+            'src/app/(DashboardLayout)/apps/out-material/_components/OutMaterialTable.tsx',
+            'src/app/(DashboardLayout)/apps/stock-movement/_components/MovementTable.tsx',
+            'src/app/(DashboardLayout)/management/technician/technician-table.tsx',
+            'src/app/(DashboardLayout)/management/users/user-table.tsx',
+        ];
+
+        for (const component of components) {
+            const src = await readSrc(component);
+            expect(src).toMatch(/<SearchField/);
+        }
+    });
+});
+
 describe('DataTable premium invariants', () => {
     it('uses semantic tokens and Indonesian defaults', async () => {
         const src = await readSrc('src/app/components/shared/DataTable.tsx');
@@ -161,14 +203,48 @@ describe('DataTable premium invariants', () => {
         expect(src).toMatch(/motion-reduce/);
     });
 
-    it('DataTablePagination uses Indonesian copy and ARIA labels and persists page size', async () => {
+    it('Lensa reference routes default server pagination to 20 rows without a URL pageSize', async () => {
+        const routes = [
+            'src/app/(DashboardLayout)/apps/out-lensa-ref/page.tsx',
+            'src/app/(DashboardLayout)/apps/wo-lensa-ref/page.tsx',
+        ];
+
+        for (const route of routes) {
+            const src = await readSrc(route);
+            expect(src).toMatch(/params\.pageSize\s*\?\?\s*'20'/);
+        }
+    });
+
+    it('DataTablePagination uses Indonesian copy and ARIA labels without persisting page size', async () => {
         const src = await readSrc('src/app/components/shared/DataTablePagination.tsx');
         expect(src).toMatch(/Halaman/);
         expect(src).toMatch(/Sebelumnya/);
         expect(src).toMatch(/Berikutnya/);
         expect(src).toMatch(/<nav|role="navigation"/);
         expect(src).toMatch(/aria-label/);
-        expect(src).toMatch(/mtms_table_page_size/);
+        expect(src).not.toMatch(/localStorage|mtms_table_page_size/);
+        expect(src).not.toMatch(/useEffect/);
+        expect(src).toMatch(/table\.setPageSize\(size\)/);
+    });
+
+    it('Lensa reference clients use server pagination without competing local pagination state', async () => {
+        const outLensa = await readSrc(
+            'src/app/(DashboardLayout)/apps/out-lensa-ref/_components/OutLensaRefClient.tsx'
+        );
+        const woLensa = await readSrc(
+            'src/app/(DashboardLayout)/apps/wo-lensa-ref/_components/WOLensaRefClient.tsx'
+        );
+
+        for (const src of [outLensa, woLensa]) {
+            expect(src).toMatch(/const \[localPagination, setLocalPagination\] = useState/);
+            expect(src).toMatch(/manualPagination: !!pagination/);
+            expect(src).toMatch(/setLocalPagination\(newState\)/);
+            expect(src).toMatch(
+                /params\.set\('page', \(newState\.pageIndex \+ 1\)\.toString\(\)\)/
+            );
+            expect(src).toMatch(/params\.set\('pageSize', newState\.pageSize\.toString\(\)\)/);
+            expect(src).not.toMatch(/setPagination\(/);
+        }
     });
 });
 

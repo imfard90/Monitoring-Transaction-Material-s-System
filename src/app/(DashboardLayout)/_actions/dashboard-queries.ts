@@ -1,6 +1,9 @@
 'use server';
 
+import path from 'node:path';
+import { google } from 'googleapis';
 import { sql } from 'kysely';
+import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
@@ -307,5 +310,104 @@ export async function getDashboardKpis() {
             error instanceof Error ? error : new Error(String(error))
         );
         return { success: false, data: null };
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stock lokasi lain (H-1) — DATA KEMARIN, direct Sheets API (no 250-row limit)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const OTHER_STOCK_SPREADSHEET_ID = '1-oFsEmoyLk6VuVxQVKerB6235-kkaXNTndVWkCRAF6c';
+
+export interface OtherStockItem {
+    regional: string;
+    branch: string;
+    gudang: string;
+    materialCode: string;
+    materialName: string;
+    stockH1: number;
+}
+
+const otherStockInputSchema = z.object({
+    materialCode: z.string().min(1).max(100).trim(),
+});
+
+export async function getOtherWarehouseStock(
+    materialCode: string
+): Promise<{ success: true; data: OtherStockItem[] } | { success: false; error: string }> {
+    try {
+        await getSessionUser();
+
+        const parsed = otherStockInputSchema.safeParse({ materialCode });
+        if (!parsed.success) {
+            return { success: false, error: 'Kode material tidak valid.' };
+        }
+        const code = parsed.data.materialCode;
+
+        const credentialPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+        if (!credentialPath) {
+            actionLogger.error('getOtherWarehouseStock: GOOGLE_APPLICATION_CREDENTIALS is not set');
+            return { success: false, error: 'Konfigurasi kredensial Google tidak ditemukan.' };
+        }
+
+        const auth = new google.auth.GoogleAuth({
+            keyFile: path.resolve(credentialPath),
+            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        });
+
+        const sheets = google.sheets({ version: 'v4', auth });
+
+        // Kolom mapping (0-based, row data):
+        //  A=0 (key), B=1 (WITEL LAMA), C=2 (BRANCH), D=3 (WH),
+        //  E=4 (PLANT), F=5 (Material), G=6 (Material description),
+        //  H=7 (QTY KEMARIN), I=8 (KATEGORI), J=9 (KETERANGAN), K=10 (REGION)
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: OTHER_STOCK_SPREADSHEET_ID,
+            range: "'DATA KEMARIN'!A2:K50000",
+            valueRenderOption: 'FORMATTED_VALUE',
+            majorDimension: 'ROWS',
+        });
+
+        const rows = response.data.values ?? [];
+        const codeUpper = code.toUpperCase();
+
+        const result: OtherStockItem[] = [];
+
+        for (const row of rows) {
+            const materialCol = String(row[5] ?? '')
+                .trim()
+                .toUpperCase();
+            if (materialCol !== codeUpper) continue;
+
+            const rawQty = String(row[7] ?? '')
+                .replace(/\./g, '')
+                .replace(',', '.');
+            const qty = Number.parseFloat(rawQty);
+            if (!Number.isFinite(qty) || qty <= 0) continue;
+
+            result.push({
+                regional: String(row[10] ?? '-').trim(),
+                branch: String(row[2] ?? '-').trim(),
+                gudang: String(row[3] ?? '-').trim(),
+                materialCode: String(row[5] ?? '').trim(),
+                materialName: String(row[6] ?? '-').trim(),
+                stockH1: qty,
+            });
+        }
+
+        // Urutkan terbanyak terlebih dahulu
+        result.sort((a, b) => b.stockH1 - a.stockH1);
+
+        return { success: true, data: result };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'getOtherWarehouseStock failed',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return {
+            success: false,
+            error:
+                error instanceof Error ? error.message : 'Gagal mengambil data stok lokasi lain.',
+        };
     }
 }

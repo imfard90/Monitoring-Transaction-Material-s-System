@@ -7,17 +7,20 @@ import {
     getPaginationRowModel,
     useReactTable,
 } from '@tanstack/react-table';
-import { Search } from 'lucide-react';
+import { IconBuildingWarehouse } from '@tabler/icons-react';
 import React, { useState } from 'react';
 import { getStockBalances } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import CardBox from '@/app/components/shared/CardBox';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { SearchField } from '@/app/components/shared/SearchField';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
+import { OtherStockModal } from '@/app/components/dashboard/OtherStockModal';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { sortStockBalancesByRunout } from '@/lib/utils/stock-balance-order';
 
 interface StockBalanceData {
@@ -36,6 +39,7 @@ export default function StockBalanceOverview() {
     const [searchQuery, setSearchQuery] = useState('');
     const [whFilter, setWhFilter] = useState<string>('all');
     const [openCombo, setOpenCombo] = useState(false);
+    const [selectedMaterialCode, setSelectedMaterialCode] = useState<string | null>(null);
 
     const { data, isLoading } = useQuery({
         queryKey: ['stockBalances'],
@@ -86,11 +90,31 @@ export default function StockBalanceOverview() {
         }),
         columnHelper.accessor('material_code', {
             header: 'Kode Material',
-            cell: (info) => (
-                <Badge variant="outline" className="font-mono text-xs">
-                    {info.getValue() || '-'}
-                </Badge>
-            ),
+            cell: (info) => {
+                const materialCode = info.getValue();
+                if (!materialCode) return '-';
+
+                return (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Filter saldo berdasarkan kode material ${materialCode} di semua gudang`}
+                        className="h-auto rounded-md p-0 font-mono text-xs font-semibold text-foreground hover:bg-transparent"
+                        onClick={() => {
+                            setSearchQuery(materialCode);
+                            setWhFilter('all');
+                        }}
+                    >
+                        <Badge
+                            variant="outline"
+                            className="rounded-md border-border/70 bg-muted/60 px-2 py-1 font-mono text-[11px] font-semibold tracking-wide text-foreground shadow-sm transition-colors hover:bg-muted"
+                        >
+                            {materialCode}
+                        </Badge>
+                    </Button>
+                );
+            },
         }),
         columnHelper.accessor('material_name', {
             header: 'Nama Material',
@@ -146,6 +170,52 @@ export default function StockBalanceOverview() {
                 );
             },
         }),
+        columnHelper.display({
+            id: 'other_location_stock',
+            size: 48,
+            header: () => (
+                <div className="flex justify-center">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span className="inline-flex cursor-default">
+                                <IconBuildingWarehouse
+                                    className="h-4 w-4 text-muted-foreground"
+                                    aria-hidden="true"
+                                />
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                            <p>Stock lokasi lain</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
+            ),
+            cell: ({ row }) => {
+                const code = row.original.material_code;
+                if (!code) return null;
+                return (
+                    <div className="flex justify-center">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={`Lihat stock material ${code} di gudang lain`}
+                                    className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                    onClick={() => setSelectedMaterialCode(code)}
+                                >
+                                    <IconBuildingWarehouse className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                                <p>Stock lokasi lain</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+                );
+            },
+        }),
     ];
 
     const table = useReactTable({
@@ -170,18 +240,13 @@ export default function StockBalanceOverview() {
                             </p>
                         </div>
                         <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <div className="relative w-full sm:w-64">
-                                <Input
-                                    placeholder="Cari kode atau nama material..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-9"
-                                />
-                                <Search
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                                    size={16}
-                                />
-                            </div>
+                            <SearchField
+                                wrapperClassName="w-full sm:w-64"
+                                placeholder="Cari kode atau nama material..."
+                                value={searchQuery}
+                                onValueChange={setSearchQuery}
+                                clearLabel="Hapus pencarian material"
+                            />
                             <WarehouseCombobox
                                 value={whFilter}
                                 onValueChange={setWhFilter}
@@ -202,6 +267,14 @@ export default function StockBalanceOverview() {
                     </div>
                 </CardBox>
             </StaggerItem>
+            {/* Modal stock lokasi lain */}
+            {selectedMaterialCode && (
+                <OtherStockModal
+                    isOpen={selectedMaterialCode !== null}
+                    onClose={() => setSelectedMaterialCode(null)}
+                    materialCode={selectedMaterialCode}
+                />
+            )}
         </StaggerContainer>
     );
 }
