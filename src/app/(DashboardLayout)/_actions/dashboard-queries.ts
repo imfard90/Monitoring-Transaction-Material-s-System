@@ -6,15 +6,15 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
+import { AuthorizationError, ConflictError } from '@/lib/errors';
 import {
     loadOtherStockCache,
     OTHER_STOCK_SYNC_LOCK_KEY,
     OTHER_STOCK_SYNC_LOCK_TTL_SECONDS,
-    syncOtherStock,
     type OtherStockItem,
+    syncOtherStock,
 } from '@/lib/google_ecosystem/sheets-stock-sync';
 import { actionLogger } from '@/lib/logger';
-import { AuthorizationError, ConflictError } from '@/lib/errors';
 import { redis } from '@/lib/redis';
 
 const triggerOtherStockSyncSchema = z.object({}).strict();
@@ -67,12 +67,9 @@ export async function getStockBalances() {
 
 export async function getLensaWarehousePerformance() {
     try {
-        const { isStaff, warehouseIds } = await getSessionUser();
-        if (isStaff && warehouseIds.length === 0) {
-            return { success: true, data: { outLensa: [], rekonLensa: [] } };
-        }
+        await getSessionUser();
 
-        let outLensaQuery = db
+        const outLensaQuery = db
             .selectFrom('inventory.out_lensa_ref_header as olh')
             .innerJoin('inventory.mas_wh as wh', (join) =>
                 join.on(
@@ -90,7 +87,7 @@ export async function getLensaWarehousePerformance() {
             .where('olh.formatted_date', '=', sql<Date>`CURRENT_DATE`)
             .groupBy(['wh.id', 'wh.name']);
 
-        let rekonLensaQuery = db
+        const rekonLensaQuery = db
             .selectFrom('inventory.wo_lensa_header as wlh')
             .innerJoin('inventory.mas_wh as wh', (join) =>
                 join.on(
@@ -106,11 +103,6 @@ export async function getLensaWarehousePerformance() {
                 sql<number>`COUNT(wlh.id) FILTER (WHERE wlh.rekon_check IS TRUE)`.as('completed'),
             ])
             .groupBy(['wh.id', 'wh.name']);
-
-        if (isStaff) {
-            outLensaQuery = outLensaQuery.where('wh.id', 'in', warehouseIds as number[]);
-            rekonLensaQuery = rekonLensaQuery.where('wh.id', 'in', warehouseIds as number[]);
-        }
 
         const [outLensa, rekonLensa] = await Promise.all([
             outLensaQuery.execute(),
@@ -183,12 +175,17 @@ export async function getDashboardStockIntech() {
 }
 
 export async function getWarehouses() {
+    const user = await getSessionUser();
     try {
-        const data = await db
+        let query = db
             .selectFrom('inventory.mas_wh')
             .select(['id', 'name', 'branch'])
-            .orderBy('name', 'asc')
-            .execute();
+            .orderBy('name', 'asc');
+        if (user.isStaff) {
+            if (user.warehouseIds.length === 0) return { success: true, data: [] };
+            query = query.where('id', 'in', user.warehouseIds);
+        }
+        const data = await query.execute();
 
         return { success: true, data };
     } catch (error: unknown) {
@@ -199,9 +196,28 @@ export async function getWarehouses() {
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
-export async function getStockWarnings() {
+const stockWarningsSchema = z.object({
+    warehouseId: z.union([z.literal('all'), z.string().regex(/^\d+$/)]).default('all'),
+});
+
+export async function getStockWarnings(warehouseId: string = 'all') {
+    const user = await getSessionUser();
+    const parsed = stockWarningsSchema.safeParse({ warehouseId });
+    if (!parsed.success) {
+        return { success: false, data: [], error: 'Gudang tidak valid' };
+    }
+    if (user.isStaff) {
+        if (user.warehouseIds.length === 0) return { success: true, data: [] };
+        if (
+            parsed.data.warehouseId !== 'all' &&
+            !user.warehouseIds.includes(Number(parsed.data.warehouseId))
+        ) {
+            return { success: false, data: [], error: 'Akses gudang ditolak' };
+        }
+    }
+
     try {
-        const data = await db
+        let query = db
             .selectFrom('inventory.stock_policy as p')
             .innerJoin('inventory.stock_balance as b', (join) =>
                 join
@@ -222,8 +238,15 @@ export async function getStockWarnings() {
             ])
             .orderBy('deficit', 'desc')
             .orderBy('w.name')
-            .orderBy('m.code')
-            .execute();
+            .orderBy('m.code');
+
+        if (user.isStaff) {
+            query = query.where('p.warehouse_id', 'in', user.warehouseIds);
+        } else if (parsed.data.warehouseId !== 'all') {
+            query = query.where('p.warehouse_id', '=', Number(parsed.data.warehouseId));
+        }
+
+        const data = await query.execute();
 
         return { success: true, data };
     } catch (error: unknown) {

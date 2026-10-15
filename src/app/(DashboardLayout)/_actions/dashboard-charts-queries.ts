@@ -15,6 +15,7 @@ const getSalesOverviewDataSchema = z.object({
 
 const getTopOutMaterialsSchema = z.object({
     limit: z.number().int().positive().max(50).default(7),
+    warehouseId: z.union([z.literal('all'), z.string().regex(/^\d+$/)]).default('all'),
 });
 
 const getOutMaterialLineChartDataSchema = z.object({
@@ -165,20 +166,30 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
     }
 }
 
-export async function getTopOutMaterials(limit: number = 7) {
-    const parsed = getTopOutMaterialsSchema.safeParse({ limit });
+export async function getTopOutMaterials(limit: number = 7, warehouseId: string = 'all') {
+    const user = await getSessionUser();
+    const parsed = getTopOutMaterialsSchema.safeParse({ limit, warehouseId });
     if (!parsed.success) {
         actionLogger.warn('Invalid params for getTopOutMaterials', { issues: parsed.error.issues });
         return { success: false, error: 'Invalid parameters' };
     }
     const validLimit = parsed.data.limit;
+    if (user.isStaff) {
+        if (user.warehouseIds.length === 0) return { success: true, data: [] };
+        if (
+            parsed.data.warehouseId !== 'all' &&
+            !user.warehouseIds.includes(Number(parsed.data.warehouseId))
+        ) {
+            return { success: false, error: 'Akses gudang ditolak' };
+        }
+    }
 
     try {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
         thirtyDaysAgo.setHours(0, 0, 0, 0);
 
-        const data = await db
+        let query = db
             .selectFrom('inventory.sap_out_items as soi')
             .innerJoin('inventory.sap_out_header as soh', 'soh.id', 'soi.header_id')
             .innerJoin('inventory.materials as m', 'm.id', 'soi.designator_id')
@@ -189,8 +200,15 @@ export async function getTopOutMaterials(limit: number = 7) {
             .where(sql`COALESCE(soh.sap_time, soh.request_time)`, '>=', thirtyDaysAgo)
             .groupBy('m.description')
             .orderBy('total_qty', 'desc')
-            .limit(validLimit)
-            .execute();
+            .limit(validLimit);
+
+        if (user.isStaff) {
+            query = query.where('soh.warehouse_id', 'in', user.warehouseIds);
+        } else if (parsed.data.warehouseId !== 'all') {
+            query = query.where('soh.warehouse_id', '=', Number(parsed.data.warehouseId));
+        }
+
+        const data = await query.execute();
 
         return { success: true, data };
     } catch (error: unknown) {
@@ -203,6 +221,7 @@ export async function getTopOutMaterials(limit: number = 7) {
 }
 
 export async function getOutMaterialLineChartData(wh_id: string, limit: number = 20) {
+    const user = await getSessionUser();
     const parsed = getOutMaterialLineChartDataSchema.safeParse({ wh_id, limit });
     if (!parsed.success) {
         actionLogger.warn('Invalid params for getOutMaterialLineChartData', {
@@ -211,6 +230,12 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
         return { success: false, error: 'Invalid parameters' };
     }
     const validLimit = parsed.data.limit;
+    if (user.isStaff) {
+        if (user.warehouseIds.length === 0) return { success: true, data: [] };
+        if (parsed.data.wh_id !== 'all' && !user.warehouseIds.includes(Number(parsed.data.wh_id))) {
+            return { success: false, error: 'Akses gudang ditolak' };
+        }
+    }
 
     try {
         const thirtyDaysAgo = new Date();
@@ -232,8 +257,10 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
             .orderBy('total_qty', 'desc')
             .limit(validLimit);
 
-        if (wh_id && wh_id !== 'all') {
-            topMatQuery = topMatQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
+        if (user.isStaff) {
+            topMatQuery = topMatQuery.where('soh.warehouse_id', 'in', user.warehouseIds);
+        } else if (wh_id !== 'all') {
+            topMatQuery = topMatQuery.where('soh.warehouse_id', '=', Number(wh_id));
         }
 
         const topMats = await topMatQuery.execute();
@@ -264,8 +291,10 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
                 sql`TO_CHAR(COALESCE(soh.sap_time, soh.request_time), 'YYYY-MM-DD')`,
             ]);
 
-        if (wh_id && wh_id !== 'all') {
-            dailyQuery = dailyQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
+        if (user.isStaff) {
+            dailyQuery = dailyQuery.where('soh.warehouse_id', 'in', user.warehouseIds);
+        } else if (wh_id !== 'all') {
+            dailyQuery = dailyQuery.where('soh.warehouse_id', '=', Number(wh_id));
         }
 
         const dailyData = await dailyQuery.execute();
