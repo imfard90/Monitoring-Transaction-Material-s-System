@@ -194,11 +194,12 @@ export async function getTopOutMaterials(limit: number = 7, warehouseId: string 
             .innerJoin('inventory.sap_out_header as soh', 'soh.id', 'soi.header_id')
             .innerJoin('inventory.materials as m', 'm.id', 'soi.designator_id')
             .select([
+                'm.code as material_code',
                 'm.description as material_name',
                 sql<number>`COALESCE(SUM(soi.qty_req), 0)`.as('total_qty'),
             ])
             .where(sql`COALESCE(soh.sap_time, soh.request_time)`, '>=', thirtyDaysAgo)
-            .groupBy('m.description')
+            .groupBy(['m.code', 'm.description'])
             .orderBy('total_qty', 'desc')
             .limit(validLimit);
 

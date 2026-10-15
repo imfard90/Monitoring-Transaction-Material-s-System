@@ -89,15 +89,15 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                         );
                         let val = dailyRec ? Number(dailyRec.total_qty) : 0;
 
-                        // Scale down AC-OF-SM-1-3SL by 100 for better comparison
+                        // Scale down AC-OF-SM-1-3SL by 10 for better comparison
                         if (matCode === 'AC-OF-SM-1-3SL') {
-                            val = val / 100;
+                            val = val / 10;
                         }
 
                         data.push(val);
                         startDateObj.setDate(startDateObj.getDate() + 1);
                     }
-                    const displayName = matCode === 'AC-OF-SM-1-3SL' ? `${mat} (x100)` : mat;
+                    const displayName = matCode === 'AC-OF-SM-1-3SL' ? `${mat} (x10)` : mat;
                     return { name: displayName, originalName: mat, data };
                 });
 
