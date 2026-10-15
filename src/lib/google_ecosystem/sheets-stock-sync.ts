@@ -158,6 +158,11 @@ export async function syncOtherStock(): Promise<void> {
     const label = '[SheetsStockSync]';
     actionLogger.info(`${label} Starting sync from Google Sheets…`);
 
+    // Ensure the data directory exists before any file I/O.
+    // This is a safety guard for environments where the folder is not
+    // pre-created (e.g. fresh deploys without a .gitkeep).
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+
     const credentialPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
     if (!credentialPath) {
         const error = new Error('GOOGLE_APPLICATION_CREDENTIALS is not set.');

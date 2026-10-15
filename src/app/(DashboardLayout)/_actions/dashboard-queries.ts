@@ -1,6 +1,5 @@
 'use server';
 
-import { randomUUID } from 'node:crypto';
 import { sql } from 'kysely';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
@@ -370,7 +369,7 @@ export async function triggerOtherStockSync(
         return { success: false, error: 'Permintaan sinkronisasi tidak valid.' };
     }
 
-    const lockToken = randomUUID();
+    const lockToken = globalThis.crypto.randomUUID();
     const acquired = await redis.set(
         OTHER_STOCK_SYNC_LOCK_KEY,
         lockToken,

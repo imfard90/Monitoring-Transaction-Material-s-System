@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { type NextRequest, NextResponse } from 'next/server';
 
 function createReportOnlyCsp(nonce: string): string {
@@ -30,7 +29,7 @@ export async function proxy(request: NextRequest) {
         return NextResponse.next();
     }
 
-    const nonce = Buffer.from(randomUUID()).toString('base64');
+    const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
     const csp = createReportOnlyCsp(nonce);
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-nonce', nonce);
