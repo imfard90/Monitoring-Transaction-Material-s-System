@@ -1,7 +1,7 @@
-import { randomUUID } from 'node:crypto';
-
 export async function register() {
     if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+
+    const { randomUUID } = await import('node:crypto');
 
     // Cron jobs only run in production (pnpm start).
     // In development (pnpm dev), skip registration to avoid running
