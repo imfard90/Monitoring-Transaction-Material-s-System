@@ -1,8 +1,6 @@
 export async function register() {
     if (process.env.NEXT_RUNTIME !== 'nodejs') return;
 
-    const { randomUUID } = await import('node:crypto');
-
     // Cron jobs only run in production (pnpm start).
     // In development (pnpm dev), skip registration to avoid running
     // scrapers on the dev machine and to keep dev startup fast.
@@ -73,7 +71,7 @@ export async function register() {
         // Daily Google Sheets → JSON cache sync at 09:00 WIB and fallback at 14:00.
         // Tab DATA KEMARIN is updated by the external team each morning.
         const runLockedStockSync = async (context: string): Promise<boolean> => {
-            const lockToken = randomUUID();
+            const lockToken = globalThis.crypto.randomUUID();
             const acquired = await redis.set(
                 OTHER_STOCK_SYNC_LOCK_KEY,
                 lockToken,

@@ -19,6 +19,10 @@ export const metadata: Metadata = {
     description: 'Monitoring KPI dan pergerakan material sistem MTMS',
 };
 
+// This page calls getSessionUser() which reads request headers,
+// so it must always be rendered dynamically (never statically pre-rendered).
+export const dynamic = 'force-dynamic';
+
 function ProfileSkeleton() {
     return (
         <div className="flex items-center gap-4 rounded-xl border bg-card p-6">
