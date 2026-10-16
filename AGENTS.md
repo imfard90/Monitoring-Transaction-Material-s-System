@@ -2,12 +2,13 @@
 
 > **Wajib dibaca sebelum mengubah kode.** Pedoman ini mengikat semua agen (manusia/AI) yang bekerja di repo Monitoring Transaction Material's System (MTMS). Berdasarkan hasil audit `docs/AUDIT_REPORT.md`.
 
-## 0. Sumber Kebenaran
+## 0. Prioritas Instruksi & Sumber Kebenaran
 
-- **Audit & task perbaikan:** `docs/AUDIT_REPORT.md` (lihat matriks prioritas sebelum mulai tugas).
-- **Kontrak database:** `src/lib/db/migrations/*.sql` + `src/lib/repositories/inventory.repository.ts`.
-- **Otorisasi:** `src/lib/auth-server.ts` (`getSessionUser`, `getSessionNik`).
-- **Google Sheets:** `src/lib/google_ecosystem/README.md` dan skill `.agents/skills/google-sheets/SKILL.md`.
+- Ikuti platform/system/developer safety constraints terlebih dahulu, lalu instruksi langsung terbaru dari pengguna. Mode Plan melarang edits; Act mengizinkan perubahan sesuai permintaan.
+- Untuk repo-specific requirements, bagian keamanan, bisnis, dan data di `AGENTS.md` bersifat wajib. `bispro.md` menetapkan alur bisnis; `docs/AUDIT_REPORT.md` mencatat temuan dan prioritas audit. Jika ada konflik material, jangan menebak—jelaskan konflik dan minta klarifikasi.
+- Terapkan `.agents/rules/` sebagai standar rekayasa umum dan `.cline/workflows/` sebagai prosedur operasional perintah. Skills/personas memberi metode khusus, bukan mengganti kebijakan wajib di atas.
+- Kontrak teknis otoritatif: migrasi aktif dan repository terkait; otorisasi: `src/lib/auth-server.ts`; Google Sheets: `src/lib/google_ecosystem/README.md` dan `.agents/skills/google-sheets/SKILL.md`.
+- Handoff/status note hanya petunjuk sementara; verifikasi ulang isinya pada sumber di atas dan kondisi repo terkini. Tidak ada framework tambahan atau pencatatan memori otomatis yang diwajibkan.
 
 ## 1. Prinsip Mutlak
 

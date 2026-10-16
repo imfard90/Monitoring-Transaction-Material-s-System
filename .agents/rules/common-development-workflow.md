@@ -2,41 +2,40 @@
 
 > This file extends [common/git-workflow.md](common-git-workflow.md) with the full feature development process that happens before git operations.
 
-The Feature Implementation Workflow describes the development pipeline: research, planning, TDD, code review, and then committing to git.
+The Feature Implementation Workflow describes research, planning, implementation, review, verification, and shipping. Scale the process to task risk and size: small fixes do not require architecture documents; cross-module or high-risk work should have a concise written plan and acceptance criteria.
 
 ## Feature Implementation Workflow
 
-0. **Research & Reuse** _(scale research to the task)_
-   - **Inspect the project first:** Read relevant local code, tests, package versions, and project guidance; reuse established patterns before introducing new ones.
-   - **Verify external behavior when needed:** Consult Context7 or primary vendor documentation when implementation depends on library/framework/API behavior, version-specific details, or an unfamiliar integration. Context7 is an option, not a requirement for every coding task; do not look up documentation for straightforward changes already covered by local patterns and tests.
-   - **Research reuse opportunities when useful:** For new dependencies, substantial new functionality, or when local patterns are insufficient, search GitHub implementations and package registries before writing a bespoke solution. Use broader web research (such as Exa) only if primary docs and targeted code search do not answer the question.
-   - Prefer adopting or adapting a proven approach when it fits the requirement; avoid external research that does not reduce uncertainty or implementation risk.
+0. **Research & Reuse**
+   - Inspect relevant local code, tests, package versions, and project guidance first. For inventory/transaction work, read `bispro.md` and check `docs/AUDIT_REPORT.md` as required by `AGENTS.md`.
+   - Consult Context7 or primary vendor documentation when behavior is version-specific, unfamiliar, or not established by local patterns/tests.
+   - Research external implementations only when it reduces uncertainty; prefer existing project patterns and avoid unnecessary dependencies.
 
-1. **Plan First**
-   - Use **planner** agent to create implementation plan
-   - Generate planning docs before coding: PRD, architecture, system_design, tech_doc, task_list
-   - Identify dependencies and risks
-   - Break down into phases
+1. **Understand & Plan (proportional)**
+   - State intended behavior and observable acceptance criteria; identify assumptions, risks, and affected boundaries.
+   - Ask one focused clarification when a material business/security decision is ambiguous. Do not proceed on a conflicting assumption.
+   - For multi-step, cross-module, or cross-session work, use the **planner** persona and write a concise plan. Create broader architecture documents only when the change warrants them.
+   - For work spanning sessions, optionally use `docs/agent-work/TEMPLATE.md` as a concise handoff. It is a note, not a source of truth; re-check code, migrations, and business rules on resume.
 
-2. **TDD Approach**
-   - Use **tdd-guide** agent
-   - Write tests first (RED)
-   - Implement to pass tests (GREEN)
-   - Refactor (IMPROVE)
-   - Verify 80%+ coverage
+2. **Implement with tests**
+   - Use the **tdd-guide** persona for behavior changes and bug fixes where a regression test is feasible: establish a failing test (RED), implement the smallest fix (GREEN), then refactor (IMPROVE).
+   - Test public behavior and important failure/authorization paths. If test-first is impractical, state why and still add relevant verification.
+   - Follow `AGENTS.md` for mandatory authorization, validation, repository, database, idempotency, and logging requirements. Never weaken invariants to make a test pass.
 
-3. **Code Review**
-   - Use **code-reviewer** agent immediately after writing code
-   - Address CRITICAL and HIGH issues
-   - Fix MEDIUM issues when possible
+3. **Debug systematically**
+   - Reproduce the failure and capture evidence before editing.
+   - Form a falsifiable hypothesis, inspect relevant call path/contracts, and change one causal factor at a time.
+   - Verify the root cause and adjacent paths; avoid speculative fixes and unrelated cleanup.
 
-4. **Commit & Push**
-   - Detailed commit messages
-   - Follow conventional commits format
-   - See [git-workflow.md](common-git-workflow.md) for commit message format and PR process
+4. **Review & verify before completion**
+   - Review the diff against requested behavior, acceptance criteria, `AGENTS.md`, and `bispro.md` where applicable. Use `/review` and specialized personas when warranted.
+   - Run relevant project checks and report actual results. Do not claim a check passed unless it was run and passed; disclose skipped checks and blockers.
+   - Address CRITICAL and HIGH findings before completion; resolve MEDIUM findings when practical or explain deferral.
 
-5. **Pre-Review Checks**
-   - Verify all automated checks (CI/CD) are passing
-   - Resolve any merge conflicts
-   - Ensure branch is up to date with target branch
-   - Only request review after these checks pass
+5. **Ship (only when requested/appropriate)**
+   - Do not commit or push unless asked or the invoked workflow explicitly calls for it.
+   - Follow [git-workflow.md](common-git-workflow.md) for conventional commit messages and PR process.
+
+## Cross-session handoff
+
+For an ongoing multi-phase task only, a handoff note may record goal, decisions, completed work, changed files, verification evidence, blockers, and next action. Keep it concise and sanitized: no secrets, credentials, tokens, customer/employee data, raw logs, or copied conversation. Treat it as potentially stale and verify facts against repository sources before acting. Do not create permanent agent memory or automatically capture sessions.

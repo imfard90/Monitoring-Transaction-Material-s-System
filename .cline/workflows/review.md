@@ -5,6 +5,8 @@ argument-hint: "[file-or-directory]"
 
 # Code Review Workflow
 
+Review the requested scope and acceptance criteria first. Keep the review focused on the changed code and its relevant contracts; expand to adjacent paths for security or regression risk. This workflow does not authorize unrelated cleanup.
+
 1. Run mandatory quality checks:
 
    ```bash
@@ -19,7 +21,7 @@ argument-hint: "[file-or-directory]"
    pnpm test:unit
    ```
 
-   If errors found, stop and report them. Do not proceed with review until quality checks pass.
+   If errors are found, report them and distinguish pre-existing failures from regressions. Do not present the review as clean when required checks fail. Continue source inspection only if useful to diagnose findings, clearly marking the review/checks incomplete.
 
 2. Determine review scope:
    - If argument provided: review specified file/directory

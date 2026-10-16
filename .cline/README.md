@@ -58,6 +58,13 @@ Invoke explicitly with `/skill-name` or let Cline auto-trigger based on descript
 3. Read `CLINE.md` for full documentation
 4. Try a workflow: `/db-check`
 
+## Instruction Priority & Workflow
+
+- Start with `AGENTS.md` for mandatory MTMS policy and authoritative project sources; consult `bispro.md` and relevant contracts/audit items for domain work.
+- `.agents/rules/` provides engineering standards; `.cline/workflows/` defines command procedures. Skills/personas provide focused methods and do not override mandatory policy or current user instructions.
+- For ongoing multi-phase tasks only, an optional sanitized handoff template is available at `docs/agent-work/TEMPLATE.md`. It is not permanent memory and must be verified against current repository sources when resumed.
+- Choose planning, research, and verification proportional to task scope/risk. Report only checks actually run and their outcomes.
+
 ## Documentation
 
 - **CLINE.md** — Complete Cline configuration guide
