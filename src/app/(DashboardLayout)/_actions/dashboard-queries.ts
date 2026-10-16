@@ -150,6 +150,7 @@ export async function getDashboardStockIntech() {
                 'wh.name as wh_name',
                 't.name as teknisi',
                 'soh.nik_teknisi as nik',
+                'soh.request_time as request_time',
                 'm.code as material_code',
                 'm.description as material_name',
                 sql<number>`soi.qty_req - COALESCE(soi.qty_used, 0)`.as('qty_intech'),
@@ -161,7 +162,11 @@ export async function getDashboardStockIntech() {
             query = query.where('soh.warehouse_id', 'in', warehouseIds);
         }
 
-        const data = await query.orderBy('wh.branch', 'asc').orderBy('t.name', 'asc').execute();
+        const data = await query
+            .orderBy('soh.request_time', 'asc')
+            .orderBy('wh.branch', 'asc')
+            .orderBy('t.name', 'asc')
+            .execute();
 
         return { success: true, data };
     } catch (error: unknown) {

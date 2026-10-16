@@ -156,12 +156,24 @@ describe('triggerOtherStockSync', () => {
         await expect(triggerOtherStockSync()).resolves.toEqual({ success: true });
 
         expect(mockSyncOtherStock).toHaveBeenCalledOnce();
+
+        const lockToken = mockRedisSet.mock.calls[0]?.[1];
+        expect(lockToken).toEqual(expect.any(String));
+        expect(mockRedisSet).toHaveBeenCalledWith(
+            'lock:other_stock_sync',
+            lockToken,
+            'EX',
+            600,
+            'NX'
+        );
         expect(mockRedisEval).toHaveBeenCalledWith(
             expect.stringContaining("redis.call('get', KEYS[1]) == ARGV[1]"),
             1,
             'lock:other_stock_sync',
-            'test-lock-token'
+            lockToken
         );
+        expect(mockRedisEval).toHaveBeenCalledOnce();
+        expect(mockRedisSet).toHaveBeenCalledOnce();
     });
 });
 

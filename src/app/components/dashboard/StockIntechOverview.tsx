@@ -11,17 +11,19 @@ import { useMemo, useState } from 'react';
 import { getDashboardStockIntech } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
-import { SearchField } from '@/components/ui/search-field';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
+import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
-import { Card } from '@/components/ui/card';
+import { SearchField } from '@/components/ui/search-field';
+import { formatStockAge } from '@/lib/stock-intech-age';
 
 interface StockIntechItem {
     branch: string | null;
     wh_name: string | null;
     teknisi: string | null;
     nik: string | null;
+    request_time: string | Date;
     material_code: string;
     material_name: string | null;
     qty_intech: number;
@@ -94,6 +96,14 @@ export const StockIntechOverview = () => {
             header: () => <div className="text-center">Jumlah Intech</div>,
             cell: (info) => (
                 <div className="text-center font-bold text-primary">{info.getValue()}</div>
+            ),
+        }),
+        columnHelper.accessor('request_time', {
+            header: 'Usia',
+            cell: (info) => (
+                <span className="whitespace-nowrap text-muted-foreground">
+                    {formatStockAge(info.getValue())}
+                </span>
             ),
         }),
     ];
