@@ -37,13 +37,21 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
 
             if (isActive && result.success && result.data) {
                 const categories = result.data.map(
-                    (d: { material_code: string | null; material_name: string | null; total_qty: number }) => {
+                    (d: {
+                        material_code: string | null;
+                        material_name: string | null;
+                        total_qty: number;
+                    }) => {
                         const name = d.material_name || '';
                         return d.material_code === 'AC-OF-SM-1-3SL' ? `${name} (x10)` : name;
                     }
                 );
                 const seriesData = result.data.map(
-                    (d: { material_code: string | null; material_name: string | null; total_qty: number }) => {
+                    (d: {
+                        material_code: string | null;
+                        material_name: string | null;
+                        total_qty: number;
+                    }) => {
                         const qty = Number(d.total_qty);
                         // Scale down AC-OF-SM-1-3SL by 10 for better visual comparison
                         return d.material_code === 'AC-OF-SM-1-3SL' ? qty / 10 : qty;
