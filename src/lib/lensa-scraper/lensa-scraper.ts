@@ -454,7 +454,7 @@ async function scrapePrefixEndpoint(
     performLogin: LensaPerformLogin,
     safeGoto: LensaSafeGoto,
     perpage: number,
-    prefix: 'INC' | 'SC',
+    prefix: 'INC' | 'SC' | 'DGPS',
     seenIds: Set<string>,
     results: WOLensaHeader[]
 ): Promise<void> {
@@ -497,8 +497,9 @@ async function scrapePrefixEndpoint(
  *      (stop jika N halaman berturut-turut semua < cutoff, cap 50).
  *   2) Prefix INC: sort by tanggal_update asc, loop sampai last_page atau cap 50.
  *   3) Prefix SC: sama seperti INC.
+ *   4) Prefix DGPS: sama seperti INC/SC, tanpa filter tambahan gi_number.
  *
- * Parameter `fullLoop` (legacy) diabaikan — hanya INC/SC yang diproses,
+ * Parameter `fullLoop` (legacy) diabaikan — hanya INC/SC/DGPS yang diproses,
  * LP/WO/FMC tidak lagi di-scrape sesuai keputusan.
  */
 export async function scrapeWOLensaHeaders(
@@ -534,6 +535,15 @@ export async function scrapeWOLensaHeaders(
             safeGoto,
             perpage,
             'SC',
+            seenIds,
+            newHeaders
+        );
+        await scrapePrefixEndpoint(
+            page,
+            performLogin,
+            safeGoto,
+            perpage,
+            'DGPS',
             seenIds,
             newHeaders
         );
