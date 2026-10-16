@@ -6,6 +6,7 @@ import { db } from '@/lib/db/db';
 import { scrapeWOLensaDetails, scrapeWOLensaHeaders } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
+import { resolveMaterialAlias } from '@/lib/material-alias-helper';
 import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
 
 const getEncryptionKey = () => {
@@ -289,13 +290,37 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
                     for (const d of allDetails) {
                         if (d.materials && d.materials.length > 0) {
                             const materialInserts = d.materials.map(
-                                (m: Record<string, string | number>) => ({
-                                    header_id: d.header_id,
-                                    material_id: (m['ID MATERIAL'] as string) || null,
-                                    material_desc: (m['NAMA MATERIAL'] as string) || null,
-                                    uom: (m.SATUAN as string) || null,
-                                    qty_pemakaian: Number(m['QTY PEMAKAIAN']) || null,
-                                })
+                                (m: Record<string, string | number>) => {
+                                    const rawMaterialId =
+                                        (m['ID MATERIAL'] as string)?.trim() || null;
+                                    const materialDesc = (m['NAMA MATERIAL'] as string) || null;
+
+                                    // Fallback: Lensa kadang tidak mengirim ID MATERIAL untuk
+                                    // nama material tertentu (misal "Breket / Clamp Hook").
+                                    // Coba resolve via alias map sebelum menyimpan NULL.
+                                    let materialId = rawMaterialId;
+                                    if (!materialId && materialDesc) {
+                                        const resolved = resolveMaterialAlias(materialDesc);
+                                        if (resolved) {
+                                            actionLogger.info(
+                                                `[WO Lensa] Resolved empty material_id via alias: "${materialDesc}" → "${resolved}" (header ${d.header_id})`
+                                            );
+                                            materialId = resolved;
+                                        } else {
+                                            actionLogger.warn(
+                                                `[WO Lensa] Material tanpa ID dan tidak ada alias: "${materialDesc}" (header ${d.header_id}). Tambahkan ke MATERIAL_ALIAS_MAP jika perlu.`
+                                            );
+                                        }
+                                    }
+
+                                    return {
+                                        header_id: d.header_id,
+                                        material_id: materialId,
+                                        material_desc: materialDesc,
+                                        uom: (m.SATUAN as string) || null,
+                                        qty_pemakaian: Number(m['QTY PEMAKAIAN']) || null,
+                                    };
+                                }
                             );
                             await trx
                                 .insertInto('inventory.wo_lensa_list')
