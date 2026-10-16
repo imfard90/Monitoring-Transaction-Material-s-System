@@ -69,6 +69,14 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                         t.material_code
                 );
 
+                const dailyQtyByMaterialAndDate = new Map<string, number>();
+                for (const record of resData.dailyData) {
+                    dailyQtyByMaterialAndDate.set(
+                        `${record.material_code}|${record.date_val}`,
+                        Number(record.total_qty)
+                    );
+                }
+
                 const series = allMatNames.map((mat: string, idx: number) => {
                     const matCode = allMatCodes[idx];
                     const data = [];
@@ -79,15 +87,7 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                         const dd = String(startDateObj.getDate()).padStart(2, '0');
                         const dateStr = `${yyyy}-${mm}-${dd}`;
 
-                        const dailyRec = resData.dailyData.find(
-                            (dd: {
-                                material_code: string;
-                                material_name: string;
-                                date_val: string;
-                                total_qty: number;
-                            }) => dd.material_code === matCode && dd.date_val === dateStr
-                        );
-                        let val = dailyRec ? Number(dailyRec.total_qty) : 0;
+                        let val = dailyQtyByMaterialAndDate.get(`${matCode}|${dateStr}`) ?? 0;
 
                         // Scale down AC-OF-SM-1-3SL by 10 for better comparison
                         if (matCode === 'AC-OF-SM-1-3SL') {
@@ -130,16 +130,16 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
             offsetX: -20,
         },
         colors: [
-            '#008FFB',
-            '#00E396',
-            '#FEB019',
-            '#FF4560',
-            '#775DD0',
-            '#3F51B5',
-            '#546E7A',
-            '#D4526E',
-            '#8D5B4C',
-            '#F86624',
+            'var(--color-primary)',
+            'var(--color-chart-2)',
+            'var(--color-chart-3)',
+            'var(--color-chart-4)',
+            'var(--color-chart-5)',
+            'var(--color-chart-6)',
+            'var(--color-chart-7)',
+            'var(--color-chart-8)',
+            'var(--color-chart-9)',
+            'var(--color-chart-10)',
         ],
         stroke: {
             curve: 'smooth',

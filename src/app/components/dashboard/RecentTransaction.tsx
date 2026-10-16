@@ -3,7 +3,8 @@
 import type { ApexOptions } from 'apexcharts';
 import dynamic from 'next/dynamic';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
 import {
     Select,
@@ -26,38 +27,57 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
         categories: [],
         seriesData: [],
     });
+    const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
 
     useEffect(() => {
         let isActive = true;
+        setIsLoading(true);
+        setHasError(false);
         const loadData = async () => {
-            const { getTopOutMaterials } = await import(
-                '@/app/(DashboardLayout)/_actions/dashboard-actions'
-            );
-            const result = await getTopOutMaterials(7, isStaff ? 'all' : selectedWh);
+            try {
+                const { getTopOutMaterials } = await import(
+                    '@/app/(DashboardLayout)/_actions/dashboard-actions'
+                );
+                const result = await getTopOutMaterials(7, isStaff ? 'all' : selectedWh);
+                if (!isActive) return;
+                if (!result.success || !result.data) {
+                    setChartData({ categories: [], seriesData: [] });
+                    setHasError(true);
+                    return;
+                }
 
-            if (isActive && result.success && result.data) {
-                const categories = result.data.map(
-                    (d: {
-                        material_code: string | null;
-                        material_name: string | null;
-                        total_qty: number;
-                    }) => {
-                        const name = d.material_name || '';
-                        return d.material_code === 'AC-OF-SM-1-3SL' ? `${name} (x10)` : name;
-                    }
-                );
-                const seriesData = result.data.map(
-                    (d: {
-                        material_code: string | null;
-                        material_name: string | null;
-                        total_qty: number;
-                    }) => {
-                        const qty = Number(d.total_qty);
-                        // Scale down AC-OF-SM-1-3SL by 10 for better visual comparison
-                        return d.material_code === 'AC-OF-SM-1-3SL' ? qty / 10 : qty;
-                    }
-                );
-                setChartData({ categories, seriesData });
+                if (isActive && result.success && result.data) {
+                    const categories = result.data.map(
+                        (d: {
+                            material_code: string | null;
+                            material_name: string | null;
+                            total_qty: number;
+                        }) => {
+                            const name = d.material_name || '';
+                            return d.material_code === 'AC-OF-SM-1-3SL' ? `${name} (x10)` : name;
+                        }
+                    );
+                    const seriesData = result.data.map(
+                        (d: {
+                            material_code: string | null;
+                            material_name: string | null;
+                            total_qty: number;
+                        }) => {
+                            const qty = Number(d.total_qty);
+                            // Scale down AC-OF-SM-1-3SL by 10 for better visual comparison
+                            return d.material_code === 'AC-OF-SM-1-3SL' ? qty / 10 : qty;
+                        }
+                    );
+                    setChartData({ categories, seriesData });
+                }
+            } catch {
+                if (isActive) {
+                    setChartData({ categories: [], seriesData: [] });
+                    setHasError(true);
+                }
+            } finally {
+                if (isActive) setIsLoading(false);
             }
         };
 
@@ -94,18 +114,24 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
             categories: chartData.categories,
             axisBorder: { show: false },
             axisTicks: { show: false },
+            title: { text: 'Jumlah (AC-OF-SM-1-3SL ditampilkan skala visual 1:10)' },
         },
         tooltip: {
             theme: 'dark',
+            y: {
+                formatter: (value, opts) => {
+                    const scaled =
+                        chartData.categories[opts?.dataPointIndex ?? -1]?.endsWith(' (x10)');
+                    return `${(scaled ? value * 10 : value).toLocaleString()} unit${scaled ? ' (nilai asli)' : ''}`;
+                },
+            },
         },
     };
 
-    const series = [
-        {
-            name: 'Total Out',
-            data: chartData.seriesData,
-        },
-    ];
+    const series = useMemo(
+        () => [{ name: 'Total Out', data: chartData.seriesData }],
+        [chartData.seriesData]
+    );
 
     return (
         <Card
@@ -146,14 +172,37 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
                     </Select>
                 )}
             </div>
-            <div className="relative z-10 -mx-2">
-                <Chart
-                    options={ChartOptions}
-                    series={series}
-                    type="bar"
-                    height={316}
-                    width="100%"
-                />
+            <div className="relative z-10 -mx-2" aria-busy={isLoading}>
+                {isLoading ? (
+                    <Skeleton
+                        className="h-[316px] w-full"
+                        aria-label="Memuat grafik top out material"
+                    />
+                ) : hasError ? (
+                    <p
+                        className="flex h-[316px] items-center justify-center text-sm text-destructive"
+                        role="alert"
+                    >
+                        Grafik gagal dimuat.
+                    </p>
+                ) : chartData.categories.length === 0 ? (
+                    <p
+                        className="flex h-[316px] items-center justify-center text-sm text-muted-foreground"
+                        role="status"
+                    >
+                        Belum ada data transaksi material.
+                    </p>
+                ) : (
+                    <div role="img" aria-label="Grafik Top Out Material 30 hari terakhir">
+                        <Chart
+                            options={ChartOptions}
+                            series={series}
+                            type="bar"
+                            height={316}
+                            width="100%"
+                        />
+                    </div>
+                )}
             </div>
         </Card>
     );
