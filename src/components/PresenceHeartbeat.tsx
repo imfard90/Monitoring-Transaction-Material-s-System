@@ -22,7 +22,7 @@ async function signOutAndRedirect(router: ReturnType<typeof useRouter>): Promise
  * PresenceHeartbeat — fires POST /api/presence every 30s.
  * The server handles all role logic:
  *   - Staff → returns { skipped: true }, client stops the interval permanently.
- *   - Concurrent session detected → returns { forceLogout: true }, client signs out.
+ *   - Each non-Staff session has independent presence; concurrent sessions are allowed.
  * No client-side role check needed; avoids dependency on session data not exposed to the client.
  */
 export function PresenceHeartbeat() {
@@ -71,15 +71,8 @@ export function PresenceHeartbeat() {
                 const res = await fetch('/api/presence', { method: 'POST' });
 
                 if (res.status === 401) {
-                    try {
-                        const data = await res.json();
-                        if (data?.forceLogout === true) {
-                            isSigningOut = true;
-                            await signOutAndRedirect(router);
-                        }
-                    } catch {
-                        // Ignore JSON parse errors
-                    }
+                    isSigningOut = true;
+                    await signOutAndRedirect(router);
                 } else if (res.status === 200) {
                     try {
                         const data = await res.json();
@@ -95,7 +88,7 @@ export function PresenceHeartbeat() {
                     }
                 }
             } catch {
-                // Ignore network errors silently
+                // A later heartbeat retries automatically; do not sign out on network failure.
             }
         };
 

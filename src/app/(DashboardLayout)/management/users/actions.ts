@@ -4,6 +4,7 @@ import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { getSessionUser, requireManagementAccess } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { getPresenceIndexKey, hasActivePresence } from '@/lib/presence';
 import { redis } from '@/lib/redis';
 
 /**
@@ -44,6 +45,26 @@ export async function getSidebarUserAccess(): Promise<SidebarUserAccess> {
     }
 }
 
+async function isUserOnline(nik: string): Promise<boolean> {
+    const indexMarker = await redis.get(getPresenceIndexKey(nik));
+
+    if (indexMarker !== '1') return false;
+
+    const keys: string[] = [];
+    let cursor = '0';
+    const pattern = `presence:user:${encodeURIComponent(nik)}:*`;
+
+    do {
+        const [nextCursor, batch] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+        cursor = nextCursor;
+        keys.push(...batch);
+    } while (cursor !== '0');
+
+    if (keys.length === 0) return false;
+    const sessions = await redis.mget(keys);
+    return hasActivePresence(indexMarker, sessions);
+}
+
 export async function getUsers() {
     await requireManagementAccess();
 
@@ -71,13 +92,14 @@ export async function getUsers() {
         is_online: false,
     }));
 
-    // Map presence status from Redis
+    // Check the per-user session keys; any live heartbeat means online.
     if (usersWithPresence.length > 0) {
-        const keys = usersWithPresence.map((u) => `presence:user:${u.nik}`);
-        const onlineStatuses = await redis.mget(keys);
+        const onlineStatuses = await Promise.all(
+            usersWithPresence.map((user) => (user.nik ? isUserOnline(user.nik) : false))
+        );
 
-        usersWithPresence.forEach((u, i) => {
-            u.is_online = !!onlineStatuses[i];
+        usersWithPresence.forEach((user, index) => {
+            user.is_online = onlineStatuses[index] ?? false;
         });
     }
 

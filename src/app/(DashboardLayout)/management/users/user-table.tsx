@@ -9,16 +9,16 @@ import {
 } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
 import { ShieldAlert, Trash2 } from 'lucide-react';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
-import { SearchField } from '@/components/ui/search-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { SearchField } from '@/components/ui/search-field';
 import { Switch } from '@/components/ui/switch';
-import { deleteUser, toggleUserApiApproval, toggleUserStatus } from './actions';
+import { deleteUser, getUsers, toggleUserApiApproval, toggleUserStatus } from './actions';
 
 export interface UserItem {
     id: string;
@@ -40,7 +40,39 @@ interface UserTableProps {
 const columnHelper = createColumnHelper<UserItem>();
 
 export default function UserTable({ data }: UserTableProps) {
+    const [users, setUsers] = useState(data);
     const [isPending, startTransition] = useTransition();
+
+    useEffect(() => {
+        let isMounted = true;
+        let isRefreshing = false;
+        const refreshPresence = async () => {
+            if (isRefreshing) return;
+            isRefreshing = true;
+            try {
+                const latestUsers = await getUsers();
+                if (isMounted)
+                    setUsers((current) =>
+                        current.map((user) => {
+                            const latest = latestUsers.find(
+                                (candidate) => candidate.id === user.id
+                            );
+                            return latest ? { ...user, is_online: latest.is_online } : user;
+                        })
+                    );
+            } catch {
+                // Keep the last known presence when a transient refresh fails.
+            } finally {
+                isRefreshing = false;
+            }
+        };
+
+        const interval = window.setInterval(refreshPresence, 30_000);
+        return () => {
+            isMounted = false;
+            window.clearInterval(interval);
+        };
+    }, []);
     const [nikFilter, setNikFilter] = useState('');
     const [userToDelete, setUserToDelete] = useState<UserItem | null>(null);
 
@@ -221,7 +253,7 @@ export default function UserTable({ data }: UserTableProps) {
     ];
 
     const table = useReactTable({
-        data,
+        data: users,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
