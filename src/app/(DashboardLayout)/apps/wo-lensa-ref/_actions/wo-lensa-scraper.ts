@@ -3,8 +3,9 @@
 import crypto from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db/db';
-import { scrapeWOLensaDetails, scrapeWOLensaHeaders } from '@/lib/lensa-scraper/lensa-scraper';
+import { sql } from 'kysely';
 import { actionLogger } from '@/lib/logger';
+import { scrapeWOLensaDetails, scrapeWOLensaHeaders } from '@/lib/lensa-scraper/lensa-scraper';
 import { redis } from '@/lib/redis';
 import { resolveMaterialAlias } from '@/lib/material-alias-helper';
 import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
@@ -184,6 +185,33 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
             uniqueHeadersMap.set(h.pemakaian_id, h);
         }
         const deduplicatedHeaders = Array.from(uniqueHeadersMap.values());
+
+        // Backfill GI numbers only for existing headers that currently have no GI number.
+        const rowsWithGi = deduplicatedHeaders.filter(
+            (header) =>
+                existingPemakaianIds.includes(String(header.pemakaian_id)) &&
+                header.gi_number != null &&
+                String(header.gi_number).trim() !== ''
+        );
+
+        for (let index = 0; index < rowsWithGi.length; index += 200) {
+            const batch = rowsWithGi.slice(index, index + 200);
+            await db.transaction().execute(async (trx) => {
+                await sql`
+                    UPDATE inventory.wo_lensa_header AS header
+                    SET gi_number = updates.gi_number
+                    FROM (${sql.join(
+                        batch.map(
+                            (header) =>
+                                sql`(${Number(header.pemakaian_id)}, ${String(header.gi_number)})`
+                        ),
+                        sql`, `
+                    )}) AS updates(pemakaian_id, gi_number)
+                    WHERE header.pemakaian_id = updates.pemakaian_id
+                      AND header.gi_number IS NULL
+                `.execute(trx);
+            });
+        }
 
         if (deduplicatedHeaders.length > 0) {
             await db.transaction().execute(async (trx) => {
