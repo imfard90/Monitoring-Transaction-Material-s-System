@@ -5,15 +5,57 @@ import { redis } from '../redis';
 import { parseBapbPdfBuffer } from './bapb-pdf-parser';
 
 let globalBrowser: Browser | null = null;
+let browserLastLaunched = 0;
 
-async function getBrowserInstance() {
-    if (!globalBrowser?.isConnected()) {
+// Refresh browser every 30 min to prevent memory bloat from accumulated state.
+// Contexts are closed per-scrape; this reaps the underlying Chromium process.
+const BROWSER_MAX_AGE_MS = 30 * 60 * 1000;
+
+async function closeBrowser() {
+    if (globalBrowser) {
+        await globalBrowser.close().catch(() => {});
+        globalBrowser = null;
+        browserLastLaunched = 0;
+    }
+}
+
+async function getBrowserInstance(): Promise<Browser> {
+    const now = Date.now();
+    const isStale = browserLastLaunched > 0 && now - browserLastLaunched > BROWSER_MAX_AGE_MS;
+    const needsReconnect = !globalBrowser || !globalBrowser.isConnected() || isStale;
+
+    if (needsReconnect) {
+        await closeBrowser();
         globalBrowser = await chromium.launch({
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
         });
+        browserLastLaunched = now;
     }
-    return globalBrowser;
+    return globalBrowser!;
+}
+
+// Graceful shutdown — Chromium headless process is reaped on SIGTERM/SIGINT.
+process.on('SIGTERM', async () => {
+    await closeBrowser();
+    process.exit(0);
+});
+process.on('SIGINT', async () => {
+    await closeBrowser();
+    process.exit(0);
+});
+
+/**
+ * Internal — returns browser health snapshot for health-check endpoints.
+ * Safe to expose via GET handler (read-only, no mutation).
+ */
+export function getLensaBrowserHealth() {
+    return {
+        connected: globalBrowser?.isConnected() ?? false,
+        launchedAt: browserLastLaunched || null,
+        stale:
+            browserLastLaunched > 0 ? Date.now() - browserLastLaunched > BROWSER_MAX_AGE_MS : true,
+    };
 }
 
 function parseLensaDate(dateStr: string | null | undefined): Date | null {
