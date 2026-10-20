@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { ModalDialog } from '@/components/ui/modal-dialog';
 import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
-import { getInOutTagItems } from '../_actions/tag-actions';
+import { getInOutTagItems, getReturnMaterialItemsByHeaderId } from '../_actions/tag-actions';
 
 interface InOutTagDetailModalProps {
     row: InOutTagRow | null;
@@ -15,11 +15,14 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
     const headerId = row?.id || null;
     const status = row?.end_status || '';
 
+    const isReturn = row?.type === 'return';
     const { data, isLoading } = useQuery({
-        queryKey: ['inoutTagItems', headerId],
+        queryKey: ['inoutTagItems', row?.type, headerId],
         queryFn: async () => {
             if (headerId === null) return { success: false, data: [] };
-            const res = await getInOutTagItems(Number(headerId));
+            const res = isReturn
+                ? await getReturnMaterialItemsByHeaderId(Number(headerId))
+                : await getInOutTagItems(Number(headerId));
             if (!res.success) throw new Error('Failed to fetch items');
             return res;
         },
@@ -28,12 +31,12 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
 
     let items: InOutTagItem[] = data?.data || [];
 
-    // Filter items based on the current status of the header
-    if (status === 'requested') {
+    // Return items do not have request/send/accept actions; show all of them.
+    if (!isReturn && status === 'requested') {
         items = items.filter((item: InOutTagItem) => item.action === 'request');
-    } else if (status === 'in_transit') {
+    } else if (!isReturn && status === 'in_transit') {
         items = items.filter((item: InOutTagItem) => item.action === 'send');
-    } else if (status === 'closed') {
+    } else if (!isReturn && status === 'closed') {
         items = items.filter((item: InOutTagItem) => item.action === 'accept');
     }
 
@@ -72,7 +75,7 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
                                     >
                                         <td className="px-4 py-3">{idx + 1}</td>
                                         <td className="px-4 py-3 font-medium">
-                                            {item.designator_code || '-'}
+                                            {item.designator_code || item.material_code || '-'}
                                         </td>
                                         <td className="px-4 py-3">
                                             {item.material_description || '-'}

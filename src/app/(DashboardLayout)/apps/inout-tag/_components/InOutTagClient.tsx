@@ -140,6 +140,7 @@ export default function InOutTagClient({
 
     const handleUpdateClick = async (row: InOutTagRow) => {
         setUpdateRow(row);
+        setUpdateItems([]); // Clear stale items immediately
         if (row.type === 'return') {
             const res = await getReturnMaterialItemsByHeaderId(Number(row.id));
             setUpdateItems((res.success ? res.data || [] : []) as unknown as InOutTagItem[]);
