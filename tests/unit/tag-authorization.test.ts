@@ -62,6 +62,59 @@ describe('updateTag authorization', () => {
         mockSqlExecute.mockResolvedValue({ rows: [] });
     });
 
+    it('accepts partial quantities with zero on an individual item', async () => {
+        mockGetSessionUser.mockResolvedValue({
+            nik: 'ADM001',
+            role: 'Administrator',
+            warehouseIds: [],
+            isStaff: false,
+        });
+
+        const result = await updateTag({
+            headerId: 101,
+            actionType: 'accept',
+            actionId: 'ACC-PARTIAL',
+            items: [
+                { designator_id: 166, qty: 5 },
+                { designator_id: 167, qty: 0 },
+            ],
+            idemKey: 'idem-partial-accept',
+        });
+
+        expect(result.success).toBe(true);
+        expect(mockSqlExecute).toHaveBeenCalled();
+    });
+
+    it('rejects accept when every item quantity is zero', async () => {
+        const result = await updateTag({
+            headerId: 101,
+            actionType: 'accept',
+            actionId: 'ACC-ZERO',
+            items: [{ designator_id: 166, qty: 0 }],
+            idemKey: 'idem-zero-accept',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Minimal 1 item harus memiliki qty > 0');
+        expect(mockGetSessionUser).not.toHaveBeenCalled();
+    });
+
+    it('rejects zero quantity for request and send actions', async () => {
+        for (const actionType of ['request', 'send'] as const) {
+            const result = await updateTag({
+                headerId: 101,
+                actionType,
+                actionId: `${actionType.toUpperCase()}-ZERO`,
+                items: [{ designator_id: 166, qty: 0 }],
+                idemKey: `idem-${actionType}-zero`,
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Qty harus lebih dari 0');
+        }
+        expect(mockGetSessionUser).not.toHaveBeenCalled();
+    });
+
     it('denies Staff attempting to perform request action', async () => {
         mockGetSessionUser.mockResolvedValue({
             nik: '21980128',

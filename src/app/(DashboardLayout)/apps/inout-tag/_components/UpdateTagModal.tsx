@@ -5,11 +5,11 @@ import { Ban } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
-import { ModalDialog } from '@/components/ui/modal-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ModalDialog } from '@/components/ui/modal-dialog';
 import {
     Table,
     TableBody,
@@ -294,7 +294,7 @@ export default function UpdateTagModal({
                                                 ) : (
                                                     <Input
                                                         type="number"
-                                                        min="1"
+                                                        min="0"
                                                         className="h-8"
                                                         placeholder="0"
                                                         value={
@@ -357,7 +357,9 @@ export default function UpdateTagModal({
                                 updateMutation.isPending ||
                                 cancelMutation.isPending ||
                                 !actionId ||
-                                !canUpdate
+                                !canUpdate ||
+                                (actionType === 'accept' &&
+                                    materialItems.every((item) => item.qty === 0))
                             }
                         >
                             {updateMutation.isPending ? 'Menyimpan...' : 'Perbarui'}

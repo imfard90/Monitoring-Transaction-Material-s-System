@@ -30,20 +30,40 @@ const createTagSchema = z
         path: ['toWhId'],
     });
 
-const updateTagSchema = z.object({
-    headerId: z.number().int().positive(),
-    actionType: z.enum(['request', 'send', 'accept']),
-    actionId: z.string().min(1),
-    items: z
-        .array(
-            z.object({
-                designator_id: z.number().int().positive(),
-                qty: z.number().positive(),
-            })
-        )
-        .min(1),
-    idemKey: z.string().min(1),
-});
+const updateTagSchema = z
+    .object({
+        headerId: z.number().int().positive(),
+        actionType: z.enum(['request', 'send', 'accept']),
+        actionId: z.string().min(1),
+        items: z
+            .array(
+                z.object({
+                    designator_id: z.number().int().positive(),
+                    qty: z.number().nonnegative(),
+                })
+            )
+            .min(1),
+        idemKey: z.string().min(1),
+    })
+    .superRefine((data, context) => {
+        data.items.forEach((item, index) => {
+            if (data.actionType !== 'accept' && item.qty === 0) {
+                context.addIssue({
+                    code: 'custom',
+                    message: 'Qty harus lebih dari 0 untuk request/send',
+                    path: ['items', index, 'qty'],
+                });
+            }
+        });
+
+        if (data.actionType === 'accept' && !data.items.some((item) => item.qty > 0)) {
+            context.addIssue({
+                code: 'custom',
+                message: 'Minimal 1 item harus memiliki qty > 0',
+                path: ['items'],
+            });
+        }
+    });
 
 const acceptReturnTagSchema = z.object({
     headerId: z.number().int().positive(),
