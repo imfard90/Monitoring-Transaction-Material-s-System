@@ -70,10 +70,10 @@ export default function OutMaterialClient({
             const params = new URLSearchParams();
             const page = overrides.page ?? 1;
             const pageSize = overrides.pageSize ?? pagination?.pageSize ?? 20;
-            const status = overrides.status !== undefined ? overrides.status : filterStatus;
-            const wh = overrides.warehouse !== undefined ? overrides.warehouse : whFilter;
-            const search = overrides.search !== undefined ? overrides.search : searchQuery;
-            const date = overrides.date !== undefined ? overrides.date : dateFilter;
+            const status = overrides.status === undefined ? filterStatus : overrides.status;
+            const wh = overrides.warehouse === undefined ? whFilter : overrides.warehouse;
+            const search = overrides.search === undefined ? searchQuery : overrides.search;
+            const date = overrides.date === undefined ? dateFilter : overrides.date;
 
             params.set('page', page.toString());
             params.set('pageSize', pageSize.toString());

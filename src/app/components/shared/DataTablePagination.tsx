@@ -34,7 +34,7 @@ export function DataTablePagination<TData>({
     const handleJump = (e: React.FormEvent) => {
         e.preventDefault();
         const pageNumber = parseInt(jumpPage, 10);
-        if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= pageCount) {
+        if (!Number.isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= pageCount) {
             table.setPageIndex(pageNumber - 1);
             setJumpPage('');
         }

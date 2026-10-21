@@ -54,7 +54,7 @@ export function CurrencyInput({
             const raw = e.target.value.replace(/[^\d.]/g, '');
             const parsed = parseFloat(raw);
 
-            if (isNaN(parsed)) {
+            if (Number.isNaN(parsed)) {
                 if (controlledValue === undefined) setInternalValue(0);
                 onChange?.(0);
                 return;

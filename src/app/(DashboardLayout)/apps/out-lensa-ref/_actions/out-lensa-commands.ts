@@ -2,11 +2,8 @@
 'use server';
 
 import crypto from 'node:crypto';
-import { sql } from 'kysely';
-import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
-import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import {
     scrapeLensaDetails,

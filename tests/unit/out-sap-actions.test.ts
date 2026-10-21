@@ -56,14 +56,14 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 const { createOutSap, updateOutSapStatusToIntech } = await import(
-    '@/app/(DashboardLayout)/apps/out-sap/_actions/out-sap-actions'
+    '@/app/(DashboardLayout)/form/out-sap/_actions/out-sap-actions'
 );
 
 describe('out-sap-actions Unit Tests', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockGetSessionNik.mockResolvedValue('STAFF_TEST_NIK');
-        mockCheckAndStoreIdempotency.mockImplementation((key, data, cb) =>
+        mockCheckAndStoreIdempotency.mockImplementation((_key, data, cb) =>
             cb(data).then((res: any) => ({ isDuplicate: false, result: res }))
         );
     });

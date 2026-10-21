@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ModalDialog } from '@/components/ui/modal-dialog';
 import { Badge } from '@/components/ui/badge';
+import { ModalDialog } from '@/components/ui/modal-dialog';
 import type { OutMaterialItem, OutMaterialRow } from '@/lib/types/inventory';
 import { getOutMaterialItems } from '../_actions/out-material-actions';
 

@@ -1,6 +1,6 @@
+import { db } from '@/lib/db/db';
 import { hashApiKey, isValidApiKeyFormat } from '@/lib/security/api-key';
 import { checkAndConsumeApiRateLimit } from '@/lib/security/api-rate-limit';
-import { db } from '@/lib/db/db';
 
 export type ApiAuthResult =
     | {
@@ -51,7 +51,7 @@ export type ApiAuthResult =
 export async function authenticateApiRequest(req: Request): Promise<ApiAuthResult> {
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
         return {
             ok: false,
             status: 401,

@@ -15,10 +15,10 @@
     ::before,
     ::backdrop,
     ::file-selector-button {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        transition-duration: 0.01ms;
+        scroll-behavior: auto;
     }
 }
 
@@ -31,9 +31,9 @@
 [cmdk-input],
 [cmdk-input]:focus,
 [cmdk-input]:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
-    border: none !important;
+    outline: none;
+    box-shadow: none;
+    border: none;
 }
 
 html,

@@ -10,7 +10,6 @@ import { useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
-import { SearchField } from '@/components/ui/search-field';
 import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { StatusBadge } from '@/app/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ import {
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { SearchField } from '@/components/ui/search-field';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { InOutTagRow } from '@/lib/types/inventory';
 import { cn } from '@/lib/utils';

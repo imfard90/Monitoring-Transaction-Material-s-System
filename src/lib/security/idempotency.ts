@@ -10,8 +10,8 @@
  * server components/actions to avoid bundling node modules in client.
  */
 
-import { redis } from '@/lib/redis';
 import { securityLogger } from '@/lib/logger';
+import { redis } from '@/lib/redis';
 
 // ============================================
 // Types

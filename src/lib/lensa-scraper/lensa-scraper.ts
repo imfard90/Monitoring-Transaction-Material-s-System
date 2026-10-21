@@ -1,6 +1,6 @@
-import { actionLogger } from '@/lib/logger';
 import { format, parse } from 'date-fns';
 import { type Browser, chromium } from 'playwright';
+import { actionLogger } from '@/lib/logger';
 import { redis } from '../redis';
 import { parseBapbPdfBuffer } from './bapb-pdf-parser';
 
@@ -22,7 +22,7 @@ async function closeBrowser() {
 async function getBrowserInstance(): Promise<Browser> {
     const now = Date.now();
     const isStale = browserLastLaunched > 0 && now - browserLastLaunched > BROWSER_MAX_AGE_MS;
-    const needsReconnect = !globalBrowser || !globalBrowser.isConnected() || isStale;
+    const needsReconnect = !globalBrowser?.isConnected() || isStale;
 
     if (needsReconnect) {
         await closeBrowser();

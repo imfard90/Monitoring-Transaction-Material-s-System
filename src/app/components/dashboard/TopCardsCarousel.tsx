@@ -60,7 +60,7 @@ const kpiConfig = [
         icon: 'solar:refresh-circle-bold-duotone',
         bgcolor: 'bg-secondary/10 dark:bg-secondary/10',
         iconColor: 'text-secondary',
-        url: '/apps/return-material',
+        url: '/form/return-material',
     },
     {
         key: 'intechOpen',
@@ -68,7 +68,7 @@ const kpiConfig = [
         icon: 'solar:box-bold-duotone',
         bgcolor: 'bg-warning/10 dark:bg-warning/10',
         iconColor: 'text-warning',
-        url: '/apps/out-sap',
+        url: '/form/out-sap',
     },
     {
         key: 'intechClose',
@@ -76,7 +76,7 @@ const kpiConfig = [
         icon: 'solar:check-circle-bold-duotone',
         bgcolor: 'bg-success/10 dark:bg-success/10',
         iconColor: 'text-success',
-        url: '/apps/out-sap',
+        url: '/form/out-sap',
     },
 ] as const;
 

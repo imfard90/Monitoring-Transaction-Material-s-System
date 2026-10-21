@@ -1,5 +1,5 @@
-import { rateLimit } from '@/lib/rate-limit';
 import { securityLogger } from '@/lib/logger';
+import { rateLimit } from '@/lib/rate-limit';
 
 const MAX_REPORT_BYTES = 16_384;
 const MAX_REPORTS_PER_MINUTE = 30;

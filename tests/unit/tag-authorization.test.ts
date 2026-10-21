@@ -56,7 +56,7 @@ const { updateTag } = await import('@/app/(DashboardLayout)/apps/inout-tag/_acti
 describe('updateTag authorization', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        mockCheckAndStoreIdempotency.mockImplementation((key, data, cb) =>
+        mockCheckAndStoreIdempotency.mockImplementation((_key, data, cb) =>
             cb(data).then((res: any) => ({ isDuplicate: false, result: res }))
         );
         mockSqlExecute.mockResolvedValue({ rows: [] });

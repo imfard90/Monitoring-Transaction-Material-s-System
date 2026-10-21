@@ -3,25 +3,25 @@ import { Icon } from '@iconify/react/dist/iconify.js';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import {
     deleteLensaAccount,
     saveLensaAccount,
 } from '@/app/(DashboardLayout)/user-profile/_actions/lensa-actions';
 import {
-    type UserProfileData,
     deleteUserApiKey,
     generateUserApiKey,
+    type UserProfileData,
 } from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
-import { ModalDialog } from '@/components/ui/modal-dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ModalDialog } from '@/components/ui/modal-dialog';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { authClient } from '@/lib/auth-client';
-import { Card } from '@/components/ui/card';
 
 const UserProfile = ({ profileData }: { profileData?: UserProfileData }) => {
     const socialLinks = [

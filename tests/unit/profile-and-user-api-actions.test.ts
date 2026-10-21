@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { toggleUserApiApproval } from '@/app/(DashboardLayout)/management/users/actions';
 import {
     deleteUserApiKey,
     generateUserApiKey,
 } from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
-import { toggleUserApiApproval } from '@/app/(DashboardLayout)/management/users/actions';
 import { getSessionNik, requireManagementAccess } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 

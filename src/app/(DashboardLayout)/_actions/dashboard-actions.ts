@@ -9,19 +9,18 @@
  */
 
 export {
-    getStockBalances,
-    getDashboardStockIntech,
-    getWarehouses,
-    getStockWarnings,
-    getDashboardKpis,
-    getLensaWarehousePerformance,
-    getOtherWarehouseStock,
-    triggerOtherStockSync,
-} from './dashboard-queries';
-
-export {
+    getOutMaterialLineChartData,
     getSalesOverviewData,
     getTopOutMaterials,
-    getOutMaterialLineChartData,
     getWarehousePerformance,
 } from './dashboard-charts-queries';
+export {
+    getDashboardKpis,
+    getDashboardStockIntech,
+    getLensaWarehousePerformance,
+    getOtherWarehouseStock,
+    getStockBalances,
+    getStockWarnings,
+    getWarehouses,
+    triggerOtherStockSync,
+} from './dashboard-queries';

@@ -11,7 +11,6 @@ import { FilterX } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
-import { SearchField } from '@/components/ui/search-field';
 import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
+import { SearchField } from '@/components/ui/search-field';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export interface StockMovementItem {

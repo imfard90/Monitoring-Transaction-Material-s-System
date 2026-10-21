@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { db } from '@/lib/db/db';
 import { authenticateApiRequest } from '@/lib/security/api-auth';
 import { hashApiKey } from '@/lib/security/api-key';
-import { db } from '@/lib/db/db';
 import { checkAndConsumeApiRateLimit } from '@/lib/security/api-rate-limit';
 
 vi.mock('@/lib/db/db', () => ({

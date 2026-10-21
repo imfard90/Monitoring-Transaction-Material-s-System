@@ -3,7 +3,6 @@
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { ModalDialog } from '@/components/ui/modal-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -15,6 +14,7 @@ import {
 } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ModalDialog } from '@/components/ui/modal-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { upsertTechnician } from './actions';

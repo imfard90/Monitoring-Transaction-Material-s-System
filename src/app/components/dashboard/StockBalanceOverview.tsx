@@ -1,31 +1,30 @@
 'use client';
 
+import { IconBuildingWarehouse, IconRefresh } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { IconRefresh } from '@tabler/icons-react';
-import { toast } from 'sonner';
 import {
     createColumnHelper,
     getCoreRowModel,
     getPaginationRowModel,
     useReactTable,
 } from '@tanstack/react-table';
-import { IconBuildingWarehouse } from '@tabler/icons-react';
 import React, { useState } from 'react';
-import { getSidebarUserAccess } from '@/app/(DashboardLayout)/management/users/actions';
+import { toast } from 'sonner';
 import {
     getStockBalances,
     triggerOtherStockSync,
 } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
-import { Card } from '@/components/ui/card';
+import { getSidebarUserAccess } from '@/app/(DashboardLayout)/management/users/actions';
+import { OtherStockModal } from '@/app/components/dashboard/OtherStockModal';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
-import { SearchField } from '@/components/ui/search-field';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
-import { OtherStockModal } from '@/app/components/dashboard/OtherStockModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
+import { SearchField } from '@/components/ui/search-field';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { sortStockBalancesByRunout } from '@/lib/utils/stock-balance-order';
 

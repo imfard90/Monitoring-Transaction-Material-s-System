@@ -5,9 +5,9 @@ import { AlertCircle, MapPin } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { getOtherWarehouseStock } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import type { OtherStockItem } from '@/app/(DashboardLayout)/_actions/dashboard-queries';
-import { ModalDialog } from '@/components/ui/modal-dialog';
 import { RegionalCombobox } from '@/app/components/shared/RegionalCombobox';
 import { Badge } from '@/components/ui/badge';
+import { ModalDialog } from '@/components/ui/modal-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     Table,

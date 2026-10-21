@@ -3,8 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { requireTechnicianManagementAccess } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
-import { hrRepository } from '@/lib/repositories/hr.repository';
 import { actionLogger } from '@/lib/logger';
+import { hrRepository } from '@/lib/repositories/hr.repository';
 
 export async function getTechnicians() {
     try {
