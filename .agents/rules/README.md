@@ -2,7 +2,7 @@
 
 ## Structure
 
-In MTMS, rules in `.cline/rules/` define coding standards, security guardrails, architectural conventions, and validation checklists. Cline automatically loads these rules when working in the workspace.
+In MTMS, `.agents/rules/` is the canonical source for general engineering standards. `.cline/rules/` contains Cline-loaded copies and MTMS/Cline operational supplements. `AGENTS.md` remains authoritative for repository-specific security, business, and data requirements; do not assume same-named files are identical.
 
 The rules are organized into:
 
@@ -52,3 +52,10 @@ The project enforces quality with **Biome**, **TypeScript (tsc)**, and **Vitest*
 - **Skills** (`.agents/skills/`) provide deep, actionable reference material for specific domains (e.g., `ui-ux-pro-max`, `postgres-patterns`, `better-auth`).
 
 Rules tell you *what* standards to adhere to; skills provide *how-to* execution guidance.
+
+## Rule Sources and Reconciliation
+
+- `.agents/rules/` is the canonical source for general engineering standards.
+- `.cline/rules/` is loaded by Cline and may include operational guidance specific to this workspace. It is not a second independent standard set.
+- `AGENTS.md` remains authoritative for MTMS security, business, data, and repository-specific requirements.
+- When same-named rules differ, preserve operational additions, resolve conflicts against `AGENTS.md`, and update both copies only when shared guidance changes. Never bulk-copy or replace a directory to force textual equality.

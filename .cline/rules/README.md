@@ -2,7 +2,7 @@
 
 ## Structure
 
-In MTMS, rules in `.cline/rules/` define coding standards, security guardrails, architectural conventions, and validation checklists. Cline automatically loads these rules when working in the workspace.
+In MTMS, `.agents/rules/` is the canonical source for general engineering standards. `.cline/rules/` contains Cline-loaded copies and MTMS/Cline operational supplements. `AGENTS.md` remains authoritative for repository-specific security, business, and data requirements; do not assume same-named files are identical.
 
 The rules are organized into:
 
@@ -59,3 +59,10 @@ The project enforces quality with **Biome**, **TypeScript (tsc)**, and **Vitest*
 - **Skills** (`.agents/skills/`) provide deep, actionable reference material for specific domains (e.g., `ui-ux-pro-max`, `postgres-patterns`, `better-auth`).
 
 Rules tell you *what* standards to adhere to; skills provide *how-to* execution guidance.
+
+## Agent and Workflow Discovery
+
+- Discover skills from `.agents/skills/**/SKILL.md`, personas from `.agents/agents/*.md`, and workflows from `.cline/workflows/*.md`; do not rely on fixed counts or assume parallel-agent support.
+- Use `CLINE.md` as the current workflow index and `.agents/skills/README.md` for skill guidance. Invoke available skills explicitly when relevant.
+- For security posture of agent workflows, follow `.agents/skills/mtms-security-guide/security-guide.md` and `.cline/workflows/security.md`. For NTE security reviews, also follow `docs/NTE_SECURITY_WORKFLOW.md` and `docs/adr/002_nte_stored_procedures_and_warehouse_mapping.md`. These sources guide review; they do not authorize code changes, migrations, or data writes.
+- `.agents/rules/` is canonical for general engineering standards. `.cline/rules/` may contain Cline/MTMS operational supplements; when same-named files differ, preserve those supplements and resolve conflicts against `AGENTS.md` and its named authoritative sources. Do not bulk-copy directories.

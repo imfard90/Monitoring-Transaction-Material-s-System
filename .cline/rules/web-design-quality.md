@@ -66,6 +66,26 @@ Every meaningful frontend surface should demonstrate at least four of these:
 
 Do not default to dark mode automatically. Choose the visual direction the product actually wants.
 
+## Motion & Interaction Quality
+
+- Motion must clarify state, guide attention, or preserve spatial continuity. Remove decorative motion.
+- Prioritize immediate response and operational readability; avoid delayed entrances, parallax, looping decoration, or animation that obscures transaction data.
+- Prefer CSS for simple transitions; use the installed motion library only when coordinated React interactions justify it. Do not add a second animation runtime for a reference pattern.
+- Prefer `transform` and `opacity`, respect `prefers-reduced-motion`, and provide an understandable static state.
+- Keep controls usable by keyboard and touch without motion or gestures as the only affordance.
+- Animate meaningful changes only; avoid animating every table row, metric refresh, validation message, or navigation element by default.
+
+## Inspiration References (Use Principles, Not Blind Imports)
+
+External libraries are visual/interaction references, not automatic dependencies or design authority:
+
+- Study sequencing and timelines from anime.js, but use CSS for simple transitions and add a timeline engine only for a demonstrated orchestration need.
+- Use Motion (motion.dev) as a reference for state-driven animation; follow the installed Motion-compatible stack and do not add a second runtime.
+- Borrow interaction ideas from Kokonut UI; rebuild useful behavior with existing MTMS primitives and tokens rather than copying styles wholesale.
+- Verify a specific Backlit UI component and its current implementation before using it as a reference; do not infer APIs from its name.
+
+Adapt borrowed patterns to MTMS operations, accessibility, dark theme, and design tokens. Review licensing and attribution before copying assets or substantial code. References do not override `AGENTS.md` or authorize new packages.
+
 ## Component Checklist
 
 - [ ] Does it avoid looking like a default Tailwind or shadcn template?

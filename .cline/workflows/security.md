@@ -6,23 +6,22 @@ argument-hint: "[file-or-directory]"
 # Security Audit Workflow
 
 1. Load security skills:
-   - `mtms-security-guide` (agentic security for MTMS)
-   - `cybersecurity` (8 parallel agents, OWASP/MITRE/STRIDE)
-
-2. Determine audit scope:
+   - `mtms-security-guide` — read `.agents/skills/mtms-security-guide/security-guide.md`; apply its agentic threat model, prompt-injection controls, and secret-exposure guidance alongside the MTMS controls below.
+   - `cybersecurity` — use its available OWASP/MITRE/STRIDE guidance; do not assume a fixed agent count or parallel-agent capability.
+2. Read `AGENTS.md` and `docs/AUDIT_REPORT.md` before auditing. For NTE-specific review, read `docs/NTE_SECURITY_WORKFLOW.md` and `docs/adr/002_nte_stored_procedures_and_warehouse_mapping.md`; these are review guidance, not authorization to implement or run migrations.
+3. Inspect only requested scope and relevant contracts; protect unrelated user changes and do not reveal secrets or sensitive data in findings.
+4. Determine audit scope:
    - If argument provided: audit specified file/directory
    - Otherwise: audit recently modified files (`git diff --name-only HEAD`)
-
-3. Run automated security scans:
+5. Run automated security scans:
    ```bash
    # Check for hardcoded secrets
    git diff HEAD | grep -iE '(password|secret|api[_-]?key|token|credential)' || true
-   
+
    # TypeScript type safety
    pnpm tsc --noEmit
    ```
-
-4. Apply OWASP Top 10 checklist:
+6. Apply OWASP Top 10 checklist:
    - **A01 - Broken Access Control**: Check auth middleware, role checks
    - **A02 - Cryptographic Failures**: Review encryption, hashing, TLS
    - **A03 - Injection**: SQL injection, XSS, command injection

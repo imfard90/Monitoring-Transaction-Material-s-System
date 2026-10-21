@@ -2,24 +2,27 @@
 
 > Next.js 16 · Server Actions · Tailwind CSS 4 · shadcn/ui (Radix) · TanStack Table · TanStack Query · Kysely · Biome · Playwright · Framer Motion
 
-This document defines the Cline AI agent configuration for the MTMS project. Cline will automatically load this configuration when working in this workspace.
-
+This document defines Cline AI agent configuration for the MTMS project. Cline will automatically load this configuration when working in this workspace.
 ## 📁 Project Structure
 
 ```
-.cline/                          # Cline project configuration
-  rules/                         # Coding standards and patterns (27 rules + README)
-  workflows/                     # Slash command workflows (8 workflows)
-  skills/                        # Project-specific skills (optional)
+.cline/             # Cline configuration
+  rules/            # Coding standards (27 rules + README)
+  workflows/        # Slash command workflows (8 workflows)
 
-.agents/                         # Shared agent ecosystem
-  skills/                        # 44 active skills (invoked via skills tool)
-  agents/                        # 29 specialized agent personas
-  rules/                         # Mirrored rules reference
+.agents/           # Shared agent ecosystem
+  skills/           # Skill guides discovered via SKILL.md
+  agents/           # Persona reference profiles; not dispatched subagents
+  rules/            # Canonical general engineering standards
 
-bispro.md                        # Business process documentation (MANDATORY)
-AGENTS.md                        # Cross-tool agent instructions
+bispro.md          # Business process documentation (MANDATORY)
+AGENTS.md          # Cross-tool agent instructions (project root)
 ```
+
+**Key locations**:
+- `AGENTS.md` lives at the **project root** (not in `docs/`).
+- `run-migration.ts` lives at the **project root** (not in `scripts/`).
+- `scripts/` contains user-facing scripts (seeders, admin tools).
 
 ## ⚠️ MANDATORY: Business Process (Bispro)
 
@@ -51,8 +54,8 @@ Invoke workflows with `/workflow-name` in the chat:
 | `/commit` | Quality checks (tsc, format, lint, unit tests), staging & push | `[optional-context]` |
 | `/review` | Full code review: tsc + Biome format/lint + unit tests + security | `[file-or-directory]` |
 | `/test` | Run Vitest unit & integration test suites, check coverage | `[target-path-or-suite]` |
-| `/migrate` | Run and verify PostgreSQL database migrations via migration runner | `[dry-run\|status]` |
-| `/security` | Security audit: OWASP Top 10 + API key + mtms-security-guide | `[file-or-directory]` |
+| `/migrate` | Run and verify PostgreSQL database migrations via migration runner | `[dry-run|status]` |
+| `/security` | Security audit: OWASP Top 10 + API key + agentic security guide | `[file-or-directory]` |
 | `/db-check` | Query DB via MCP, validate Kysely types | `[table-or-query]` |
 | `/perf` | React/Next.js performance audit | `[component-path]` |
 | `/new-page` | Scaffold new dashboard page + sidebar wiring | `<page-name> [desc]` |
@@ -69,6 +72,10 @@ Example usage:
 Custom modes are configured in `.roomodes` and `.clinerules` for 4 primary engineering roles:
 1. **Planner / Architect (`planner`)**: Focus on `bispro.md`, schema design, DDD, and SP contracts.
 2. **Code Builder (`builder`)**: Implementation of Next.js 15, Server Actions, Kysely, Zod schemas, and UI design system.
+3. **Code Reviewer (`reviewer`)**: Code quality, Biome formatting & linting, `tsc` checks, fail-closed authz audits.
+4. **Security & Test Specialist (`security-tester`)**: OWASP audit, API rate limiting, Vitest unit & integration testing.
+
+Use `/review src/app/(DashboardLayout)/apps/inout-tag` to review a feature; use `/security src/lib/auth` for auth-focused audits; use `/db-check inout_tag` to inspect the DB schema.
 3. **Code Reviewer (`reviewer`)**: Code quality, Biome formatting & linting, `tsc` checks, fail-closed authz audits.
 4. **Security & Test Specialist (`security-tester`)**: OWASP audit, API rate limiting, Vitest unit & integration testing.
 /review src/app/(DashboardLayout)/apps/inout-tag
@@ -123,14 +130,14 @@ Toggle rules on/off via Cline's Rules panel (scale icon → Rules tab).
 
 Skills are specialized instruction sets loaded on demand. Cline discovers skills from:
 
-1. **Shared skills**: `.agents/skills/` (44 active skills available in workspace)
+1. **Shared skills**: `.agents/skills/` (discoverable guides use `SKILL.md`)
 2. **Project skills**: `.cline/skills/` (optional workspace extensions)
 
 Cline invokes skills via the `skills` tool or matching context.
 
 ### MTMS-Specific & Design Skills
 
-Located in `.agents/skills/`:
+Located in `.agents/skills/` (the active count is derived from `SKILL.md` files; do not maintain a numeric total):
 
 | Skill | When to Use |
 |-------|-------------|
@@ -154,75 +161,57 @@ The workspace includes active curated skills:
 - **Software Design & Quality**: `clean-architecture`, `clean-code`, `code-complete`, `domain-driven-design`, `a-philosophy-of-software-design`, `the-pragmatic-programmer`, `refactoring`, `refactoring-guru`, `working-effectively-with-legacy-code`, `coding-standards`, `error-handling`
 - **Testing & Workflow**: `tdd-workflow`, `e2e-testing`, `browser-qa`, `git-workflow`
 
-## 🤖 Agent Personas
+## 🤖 Persona Reference Profiles
 
-Specialized personas in `.agents/agents/` (29 active personas) define expert roles for complex tasks:
+Markdown files in `.agents/agents/` are expert-role guidance for human review and agent behavior, not independently dispatched Cline subagents. Their presence does not imply runtime persona selection, delegation, or parallel execution. Apply relevant guidance directly when useful; use available skills, workflows, and direct validation commands for actual execution.
 
-| Persona | Focus Area |
-|---------|------------|
-| `code-reviewer` | Comprehensive code quality, dead code cleanup, patterns |
-| `react-reviewer` | React 19/Next.js component quality and performance |
-| `typescript-reviewer` | Strict typing, Kysely schema types, and Zod schemas |
-| `security-reviewer` | OWASP Top 10, authz verification, secret leakage |
-| `architect` | Architectural planning, boundaries, domain modeling |
-| `performance-optimizer` | Bundle size, query optimization, render bottlenecks |
-| `tdd-guide` | Test-driven development with Vitest |
-
-In Cline, agents operate natively using workflows (`/review`, `/security`), the `skills` tool, and direct validation commands.
+Discover current profiles from the files in `.agents/agents/`; do not maintain a static persona list here. Use `/review`, `/security`, the `skills` tool, and direct validation commands where appropriate.
 
 ## 🗄️ Database & MCP Servers
 
-**Mandatory MCP Usage**: The MTMS database schema already exists. **ALWAYS use the active PostgreSQL MCP server** for database operations instead of writing ad-hoc Node scripts.
+**Mandatory MCP Usage**: MTMS database schema already exists. **ALWAYS use the active PostgreSQL MCP server** for database operations instead of writing ad-hoc Node scripts.
 
-MCP Server Configuration (in `~/.cline/data/settings/cline_mcp_settings.json`):
+### MCP Server Configuration
 
-```json
-{
-  "mcpServers": {
-    "postgres": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-postgres",
-        "postgresql://user:pass@host:5432/gresik?sslmode=disable"
-      ],
-      "disabled": false,
-      "alwaysAllow": ["query"]
-    },
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/path/to/project"
-      ],
-      "disabled": false
-    },
-    "context7": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@upstash/context7-mcp"
-      ],
-      "disabled": false
-    }
-  }
+Postgres MCP configuration is local to the developer at `~/.cline/data/settings/cline_mcp_settings.json` and is not committed. Keep connection strings and credentials out of repository documentation, logs, and chat. Use the already-configured `postgres__query` tool for read-only queries; do not assume it permits writes or add a second server configuration here.
+
+### MCP vs. Scripts: When to Use Which
+
+| Task | Tool |
+|------|------|
+| Read-only DB queries (introspection, health checks, data previews) | **MCP `postgres__query`** — preferred |
+| Explicitly approved non-inventory data fixes | Reviewed `src/lib/db/execute.ts` script after verifying target and rollback; inventory mutations must use approved procedures through repositories |
+| Running migrations | `pnpm migrate` (root `run-migration.ts`) |
+
+### Write Scripts — Use `src/lib/db/execute.ts`
+
+Only run a write script when the owner explicitly authorizes the operation and the target, scope, and rollback are verified. Tool availability does not imply permission.
+
+For an explicitly authorized standalone script that writes non-inventory data:
+
+```ts
+import 'dotenv/config';
+import { createPool, executeWrite } from '@/lib/db/execute';
+
+const pool = await createPool();
+try {
+  await executeWrite(pool, 'INSERT INTO ... VALUES ($1, $2)', [a, b]);
+} finally {
+  await pool.end();
 }
 ```
 
-Use the MCP tools for:
-- **postgres**: Executing queries directly to the MTMS database, database cleanups, testing schemas, ad-hoc troubleshooting, reading existing tables and columns, and understanding relations to map queries correctly with Kysely. Do **not** alter database structure unless explicitly instructed.
-- **filesystem**: Safe file reading, directory tree inspection, and search within the project.
-- **context7**: Real-time framework and library documentation lookup (e.g., Next.js, Tailwind v4, TanStack Query, Radix UI).
+See MTMS-DB-01 rule in `common-hooks.md` for the full pattern.
 
-### Selective UI Component Adoption (shadcn/ui & shadcnspace)
+### Verification
 
-- **Reuse first**: Always check `src/components/ui/` and `src/app/components/shared/` before proposing or adding any new component.
-- **Selective adoption**: When evaluating new component patterns from shadcn/ui or shadcnspace:
-  1. Map classes directly to MTMS Tailwind v4 design tokens (`--color-primary`, `--radius-*`, `--color-muted`, etc.) in `src/app/css/globals.css`.
-  2. Maintain Radix UI base primitives — never create duplicate or parallel primitive folders.
-  3. Comply with WCAG AA accessibility, visible `focus-visible`, and `prefers-reduced-motion` requirements.
-  4. Never overwrite existing primitives in `src/components/ui/` without explicit necessity.
+Confirm MCP is working:
+```
+/db-check
+```
+
+If MCP is unavailable, stop read-only DB inspection and report the limitation. `src/lib/db/execute.ts` is only for explicitly authorized, reviewed non-inventory data fixes; inventory mutations must use approved procedures through repositories, and schema changes must go through `pnpm migrate`.
+
 
 ## 📝 Project Conventions
 
@@ -283,11 +272,12 @@ Do not consider a task complete until these checks pass.
 
 All sensitive configuration (API keys, DB credentials, secrets) must use `.env` — never hardcode.
 
-For security audits, use `/security [target]` which loads:
-- `mtms-security-guide` skill
-- `cybersecurity` skill (8 parallel agents)
-- OWASP Top 10 checklist
-- STRIDE threat modeling
+For security audits, use `/security [target]`. It directs the audit to:
+- `.agents/skills/mtms-security-guide/security-guide.md` for agentic threat modeling, prompt injection, and secret exposure
+- Available `cybersecurity` skill guidance for OWASP/MITRE/STRIDE, without assuming a fixed agent count
+- MTMS-specific authorization, database, API, and NTE controls from `AGENTS.md` and `docs/NTE_SECURITY_WORKFLOW.md` when NTE is in scope
+
+The NTE workflow is review guidance only; it does not authorize code changes, migrations, or data writes.
 
 ## 🎨 Styling
 
@@ -301,9 +291,11 @@ For security audits, use `/security [target]` which loads:
 
 This project previously used Roo Cline extensions. The migration is complete:
 
-✅ **Rules**: Copied from `.agents/rules/` to `.cline/rules/` (29 files)
-✅ **Workflows**: Migrated from `.roo/commands/` to `.cline/workflows/` (6 workflows)
-✅ **Skills**: Cline auto-reads from `.agents/skills/` (200+ skills, no copy needed)
+✅ **Rules**: `.cline/rules/` and `.agents/rules/` are maintained as related sources; reconcile behaviorally relevant differences against `AGENTS.md` and do not bulk-copy.
+✅ **Workflows**: Available commands are the Markdown files currently present in `.cline/workflows/`.
+✅ **Skills**: Cline discovers skills from `SKILL.md` files under `.agents/skills/`; no fixed count is maintained.
+
+Active skill names listed in this guide are curated examples, not a complete inventory; discover the current set from `.agents/skills/**/SKILL.md`. Personas in `.agents/agents/` are reference profiles for human/agent guidance, not independently dispatched subagents in this Cline workspace. Use available skills, workflows, and direct verification commands; do not assume persona dispatch or parallel-agent capability.
 ✅ **MCP**: Configuration documented above
 ⚠️ **Custom Modes**: Roo's `.roomodes` don't have direct Cline equivalent — converted to workflows
 
@@ -333,7 +325,7 @@ This project previously used Roo Cline extensions. The migration is complete:
 
 **Skills not triggering?** Check skill description matches request, or invoke explicitly: `/skill-name`
 
-**MCP postgres not working?** Verify MCP config in `~/.cline/data/settings/cline_mcp_settings.json`, test with `/db-check`
+**MCP not working?** Verify local MCP config without exposing credentials and run `/db-check` to confirm connectivity. If unavailable, report the read-only DB limitation; only explicitly approved data-fix scripts may use `src/lib/db/execute.ts`.
 
 **Quality checks failing?** Run `pnpm tsc --noEmit` and `pnpm dlx @biomejs/biome check --write .`, or use `/review`
 

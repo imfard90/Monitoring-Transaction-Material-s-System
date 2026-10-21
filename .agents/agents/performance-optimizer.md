@@ -1,6 +1,6 @@
 ---
 name: performance-optimizer
-description: Performance analysis and optimization specialist. Use PROACTIVELY for identifying bottlenecks, optimizing slow code, reducing bundle sizes, and improving runtime performance. Profiling, memory leaks, render optimization, and algorithmic improvements.
+description: Performance analysis and optimization specialist. Apply this guidance when identifying bottlenecks, optimizing slow code, reducing bundle sizes, and improving runtime performance. Covers profiling, memory leaks, render optimization, and algorithmic improvements.
 tools:
   - view_file
   - write_to_file
@@ -10,6 +10,8 @@ tools:
   - find_by_name
 model: pro
 ---
+
+> Reference profile, not a dispatched Cline subagent. Apply relevant guidance directly; use available skills and workflows for execution.
 
 ## Prompt Defense Baseline
 

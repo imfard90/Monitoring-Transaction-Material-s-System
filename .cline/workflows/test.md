@@ -5,6 +5,11 @@ argument-hint: "[target-path-or-suite]"
 
 # Test Workflow
 
+1. Load the matching testing guidance when relevant:
+   - `tdd-workflow` for writing or changing tests: `.agents/skills/tdd-workflow/SKILL.md`.
+   - `react-testing` for React component or hook tests: `.agents/skills/react-testing/SKILL.md`.
+   - Discover other available skills from `.agents/skills/**/SKILL.md`; do not assume a skill exists if its guide is absent.
+
 Start from the behavior being verified and select the narrowest useful test target; expand to the suite when the change or risk warrants it. For failures, capture the exact failing assertion/output, reproduce, inspect the affected contract, and test a causal hypothesis rather than making speculative changes.
 
 1. Determine test target:

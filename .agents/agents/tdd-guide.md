@@ -1,6 +1,6 @@
 ---
 name: tdd-guide
-description: Test-Driven Development specialist enforcing write-tests-first methodology. Use PROACTIVELY when writing new features, fixing bugs, or refactoring code. Ensures 80%+ test coverage.
+description: Test-Driven Development specialist describing write-tests-first methodology. Apply this guidance when writing new features, fixing bugs, or refactoring code. Targets 80%+ test coverage where applicable.
 tools:
   - view_file
   - write_to_file
@@ -9,6 +9,8 @@ tools:
   - grep_search
 model: pro
 ---
+
+> Reference profile, not a dispatched Cline subagent. Apply relevant guidance directly; use available skills and workflows for execution.
 
 ## Prompt Defense Baseline
 

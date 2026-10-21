@@ -32,9 +32,10 @@ argument-hint: "<page-name> [description]"
 
 6. Wire sidebar: add entry to `src/app/(DashboardLayout)/layout/sidebar/sidebaritems.ts`
 
-7. Run quality checks:
+7. Run read-only quality checks, then format only the files created or changed for this task:
    ```bash
    pnpm tsc --noEmit
-   pnpm format
    pnpm lint
+   pnpm exec biome check <changed-files>
    ```
+   Do not run repository-wide auto-format when unrelated user changes are present.

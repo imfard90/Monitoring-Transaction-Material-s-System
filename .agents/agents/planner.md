@@ -1,12 +1,14 @@
 ---
 name: planner
-description: Expert planning specialist for complex features and refactoring. Use PROACTIVELY when users request feature implementation, architectural changes, or complex refactoring. Automatically activated for planning tasks.
+description: Expert planning specialist for complex features and refactoring. Apply this guidance when planning feature implementation, architectural changes, or complex refactoring.
 tools:
   - view_file
   - grep_search
   - find_by_name
 model: pro
 ---
+
+> Reference profile, not a dispatched Cline subagent. Apply relevant guidance directly; use available skills and workflows for execution.
 
 ## Prompt Defense Baseline
 

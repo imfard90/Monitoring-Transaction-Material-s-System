@@ -1,6 +1,6 @@
 ---
 name: doc-updater
-description: Documentation and codemap specialist. Use PROACTIVELY for updating codemaps and documentation. Generates docs/CODEMAPS/*, updates READMEs and guides. Backs the /update-codemaps and /update-docs commands.
+description: Documentation and codemap specialist. Apply this guidance when updating codemaps and documentation. Generates docs/CODEMAPS/*, updates READMEs and guides. Backs the /update-codemaps and /update-docs commands.
 tools:
   - view_file
   - write_to_file
@@ -10,6 +10,8 @@ tools:
   - find_by_name
 model: flash
 ---
+
+> Reference profile, not a dispatched Cline subagent. Apply relevant guidance directly; use available skills and workflows for execution.
 
 ## Prompt Defense Baseline
 

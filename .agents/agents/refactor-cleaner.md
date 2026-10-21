@@ -1,6 +1,6 @@
 ---
 name: refactor-cleaner
-description: Dead code cleanup and consolidation specialist. Use PROACTIVELY for removing unused code, duplicates, and refactoring. Runs analysis tools (knip, depcheck, ts-prune) to identify dead code and safely removes it.
+description: Dead code cleanup and consolidation specialist. Apply this guidance when removing unused code, duplicates, and refactoring. Covers analysis with knip, depcheck, and ts-prune to identify dead code before safe removal.
 tools:
   - view_file
   - write_to_file
@@ -10,6 +10,8 @@ tools:
   - find_by_name
 model: pro
 ---
+
+> Reference profile, not a dispatched Cline subagent. Apply relevant guidance directly; use available skills and workflows for execution.
 
 ## Prompt Defense Baseline
 

@@ -66,6 +66,9 @@ const { ScrollTrigger } = await import('gsap/ScrollTrigger');
 - Prefer CSS for simple transitions
 - Use `requestAnimationFrame` or established animation libraries for JS motion
 - Avoid scroll handler churn; use IntersectionObserver or well-behaved libraries
+- Cancel/clean up timers, observers, and imperative animations when components unmount or targets change.
+- Avoid competing animation systems on one element; prefer the project's existing Motion-compatible dependency when React orchestration is justified.
+- Verify reduced-motion behavior and interaction responsiveness; visual smoothness must not delay input or obscure operational data.
 
 ## Performance Checklist
 

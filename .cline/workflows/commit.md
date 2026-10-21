@@ -38,12 +38,10 @@ argument-hint: "[optional-context]"
 3. Run mandatory quality checks **before** staging:
 
     ```bash
-    # Type check — must pass with zero errors
+    # Read-only quality checks; format only explicitly changed files after review
     pnpm tsc --noEmit
-
-    # Biome format & lint check
-    pnpm format
     pnpm lint
+    pnpm exec biome check <changed-files>
 
     # Unit tests
     pnpm test:unit
@@ -54,8 +52,8 @@ argument-hint: "[optional-context]"
     - Re-run `pnpm tsc --noEmit` to confirm clean
 
     **If Biome reports errors:**
-    - Run `pnpm format` to auto-fix formatting
-    - Run `pnpm lint` to see remaining lint issues
+    - Run Biome write/format commands only against files in this task's reviewed scope
+    - Do not reformat unrelated existing work
     - Fix lint issues manually, then re-run checks
 
     **If tests fail:**

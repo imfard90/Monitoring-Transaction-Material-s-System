@@ -2,10 +2,12 @@
 
 ## Minimum Test Coverage: 80%
 
-Test Types (ALL required):
+Test Layers (choose by risk and changed behavior):
 1. **Unit Tests** - Individual functions, utilities, components
-2. **Integration Tests** - API endpoints, database operations
-3. **E2E Tests** - Critical user flows (framework chosen per language)
+2. **Integration Tests** - API endpoints and database operations when applicable
+3. **E2E Tests** - Critical user flows when UI behavior or cross-system integration changes
+
+Do not require unrelated test layers for a documentation-only or narrowly scoped change. Report unavailable DB/browser dependencies rather than claiming coverage.
 
 ## Test-Driven Development
 
@@ -19,14 +21,15 @@ MANDATORY workflow:
 
 ## Troubleshooting Test Failures
 
-1. Use **tdd-guide** agent
+1. Apply the `tdd-workflow` and `react-testing` skills when relevant; persona files are reference guidance, not dispatched agents.
 2. Check test isolation
 3. Verify mocks are correct
 4. Fix implementation, not tests (unless tests are wrong)
 
-## Agent Support
+## Related Guidance
 
-- **tdd-guide** - Use PROACTIVELY for new features, enforces write-tests-first
+- `.agents/skills/tdd-workflow/SKILL.md` — test-first implementation guidance.
+- `.agents/skills/react-testing/SKILL.md` — React component and hook testing.
 
 ## Test Structure (AAA Pattern)
 

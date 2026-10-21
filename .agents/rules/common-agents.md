@@ -3,13 +3,21 @@
 ## Cline Execution Model in MTMS
 
 In the Cline environment, specialized capabilities are orchestrated through:
-1. **The `skills` tool**: Project and framework skills located in `.agents/skills/` (44 active skills).
-2. **Slash Command Workflows**: Standard operational routines located in `.cline/workflows/` (`/commit`, `/review`, `/security`, `/db-check`, `/perf`, `/new-page`).
-3. **Specialized Agent Personas**: Instruction profiles located in `.agents/agents/` (29 active personas) that guide specific tasks.
+
+1. **The `skills` tool**: Project and framework skills located in `.agents/skills/`; the active skill count is the number of `SKILL.md` files, not a maintained constant.
+2. **Slash Command Workflows**: Operational routines located in `.cline/workflows/`; use only commands present in that directory.
+3. **Persona reference profiles**: Guidance documents located in `.agents/agents/`; they are not independently dispatched agents in this Cline workspace. Treat their count as a file inventory, not a measure of active runtime agents.
+
+## Discovery and Source of Truth
+
+- Discover available skills from `.agents/skills/**/SKILL.md`, personas from `.agents/agents/*.md`, and workflows from `.cline/workflows/*.md`; do not rely on fixed counts or assume a workflow/parallel-agent feature exists.
+- See `CLINE.md` for the workflow command index and `.agents/skills/README.md` for skill guidance. Invoke matching skills explicitly when relevant.
+- For security posture of agent workflows and NTE-specific review, read `.agents/skills/mtms-security-guide/security-guide.md` and `docs/NTE_SECURITY_WORKFLOW.md`, respectively; neither document authorizes implementation or data writes.
+- `.agents/rules/` is canonical for general engineering standards. `.cline/rules/` may contain Cline/MTMS operational supplements; when same-named files differ, preserve those supplements and resolve conflicts against `AGENTS.md` and its named authoritative sources. Do not bulk-copy directories.
 
 ## Key Specialized Roles & Personas
 
-When tackling distinct phases of development, adopt the appropriate persona and skills:
+When tackling distinct phases of development, apply relevant profile guidance and skills directly; profiles are not dispatched agents:
 
 | Role / Persona | Associated Skills & Tools | When to Apply |
 |----------------|---------------------------|---------------|

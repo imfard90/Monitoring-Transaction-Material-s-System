@@ -10,12 +10,10 @@ Review the requested scope and acceptance criteria first. Keep the review focuse
 1. Run mandatory quality checks:
 
    ```bash
-   # Type check — must pass with zero errors
+   # Read-only quality checks; do not reformat unrelated user changes
    pnpm tsc --noEmit
-
-   # Biome format & lint
-   pnpm format
    pnpm lint
+   pnpm exec biome check <changed-files>
 
    # Unit tests
    pnpm test:unit

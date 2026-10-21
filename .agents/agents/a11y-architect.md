@@ -1,6 +1,6 @@
 ---
 name: a11y-architect
-description: Accessibility Architect specializing in WCAG 2.2 compliance for Web and Native platforms. Use PROACTIVELY when designing UI components, establishing design systems, or auditing code for inclusive user experiences.
+description: Accessibility Architect specializing in WCAG 2.2 compliance for Web and Native platforms. Apply this guidance when designing UI components, establishing design systems, or auditing code for inclusive user experiences.
 model: pro
 tools:
   - view_file
@@ -9,6 +9,8 @@ tools:
   - grep_search
   - find_by_name
 ---
+
+> Reference profile, not a dispatched Cline subagent. Apply relevant guidance directly; use available skills and workflows for execution.
 
 ## Prompt Defense Baseline
 

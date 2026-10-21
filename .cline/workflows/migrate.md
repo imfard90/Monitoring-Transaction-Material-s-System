@@ -6,11 +6,10 @@ argument-hint: "[dry-run|status]"
 # Database Migration Workflow
 
 > **MANDATORY**: Follow database migration rules (§1.4 in `AGENTS.md`).
-> Migrations must be idempotent, sequentially numbered, and tracked in `inventory._migration_log`.
+> Migrations must be idempotent and uniquely numbered. Tracking table and schema have been verified in `run-migration.ts`: `inventory._migration_log`. Check the current runner source if its implementation changes.
 
 1. Review migration files in `src/lib/db/migrations/`:
-   - Check filenames for sequential order (`001_...`, `002_...`, ..., `020_...`)
-   - Verify unique prefix numbering (no duplicate numbers)
+   - Check filenames for unique three-digit prefixes and flag missing numbers without renumbering existing migrations.
    - Verify idempotent DDL (`CREATE OR REPLACE`, `IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`)
 
 2. Execute database migration runner:
@@ -19,7 +18,7 @@ argument-hint: "[dry-run|status]"
    # or: pnpm tsx run-migration.ts
    ```
    - Wraps each migration in an atomic transaction (`BEGIN/COMMIT/ROLLBACK`)
-   - Tracks executed migrations in `inventory._migration_log`
+   - Confirmed tracking table/schema are implemented in `run-migration.ts`
    - Exits with status code 1 on failure
 
 3. Verify migration status and schema health:
