@@ -137,7 +137,7 @@ export async function createReturnMaterial(payload: ReturnMaterialPayload) {
             return { success: false, error: 'Transaksi ganda terdeteksi. Silakan tunggu.' };
         }
 
-        revalidatePath('/apps/return-material');
+        revalidatePath('/form/return-material');
         revalidatePath('/stock-inventory');
         revalidatePath('/stock-intech');
         return { success: true, header_id: result };

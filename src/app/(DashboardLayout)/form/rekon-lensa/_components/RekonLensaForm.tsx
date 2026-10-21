@@ -6,10 +6,10 @@ import { FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
@@ -467,7 +467,7 @@ export default function RekonLensaForm() {
                                                 (m: any) =>
                                                     String(m.sap_out_item_id) === sapOutItemId
                                             );
-                                            if (mat && mat.material_code) {
+                                            if (mat?.material_code) {
                                                 acc[mat.material_code as string] =
                                                     (acc[mat.material_code as string] || 0) + qty;
                                             }

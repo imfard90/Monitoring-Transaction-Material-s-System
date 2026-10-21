@@ -12,8 +12,8 @@ const BCrumb = [
         title: 'Home',
     },
     {
-        to: '#', // or a valid pages root if any
-        title: 'Pages',
+        to: '/form',
+        title: 'Form',
     },
     {
         title: 'Rekon Intech',

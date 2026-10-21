@@ -3,6 +3,18 @@ import { withSerwist } from '@serwist/turbopack';
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
+    async redirects() {
+        return [
+            { source: '/apps/out-sap', destination: '/form/out-sap', permanent: true },
+            { source: '/apps/rekon-intech', destination: '/form/rekon-intech', permanent: true },
+            { source: '/apps/rekon-lensa', destination: '/form/rekon-lensa', permanent: true },
+            {
+                source: '/apps/return-material',
+                destination: '/form/return-material',
+                permanent: true,
+            },
+        ];
+    },
     async headers() {
         const securityHeaders = [
             { key: 'X-Content-Type-Options', value: 'nosniff' },

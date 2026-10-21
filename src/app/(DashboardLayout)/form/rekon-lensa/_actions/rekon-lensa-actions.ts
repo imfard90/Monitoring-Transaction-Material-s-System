@@ -278,7 +278,7 @@ export async function submitRekonLensa(
             return { success: false, error: 'Transaksi ganda terdeteksi. Silakan tunggu.' };
         }
 
-        revalidatePath('/apps/rekon-lensa');
+        revalidatePath('/form/rekon-lensa');
         return { success: true };
     } catch (error: unknown) {
         actionLogger.error(

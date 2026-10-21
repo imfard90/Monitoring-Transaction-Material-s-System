@@ -214,7 +214,7 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
             return { success: false, error: 'Transaksi ganda terdeteksi. Silakan tunggu.' };
         }
 
-        revalidatePath('/apps/rekon-intech');
+        revalidatePath('/form/rekon-intech');
         revalidatePath('/apps/out-material');
         return { success: true };
     } catch (error: unknown) {

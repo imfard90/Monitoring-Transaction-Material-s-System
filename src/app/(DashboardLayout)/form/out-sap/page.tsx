@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
-import { Footer } from '@/app/components/dashboard/Footer';
-import RekonLensaForm from './_components/RekonLensaForm';
+import OutSapForm from './_components/OutSapForm';
 
 export const metadata: Metadata = {
-    title: 'Rekon Lensa | MTMS',
-    description: 'Rekonsiliasi Lensa',
+    title: 'Out SAP | MTMS',
+    description: 'Pencatatan transaksi pengeluaran SAP',
 };
 
 const BCrumb = [
@@ -14,21 +13,23 @@ const BCrumb = [
         title: 'Home',
     },
     {
-        to: '/apps',
-        title: 'Apps',
+        to: '/form',
+        title: 'Form',
     },
     {
-        title: 'Rekon Lensa',
+        title: 'Out SAP',
     },
 ];
 
-export default function RekonLensaPage() {
+import { Footer } from '@/app/components/dashboard/Footer';
+
+export default function OutSapPage() {
     return (
         <div className="flex flex-col flex-1  gap-6">
             <div className="shrink-0">
-                <BreadcrumbComp title="Rekon Lensa" items={BCrumb} />
+                <BreadcrumbComp title="Out SAP" items={BCrumb} />
             </div>
-            <RekonLensaForm />
+            <OutSapForm />
             <Footer />
         </div>
     );
