@@ -73,6 +73,7 @@ describeDb('sequences (D2 - 011)', () => {
             `);
             expect(row, `sequence inventory.${seq} missing`).toBeDefined();
             expect(row?.cycle).toBe(false);
+            expect(row?.max_value).toBeDefined();
             expect(BigInt(row!.max_value)).toBe(9999n);
         });
     }
@@ -84,8 +85,8 @@ describeDb('sequences (D2 - 011)', () => {
         const r2 = await queryOne<{ v: string }>(
             `SELECT nextval('inventory.trx_used_seq')::int AS v`
         );
-        const v1 = Number(r1!.v);
-        const v2 = Number(r2!.v);
+        const v1 = Number(r1?.v);
+        const v2 = Number(r2?.v);
         expect(v2).toBe(v1 + 1);
         expect(v1).toBeGreaterThanOrEqual(1);
         expect(v1).toBeLessThanOrEqual(9999);

@@ -1,6 +1,6 @@
-import { defineConfig, defineProject } from 'vitest/config';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { defineConfig, defineProject } from 'vitest/config';
 
 /**
  * Vitest configuration MTMS (P1-Q1: Test harness setup).

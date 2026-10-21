@@ -62,7 +62,7 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 const { submitRekonIntech } = await import(
-    '@/app/(DashboardLayout)/apps/rekon-intech/_actions/rekon-actions'
+    '@/app/(DashboardLayout)/form/rekon-intech/_actions/rekon-actions'
 );
 
 describe('rekon-intech-actions Unit Tests', () => {
@@ -134,7 +134,7 @@ describe('rekon-intech-actions Unit Tests', () => {
                 createdBy: 'STAFF_01',
             })
         );
-        expect(mockRevalidatePath).toHaveBeenCalledWith('/apps/rekon-intech');
+        expect(mockRevalidatePath).toHaveBeenCalledWith('/form/rekon-intech');
     });
 
     it('normalizes wo_type casing and whitespace before passing to repository', async () => {
