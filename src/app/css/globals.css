@@ -305,7 +305,18 @@ main {
 
 @layer components {
     body {
-        @apply text-sm overflow-x-hidden;
+        /* clip, bukan hidden: `overflow-x: hidden` membuat body jadi scroll
+           container sehingga position: sticky pada header tidak menempel. */
+        @apply text-sm;
+        overflow-x: clip;
+    }
+
+    /* Browser lama tanpa `clip`: kembali ke hidden (sticky header tidak menempel,
+       tapi lebih baik daripada scroll horizontal). */
+    @supports not (overflow-x: clip) {
+        body {
+            overflow-x: hidden;
+        }
     }
 
     /*heading text color*/

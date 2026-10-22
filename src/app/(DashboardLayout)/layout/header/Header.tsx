@@ -2,8 +2,8 @@
 
 import { Icon } from '@iconify/react';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
-import { useTheme } from 'next-themes';
 import { useState } from 'react';
+import { useTheme } from '@/components/theme-provider';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import FullLogo from '../shared/logo/FullLogo';
 import SidebarLayout from '../sidebar/Sidebar';
@@ -15,7 +15,7 @@ const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
 
     const toggleMode = () => {
-        setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+        setTheme(theme === 'light' ? 'dark' : 'light');
     };
 
     return (

@@ -258,6 +258,56 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
     listMaterials: () =>
         dbClient.selectFrom('inventory.materials').selectAll().orderBy('code').execute(),
 
+    /**
+     * Snapshot stok seluruh gudang untuk halaman publik /live-stock.
+     * Read-only: hanya agregat stok + policy, tanpa data transaksi/PIC.
+     * hasOutMaterialHistory menandai material yang pernah keluar dari gudang,
+     * dipakai untuk menyembunyikan estimasi runout bila belum ada permintaan.
+     */
+    listLiveStockRows: () =>
+        dbClient
+            .selectFrom('inventory.stock_balance as sb')
+            .innerJoin('inventory.materials as m', 'm.id', 'sb.designator_id')
+            .innerJoin('inventory.mas_wh as w', 'w.id', 'sb.warehouse_id')
+            .leftJoin('inventory.stock_policy as sp', (join) =>
+                join
+                    .onRef('sp.warehouse_id', '=', 'sb.warehouse_id')
+                    .onRef('sp.designator_id', '=', 'sb.designator_id')
+            )
+            .select([
+                'sb.warehouse_id as warehouseId',
+                'w.name as warehouseName',
+                'w.branch as branchName',
+                'sb.designator_id as materialId',
+                'm.code as materialCode',
+                'm.description as materialName',
+                'm.unit as materialUnit',
+                'sb.qty_stock as qtyStock',
+                'sp.min_qty as minQty',
+                'sp.max_qty as maxQty',
+                'sp.average_demand_weekly as averageDemandWeekly',
+                'sp.safety_stock_pct as safetyStockPct',
+            ])
+            .select((eb) =>
+                eb
+                    .exists(
+                        eb
+                            .selectFrom('inventory.stock_movement as sm')
+                            .select('sm.id')
+                            .whereRef('sm.warehouse_id', '=', 'sb.warehouse_id')
+                            .whereRef('sm.designator_id', '=', 'sb.designator_id')
+                            .where('sm.movement_type', 'in', [
+                                'material_used',
+                                'sap_out',
+                                'transfer_out',
+                            ])
+                    )
+                    .as('hasOutMaterialHistory')
+            )
+            .orderBy('w.name')
+            .orderBy('m.code')
+            .execute(),
+
     // ==================== Helper Methods ====================
 
     /**
