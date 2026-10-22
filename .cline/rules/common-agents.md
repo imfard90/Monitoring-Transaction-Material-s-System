@@ -8,6 +8,38 @@ In the Cline environment, specialized capabilities are orchestrated through:
 2. **Slash Command Workflows**: Operational routines located in `.cline/workflows/`; use only commands present in that directory.
 3. **Persona reference profiles**: Guidance documents located in `.agents/agents/`; they are not independently dispatched agents in this Cline workspace. Treat their count as a file inventory, not a measure of active runtime agents.
 
+## Mandatory Skill Invocation (Adapted from Superpowers)
+
+**CRITICAL RULE: Before ANY response or action — including clarifying questions, exploring the codebase, or checking files — you MUST invoke relevant skills.**
+
+- If there is even a 1% chance a skill might apply, you ABSOLUTELY MUST invoke it.
+- This is not negotiable. You cannot rationalize your way out of this.
+- Skill check comes BEFORE clarifying questions, codebase exploration, or information gathering.
+- Skills tell you HOW to explore, gather information, and execute tasks.
+
+### Red Flags — STOP if you think:
+| Thought | Reality |
+|---------|---------|
+| "This is just a simple question" | Questions are tasks. Check for skills. |
+| "I need more context first" | Skill check comes BEFORE clarifying questions. |
+| "Let me explore the codebase first" | Skills tell you HOW to explore. Check first. |
+| "I can check git/files quickly" | Files lack conversation context. Check for skills. |
+| "Let me gather information first" | Skills tell you HOW to gather information. |
+| "This doesn't need a formal skill" | If a skill exists, use it. |
+| "I remember this skill" | Skills evolve. Read current version. |
+| "This doesn't count as a task" | Action = task. Check for skills. |
+| "The skill is overkill" | Simple things become complex. Use it. |
+| "I'll just do this one thing first" | Check BEFORE doing anything. |
+| "This feels productive" | Undisciplined action wastes time. Skills prevent this. |
+| "I know what that means" | Knowing the concept ≠ using the skill. Invoke it. |
+
+### Skill Priority
+When multiple skills apply, process skills come first — they set the approach, then implementation skills carry it out:
+- Complex feature → `clean-architecture` / `domain-driven-design` first, then implementation skills.
+- Bug fix → `tdd-workflow` / `diagnosing-bugs` first, then domain skills.
+- Code review → `coding-standards` / `code-review` first.
+- Security audit → `security-review` / `mtms-security-guide` first.
+
 ## Discovery and Source of Truth
 
 - Persona files under `.agents/agents/` are descriptive reference profiles, not independently dispatched agents in this Cline workspace. Apply a profile's relevant guidance directly only when useful; do not assume autonomous dispatch, delegation, or parallel execution.

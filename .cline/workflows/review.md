@@ -25,20 +25,24 @@ Review the requested scope and acceptance criteria first. Keep the review focuse
    - If argument provided: review specified file/directory
    - Otherwise: review recently modified files (`git diff --name-only HEAD`)
 
-3. Load `code-reviewer` agent from `.agents/agents/code-reviewer.md`
+3. **Invoke `two-axis-code-review` skill** for the diff scope. Run both axes in parallel. Report findings side by side using the skill's format.
 
-4. Also invoke specialized reviewers based on file types:
+   **Severity mapping to MTMS:**
+   - Standards hard violation → CRITICAL/HIGH
+   - Baseline smell → MEDIUM (judgement call)
+   - Spec missing requirement → CRITICAL/HIGH
+   - Spec scope creep → MEDIUM/LOW
+
+   The two axes are:
+   - **Standards**: Does the code follow repo's documented coding standards? (Fowler Smell Baseline always applies)
+   - **Spec**: Does the code match what the originating issue/spec asked for?
+
+   Also invoke specialized reviewers based on file types for additional context:
    - `react-reviewer` for `.tsx`/`.jsx` files
    - `typescript-reviewer` for `.ts` files
    - `security-reviewer` for auth, API, database, or sensitive code
 
-5. Apply review checklist from each reviewer:
-   - **CRITICAL**: Security vulnerabilities, data leaks, auth bypasses
-   - **HIGH**: Logic errors, race conditions, performance issues
-   - **MEDIUM**: Code quality, maintainability, test coverage
-   - **LOW**: Style, naming, documentation
-
-6. Report findings in structured format:
+4. Report findings in structured format:
    ```
    ## Review Summary
    Files reviewed: X

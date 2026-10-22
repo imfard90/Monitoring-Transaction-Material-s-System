@@ -12,7 +12,7 @@ argument-hint: "[target-path-or-suite]"
 
 Start from the behavior being verified and select the narrowest useful test target; expand to the suite when the change or risk warrants it. For failures, capture the exact failing assertion/output, reproduce, inspect the affected contract, and test a causal hypothesis rather than making speculative changes.
 
-1. Determine test target:
+2. Determine test target:
    - If argument provided (e.g. `tests/unit/api-auth.test.ts` or `unit` or `integration`):
      - For specific file: `pnpm vitest run [path]`
      - For unit suite: `pnpm test:unit`

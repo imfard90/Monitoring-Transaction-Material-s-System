@@ -28,7 +28,9 @@ MANDATORY workflow:
 
 ## Related Guidance
 
-- `.agents/skills/tdd-workflow/SKILL.md` — test-first implementation guidance.
+- `.agents/skills/tdd-workflow/SKILL.md` — test-first implementation guidance (Red-Green-Refactor loop, vertical slices, tracer bullets)
+- `.agents/skills/engineering/react-testing/SKILL.md` — React component/hook testing with RTL + Vitest
+- `.agents/skills/e2e-testing/SKILL.md` — Playwright E2E testing for critical user flows
 
 ## Test Structure (AAA Pattern)
 

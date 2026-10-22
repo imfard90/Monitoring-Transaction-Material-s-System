@@ -22,6 +22,7 @@ function createReportOnlyCsp(nonce: string): string {
 export async function proxy(request: NextRequest) {
     const isAuthRoute = request.nextUrl.pathname.startsWith('/auth');
     const isApiRoute = request.nextUrl.pathname.startsWith('/api');
+    const isPublicRoute = request.nextUrl.pathname.startsWith('/live-stock');
     const isPublicStaticRoute = request.nextUrl.pathname.match(/\.(.*)$/);
 
     // CSP is applied to page requests only; APIs have their own response contracts.
@@ -47,6 +48,11 @@ export async function proxy(request: NextRequest) {
     const hasSessionCookie =
         request.cookies.has('better-auth.session_token') ||
         request.cookies.has('__Secure-better-auth.session_token');
+
+    // Halaman publik tanpa login (live stock) tetap bisa diakses tanpa sesi
+    if (isPublicRoute && !hasSessionCookie) {
+        return nextResponse();
+    }
 
     // Jika belum login dan mencoba mengakses route selain auth (misal '/')
     if (!hasSessionCookie) {

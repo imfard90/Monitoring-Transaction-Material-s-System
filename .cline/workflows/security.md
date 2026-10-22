@@ -8,6 +8,7 @@ argument-hint: "[file-or-directory]"
 1. Load security skills:
    - `mtms-security-guide` — read `.agents/skills/mtms-security-guide/security-guide.md`; apply its agentic threat model, prompt-injection controls, and secret-exposure guidance alongside the MTMS controls below.
    - `cybersecurity` — use its available OWASP/MITRE/STRIDE guidance; do not assume a fixed agent count or parallel-agent capability.
+   - `security-review` — read `.agents/skills/security-review/SKILL.md` for structured security review methodology.
 2. Read `AGENTS.md` and `docs/AUDIT_REPORT.md` before auditing. For NTE-specific review, read `docs/NTE_SECURITY_WORKFLOW.md` and `docs/adr/002_nte_stored_procedures_and_warehouse_mapping.md`; these are review guidance, not authorization to implement or run migrations.
 3. Inspect only requested scope and relevant contracts; protect unrelated user changes and do not reveal secrets or sensitive data in findings.
 4. Determine audit scope:

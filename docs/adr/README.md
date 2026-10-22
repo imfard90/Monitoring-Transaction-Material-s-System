@@ -8,14 +8,14 @@ Dokumen ini mencatat keputusan arsitektural penting (Architecture Decision Recor
 
 ## Aturan Penggunaan (Micro-ADR)
 - **Kapan Wajib Membuat ADR:**
-  - Perubahan model otorisasi atau autentikasi sistem.
-  - Perubahan kontrak arsitektur basis data, stored procedure kritis, atau pola migrasi.
-  - Penambahan pustaka eksternal/teknologi baru yang berdampak sistemik lintas modul (misal: Redis caching layer, worker queue).
-  - Keputusan desain yang mahal atau berisiko tinggi jika dibalik di kemudian hari.
+ - Perubahan model otorisasi atau autentikasi sistem.
+ - Perubahan kontrak arsitektur basis data, stored procedure kritis, atau pola migrasi.
+ - Penambahan pustaka eksternal/teknologi baru yang berdampak sistemik lintas modul (misal: Redis caching layer, worker queue).
+ - Keputusan desain yang mahal atau berisiko tinggi jika dibalik di kemudian hari.
 - **Kapan DILARANG Membuat ADR:**
-  - Perbaikan bug fungsional harian.
-  - Pembuatan form/komponen UI dashboard standar.
-  - Penambahan unit test atau penyesuaian minor styling.
+ - Perbaikan bug fungsional harian.
+ - Pembuatan form/komponen UI dashboard standar.
+ - Penambahan unit test atau penyesuaian minor styling.
 
 ## Format Penomoran
 Gunakan format `NNN-judul-keputusan.md` (contoh: `001-inventory-mutation-via-sp-and-repository.md`).
@@ -24,4 +24,7 @@ Gunakan format `NNN-judul-keputusan.md` (contoh: `001-inventory-mutation-via-sp-
 
 | ID | Tanggal | Judul Keputusan | Status |
 |---|---|---|---|
-| [ADR-001](./001-inventory-mutation-via-sp-and-repository.md) | 2026-10-12 | Delegasi Mutasi Transaksi Inventory ke Stored Procedure & Repository Pattern | Accepted |
+| [ADR-001](./001-inventory-mutation-via-sp-and-repository.md) | 2026-10-12 | Inventory Mutation via SP & Repository | Accepted |
+| [ADR-002](./002_nte_stored_procedures_and_warehouse_mapping.md) | 2026-10-12 | NTE Stored Procedures and Warehouse Mapping | Accepted |
+| [ADR-003](./003-agent-skills-adoption.md) | 2026-10-22 | Agent Skills Adoption from External Repositories | Accepted |
+| [ADR-004](./004-codebase-memory-mcp.md) | 2026-10-22 | Codebase Memory MCP Adoption | Accepted |

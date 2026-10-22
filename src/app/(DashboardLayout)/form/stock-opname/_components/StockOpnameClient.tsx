@@ -212,9 +212,13 @@ export function StockOpnameClient(props: StockOpnameClientProps) {
             const parsedWarehouseId = materials[0].warehouse_id;
 
             // Validasi akses gudang untuk Staff
-            if (isStaff && props.user.warehouseIds && !props.user.warehouseIds.includes(parsedWarehouseId)) {
-              toast.error(`Akses ditolak. Anda tidak memiliki akses ke gudang ${warehouse}.`);
-              return;
+            if (
+                isStaff &&
+                props.user.warehouseIds &&
+                !props.user.warehouseIds.includes(parsedWarehouseId)
+            ) {
+                toast.error(`Akses ditolak. Anda tidak memiliki akses ke gudang ${warehouse}.`);
+                return;
             }
 
             // Call API to match with MTMS

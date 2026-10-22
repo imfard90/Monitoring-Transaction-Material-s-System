@@ -63,7 +63,8 @@ In MTMS with Cline, code reviews are conducted using:
 
 | Persona / Skill | Purpose | Activation in Cline |
 |-----------------|---------|---------------------|
-| **code-reviewer** | Code quality, architecture, dead code | Invoke `/review` workflow |
+| **two-axis-code-review** | Two-axis review: Standards + Spec | Invoke `/review` workflow (step 3) |
+| **code-reviewer** | Code quality, architecture, dead code | Supplementary context for Standards axis |
 | **security-reviewer** | Security vulnerabilities, OWASP Top 10 | Invoke `/security` workflow |
 | **typescript-reviewer** | TypeScript typing, Kysely types, Zod schemas | Run `pnpm tsc --noEmit` & Biome |
 
@@ -74,9 +75,12 @@ In MTMS with Cline, code reviews are conducted using:
 2. Verify formatting and linting: `pnpm format && pnpm lint`
 3. Verify type soundness: `pnpm tsc --noEmit`
 4. Run unit tests: `pnpm test:unit`
-5. Check security checklist (auth, SQL, secrets, rate limiting)
-6. Check business logic compliance against `bispro.md` and `AGENTS.md`
+5. **Invoke `two-axis-code-review` skill** for the diff scope (Standards + Spec axes in parallel)
+6. Check security checklist (auth, SQL, secrets, rate limiting)
+7. Check business logic compliance against `bispro.md` and `AGENTS.md`
 ```
+
+> **Note**: The two-axis review replaces the single-axis checklist approach. Standards axis uses Fowler Smell Baseline + repo docs. Spec axis validates against originating issue/spec. Findings are reported side-by-side, not merged.
 
 ## Common Issues to Catch
 

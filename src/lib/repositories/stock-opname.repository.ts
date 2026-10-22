@@ -67,7 +67,10 @@ export function createStockOpnameRepository(db: Kysely<Database>) {
 
             return {
                 ...result,
-                details: typeof result.details === 'string' ? JSON.parse(result.details) : result.details,
+                details:
+                    typeof result.details === 'string'
+                        ? JSON.parse(result.details)
+                        : result.details,
                 created_at: new Date(result.created_at),
                 updated_at: new Date(result.updated_at),
                 approved_at: result.approved_at ? new Date(result.approved_at) : null,
@@ -113,7 +116,10 @@ export function createStockOpnameRepository(db: Kysely<Database>) {
 
             return {
                 ...result,
-                details: typeof result.details === 'string' ? JSON.parse(result.details) : result.details,
+                details:
+                    typeof result.details === 'string'
+                        ? JSON.parse(result.details)
+                        : result.details,
                 created_at: new Date(result.created_at),
                 updated_at: new Date(result.updated_at),
                 approved_at: result.approved_at ? new Date(result.approved_at) : null,

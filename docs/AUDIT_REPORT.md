@@ -322,6 +322,71 @@ Optimasi gambar Next dimatikan. Jika ada banyak aset, pertimbangkan optimizer at
 
 ---
 
+### 3.6 NTE (Network Training Equipment) Security
+
+#### NTE-06 — Stored Procedure Authorization Contract (Tinggi) ✅
+
+**Status:** Complete (2026-10-20)
+
+**Masalah awal:**
+- Migration 034 langsung set `status='approve'` di `sp_create_tag_nte`, mutasi stok SN terjadi tanpa approval workflow
+- Tidak ada SP terpisah untuk approve/reject TAG
+- Warehouse authorization tidak di-enforce di DB layer
+
+**Solusi (Migration 035):**
+- `sp_create_tag_nte`: Default status changed `'approve'` → `'request'`; validasi only, no stock mutation
+- `sp_approve_nte_tag(id_transaksi, approved_by, warehouse_id)`: Execute stock mutation dengan warehouse authorization
+  - Staff: `warehouse_id` must match destination `mapping_mas_wh` (FK ke `inventory.mas_wh.id`)
+  - Non-Staff: `warehouse_id = NULL` (akses semua warehouse)
+  - Unmapped address (`mapping_mas_wh = NULL`) → reject dengan error eksplisit
+- `sp_reject_nte_tag(id_transaksi, rejected_by, warehouse_id, notes)`: Same authorization, set `status='cancel'`
+
+**Authorization contract di DB:**
+```sql
+IF p_warehouse_id IS NOT NULL AND p_warehouse_id <> v_tujuan_wh_id THEN
+    RAISE EXCEPTION 'Unauthorized: Staff hanya bisa approve TAG untuk warehouse_id=%', p_warehouse_id;
+END IF;
+```
+
+**Verifikasi:**
+- ✅ Repository methods: `nteRepository.approveTag`, `nteRepository.rejectTag` dengan `warehouseId` parameter
+- ✅ Unit test: `tests/unit/nte-approval-authorization.test.ts` (Staff/Non-Staff scenarios, mapped/unmapped addresses)
+- ✅ ADR-002 updated dengan implementation summary
+
+**Risiko yang dimitigasi:** Unauthorized stock mutation, warehouse scope bypass, IDOR pada approval endpoint.
+
+#### NTE-09 — Warehouse Mapping Validation (Sedang) ✅
+
+**Status:** Complete (2026-10-20)
+
+**Masalah:**
+- Alamat NTE (`nte_inventory.mas_address_nte`) tidak terhubung ke warehouse MTMS (`inventory.mas_wh`)
+- Staff role tidak bisa di-scope ke warehouse tertentu pada NTE transaksi
+
+**Solusi (Migration 028):**
+- FK `mapping_mas_wh` (INTEGER, nullable) pada `mas_address_nte` → `inventory.mas_wh.id`
+- 15/18 alamat SO-level ter-map ke warehouse MTMS
+- 3 alamat Witel-level (`ta_witel_ccan_sby_utara`, `tif_district_lamongan_wh`, `ta_witel_inv_sby_utara`) dengan `mapping_mas_wh = NULL` (Non-Staff only access)
+
+**Mapping verification:**
+```sql
+SELECT address_name, mapping_mas_wh, w.name AS warehouse_name
+FROM nte_inventory.mas_address_nte n
+LEFT JOIN inventory.mas_wh w ON n.mapping_mas_wh = w.id;
+```
+
+**Test coverage:**
+- ✅ Unit test verifikasi mapped addresses (15 alamat dengan `mapping_mas_wh` valid)
+- ✅ Unit test verifikasi unmapped addresses (3 alamat dengan `mapping_mas_wh = NULL`)
+- ✅ Authorization test: Staff role reject saat `warehouse_id` tidak match destination
+
+**Konsekuensi:**
+- Staff hanya bisa approve TAG untuk warehouse di mana mereka ter-assign sebagai PIC
+- Non-Staff (Admin/Supervisor) akses semua warehouse via `warehouse_id = NULL`
+- Unmapped address hanya bisa diakses Non-Staff (Witel-level logistics)
+
+---
+
 ## 6. Catatan Verifikasi
 
 - `npx tsc --noEmit`: ✅ lolos (0 error).
