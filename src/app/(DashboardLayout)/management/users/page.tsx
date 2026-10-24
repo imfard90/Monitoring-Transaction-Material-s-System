@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { getSessionUser } from '@/lib/auth-server';
+import { canAccessManagement } from '@/lib/policies';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
 import { getUsers } from './actions';
 import UserTable from './user-table';
@@ -31,8 +32,7 @@ const BCrumb = [
 export default async function UserManagementPage() {
     const session = await getSessionUser();
 
-    // Server-side check to prevent staff from accessing
-    if (session.isStaff) {
+    if (!canAccessManagement(session)) {
         redirect('/');
     }
 

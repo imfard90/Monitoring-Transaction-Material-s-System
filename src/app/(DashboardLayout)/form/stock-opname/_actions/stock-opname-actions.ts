@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { AuthenticationError, AuthorizationError, errors } from '@/lib/errors';
 import { actionLogger } from '@/lib/logger';
+import { canAccessWarehouse, canApproveStockOpname } from '@/lib/policies';
 import { createStockOpnameRepository } from '@/lib/repositories/stock-opname.repository';
 
 const stockOpnameRepo = createStockOpnameRepository(db);
@@ -36,7 +37,7 @@ export async function saveStockOpname(input: unknown) {
     const { warehouse_id, warehouse_name, details, status } = parsed.data;
 
     // Staff: validate warehouse access
-    if (user.isStaff && !user.warehouseIds.includes(warehouse_id)) {
+    if (!canAccessWarehouse(user, warehouse_id)) {
         throw errors.accessDenied();
     }
 
@@ -107,7 +108,7 @@ export async function getStockOpnameLogById(id: number) {
         const log = await stockOpnameRepo.getLogById(id);
         if (!log) return { success: false, error: 'Data tidak ditemukan' };
 
-        if (user.isStaff && !user.warehouseIds.includes(log.warehouse_id)) {
+        if (!canAccessWarehouse(user, log.warehouse_id)) {
             throw errors.accessDenied();
         }
 
@@ -129,7 +130,7 @@ const ApproveSchema = z.object({
 export async function approveStockOpname(input: unknown) {
     const user = await getSessionUser();
     if (!user) throw errors.auth();
-    if (user.isStaff) throw errors.accessDenied();
+    if (!canApproveStockOpname(user)) throw errors.accessDenied();
 
     const parsed = ApproveSchema.safeParse(input);
     if (!parsed.success) {
@@ -168,7 +169,7 @@ const RejectSchema = z.object({
 export async function rejectStockOpname(input: unknown) {
     const user = await getSessionUser();
     if (!user) throw errors.auth();
-    if (user.isStaff) throw errors.accessDenied();
+    if (!canApproveStockOpname(user)) throw errors.accessDenied();
 
     const parsed = RejectSchema.safeParse(input);
     if (!parsed.success) {

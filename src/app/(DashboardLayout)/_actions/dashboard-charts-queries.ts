@@ -6,6 +6,7 @@ import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import { canAccessWarehouse, warehouseScope } from '@/lib/policies';
 
 const getSalesOverviewDataSchema = z.object({
     wh_id: z.string().min(1),
@@ -40,15 +41,16 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             outMaterial: number[];
             hasilRekon: number[];
         }>('dashboard', cacheKey);
-        if (cached && !user.isStaff) {
+        if (cached && !warehouseScope(user, 'always')) {
             actionLogger.debug(`Cache hit for ${cacheKey}`);
             return { success: true, data: cached };
         }
 
+        const scopedWarehouseIds = warehouseScope(user, 'always');
         if (
-            user.isStaff &&
-            (user.warehouseIds.length === 0 ||
-                (wh_id !== 'all' && !user.warehouseIds.includes(Number(wh_id))))
+            scopedWarehouseIds &&
+            (scopedWarehouseIds.length === 0 ||
+                (wh_id !== 'all' && !canAccessWarehouse(user, Number(wh_id))))
         ) {
             return { success: false, error: 'Akses gudang ditolak' };
         }
@@ -71,8 +73,8 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             .where(sql`COALESCE(soh.sap_time, soh.request_time)`, '<=', endDate)
             .groupBy(sql`TO_CHAR(COALESCE(soh.sap_time, soh.request_time), 'YYYY-MM-DD')`);
 
-        if (user.isStaff) {
-            outQuery = outQuery.where('soh.warehouse_id', 'in', user.warehouseIds);
+        if (scopedWarehouseIds) {
+            outQuery = outQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
         }
         if (wh_id && wh_id !== 'all') {
             outQuery = outQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
@@ -93,8 +95,8 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             .where('tu.created_at', '<=', endDate)
             .groupBy(sql`TO_CHAR(tu.created_at, 'YYYY-MM-DD')`);
 
-        if (user.isStaff) {
-            rekonQuery = rekonQuery.where('soh.warehouse_id', 'in', user.warehouseIds);
+        if (scopedWarehouseIds) {
+            rekonQuery = rekonQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
         }
         if (wh_id && wh_id !== 'all') {
             rekonQuery = rekonQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
@@ -114,8 +116,8 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             .where('ruh.create_at', '<=', endDate)
             .groupBy(sql`TO_CHAR(ruh.create_at, 'YYYY-MM-DD')`);
 
-        if (user.isStaff) {
-            lensaRekonQuery = lensaRekonQuery.where('soh.warehouse_id', 'in', user.warehouseIds);
+        if (scopedWarehouseIds) {
+            lensaRekonQuery = lensaRekonQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
         }
         if (wh_id && wh_id !== 'all') {
             lensaRekonQuery = lensaRekonQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
@@ -152,7 +154,7 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
         }
 
         const finalData = { dates, outMaterial, hasilRekon };
-        if (!user.isStaff) {
+        if (!warehouseScope(user, 'always')) {
             await encryptedCache.setGeneral('dashboard', finalData, cacheKey, 300); // Cache for 5 mins
         }
 
@@ -174,14 +176,14 @@ export async function getTopOutMaterials(limit: number = 7, warehouseId: string 
         return { success: false, error: 'Invalid parameters' };
     }
     const validLimit = parsed.data.limit;
-    if (user.isStaff) {
-        if (user.warehouseIds.length === 0) return { success: true, data: [] };
-        if (
-            parsed.data.warehouseId !== 'all' &&
-            !user.warehouseIds.includes(Number(parsed.data.warehouseId))
-        ) {
-            return { success: false, error: 'Akses gudang ditolak' };
-        }
+    const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+    if (user.isStaff && !scopedWarehouseIds) return { success: true, data: [] };
+    if (
+        scopedWarehouseIds &&
+        parsed.data.warehouseId !== 'all' &&
+        !canAccessWarehouse(user, Number(parsed.data.warehouseId))
+    ) {
+        return { success: false, error: 'Akses gudang ditolak' };
     }
 
     try {
@@ -203,8 +205,8 @@ export async function getTopOutMaterials(limit: number = 7, warehouseId: string 
             .orderBy('total_qty', 'desc')
             .limit(validLimit);
 
-        if (user.isStaff) {
-            query = query.where('soh.warehouse_id', 'in', user.warehouseIds);
+        if (scopedWarehouseIds) {
+            query = query.where('soh.warehouse_id', 'in', scopedWarehouseIds);
         } else if (parsed.data.warehouseId !== 'all') {
             query = query.where('soh.warehouse_id', '=', Number(parsed.data.warehouseId));
         }
@@ -231,11 +233,14 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
         return { success: false, error: 'Invalid parameters' };
     }
     const validLimit = parsed.data.limit;
-    if (user.isStaff) {
-        if (user.warehouseIds.length === 0) return { success: true, data: [] };
-        if (parsed.data.wh_id !== 'all' && !user.warehouseIds.includes(Number(parsed.data.wh_id))) {
-            return { success: false, error: 'Akses gudang ditolak' };
-        }
+    const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+    if (user.isStaff && !scopedWarehouseIds) return { success: true, data: [] };
+    if (
+        scopedWarehouseIds &&
+        parsed.data.wh_id !== 'all' &&
+        !canAccessWarehouse(user, Number(parsed.data.wh_id))
+    ) {
+        return { success: false, error: 'Akses gudang ditolak' };
     }
 
     try {
@@ -258,8 +263,8 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
             .orderBy('total_qty', 'desc')
             .limit(validLimit);
 
-        if (user.isStaff) {
-            topMatQuery = topMatQuery.where('soh.warehouse_id', 'in', user.warehouseIds);
+        if (scopedWarehouseIds) {
+            topMatQuery = topMatQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
         } else if (wh_id !== 'all') {
             topMatQuery = topMatQuery.where('soh.warehouse_id', '=', Number(wh_id));
         }
@@ -292,8 +297,8 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
                 sql`TO_CHAR(COALESCE(soh.sap_time, soh.request_time), 'YYYY-MM-DD')`,
             ]);
 
-        if (user.isStaff) {
-            dailyQuery = dailyQuery.where('soh.warehouse_id', 'in', user.warehouseIds);
+        if (scopedWarehouseIds) {
+            dailyQuery = dailyQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
         } else if (wh_id !== 'all') {
             dailyQuery = dailyQuery.where('soh.warehouse_id', '=', Number(wh_id));
         }

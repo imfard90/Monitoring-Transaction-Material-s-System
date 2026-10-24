@@ -4,6 +4,7 @@ import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors';
 import { actionLogger } from '@/lib/logger';
+import { canAccessWarehouse } from '@/lib/policies';
 import { rateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
 
         const sapItems = new Map<string, number>();
         for (const item of parsed.data.materials) {
-            if (user.isStaff && !user.warehouseIds.includes(item.warehouse_id)) continue;
+            if (!canAccessWarehouse(user, item.warehouse_id)) continue;
             sapItems.set(
                 `${item.warehouse_id}|${item.material_code.toUpperCase()}`,
                 item.saldo_sap

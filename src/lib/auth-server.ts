@@ -4,6 +4,11 @@ import { db } from '@/lib/db/db';
 
 import { errors } from '@/lib/errors';
 import { authLogger } from '@/lib/logger';
+import {
+    type AuthorizationUser,
+    canAccessManagement,
+    canAccessTechnicianManagement,
+} from '@/lib/policies';
 
 /**
  * Helper untuk mengambil NIK pengguna dari session auth di Server Actions.
@@ -26,16 +31,10 @@ export async function getSessionNik(): Promise<string> {
     }
 }
 
-export interface SessionUser {
-    nik: string;
-    role: string | null;
-    /** Daftar warehouse_id yang dapat diakses user. Kosong = akses semua. */
-    warehouseIds: number[];
-    /** True jika user adalah Staff dan harus difilter berdasarkan WH. */
-    isStaff: boolean;
+export type SessionUser = AuthorizationUser & {
     branchId: number | null;
     branchName: string | null;
-}
+};
 
 /**
  * Helper untuk mengambil data user lengkap dari session (nik, role, warehouseIds).
@@ -97,29 +96,17 @@ export async function getSessionUser(): Promise<SessionUser> {
 }
 
 /**
- * Role yang dilarang mengakses menu management (Users).
- * Semua role non-Staff diizinkan KECUALI "Teknisi".
- */
-const BLOCKED_MANAGEMENT_ROLES = new Set(['Staff', 'Teknisi']);
-
-/**
  * Helper untuk mengecek apakah user berhak akses menu management.
  * Admin = semua role non-Staff kecuali Teknisi.
  * Melempar AuthorizationError jika tidak berhak (fail-closed).
  */
 export async function requireManagementAccess(): Promise<SessionUser> {
     const session = await getSessionUser();
-    if (!session.role || BLOCKED_MANAGEMENT_ROLES.has(session.role)) {
+    if (!canAccessManagement(session)) {
         throw errors.accessDenied();
     }
     return session;
 }
-
-/**
- * Role yang dilarang mengakses menu manajemen teknisi (/management/technician).
- * Khusus halaman teknisi: Staff diizinkan membuka dan mengolah, tetapi "Teknisi" dilarang.
- */
-const BLOCKED_TECHNICIAN_ROLES = new Set(['Teknisi']);
 
 /**
  * Helper untuk mengecek apakah user berhak akses manajemen teknisi.
@@ -127,7 +114,7 @@ const BLOCKED_TECHNICIAN_ROLES = new Set(['Teknisi']);
  */
 export async function requireTechnicianManagementAccess(): Promise<SessionUser> {
     const session = await getSessionUser();
-    if (!session.role || BLOCKED_TECHNICIAN_ROLES.has(session.role)) {
+    if (!canAccessTechnicianManagement(session)) {
         throw errors.accessDenied();
     }
     return session;

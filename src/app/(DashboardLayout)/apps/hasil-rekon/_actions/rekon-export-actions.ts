@@ -3,6 +3,7 @@
 import { sql } from 'kysely';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
+import { warehouseScope } from '@/lib/policies';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 

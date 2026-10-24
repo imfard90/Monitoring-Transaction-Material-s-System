@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import { canAccessWarehouse, canCancelInOutTag, canUpdateInOutTag } from '@/lib/policies';
 import { inventoryRepository } from '@/lib/repositories';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
@@ -147,21 +148,16 @@ export async function updateTag(payload: {
     }
 
     try {
-        // ── Authorization: enforce PIC-based access per actionType ──────────
-        // - request : only non-Staff (Admin/Supervisor/etc.)
-        // - send    : only non-Staff OR PIC of the sending warehouse (from_wh_id)
-        // - accept  : only non-Staff OR PIC of the receiving warehouse (to_wh_id)
-        const { isStaff, nik, warehouseIds } = await getSessionUser();
+        // ── Authorization: enforce warehouse scope and PIC rules per actionType ──
+        const user = await getSessionUser();
+        if (user.isStaff && payload.actionType === 'request') {
+            return {
+                success: false,
+                error: 'Akses ditolak: Staff tidak dapat melakukan Request ID.',
+            };
+        }
 
-        if (isStaff) {
-            if (payload.actionType === 'request') {
-                return {
-                    success: false,
-                    error: 'Akses ditolak: Staff tidak dapat melakukan Request ID.',
-                };
-            }
-
-            // Resolve from/to wh + PICs for this header
+        if (user.isStaff) {
             const header = await db
                 .selectFrom('inventory.inout_tag_header as h')
                 .leftJoin('inventory.mas_wh as wh_from', 'wh_from.id', 'h.from_wh_id')
@@ -181,28 +177,12 @@ export async function updateTag(payload: {
                 return { success: false, error: 'Transaksi tidak ditemukan.' };
             }
 
-            const isSenderPic =
-                nik === header.from_pic_1 ||
-                nik === header.from_pic_2 ||
-                (header.from_wh_id !== null && warehouseIds.includes(Number(header.from_wh_id)));
-
-            const isReceiverPic =
-                nik === header.to_pic_1 ||
-                nik === header.to_pic_2 ||
-                (header.to_wh_id !== null && warehouseIds.includes(Number(header.to_wh_id)));
-
-            if (payload.actionType === 'send' && !isSenderPic) {
-                return {
-                    success: false,
-                    error: 'Akses ditolak: hanya PIC gudang pengirim yang dapat mengisi Send ID.',
-                };
-            }
-
-            if (payload.actionType === 'accept' && !isReceiverPic) {
-                return {
-                    success: false,
-                    error: 'Akses ditolak: hanya PIC gudang penerima yang dapat mengisi Accept ID.',
-                };
+            if (!canUpdateInOutTag(user, header, payload.actionType)) {
+                const denialMessage =
+                    payload.actionType === 'send'
+                        ? 'Akses ditolak: hanya PIC gudang pengirim yang dapat mengisi Send ID.'
+                        : 'Akses ditolak: hanya PIC gudang penerima yang dapat mengisi Accept ID.';
+                return { success: false, error: denialMessage };
             }
         }
         // Non-Staff (Admin, etc.) may perform any actionType without restriction.
@@ -255,9 +235,9 @@ export async function updateTag(payload: {
 
 export async function cancelTag(headerId: number, type?: string) {
     try {
-        const { isStaff, warehouseIds, nik } = await getSessionUser();
+        const user = await getSessionUser();
 
-        if (isStaff) {
+        if (user.isStaff) {
             if (type === 'return') {
                 const ret = await db
                     .selectFrom('inventory.return_material_header')
@@ -265,7 +245,7 @@ export async function cancelTag(headerId: number, type?: string) {
                     .where('id', '=', String(headerId))
                     .executeTakeFirst();
 
-                if (!ret?.warehouse_id || !warehouseIds.includes(Number(ret.warehouse_id))) {
+                if (!ret?.warehouse_id || !canAccessWarehouse(user, Number(ret.warehouse_id))) {
                     return {
                         success: false,
                         error: 'Akses ditolak: Anda tidak memiliki akses membatalkan transaksi ini.',
@@ -279,6 +259,7 @@ export async function cancelTag(headerId: number, type?: string) {
                     .select([
                         'h.from_wh_id',
                         'h.to_wh_id',
+                        'h.end_status',
                         'wh_from.pic_1 as from_pic_1',
                         'wh_from.pic_2 as from_pic_2',
                         'wh_to.pic_1 as to_pic_1',
@@ -291,16 +272,7 @@ export async function cancelTag(headerId: number, type?: string) {
                     return { success: false, error: 'Transaksi tidak ditemukan.' };
                 }
 
-                const hasAccess =
-                    nik === header.from_pic_1 ||
-                    nik === header.from_pic_2 ||
-                    nik === header.to_pic_1 ||
-                    nik === header.to_pic_2 ||
-                    (header.from_wh_id !== null &&
-                        warehouseIds.includes(Number(header.from_wh_id))) ||
-                    (header.to_wh_id !== null && warehouseIds.includes(Number(header.to_wh_id)));
-
-                if (!hasAccess) {
+                if (!canCancelInOutTag(user, header, false)) {
                     return {
                         success: false,
                         error: 'Akses ditolak: Anda tidak memiliki akses membatalkan transaksi ini.',
@@ -349,8 +321,8 @@ export async function acceptReturnTag(headerId: number, acceptId: string, idemKe
     }
 
     try {
-        const { isStaff, warehouseIds } = await getSessionUser();
-        if (isStaff) {
+        const user = await getSessionUser();
+        if (user.isStaff) {
             const ret = await db
                 .selectFrom('inventory.return_material_header')
                 .select('warehouse_id')
@@ -361,7 +333,7 @@ export async function acceptReturnTag(headerId: number, acceptId: string, idemKe
                 return { success: false, error: 'Transaksi tidak ditemukan.' };
             }
 
-            if (!ret.warehouse_id || !warehouseIds.includes(Number(ret.warehouse_id))) {
+            if (!canAccessWarehouse(user, Number(ret.warehouse_id))) {
                 return {
                     success: false,
                     error: 'Akses ditolak: hanya PIC gudang tujuan return yang dapat menerima transaksi ini.',

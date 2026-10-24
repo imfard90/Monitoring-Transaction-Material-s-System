@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSessionNik, getSessionUser } from '@/lib/auth-server';
+import { warehouseScope } from '@/lib/policies';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 import { createInventoryRepository } from '@/lib/repositories';

@@ -14,6 +14,7 @@ import {
     syncOtherStock,
 } from '@/lib/google_ecosystem/sheets-stock-sync';
 import { actionLogger } from '@/lib/logger';
+import { canAccessWarehouse, canSyncStock, warehouseScope } from '@/lib/policies';
 import { redis } from '@/lib/redis';
 
 const triggerOtherStockSyncSchema = z.object({}).strict();
@@ -136,8 +137,8 @@ export async function getLensaWarehousePerformance() {
 
 export async function getDashboardStockIntech() {
     try {
-        const { isStaff, warehouseIds } = await getSessionUser();
-        const applyWhFilter = isStaff && warehouseIds.length > 0;
+        const user = await getSessionUser();
+        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
 
         let query = db
             .selectFrom('inventory.sap_out_header as soh')
@@ -158,8 +159,8 @@ export async function getDashboardStockIntech() {
             .where('soh.end_status', '=', 'intech')
             .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0);
 
-        if (applyWhFilter) {
-            query = query.where('soh.warehouse_id', 'in', warehouseIds);
+        if (scopedWarehouseIds) {
+            query = query.where('soh.warehouse_id', 'in', scopedWarehouseIds);
         }
 
         const data = await query
@@ -185,9 +186,10 @@ export async function getWarehouses() {
             .selectFrom('inventory.mas_wh')
             .select(['id', 'name', 'branch'])
             .orderBy('name', 'asc');
-        if (user.isStaff) {
-            if (user.warehouseIds.length === 0) return { success: true, data: [] };
-            query = query.where('id', 'in', user.warehouseIds);
+        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+        if (user.isStaff && !scopedWarehouseIds) return { success: true, data: [] };
+        if (scopedWarehouseIds) {
+            query = query.where('id', 'in', scopedWarehouseIds);
         }
         const data = await query.execute();
 
@@ -210,14 +212,14 @@ export async function getStockWarnings(warehouseId: string = 'all') {
     if (!parsed.success) {
         return { success: false, data: [], error: 'Gudang tidak valid' };
     }
-    if (user.isStaff) {
-        if (user.warehouseIds.length === 0) return { success: true, data: [] };
-        if (
-            parsed.data.warehouseId !== 'all' &&
-            !user.warehouseIds.includes(Number(parsed.data.warehouseId))
-        ) {
-            return { success: false, data: [], error: 'Akses gudang ditolak' };
-        }
+    const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+    if (user.isStaff && !scopedWarehouseIds) return { success: true, data: [] };
+    if (
+        scopedWarehouseIds &&
+        parsed.data.warehouseId !== 'all' &&
+        !canAccessWarehouse(user, Number(parsed.data.warehouseId))
+    ) {
+        return { success: false, data: [], error: 'Akses gudang ditolak' };
     }
 
     try {
@@ -244,8 +246,8 @@ export async function getStockWarnings(warehouseId: string = 'all') {
             .orderBy('w.name')
             .orderBy('m.code');
 
-        if (user.isStaff) {
-            query = query.where('p.warehouse_id', 'in', user.warehouseIds);
+        if (scopedWarehouseIds) {
+            query = query.where('p.warehouse_id', 'in', scopedWarehouseIds);
         } else if (parsed.data.warehouseId !== 'all') {
             query = query.where('p.warehouse_id', '=', Number(parsed.data.warehouseId));
         }
@@ -365,7 +367,7 @@ export async function triggerOtherStockSync(
     input: unknown = {}
 ): Promise<{ success: true } | { success: false; error: string }> {
     const user = await getSessionUser();
-    if (user.isStaff) {
+    if (!canSyncStock(user)) {
         throw new AuthorizationError('Staff tidak diizinkan menjalankan sinkronisasi stok.');
     }
 

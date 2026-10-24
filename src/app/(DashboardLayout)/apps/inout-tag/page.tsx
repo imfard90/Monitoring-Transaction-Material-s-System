@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
 import { getSessionUser } from '@/lib/auth-server';
+import { canCreateInOutTag } from '@/lib/policies';
 import { getInOutTagFilterOptions, getInOutTagsPaginated } from './_actions/tag-actions';
 import InOutTagClient from './_components/InOutTagClient';
 
@@ -28,7 +29,7 @@ export default async function InOutTagPage({
     searchParams: Promise<SearchParams>;
 }) {
     const sessionUser = await getSessionUser();
-    const canCreateTag = sessionUser.role !== 'Staff';
+    const canCreateTag = canCreateInOutTag(sessionUser);
 
     const params = await searchParams;
     const page = Math.max(1, parseInt(params.page ?? '1', 10));
