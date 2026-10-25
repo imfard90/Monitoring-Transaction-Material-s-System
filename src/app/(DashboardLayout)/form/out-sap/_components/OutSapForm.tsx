@@ -1,29 +1,17 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Send, Trash2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { LoadingOverlay } from '@/app/components/shared/LoadingOverlay';
-import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import type { OutSapFormItem } from '@/lib/types/inventory';
 import { scrapeReservationAction } from '../../../reference/out-lensa-ref/_actions/out-lensa-actions';
@@ -36,13 +24,16 @@ import {
     getTechnicians,
     getWarehouses,
 } from '../_actions/out-sap-actions';
+import { OutSapConfirmModal } from './OutSapConfirmModal';
+import { type OutSapFormData, OutSapHeaderFields } from './OutSapHeaderFields';
+import { OutSapMaterialList } from './OutSapMaterialList';
 
 export default function OutSapForm() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [isScraping, setIsScraping] = useState(false);
     const [isScraped, setIsScraped] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<OutSapFormData>({
         nik_teknisi: '',
         name_sa: '',
         warehouse_id: '',
@@ -96,7 +87,6 @@ export default function OutSapForm() {
                 return;
             }
 
-            // Using type casting since we know it succeeded
             const successData = data as Record<string, unknown>;
             const scrapedListData = (successData.listData as Record<string, unknown[]>)
                 ?.data?.[0] as Record<string, unknown>;
@@ -118,7 +108,7 @@ export default function OutSapForm() {
                         (w.name as string).toLowerCase().includes(namaGudang.toLowerCase())
                     );
                     if (matchedWh) {
-                        warehouse_id = matchedWh.id.toString();
+                        warehouse_id = String(matchedWh.id);
                     }
                 }
 
@@ -136,25 +126,23 @@ export default function OutSapForm() {
                     }
                 }
 
-                // Get all materials for mapping
                 const materialsRes = await getMaterials();
                 const allMaterials = materialsRes.success ? materialsRes.data : [];
 
                 const mappedItems: OutSapFormItem[] = [];
-
-                const materials = scrapedDetail.materials as Record<string, string>[];
-                materials?.forEach((scrapedMat: Record<string, string>) => {
+                const scrapedMaterials = scrapedDetail.materials as Record<string, string>[];
+                scrapedMaterials?.forEach((scrapedMat: Record<string, string>) => {
                     const code = (scrapedMat['ID MATERIAL'] || '').trim();
                     const qty = parseInt(scrapedMat['QTY ACCEPTED'], 10) || 0;
 
                     if (code && qty > 0) {
-                        const matchedMat = allMaterials.find(
+                        const matchedMat = allMaterials?.find(
                             (m: Record<string, unknown>) => (m.code as string).trim() === code
                         );
                         if (matchedMat) {
                             mappedItems.push({
                                 id: crypto.randomUUID(),
-                                designator_id: matchedMat.id.toString(),
+                                designator_id: String(matchedMat.id),
                                 qty_req: qty,
                             });
                         }
@@ -163,11 +151,11 @@ export default function OutSapForm() {
 
                 setFormData((prev) => ({
                     ...prev,
-                    id_reservasi: resIdSap as string,
-                    sap_number: giNumber as string,
-                    name_sa: name_sa as string,
-                    nik_teknisi: nik_teknisi as string,
-                    warehouse_id: warehouse_id as string,
+                    id_reservasi: resIdSap,
+                    sap_number: giNumber,
+                    name_sa,
+                    nik_teknisi,
+                    warehouse_id,
                 }));
 
                 if (mappedItems.length > 0) {
@@ -177,9 +165,7 @@ export default function OutSapForm() {
                     if (hasError) {
                         toast.error(
                             `${errorMessage} Material berhasil dimuat, tetapi Anda tidak bisa lanjut. Silakan daftarkan NIK tersebut ke Master Data Teknisi lalu ulangi!`,
-                            {
-                                duration: 10000,
-                            }
+                            { duration: 10000 }
                         );
                     } else {
                         toast.success('Data Lensa berhasil dimuat dan material di-map.');
@@ -198,27 +184,6 @@ export default function OutSapForm() {
             toast.error('Terjadi kesalahan jaringan.');
         }
         setIsScraping(false);
-    };
-
-    const handleAddItem = () => {
-        setItems([...items, { id: crypto.randomUUID(), designator_id: '', qty_req: '' }]);
-    };
-
-    const handleRemoveItem = (index: number) => {
-        setItems(items.filter((_, i) => i !== index));
-    };
-
-    const handleItemChange = (index: number, field: string, value: string | number | null) => {
-        const newItems = [...items];
-        newItems[index] = { ...newItems[index], [field]: value };
-        setItems(newItems);
-    };
-
-    const handleSelectTechnician = (nik: string) => {
-        setFormData({
-            ...formData,
-            nik_teknisi: nik,
-        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -270,7 +235,6 @@ export default function OutSapForm() {
 
         if (res.success && res.header_id) {
             toast.success('Out SAP created and status set to Intech. Stock reduced successfully!');
-            // Reset form
             setFormData({
                 nik_teknisi: '',
                 name_sa: '',
@@ -281,7 +245,7 @@ export default function OutSapForm() {
             });
             setItems([]);
             setIsConfirmModalOpen(false);
-            router.push('/apps/out-material'); // redirect to list table that already exists
+            router.push('/apps/out-material');
         } else {
             toast.error(res.error || 'Failed to create Out SAP');
         }
@@ -317,345 +281,30 @@ export default function OutSapForm() {
                 text={isScraping ? 'Menarik Data Lensa...' : 'Memproses Transaksi...'}
             />
             <StaggerContainer>
-                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none p-6">
+                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6">
                     <form onSubmit={handleSubmit} className="space-y-8">
-                        <div>
-                            <h2 className="text-lg font-bold text-foreground mb-4 border-b pb-2">
-                                Form Out SAP (Pengeluaran Material)
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <StaggerItem className="space-y-2">
-                                    <Label>Request ID</Label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            value={formData.request_id}
-                                            onChange={(e) =>
-                                                setFormData({
-                                                    ...formData,
-                                                    request_id: e.target.value,
-                                                })
-                                            }
-                                            placeholder="Masukkan Request ID Lensa..."
-                                            className="flex-1"
-                                            disabled={isScraped}
-                                        />
-                                        <motion.div
-                                            whileHover={
-                                                isScraping || !formData.request_id || isScraped
-                                                    ? {}
-                                                    : { scale: 1.02 }
-                                            }
-                                            whileTap={
-                                                isScraping || !formData.request_id || isScraped
-                                                    ? {}
-                                                    : { scale: 0.95 }
-                                            }
-                                        >
-                                            <Button
-                                                type="button"
-                                                onClick={handleGetData}
-                                                disabled={
-                                                    isScraping || !formData.request_id || isScraped
-                                                }
-                                                className="whitespace-nowrap w-full h-full"
-                                            >
-                                                {isScraping ? 'Memuat data...' : 'Ambil Data'}
-                                            </Button>
-                                        </motion.div>
-                                    </div>
-                                </StaggerItem>
+                        <OutSapHeaderFields
+                            formData={formData}
+                            setFormData={setFormData}
+                            isScraping={isScraping}
+                            isScraped={isScraped}
+                            onGetData={handleGetData}
+                            technicians={technicians}
+                            warehouses={warehouses}
+                            branches={branches}
+                        />
 
-                                <StaggerItem className="space-y-2">
-                                    <Label>Teknisi *</Label>
-                                    <SearchableSelect
-                                        options={technicians.map((t: Record<string, unknown>) => ({
-                                            value: String(t.nik),
-                                            label: `${t.name} (${t.nik})`,
-                                        }))}
-                                        value={String(formData.nik_teknisi)}
-                                        onValueChange={handleSelectTechnician}
-                                        placeholder={
-                                            isScraped && formData.nik_teknisi
-                                                ? 'Teknisi terpilih'
-                                                : 'Pilih Teknisi'
-                                        }
-                                        disabled={!formData.name_sa || isScraped}
-                                    />
-                                </StaggerItem>
-
-                                <StaggerItem className="space-y-2">
-                                    <Label>Area (SA)</Label>
-                                    <SearchableSelect
-                                        options={branches.map((b: Record<string, unknown>) => ({
-                                            value: b.service_area as string,
-                                            label: b.service_area as string,
-                                        }))}
-                                        value={formData.name_sa}
-                                        onValueChange={(v) => {
-                                            setFormData({
-                                                ...formData,
-                                                name_sa: v,
-                                                nik_teknisi: '',
-                                            });
-                                        }}
-                                        placeholder="Pilih Area"
-                                        disabled={!formData.request_id || isScraped}
-                                    />
-                                </StaggerItem>
-
-                                <StaggerItem className="space-y-2">
-                                    <Label>Dari Gudang *</Label>
-                                    <SearchableSelect
-                                        options={warehouses.map((w: Record<string, unknown>) => ({
-                                            value: w.id?.toString() || '',
-                                            label: w.name as string,
-                                        }))}
-                                        value={formData.warehouse_id}
-                                        onValueChange={(v) =>
-                                            setFormData({ ...formData, warehouse_id: v })
-                                        }
-                                        placeholder="Pilih Gudang"
-                                        disabled={!formData.nik_teknisi || isScraped}
-                                    />
-                                </StaggerItem>
-
-                                <StaggerItem className="space-y-2">
-                                    <Label>ID Reservasi *</Label>
-                                    <Input
-                                        value={formData.id_reservasi}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                id_reservasi: e.target.value,
-                                            })
-                                        }
-                                        disabled={!formData.warehouse_id || isScraped}
-                                    />
-                                </StaggerItem>
-
-                                <StaggerItem className="space-y-2">
-                                    <Label>Nomor SAP *</Label>
-                                    <Input
-                                        value={formData.sap_number}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, sap_number: e.target.value })
-                                        }
-                                        disabled={!formData.warehouse_id || isScraped}
-                                    />
-                                </StaggerItem>
-                            </div>
-                        </div>
-
-                        {/* Items Section */}
-                        <StaggerItem className="space-y-4 pt-4 border-t">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-base font-semibold">Daftar Material</h3>
-                                <motion.div
-                                    whileHover={
-                                        !formData.warehouse_id ||
-                                        !formData.id_reservasi.trim() ||
-                                        !formData.sap_number.trim() ||
-                                        isScraped
-                                            ? {}
-                                            : { scale: 1.02 }
-                                    }
-                                    whileTap={
-                                        !formData.warehouse_id ||
-                                        !formData.id_reservasi.trim() ||
-                                        !formData.sap_number.trim() ||
-                                        isScraped
-                                            ? {}
-                                            : { scale: 0.95 }
-                                    }
-                                >
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleAddItem}
-                                        className="gap-2"
-                                        disabled={
-                                            !formData.warehouse_id ||
-                                            !formData.id_reservasi.trim() ||
-                                            !formData.sap_number.trim() ||
-                                            isScraped
-                                        }
-                                    >
-                                        <Plus size={16} /> Tambah Material
-                                    </Button>
-                                </motion.div>
-                            </div>
-
-                            {items.length === 0 ? (
-                                <div
-                                    className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50"
-                                    role="status"
-                                >
-                                    Belum ada material yang ditambahkan. Klik Tambah Material untuk
-                                    memilih material.
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    <AnimatePresence>
-                                        {items.map((item, index) => {
-                                            const isError = checkItemError(item);
-                                            const selectedMat = materials.find(
-                                                (m: Record<string, unknown>) =>
-                                                    m.id?.toString() === item.designator_id
-                                            );
-                                            const errorReason = item.designator_id
-                                                ? selectedMat
-                                                    ? Number(item.qty_req) > Number(selectedMat.qty)
-                                                        ? `Stok tidak mencukupi (Tersedia: ${selectedMat.qty})`
-                                                        : ''
-                                                    : 'Material tidak ditemukan di gudang atau stok habis'
-                                                : 'Material belum dipilih';
-
-                                            return (
-                                                <motion.div
-                                                    key={item.id || index}
-                                                    initial={{
-                                                        opacity: 0,
-                                                        height: 0,
-                                                        scale: 0.95,
-                                                        overflow: 'hidden',
-                                                    }}
-                                                    animate={{
-                                                        opacity: 1,
-                                                        height: 'auto',
-                                                        scale: 1,
-                                                        overflow: 'visible',
-                                                    }}
-                                                    exit={{
-                                                        opacity: 0,
-                                                        height: 0,
-                                                        scale: 0.9,
-                                                        overflow: 'hidden',
-                                                        margin: 0,
-                                                        padding: 0,
-                                                    }}
-                                                    transition={{ duration: 0.3 }}
-                                                    className={`flex flex-col sm:flex-row sm:items-end gap-3 p-4 border rounded-md transition-colors ${
-                                                        isError && !isFetchingMaterials
-                                                            ? 'bg-error/10 border-error/50'
-                                                            : 'bg-muted/50'
-                                                    }`}
-                                                >
-                                                    <div className="flex-1 space-y-2">
-                                                        <Label className="text-xs flex gap-2">
-                                                            Material *
-                                                            <AnimatePresence>
-                                                                {isError &&
-                                                                    !isFetchingMaterials && (
-                                                                        <motion.span
-                                                                            initial={{
-                                                                                opacity: 0,
-                                                                                width: 0,
-                                                                            }}
-                                                                            animate={{
-                                                                                opacity: 1,
-                                                                                width: 'auto',
-                                                                            }}
-                                                                            exit={{
-                                                                                opacity: 0,
-                                                                                width: 0,
-                                                                            }}
-                                                                            className="text-destructive font-medium whitespace-nowrap overflow-hidden"
-                                                                        >
-                                                                            ({errorReason})
-                                                                        </motion.span>
-                                                                    )}
-                                                            </AnimatePresence>
-                                                        </Label>
-                                                        <SearchableSelect
-                                                            options={materials.map(
-                                                                (m: Record<string, unknown>) => ({
-                                                                    value: m.id?.toString() || '',
-                                                                    label: `${m.code} - ${m.description} (Stock: ${m.qty})`,
-                                                                })
-                                                            )}
-                                                            value={item.designator_id.toString()}
-                                                            onValueChange={(v) =>
-                                                                handleItemChange(
-                                                                    index,
-                                                                    'designator_id',
-                                                                    v
-                                                                )
-                                                            }
-                                                            placeholder={
-                                                                isScraped && item.designator_id
-                                                                    ? 'Material terpilih'
-                                                                    : 'Pilih Material'
-                                                            }
-                                                            disabled={isScraped}
-                                                        />
-                                                    </div>
-
-                                                    <div className="w-full sm:w-32 space-y-2">
-                                                        <Label className="text-xs">Jumlah *</Label>
-                                                        <Input
-                                                            type="number"
-                                                            min="1"
-                                                            placeholder="0"
-                                                            disabled={isScraped}
-                                                            value={
-                                                                item.qty_req === 0 ||
-                                                                item.qty_req.toString() === ''
-                                                                    ? ''
-                                                                    : item.qty_req
-                                                            }
-                                                            onChange={(e) => {
-                                                                let val: string | number =
-                                                                    e.target.value === ''
-                                                                        ? ''
-                                                                        : parseInt(
-                                                                              e.target.value,
-                                                                              10
-                                                                          );
-
-                                                                if (
-                                                                    typeof val === 'number' &&
-                                                                    selectedMat &&
-                                                                    val >
-                                                                        (selectedMat.qty as number)
-                                                                ) {
-                                                                    val = selectedMat.qty as number;
-                                                                    toast.error(
-                                                                        `Jumlah maksimal adalah ${selectedMat.qty}`
-                                                                    );
-                                                                }
-
-                                                                handleItemChange(
-                                                                    index,
-                                                                    'qty_req',
-                                                                    val
-                                                                );
-                                                            }}
-                                                            className={
-                                                                isError && !isFetchingMaterials
-                                                                    ? 'border-error/50 focus-visible:ring-error/30 bg-error/10'
-                                                                    : ''
-                                                            }
-                                                        />
-                                                    </div>
-
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleRemoveItem(index)}
-                                                        disabled={isScraped}
-                                                        className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-2 sm:mt-0"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </Button>
-                                                </motion.div>
-                                            );
-                                        })}
-                                    </AnimatePresence>
-                                </div>
-                            )}
-                        </StaggerItem>
+                        <OutSapMaterialList
+                            items={items}
+                            setItems={setItems}
+                            materials={materials}
+                            isFetchingMaterials={isFetchingMaterials}
+                            isScraped={isScraped}
+                            warehouseId={formData.warehouse_id}
+                            idReservasi={formData.id_reservasi}
+                            sapNumber={formData.sap_number}
+                            checkItemError={checkItemError}
+                        />
 
                         <StaggerItem className="pt-6 border-t flex justify-end gap-3">
                             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }}>
@@ -703,104 +352,17 @@ export default function OutSapForm() {
                         </StaggerItem>
                     </form>
 
-                    <ConfirmDialog
+                    <OutSapConfirmModal
                         isOpen={isConfirmModalOpen}
                         onOpenChange={setIsConfirmModalOpen}
-                        title="Konfirmasi SAP Out"
-                        description="Pastikan material dan teknisi sudah benar. Transaksi ini akan langsung memotong stok gudang."
                         onConfirm={handleConfirmSubmit}
                         loading={loading}
-                    >
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
-                                <div>
-                                    <span className="text-muted-foreground block mb-1">
-                                        Teknisi:
-                                    </span>
-                                    <span className="font-medium">
-                                        {selectedTech?.name} ({selectedTech?.nik})
-                                    </span>
-                                </div>
-                                <div>
-                                    <span className="text-muted-foreground block mb-1">
-                                        Area Layanan:
-                                    </span>
-                                    <span className="font-medium">{formData.name_sa || '-'}</span>
-                                </div>
-                                <div>
-                                    <span className="text-muted-foreground block mb-1">
-                                        Gudang Asal:
-                                    </span>
-                                    <span className="font-medium">{selectedWh?.name || '-'}</span>
-                                </div>
-                                <div>
-                                    <span className="text-muted-foreground block mb-1">
-                                        Nomor SAP:
-                                    </span>
-                                    <span className="font-medium">
-                                        {formData.sap_number || '-'}
-                                    </span>
-                                </div>
-                                {formData.id_reservasi && (
-                                    <div>
-                                        <span className="text-muted-foreground block mb-1">
-                                            ID Reservasi:
-                                        </span>
-                                        <span className="font-medium">{formData.id_reservasi}</span>
-                                    </div>
-                                )}
-                                {formData.request_id && (
-                                    <div>
-                                        <span className="text-muted-foreground block mb-1">
-                                            Request ID:
-                                        </span>
-                                        <span className="font-medium">{formData.request_id}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div>
-                                <h4 className="text-sm font-semibold mb-2">Daftar Material:</h4>
-                                <div className="border rounded-md max-h-[300px] overflow-y-auto">
-                                    <Table>
-                                        <TableHeader className="bg-muted/50">
-                                            <TableRow>
-                                                <TableHead className="w-[40px] text-center">
-                                                    No
-                                                </TableHead>
-                                                <TableHead>Material</TableHead>
-                                                <TableHead className="text-center">
-                                                    Jumlah
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {items.map((item, idx) => {
-                                                const mat = materials?.find(
-                                                    (m: Record<string, unknown>) =>
-                                                        m.id?.toString() === item.designator_id
-                                                );
-                                                return (
-                                                    <TableRow key={item.id || idx}>
-                                                        <TableCell className="text-center">
-                                                            {idx + 1}
-                                                        </TableCell>
-                                                        <TableCell className="text-sm">
-                                                            {mat?.code as string} -{' '}
-                                                            {mat?.description as string}
-                                                        </TableCell>
-                                                        <TableCell className="text-center font-bold text-primary">
-                                                            {item.qty_req}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                );
-                                            })}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </div>
-                        </div>
-                    </ConfirmDialog>
+                        formData={formData}
+                        selectedTech={selectedTech}
+                        selectedWh={selectedWh}
+                        items={items}
+                        materials={materials}
+                    />
                 </Card>
             </StaggerContainer>
         </>
