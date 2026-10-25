@@ -433,14 +433,16 @@ export default function StockComparisonTableView({
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
-                            <WarehouseCombobox
-                                value={warehouse}
-                                onValueChange={setWarehouse}
-                                warehouses={warehouses}
-                                allLabel="Semua Gudang"
-                                placeholder="Cari gudang..."
-                                className="w-full sm:w-[190px]"
-                            />
+                            {!isStaff && (
+                                <WarehouseCombobox
+                                    value={warehouse}
+                                    onValueChange={setWarehouse}
+                                    warehouses={warehouses}
+                                    allLabel="Semua Gudang"
+                                    placeholder="Cari gudang..."
+                                    className="w-full sm:w-[190px]"
+                                />
+                            )}
                             <SearchField
                                 value={globalFilter}
                                 onValueChange={setGlobalFilter}
