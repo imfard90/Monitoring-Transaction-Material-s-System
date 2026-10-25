@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -33,6 +33,7 @@ import {
 
 export default function RekonLensaForm() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [loading, setLoading] = useState(false);
     const [selectedNik, setSelectedNik] = useState<string>('');
 
@@ -203,6 +204,17 @@ export default function RekonLensaForm() {
 
             if (res.success) {
                 toast.success('Rekon Lensa berhasil disimpan');
+                await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ['technicians-intech'] }),
+                    queryClient.invalidateQueries({ queryKey: ['technician-materials'] }),
+                    queryClient.invalidateQueries({ queryKey: ['technician-wos'] }),
+                    queryClient.invalidateQueries({ queryKey: ['dashboardStockIntech'] }),
+                ]);
+                setSelectedNik('');
+                setSelectedWos(new Set());
+                setAllocatedQty({});
+                setShowConfirm(false);
+                router.refresh();
                 router.push('/apps/hasil-rekon');
             } else {
                 toast.error(res.error || 'Gagal menyimpan Rekon Lensa');
@@ -232,7 +244,7 @@ export default function RekonLensaForm() {
     return (
         <StaggerContainer className="space-y-6">
             <StaggerItem>
-                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none p-6">
+                <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6">
                     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                         <div className="flex-1 space-y-2 max-w-md">
                             <Label>Pilih Teknisi</Label>
@@ -447,18 +459,32 @@ export default function RekonLensaForm() {
                 confirmText={loading ? 'Memproses...' : 'Ya, Submit'}
                 cancelText="Batal"
             >
-                <div className="bg-muted p-4 rounded-md text-sm space-y-2 mt-4">
-                    <div>
-                        <span className="font-semibold">Teknisi:</span>{' '}
-                        {techOptions.find((t: any) => t.value === selectedNik)?.label ||
-                            selectedNik}
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-sm bg-muted/40 p-4 rounded-xl border border-border/70">
+                        <div>
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                Teknisi:
+                            </span>
+                            <span className="font-semibold text-foreground">
+                                {techOptions.find((t: any) => t.value === selectedNik)?.label ||
+                                    selectedNik}
+                            </span>
+                        </div>
+                        <div>
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                Total Work Order:
+                            </span>
+                            <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-background border border-border/70 text-foreground inline-block">
+                                {selectedWos.size} WO Dipilih
+                            </span>
+                        </div>
                     </div>
-                    <div>
-                        <span className="font-semibold">Total WO:</span> {selectedWos.size}
-                    </div>
-                    <div>
-                        <span className="font-semibold">Total Material Digunakan:</span>
-                        <ul className="list-disc list-inside mt-1">
+
+                    <div className="space-y-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                            Material yang Akan Dialokasikan:
+                        </span>
+                        <div className="flex flex-wrap gap-2 p-3 bg-muted/30 border border-border/70 rounded-xl">
                             {Object.entries(
                                 Object.entries(allocatedQty).reduce(
                                     (acc, [sapOutItemId, qty]) => {
@@ -477,11 +503,17 @@ export default function RekonLensaForm() {
                                     {} as Record<string, number>
                                 )
                             ).map(([code, qty]) => (
-                                <li key={code}>
-                                    {code}: {qty}
-                                </li>
+                                <div
+                                    key={code}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background border border-border/70 text-xs shadow-2xs"
+                                >
+                                    <span className="font-mono font-semibold text-primary">{code}</span>
+                                    <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono font-bold text-xs">
+                                        {qty}
+                                    </span>
+                                </div>
                             ))}
-                        </ul>
+                        </div>
                     </div>
                 </div>
             </ConfirmDialog>

@@ -138,8 +138,13 @@ export async function createReturnMaterial(payload: ReturnMaterialPayload) {
         }
 
         revalidatePath('/form/return-material');
+        revalidatePath('/apps/inout-tag');
+        revalidatePath('/apps/out-material');
         revalidatePath('/stock-inventory');
         revalidatePath('/stock-intech');
+        revalidatePath('/form/rekon-intech');
+        revalidatePath('/form/rekon-lensa');
+        revalidatePath('/');
         return { success: true, header_id: result };
     } catch (error: unknown) {
         actionLogger.error(

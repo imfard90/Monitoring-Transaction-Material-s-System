@@ -136,7 +136,7 @@ const SidebarContent: MenuItem[] = [
                 id: 'mgmt-user-profile',
                 name: 'User Profile',
                 icon: 'solar:user-circle-linear',
-                url: '/user-profile',
+                url: '/management/user-profile',
                 isPro: false,
             },
             {

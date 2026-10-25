@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserProfileData } from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
+import type { UserProfileData } from '@/app/(DashboardLayout)/management/user-profile/_actions/profile-actions';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { ProfileApiKeyCard } from './ProfileApiKeyCard';
 import { ProfileHeader } from './ProfileHeader';

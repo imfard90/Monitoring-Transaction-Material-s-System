@@ -299,6 +299,7 @@ export default function UserTable({ data }: UserTableProps) {
                 description={`Apakah Anda yakin ingin menghapus pengguna "${userToDelete?.name || userToDelete?.nik || ''}"? Tindakan ini tidak dapat dibatalkan.`}
                 confirmText="Hapus Pengguna"
                 cancelText="Batal"
+                variant="destructive"
                 onConfirm={handleConfirmDelete}
                 loading={isPending}
             />

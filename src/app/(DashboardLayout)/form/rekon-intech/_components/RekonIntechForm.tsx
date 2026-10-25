@@ -1,11 +1,11 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
@@ -26,6 +26,7 @@ import {
     Table,
     TableBody,
     TableCell,
+    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
@@ -40,6 +41,7 @@ import {
 
 export default function RekonIntechForm() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [loading, setLoading] = useState(false);
     const [selectedNik, setSelectedNik] = useState<string>('');
 
@@ -176,11 +178,17 @@ export default function RekonIntechForm() {
 
         if (res.success) {
             toast.success('Rekon Intech berhasil disubmit!');
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['intechTechnicians'] }),
+                queryClient.invalidateQueries({ queryKey: ['technicianMaterials'] }),
+                queryClient.invalidateQueries({ queryKey: ['dashboardStockIntech'] }),
+            ]);
             setSelectedNik('');
             setGlobalWoType('');
             setGlobalWoNumber('');
             setGlobalNotes('');
             setIsConfirmModalOpen(false);
+            router.refresh();
             router.push('/apps/out-material');
         } else {
             toast.error(res.error || 'Failed to submit Rekon Intech');
@@ -191,12 +199,17 @@ export default function RekonIntechForm() {
 
     const selectedTechName = techOptions.find((t) => t.value === selectedNik)?.label || '';
 
+    const totalQty = useMemo(
+        () => itemsToSubmit.reduce((acc, curr) => acc + (Number(curr.qty) || 0), 0),
+        [itemsToSubmit]
+    );
+
     return (
         <StaggerContainer>
-            <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none p-6">
+            <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6">
                 <form onSubmit={handlePreSubmit} className="space-y-8">
                     <StaggerItem>
-                        <h2 className="text-lg font-bold text-foreground mb-4 border-b pb-2">
+                        <h2 className="text-lg font-bold text-foreground mb-4 border-b border-border/70 pb-3">
                             Form Rekon Intech (Pemakaian Material)
                         </h2>
 
@@ -441,68 +454,122 @@ export default function RekonIntechForm() {
                     loading={loading}
                 >
                     <div className="space-y-4">
-                        <p className="rounded-md border border-warning/40 bg-warning/10 p-4 text-sm font-semibold leading-relaxed text-foreground">
+                        <p className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm font-semibold leading-relaxed text-foreground">
                             Apakah anda melakukan rekon manual? Pastikan WO tersebut tidak di-update
                             menggunakan Lensa.
                         </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-sm bg-muted/40 p-4 rounded-xl border border-border/70">
                             <div>
-                                <span className="text-muted-foreground block mb-1">Teknisi:</span>
-                                <span className="font-medium">{selectedTechName}</span>
+                                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                    Teknisi:
+                                </span>
+                                <span className="font-semibold text-foreground">
+                                    {selectedTechName || '-'}
+                                </span>
                             </div>
                             <div>
-                                <span className="text-muted-foreground block mb-1">Tipe WO:</span>
-                                <span className="font-medium uppercase">{globalWoType}</span>
+                                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                    Tipe WO:
+                                </span>
+                                <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-background border border-border/70 uppercase text-foreground inline-block">
+                                    {globalWoType || '-'}
+                                </span>
                             </div>
                             <div>
-                                <span className="text-muted-foreground block mb-1">Nomor WO:</span>
-                                <span className="font-medium">{globalWoNumber}</span>
+                                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                    Nomor WO:
+                                </span>
+                                <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-background border border-border/70 text-foreground inline-block">
+                                    {globalWoNumber || '-'}
+                                </span>
                             </div>
                             <div>
-                                <span className="text-muted-foreground block mb-1">Catatan:</span>
-                                <span>{globalNotes || '-'}</span>
+                                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                    Catatan:
+                                </span>
+                                <span className="text-muted-foreground text-xs">
+                                    {globalNotes || '-'}
+                                </span>
                             </div>
                         </div>
 
-                        <div>
-                            <h4 className="text-sm font-semibold mb-2">Material Terpakai:</h4>
-                            <div className="border rounded-md max-h-[300px] overflow-y-auto">
-                                <Table>
-                                    <TableHeader className="bg-muted/50">
-                                        <TableRow>
-                                            <TableHead className="w-[40px] text-center">
-                                                No
-                                            </TableHead>
-                                            <TableHead>Material Code</TableHead>
-                                            <TableHead>Material Name</TableHead>
-                                            <TableHead className="text-center">Qty Used</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {itemsToSubmit.map((item, idx) => {
-                                            const mat = materials.find(
-                                                (m: any) =>
-                                                    m.sap_out_item_id === item.sap_out_item_id
-                                            );
-                                            return (
-                                                <TableRow key={item.sap_out_item_id}>
-                                                    <TableCell className="text-center">
-                                                        {idx + 1}
-                                                    </TableCell>
-                                                    <TableCell className="font-medium">
-                                                        {mat?.material_code}
-                                                    </TableCell>
-                                                    <TableCell className="text-sm">
-                                                        {mat?.description}
-                                                    </TableCell>
-                                                    <TableCell className="text-center font-bold text-primary">
-                                                        {item.qty}
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-semibold text-foreground">
+                                    Material Terpakai
+                                </h4>
+                                <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full border border-border/40">
+                                    {itemsToSubmit.length} item material
+                                </span>
+                            </div>
+
+                            <div className="border border-border/70 rounded-xl overflow-hidden shadow-xs">
+                                <div className="max-h-[260px] overflow-y-auto">
+                                    <Table>
+                                        <TableHeader className="bg-muted/80 backdrop-blur-xs sticky top-0 z-10 border-b border-border">
+                                            <TableRow className="hover:bg-transparent">
+                                                <TableHead className="w-12 text-center text-[11px] font-semibold uppercase tracking-wider">
+                                                    No
+                                                </TableHead>
+                                                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">
+                                                    Material
+                                                </TableHead>
+                                                <TableHead className="w-24 text-center text-[11px] font-semibold uppercase tracking-wider">
+                                                    Qty Used
+                                                </TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {itemsToSubmit.map((item, idx) => {
+                                                const mat = materials.find(
+                                                    (m: Record<string, unknown>) =>
+                                                        m.sap_out_item_id === item.sap_out_item_id
+                                                );
+                                                return (
+                                                    <TableRow
+                                                        key={item.sap_out_item_id}
+                                                        className="hover:bg-muted/40 transition-colors"
+                                                    >
+                                                        <TableCell className="text-center text-xs font-mono text-muted-foreground">
+                                                            {idx + 1}
+                                                        </TableCell>
+                                                        <TableCell className="py-2.5">
+                                                            <div className="flex flex-col gap-0.5">
+                                                                <span className="font-mono text-xs font-semibold text-primary">
+                                                                    {String(mat?.material_code ?? '-')}
+                                                                </span>
+                                                                <span
+                                                                    className="text-xs text-muted-foreground line-clamp-1"
+                                                                    title={String(mat?.description ?? '')}
+                                                                >
+                                                                    {String(mat?.description ?? '-')}
+                                                                </span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-center font-mono font-bold text-sm text-foreground">
+                                                            <span className="inline-block px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                {item.qty}
+                                                            </span>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                        <TableFooter className="bg-muted/50 border-t border-border font-medium">
+                                            <TableRow className="hover:bg-transparent">
+                                                <TableCell
+                                                    colSpan={2}
+                                                    className="text-right text-xs font-semibold uppercase tracking-wider"
+                                                >
+                                                    Total Qty Digunakan:
+                                                </TableCell>
+                                                <TableCell className="text-center font-mono font-bold text-sm text-primary">
+                                                    {totalQty}
+                                                </TableCell>
+                                            </TableRow>
+                                        </TableFooter>
+                                    </Table>
+                                </div>
                             </div>
                         </div>
                     </div>

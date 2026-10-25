@@ -1,10 +1,11 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
@@ -25,6 +26,7 @@ import {
     Table,
     TableBody,
     TableCell,
+    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
@@ -38,7 +40,8 @@ import {
 } from '../_actions/return-actions';
 
 export default function ReturnForm() {
-    const _router = useRouter();
+    const router = useRouter();
+    const queryClient = useQueryClient();
     const [loading, setLoading] = useState(false);
 
     const [sapOuts, setSapOuts] = useState<ReturnSapOutOption[]>([]);
@@ -177,6 +180,9 @@ export default function ReturnForm() {
                 // Refresh available sap outs
                 const sapRes = await getAvailableSapOuts();
                 if (sapRes.success) setSapOuts(sapRes.data);
+
+                await queryClient.invalidateQueries({ queryKey: ['dashboardStockIntech'] });
+                router.refresh();
             } else {
                 toast.error(res.error || 'Gagal mengajukan pengembalian material');
             }
@@ -192,12 +198,17 @@ export default function ReturnForm() {
         (s: ReturnSapOutOption) => s.id.toString() === formData.sap_out_id
     );
 
+    const totalQty = useMemo(
+        () => items.reduce((acc, curr) => acc + (Number(curr.qty) || 0), 0),
+        [items]
+    );
+
     return (
         <StaggerContainer>
-            <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none p-6">
+            <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6">
                 <form onSubmit={handleSubmit} className="space-y-8">
                     <StaggerItem>
-                        <h2 className="text-lg font-bold text-foreground mb-4 border-b pb-2">
+                        <h2 className="text-lg font-bold text-foreground mb-4 border-b border-border/70 pb-3">
                             Pengembalian Material (Return Transaction)
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -228,7 +239,7 @@ export default function ReturnForm() {
                     </StaggerItem>
 
                     <StaggerItem>
-                        <div className="flex justify-between items-center mb-4 border-b pb-2">
+                        <div className="flex justify-between items-center mb-4 border-b border-border/70 pb-3">
                             <h2 className="text-lg font-bold text-foreground">
                                 Material yang Dikembalikan
                             </h2>
@@ -329,7 +340,7 @@ export default function ReturnForm() {
                         </div>
                     </StaggerItem>
 
-                    <StaggerItem className="flex justify-end pt-4 border-t">
+                    <StaggerItem className="flex justify-end pt-4 border-t border-border">
                         <motion.div
                             whileHover={{ scale: items.length === 0 ? 1 : 1.02 }}
                             whileTap={{ scale: items.length === 0 ? 1 : 0.98 }}
@@ -355,65 +366,118 @@ export default function ReturnForm() {
                     loading={loading}
                 >
                     <div className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md border">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-sm bg-muted/40 p-4 rounded-xl border border-border/70">
                             <div>
-                                <span className="text-muted-foreground block mb-1">
+                                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
                                     Transaksi SAP Out:
                                 </span>
-                                <span className="font-medium">{selectedTech?.id_trx}</span>
-                            </div>
-                            <div>
-                                <span className="text-muted-foreground block mb-1">Teknisi:</span>
-                                <span className="font-medium">
-                                    {selectedTech?.nama_teknisi} ({selectedTech?.nik_teknisi})
+                                <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-background border border-border/70 text-foreground inline-block">
+                                    {selectedTech?.id_trx || '-'}
                                 </span>
                             </div>
-                            <div className="col-span-2">
-                                <span className="text-muted-foreground block mb-1">Catatan:</span>
-                                <span>{formData.notes || '-'}</span>
+                            <div>
+                                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                    Teknisi:
+                                </span>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-semibold text-foreground">
+                                        {selectedTech?.nama_teknisi || '-'}
+                                    </span>
+                                    {selectedTech?.nik_teknisi && (
+                                        <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-background border border-border/60 text-muted-foreground">
+                                            {selectedTech.nik_teknisi}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="col-span-1 sm:col-span-2">
+                                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                    Catatan:
+                                </span>
+                                <span className="text-muted-foreground text-xs">
+                                    {formData.notes || '-'}
+                                </span>
                             </div>
                         </div>
 
-                        <div>
-                            <h4 className="text-sm font-semibold mb-2">
-                                Material yang Dikembalikan:
-                            </h4>
-                            <div className="border rounded-md max-h-[300px] overflow-y-auto">
-                                <Table>
-                                    <TableHeader className="bg-muted/50">
-                                        <TableRow>
-                                            <TableHead className="w-[40px] text-center">
-                                                No
-                                            </TableHead>
-                                            <TableHead>Material</TableHead>
-                                            <TableHead className="text-center">
-                                                Jumlah Kembali
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {items.map((item, idx) => {
-                                            const mat = availableItems.find(
-                                                (ai) =>
-                                                    ai.sap_out_item_id.toString() ===
-                                                    item.sap_out_item_id
-                                            );
-                                            return (
-                                                <TableRow key={item.sap_out_item_id as string}>
-                                                    <TableCell className="text-center">
-                                                        {idx + 1}
-                                                    </TableCell>
-                                                    <TableCell className="text-sm">
-                                                        {mat?.material_code} - {mat?.material_name}
-                                                    </TableCell>
-                                                    <TableCell className="text-center font-bold text-primary">
-                                                        {item.qty}
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-semibold text-foreground">
+                                    Material yang Dikembalikan
+                                </h4>
+                                <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full border border-border/40">
+                                    {items.length} item material
+                                </span>
+                            </div>
+
+                            <div className="border border-border/70 rounded-xl overflow-hidden shadow-xs">
+                                <div className="max-h-[260px] overflow-y-auto">
+                                    <Table>
+                                        <TableHeader className="bg-muted/80 backdrop-blur-xs sticky top-0 z-10 border-b border-border">
+                                            <TableRow className="hover:bg-transparent">
+                                                <TableHead className="w-12 text-center text-[11px] font-semibold uppercase tracking-wider">
+                                                    No
+                                                </TableHead>
+                                                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">
+                                                    Material
+                                                </TableHead>
+                                                <TableHead className="w-28 text-center text-[11px] font-semibold uppercase tracking-wider">
+                                                    Jumlah Kembali
+                                                </TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {items.map((item, idx) => {
+                                                const mat = availableItems.find(
+                                                    (ai) =>
+                                                        ai.sap_out_item_id.toString() ===
+                                                        item.sap_out_item_id
+                                                );
+                                                return (
+                                                    <TableRow
+                                                        key={item.sap_out_item_id as string}
+                                                        className="hover:bg-muted/40 transition-colors"
+                                                    >
+                                                        <TableCell className="text-center text-xs font-mono text-muted-foreground">
+                                                            {idx + 1}
+                                                        </TableCell>
+                                                        <TableCell className="py-2.5">
+                                                            <div className="flex flex-col gap-0.5">
+                                                                <span className="font-mono text-xs font-semibold text-primary">
+                                                                    {mat?.material_code ?? '-'}
+                                                                </span>
+                                                                <span
+                                                                    className="text-xs text-muted-foreground line-clamp-1"
+                                                                    title={mat?.material_name ?? ''}
+                                                                >
+                                                                    {mat?.material_name ?? '-'}
+                                                                </span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-center font-mono font-bold text-sm text-foreground">
+                                                            <span className="inline-block px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                {item.qty}
+                                                            </span>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                        <TableFooter className="bg-muted/50 border-t border-border font-medium">
+                                            <TableRow className="hover:bg-transparent">
+                                                <TableCell
+                                                    colSpan={2}
+                                                    className="text-right text-xs font-semibold uppercase tracking-wider"
+                                                >
+                                                    Total Unit Dikembalikan:
+                                                </TableCell>
+                                                <TableCell className="text-center font-mono font-bold text-sm text-primary">
+                                                    {totalQty}
+                                                </TableCell>
+                                            </TableRow>
+                                        </TableFooter>
+                                    </Table>
+                                </div>
                             </div>
                         </div>
                     </div>

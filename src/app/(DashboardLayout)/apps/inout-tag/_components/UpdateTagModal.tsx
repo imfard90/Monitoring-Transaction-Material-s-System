@@ -380,11 +380,15 @@ export default function UpdateTagModal({
                 icon={<Ban size={16} />}
                 onConfirm={() => cancelMutation.mutate()}
             >
-                <div className="space-y-2 text-sm">
-                    <p>
-                        <span className="text-muted-foreground">ID Transaksi: </span>
-                        <span className="font-semibold">{row.id_trx}</span>
-                    </p>
+                <div className="space-y-3 text-sm">
+                    <div className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                            ID Transaksi:
+                        </span>
+                        <span className="font-mono text-xs font-bold text-destructive">
+                            {row.id_trx}
+                        </span>
+                    </div>
                     <p className="text-muted-foreground text-xs leading-relaxed">
                         Status transaksi akan diubah menjadi batal dan alokasi terkait akan
                         dikembalikan secara otomatis.

@@ -3,7 +3,7 @@
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import type { UserProfileData } from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
+import type { UserProfileData } from '@/app/(DashboardLayout)/management/user-profile/_actions/profile-actions';
 import { Button } from '@/components/ui/button';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { authClient } from '@/lib/auth-client';
@@ -21,7 +21,7 @@ export function ProfilePersonalInfoCard({ profileData }: ProfilePersonalInfoCard
         try {
             const { error } = await authClient.sendVerificationEmail({
                 email: profileData.email,
-                callbackURL: '/user-profile',
+                callbackURL: '/management/user-profile',
             });
             if (error) {
                 toast.error(error.message || 'Gagal mengirim link verifikasi');

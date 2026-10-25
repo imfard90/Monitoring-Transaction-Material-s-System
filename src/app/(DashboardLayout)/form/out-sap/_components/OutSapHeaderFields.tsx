@@ -39,7 +39,7 @@ export function OutSapHeaderFields({
 }: OutSapHeaderFieldsProps) {
     return (
         <div>
-            <h2 className="text-lg font-bold text-foreground mb-4 border-b pb-2">
+            <h2 className="text-lg font-bold text-foreground mb-4 border-b border-border/70 pb-3">
                 Form Out SAP (Pengeluaran Material)
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

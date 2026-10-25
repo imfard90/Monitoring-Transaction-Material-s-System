@@ -147,7 +147,7 @@ export async function generateUserApiKey(): Promise<{
             .where('id', '=', user.id)
             .execute();
 
-        revalidatePath('/user-profile');
+        revalidatePath('/management/user-profile');
         return {
             success: true,
             data: { rawKey },
@@ -187,7 +187,7 @@ export async function deleteUserApiKey(): Promise<{
             .where('nik', '=', nik)
             .execute();
 
-        revalidatePath('/user-profile');
+        revalidatePath('/management/user-profile');
         return { success: true };
     } catch (error: unknown) {
         actionLogger.error(

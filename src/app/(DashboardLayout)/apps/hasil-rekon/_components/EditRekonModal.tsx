@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -45,6 +46,7 @@ interface EditRekonModalProps {
 }
 
 export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonModalProps) {
+    const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [availableSapItems, setAvailableSapItems] = useState<
@@ -150,7 +152,7 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
             if (res.success) {
                 toast.success('Berhasil menyimpan perubahan rekon');
                 onClose();
-                // Optionally reload the table or let parent handle refresh via revalidatePath
+                router.refresh();
             } else {
                 toast.error(res.error || 'Gagal menyimpan');
             }

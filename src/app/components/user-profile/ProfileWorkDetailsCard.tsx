@@ -1,7 +1,7 @@
 'use client';
 
 import { Icon } from '@iconify/react/dist/iconify.js';
-import type { UserProfileData } from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
+import type { UserProfileData } from '@/app/(DashboardLayout)/management/user-profile/_actions/profile-actions';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 
 interface ProfileWorkDetailsCardProps {

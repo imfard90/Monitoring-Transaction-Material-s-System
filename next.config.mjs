@@ -13,6 +13,11 @@ const nextConfig = {
                 destination: '/form/return-material',
                 permanent: true,
             },
+            {
+                source: '/user-profile',
+                destination: '/management/user-profile',
+                permanent: true,
+            },
         ];
     },
     async headers() {

@@ -39,7 +39,7 @@ export async function saveLensaAccount(username: string, passwordRaw: string) {
             db
         );
 
-        revalidatePath('/user-profile');
+        revalidatePath('/management/user-profile');
         return { success: true };
     } catch (e: unknown) {
         return { success: false, error: e instanceof Error ? e.message : 'Failed to save account' };
@@ -57,7 +57,7 @@ export async function deleteLensaAccount() {
             db
         );
 
-        revalidatePath('/user-profile');
+        revalidatePath('/management/user-profile');
         return { success: true };
     } catch (e: unknown) {
         return {

@@ -56,7 +56,7 @@ export function OutSapMaterialList({
         isScraped;
 
     return (
-        <StaggerItem className="space-y-4 pt-4 border-t">
+        <StaggerItem className="space-y-4 pt-4 border-t border-border">
             <div className="flex items-center justify-between">
                 <h3 className="text-base font-semibold">Daftar Material</h3>
                 <motion.div
@@ -78,7 +78,7 @@ export function OutSapMaterialList({
 
             {items.length === 0 ? (
                 <div
-                    className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50"
+                    className="text-center p-8 border border-dashed border-border/70 rounded-xl text-muted-foreground bg-muted/40"
                     role="status"
                 >
                     Belum ada material yang ditambahkan. Klik Tambah Material untuk memilih material.
@@ -124,10 +124,10 @@ export function OutSapMaterialList({
                                         padding: 0,
                                     }}
                                     transition={{ duration: 0.3 }}
-                                    className={`flex flex-col sm:flex-row sm:items-end gap-3 p-4 border rounded-md transition-colors ${
+                                    className={`flex flex-col sm:flex-row sm:items-end gap-3 p-4 border rounded-xl transition-colors ${
                                         isError && !isFetchingMaterials
-                                            ? 'bg-error/10 border-error/50'
-                                            : 'bg-muted/50'
+                                            ? 'bg-destructive/10 border-destructive/50'
+                                            : 'bg-muted/40 border-border/70'
                                     }`}
                                 >
                                     <div className="flex-1 space-y-2">
@@ -199,7 +199,7 @@ export function OutSapMaterialList({
                                             }}
                                             className={
                                                 isError && !isFetchingMaterials
-                                                    ? 'border-error/50 focus-visible:ring-error/30 bg-error/10'
+                                                    ? 'border-destructive/50 focus-visible:ring-destructive/30 bg-destructive/10'
                                                     : ''
                                             }
                                         />

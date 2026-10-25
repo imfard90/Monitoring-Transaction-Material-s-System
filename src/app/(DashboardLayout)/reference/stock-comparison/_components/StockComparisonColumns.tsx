@@ -14,28 +14,36 @@ export function createStockComparisonColumns(onShowCached: (nik: string) => void
     return [
         columnHelper.accessor('branch', {
             header: 'Branch',
+            size: 110,
             cell: (info) => info.getValue() || '—',
         }),
         columnHelper.accessor('service_area', {
             header: 'Service Area',
+            size: 140,
             cell: (info) => info.getValue() || '—',
         }),
         columnHelper.accessor('warehouse_name', {
             header: 'Gudang',
+            size: 160,
             cell: (info) => info.getValue() || '—',
         }),
         columnHelper.accessor('nik', {
             header: 'NIK',
+            size: 110,
             cell: (info) => <span className="font-mono">{info.getValue()}</span>,
         }),
         columnHelper.accessor('nama', {
             header: 'Nama Teknisi',
+            size: 240,
             cell: (info) => (
-                <span className="font-medium text-foreground">{info.getValue()}</span>
+                <span className="font-medium text-foreground min-w-[200px] inline-block">
+                    {info.getValue()}
+                </span>
             ),
         }),
         columnHelper.accessor('status', {
-            header: 'Status',
+            header: () => <div className="text-center">Status</div>,
+            size: 120,
             cell: (info) => {
                 const status = info.getValue();
                 let variant: 'lightSuccess' | 'lightError' | 'outline' = 'outline';
@@ -51,65 +59,94 @@ export function createStockComparisonColumns(onShowCached: (nik: string) => void
                     label = 'Gagal';
                 }
                 return (
-                    <Badge variant={variant} className="capitalize">
-                        {label}
-                    </Badge>
+                    <div className="flex justify-center">
+                        <Badge variant={variant} className="capitalize">
+                            {label}
+                        </Badge>
+                    </div>
                 );
             },
         }),
         columnHelper.accessor('total_selisih', {
-            header: 'Selisih Material',
+            header: () => <div className="text-center">Selisih Material</div>,
+            size: 130,
             cell: (info) => {
                 const row = info.row.original;
                 if (row.total_selisih !== null && row.total_selisih > 0) {
                     return (
-                        <span className="font-semibold text-destructive font-mono">
-                            {row.total_selisih} item
-                        </span>
+                        <div className="text-center">
+                            <span className="font-semibold text-destructive font-mono">
+                                {row.total_selisih} item
+                            </span>
+                        </div>
                     );
                 }
                 if (row.status === 'match') {
-                    return <span className="text-muted-foreground font-mono">0 item</span>;
+                    return (
+                        <div className="text-center">
+                            <span className="text-muted-foreground font-mono">0 item</span>
+                        </div>
+                    );
                 }
-                return <span className="text-muted-foreground font-mono">—</span>;
+                return (
+                    <div className="text-center">
+                        <span className="text-muted-foreground font-mono">—</span>
+                    </div>
+                );
             },
         }),
         columnHelper.accessor('scraped_at', {
-            header: 'Terakhir Dicek',
+            header: () => <div className="text-center">Terakhir Dicek</div>,
+            size: 150,
             cell: (info) => {
                 const val = info.getValue();
-                if (!val) return <span className="text-muted-foreground text-xs">—</span>;
+                if (!val) {
+                    return (
+                        <div className="text-center">
+                            <span className="text-muted-foreground text-xs">—</span>
+                        </div>
+                    );
+                }
                 try {
                     return (
-                        <span className="text-xs text-muted-foreground font-mono">
-                            {format(new Date(val), 'dd/MM/yyyy HH:mm')}
-                        </span>
+                        <div className="text-center">
+                            <span className="text-xs text-muted-foreground font-mono">
+                                {format(new Date(val), 'dd/MM/yyyy HH:mm')}
+                            </span>
+                        </div>
                     );
                 } catch {
-                    return <span className="text-xs text-muted-foreground">{val}</span>;
+                    return (
+                        <div className="text-center">
+                            <span className="text-xs text-muted-foreground">{val}</span>
+                        </div>
+                    );
                 }
             },
         }),
         columnHelper.display({
             id: 'actions',
-            header: 'Aksi',
+            header: () => <div className="text-center">Aksi</div>,
+            size: 80,
             cell: (info) => (
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Lihat cache ${info.row.original.nama}`}
-                            onClick={() => onShowCached(info.row.original.nik)}
-                            className="h-8 w-8 hover:bg-muted"
-                        >
-                            <Eye className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="left">
-                        <p>Lihat Detail Cache</p>
-                    </TooltipContent>
-                </Tooltip>
+                <div className="flex justify-center">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Lihat cache ${info.row.original.nama}`}
+                                onClick={() => onShowCached(info.row.original.nik)}
+                                className="h-8 w-8 hover:bg-muted"
+                            >
+                                <Eye className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left">
+                            <p>Lihat Detail Cache</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
             ),
         }),
     ];

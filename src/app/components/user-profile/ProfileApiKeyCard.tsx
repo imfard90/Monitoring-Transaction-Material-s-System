@@ -8,7 +8,7 @@ import {
     deleteUserApiKey,
     generateUserApiKey,
     type UserProfileData,
-} from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
+} from '@/app/(DashboardLayout)/management/user-profile/_actions/profile-actions';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { ModalDialog } from '@/components/ui/modal-dialog';

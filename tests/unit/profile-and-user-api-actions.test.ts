@@ -3,7 +3,7 @@ import { toggleUserApiApproval } from '@/app/(DashboardLayout)/management/users/
 import {
     deleteUserApiKey,
     generateUserApiKey,
-} from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
+} from '@/app/(DashboardLayout)/management/user-profile/_actions/profile-actions';
 import { getSessionNik, requireManagementAccess } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 

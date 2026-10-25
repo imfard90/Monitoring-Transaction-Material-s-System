@@ -7,8 +7,8 @@ import { toast } from 'sonner';
 import {
     deleteLensaAccount,
     saveLensaAccount,
-} from '@/app/(DashboardLayout)/user-profile/_actions/lensa-actions';
-import type { UserProfileData } from '@/app/(DashboardLayout)/user-profile/_actions/profile-actions';
+} from '@/app/(DashboardLayout)/management/user-profile/_actions/lensa-actions';
+import type { UserProfileData } from '@/app/(DashboardLayout)/management/user-profile/_actions/profile-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

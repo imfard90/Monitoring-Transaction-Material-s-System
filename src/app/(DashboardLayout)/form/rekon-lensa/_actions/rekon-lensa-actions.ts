@@ -279,6 +279,12 @@ export async function submitRekonLensa(
         }
 
         revalidatePath('/form/rekon-lensa');
+        revalidatePath('/apps/hasil-rekon');
+        revalidatePath('/apps/out-material');
+        revalidatePath('/stock-intech');
+        revalidatePath('/reference/wo-lensa-ref');
+        revalidatePath('/form/rekon-intech');
+        revalidatePath('/');
         return { success: true };
     } catch (error: unknown) {
         actionLogger.error(

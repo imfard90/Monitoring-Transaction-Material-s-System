@@ -1,6 +1,7 @@
 'use server';
 
 import { sql } from 'kysely';
+import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { redis } from '@/lib/redis';
@@ -274,6 +275,10 @@ export async function checkScrapingStatus(jobId: string) {
     if (!data) return { status: 'not_found' };
 
     const parsed = JSON.parse(data);
+    if (parsed.status === 'success') {
+        revalidatePath('/reference/out-lensa-ref');
+        revalidatePath('/form/out-sap');
+    }
     return parsed;
 }
 

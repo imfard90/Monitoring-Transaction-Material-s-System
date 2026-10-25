@@ -13,7 +13,7 @@ const profileDD: ProfileType[] = [
         title: 'My Profile',
         subtitle: 'Account settings',
         icon: 'solar:user-circle-linear',
-        url: '/user-profile',
+        url: '/management/user-profile',
     },
 ];
 

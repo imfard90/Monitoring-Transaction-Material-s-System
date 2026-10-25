@@ -14,6 +14,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { authClient } from '@/lib/auth-client';
+import { getInitials } from '@/lib/avatar';
+import { useProfileAvatar } from '@/lib/avatar-client';
 import * as profileData from './data';
 
 const Profile = () => {
@@ -22,19 +24,21 @@ const Profile = () => {
     // biome-ignore lint/suspicious/noExplicitAny: Better Auth client types might not include custom fields
     const user = session?.user as any;
 
-    const profileImage = user?.nik ? `/images/profile/${user.nik}.png` : undefined;
-    const profileFallback =
-        user?.name
-            ?.split(/\s+/)
-            .slice(0, 2)
-            .map((part: string) => part[0])
-            .join('')
-            .toUpperCase() || 'U';
+    const { src: avatarSrc, onError: handleAvatarError } = useProfileAvatar(
+        user?.nik,
+        user?.image
+    );
+    const profileFallback = getInitials(user?.name);
 
     const renderAvatar = (size: number) => (
         <Avatar className="rounded-full shadow-sm" style={{ width: size, height: size }}>
-            {profileImage ? (
-                <AvatarImage src={profileImage} alt="" className="object-cover object-top" />
+            {avatarSrc ? (
+                <AvatarImage
+                    src={avatarSrc}
+                    alt={user?.name || ''}
+                    onError={handleAvatarError}
+                    className="object-cover object-top"
+                />
             ) : null}
             <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                 {profileFallback}

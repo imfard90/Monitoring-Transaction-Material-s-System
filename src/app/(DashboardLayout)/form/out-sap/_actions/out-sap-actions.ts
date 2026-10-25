@@ -265,9 +265,13 @@ export async function createOutSap(payload: {
             return { success: false, error: 'Transaksi ganda terdeteksi. Silakan tunggu.' };
         }
 
+        revalidatePath('/form/out-sap');
         revalidatePath('/stock-intech');
         revalidatePath('/stock-inventory');
         revalidatePath('/apps/out-material');
+        revalidatePath('/form/rekon-intech');
+        revalidatePath('/form/rekon-lensa');
+        revalidatePath('/');
         return { success: true, header_id: result.headerId, id_trx: result.idTrx };
     } catch (error: unknown) {
         actionLogger.error(
@@ -309,9 +313,13 @@ export async function updateOutSapStatusToIntech(headerId: number | string) {
             return true;
         });
 
+        revalidatePath('/form/out-sap');
         revalidatePath('/stock-intech');
         revalidatePath('/stock-inventory');
         revalidatePath('/apps/out-material');
+        revalidatePath('/form/rekon-intech');
+        revalidatePath('/form/rekon-lensa');
+        revalidatePath('/');
         return { success: true };
     } catch (error: unknown) {
         actionLogger.error(

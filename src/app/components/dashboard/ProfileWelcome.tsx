@@ -7,14 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { auth } from '@/lib/auth';
 import { getSessionUser } from '@/lib/auth-server';
 
-function getInitials(name: string): string {
-    return name
-        .split(' ')
-        .slice(0, 2)
-        .map((w) => w[0])
-        .join('')
-        .toUpperCase();
-}
+import { getInitials } from '@/lib/avatar';
 
 export default async function ProfileWelcome() {
     const [session, sessionUser] = await Promise.all([
@@ -25,13 +18,15 @@ export default async function ProfileWelcome() {
     const name = session?.user?.name ?? 'User';
 
     const publicDir = path.join(process.cwd(), 'public');
-    const pngProfile = path.join(publicDir, `images/profile/${sessionUser.nik}.png`);
     const jpgProfile = path.join(publicDir, `images/profile/${sessionUser.nik}.jpg`);
-    const image = fs.existsSync(pngProfile)
-        ? `/images/profile/${sessionUser.nik}.png`
+    const pngProfile = path.join(publicDir, `images/profile/${sessionUser.nik}.png`);
+    const image = session?.user?.image
+        ? session.user.image
         : fs.existsSync(jpgProfile)
           ? `/images/profile/${sessionUser.nik}.jpg`
-          : null;
+          : fs.existsSync(pngProfile)
+            ? `/images/profile/${sessionUser.nik}.png`
+            : null;
 
     const role = sessionUser.role ?? '';
     const branch = sessionUser.branchName ?? '';

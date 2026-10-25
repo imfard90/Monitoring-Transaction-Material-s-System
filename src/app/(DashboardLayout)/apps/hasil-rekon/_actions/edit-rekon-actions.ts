@@ -180,6 +180,8 @@ export async function submitEditRekon(
         });
 
         revalidatePath('/apps/hasil-rekon');
+        revalidatePath('/apps/out-material');
+        revalidatePath('/stock-intech');
         return { success: true };
     } catch (error: unknown) {
         actionLogger.error(

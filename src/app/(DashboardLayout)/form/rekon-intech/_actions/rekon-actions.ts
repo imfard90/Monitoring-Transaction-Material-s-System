@@ -215,7 +215,11 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
         }
 
         revalidatePath('/form/rekon-intech');
+        revalidatePath('/apps/hasil-rekon');
         revalidatePath('/apps/out-material');
+        revalidatePath('/stock-intech');
+        revalidatePath('/form/rekon-lensa');
+        revalidatePath('/');
         return { success: true };
     } catch (error: unknown) {
         actionLogger.error(

@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -30,6 +30,7 @@ import { OutSapMaterialList } from './OutSapMaterialList';
 
 export default function OutSapForm() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [loading, setLoading] = useState(false);
     const [isScraping, setIsScraping] = useState(false);
     const [isScraped, setIsScraped] = useState(false);
@@ -235,6 +236,11 @@ export default function OutSapForm() {
 
         if (res.success && res.header_id) {
             toast.success('Out SAP created and status set to Intech. Stock reduced successfully!');
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['materials'] }),
+                queryClient.invalidateQueries({ queryKey: ['technicians-intech'] }),
+                queryClient.invalidateQueries({ queryKey: ['dashboardStockIntech'] }),
+            ]);
             setFormData({
                 nik_teknisi: '',
                 name_sa: '',
@@ -245,6 +251,7 @@ export default function OutSapForm() {
             });
             setItems([]);
             setIsConfirmModalOpen(false);
+            router.refresh();
             router.push('/apps/out-material');
         } else {
             toast.error(res.error || 'Failed to create Out SAP');
@@ -281,7 +288,7 @@ export default function OutSapForm() {
                 text={isScraping ? 'Menarik Data Lensa...' : 'Memproses Transaksi...'}
             />
             <StaggerContainer>
-                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6">
+                <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6">
                     <form onSubmit={handleSubmit} className="space-y-8">
                         <OutSapHeaderFields
                             formData={formData}
@@ -306,7 +313,7 @@ export default function OutSapForm() {
                             checkItemError={checkItemError}
                         />
 
-                        <StaggerItem className="pt-6 border-t flex justify-end gap-3">
+                        <StaggerItem className="pt-6 border-t border-border flex justify-end gap-3">
                             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }}>
                                 <Button
                                     type="button"
