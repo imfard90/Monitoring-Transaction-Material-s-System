@@ -612,41 +612,80 @@ export async function scrapeWOLensaHeaders(
     }
 }
 
+/**
+ * Concurrency Limiter Pool (Async Pool)
+ */
+async function asyncPool<T, R>(
+    poolLimit: number,
+    array: T[],
+    iteratorFn: (item: T) => Promise<R>
+): Promise<R[]> {
+    const ret: Promise<R>[] = [];
+    const executing: Promise<void>[] = [];
+    for (const item of array) {
+        const p = Promise.resolve().then(() => iteratorFn(item));
+        ret.push(p);
+
+        if (poolLimit <= array.length) {
+            const e: Promise<void> = p.then(() => {
+                executing.splice(executing.indexOf(e), 1);
+            });
+            executing.push(e);
+            if (executing.length >= poolLimit) {
+                await Promise.race(executing);
+            }
+        }
+    }
+    return Promise.all(ret);
+}
+
+/**
+ * Scrape detail material Out Lensa Ref per gudang (Phase 2):
+ * - Menggunakan micro-pool 2 tab concurrent di dalam BrowserContext gudang.
+ * - Tab di-reuse/dibuat ringan per item tanpa overhead login ulang.
+ */
 export async function scrapeLensaDetails(
     headersToScrape: { id: number; reservation_id: string }[],
     customUsername?: string,
-    customPassword?: string
+    customPassword?: string,
+    concurrency: number = 2
 ) {
     const username = customUsername || process.env.LENSA_USERNAME;
     const password = customPassword || process.env.LENSA_PASSWORD;
     if (!username || !password) throw new Error('LENSA_USERNAME or LENSA_PASSWORD is not set');
 
-    const { context, page, safeGoto, sessionKey, performLogin } = await setupContext(
-        username,
-        password
-    );
+    const {
+        context,
+        page: authPage,
+        performLogin,
+        sessionKey,
+    } = await setupContext(username, password);
 
-    const results = [];
+    // Pastikan context terautentikasi
+    if (authPage.url().includes('login')) {
+        await performLogin();
+    }
+    await authPage.close().catch(() => {});
 
     try {
-        for (const header of headersToScrape) {
+        const results = await asyncPool(concurrency, headersToScrape, async (header) => {
+            const page = await context.newPage();
             try {
                 const resId = header.reservation_id;
                 const detailUrl = `${LENSA_URL}/reservation/detail/${resId}`;
-                await safeGoto(detailUrl);
+                await page.goto(detailUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
                 if (page.url().includes('login')) {
-                    // Sesi mungkin expired, coba relogin
+                    await redis.del(sessionKey);
                     await performLogin();
-                    await safeGoto(detailUrl);
+                    await page.goto(detailUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
                     if (page.url().includes('login')) {
-                        await redis.del(sessionKey);
                         throw new Error('Sesi terputus saat scrap detail walau sudah relogin');
                     }
                 }
 
-                await page.waitForTimeout(3000);
+                await page.waitForSelector('table', { timeout: 8000 }).catch(() => null);
 
                 const tablesData = await page.$$eval('table', (tables) => {
                     return tables.map((tableEl) => {
@@ -662,8 +701,8 @@ export async function scrapeLensaDetails(
                                 (td) => td.textContent?.trim() || ''
                             );
                             const obj: Record<string, string> = {};
-                            headers.forEach((header, i) => {
-                                if (header) obj[header] = cells[i] || '';
+                            headers.forEach((h, i) => {
+                                if (h) obj[h] = cells[i] || '';
                             });
                             return obj;
                         });
@@ -702,19 +741,28 @@ export async function scrapeLensaDetails(
                 };
                 const parsedMitra = getLineAfter('Mitra');
 
-                results.push({
+                return {
                     header_id: header.id,
                     reservation_id: resId,
                     mitra: parsedMitra,
                     materials,
-                });
+                };
             } catch (err) {
                 actionLogger.error(
                     `Failed to scrape detail for reservation_id ${header.reservation_id}:`,
                     err instanceof Error ? err : new Error(String(err))
                 );
+                return {
+                    header_id: header.id,
+                    reservation_id: header.reservation_id,
+                    mitra: null,
+                    materials: [],
+                };
+            } finally {
+                await page.close().catch(() => {});
             }
-        }
+        });
+
         return results;
     } catch (error) {
         actionLogger.error(
@@ -851,20 +899,35 @@ export async function scrapeReservation(
     }
 }
 
+/**
+ * Scrape detail material WO Lensa Ref per gudang (Phase 2):
+ * - Menggunakan micro-pool 2 tab concurrent di dalam BrowserContext gudang.
+ * - Tab di-reuse/dibuat ringan per item tanpa overhead login ulang.
+ * - Tetap menyertakan fallback ke dokumen BAPB PDF jika tabel HTML kosong/gagal.
+ */
 export async function scrapeWOLensaDetails(
     headersToSync: { id: number; pemakaian_id: string; type?: string | null }[],
     customUsername?: string,
-    customPassword?: string
+    customPassword?: string,
+    concurrency: number = 2
 ) {
     const username = customUsername || process.env.LENSA_USERNAME;
     const password = customPassword || process.env.LENSA_PASSWORD;
     if (!username || !password)
         throw new Error('Akun Lensa tidak ditemukan. Silakan hubungkan akun Lensa Anda di profil.');
 
-    const { context, page, safeGoto, sessionKey, performLogin } = await setupContext(
-        username,
-        password
-    );
+    const {
+        context,
+        page: authPage,
+        performLogin,
+        sessionKey,
+    } = await setupContext(username, password);
+
+    // Pastikan context terautentikasi
+    if (authPage.url().includes('login')) {
+        await performLogin();
+    }
+    await authPage.close().catch(() => {});
 
     const tryBapbPdfFallback = async (header: {
         id: number;
@@ -909,29 +972,31 @@ export async function scrapeWOLensaDetails(
     };
 
     try {
-        const results = [];
-        for (const header of headersToSync) {
+        const results = await asyncPool(concurrency, headersToSync, async (header) => {
+            const page = await context.newPage();
             try {
                 let materials: Record<string, string>[] = [];
                 const detailUrl = `${LENSA_URL}/teknisi/detail-wo/${header.pemakaian_id}`;
 
                 let htmlScrapeFailed = false;
                 try {
-                    await safeGoto(detailUrl);
+                    await page.goto(detailUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
                     if (page.url().includes('login')) {
+                        await redis.del(sessionKey);
                         await performLogin();
-                        await safeGoto(detailUrl);
-
+                        await page.goto(detailUrl, {
+                            waitUntil: 'domcontentloaded',
+                            timeout: 30000,
+                        });
                         if (page.url().includes('login')) {
-                            await redis.del(sessionKey);
                             throw new Error(
                                 'Sesi terputus saat scrap detail WO walau sudah relogin'
                             );
                         }
                     }
 
-                    await page.waitForTimeout(3000);
+                    await page.waitForSelector('table', { timeout: 8000 }).catch(() => null);
 
                     const tablesData = await page.$$eval('table', (tables) => {
                         return tables.map((tableEl) => {
@@ -974,18 +1039,26 @@ export async function scrapeWOLensaDetails(
                     }
                 }
 
-                results.push({
+                return {
                     header_id: header.id,
                     pemakaian_id: header.pemakaian_id,
                     materials,
-                });
+                };
             } catch (err) {
                 actionLogger.error(
                     `Failed to scrape detail for pemakaian_id ${header.pemakaian_id}:`,
                     err instanceof Error ? err : new Error(String(err))
                 );
+                return {
+                    header_id: header.id,
+                    pemakaian_id: header.pemakaian_id,
+                    materials: [],
+                };
+            } finally {
+                await page.close().catch(() => {});
             }
-        }
+        });
+
         return results;
     } catch (error) {
         actionLogger.error(
