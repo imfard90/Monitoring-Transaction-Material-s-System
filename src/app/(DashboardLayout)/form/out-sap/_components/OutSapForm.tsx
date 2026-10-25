@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/table';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import type { OutSapFormItem } from '@/lib/types/inventory';
-import { scrapeReservationAction } from '../../../apps/out-lensa-ref/_actions/out-lensa-actions';
+import { scrapeReservationAction } from '../../../reference/out-lensa-ref/_actions/out-lensa-actions';
 import {
     createOutSap,
     getBranches,

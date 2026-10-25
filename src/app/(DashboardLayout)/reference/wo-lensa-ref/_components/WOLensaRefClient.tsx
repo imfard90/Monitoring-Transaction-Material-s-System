@@ -7,14 +7,14 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { CheckCircle2, Eye, Play } from 'lucide-react';
+import { Eye, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
-import { StatusBadge } from '@/app/components/shared/StatusBadge';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -22,33 +22,30 @@ import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { toCanonicalWarehouseName } from '@/lib/warehouse-helper';
 import {
-    checkScrapingStatus,
-    getOutLensaRefDetails,
-    triggerScraping,
-} from '../_actions/out-lensa-actions';
+    checkWOScrapingStatus,
+    getWOLensaRefDetails,
+    triggerWOScraping,
+} from '../_actions/wo-lensa-actions';
 
-export interface OutLensaHeader {
-    id: string;
-    reservation_id: string | null;
-    tgl_entry: string | null;
+export interface WOLensaHeader {
+    id: number | string;
+    pemakaian_id: string | null;
+    tanggal_update: string | null;
     formatted_date: string | Date | null;
+    type: string | null;
+    wo_number: string | null;
+    nik_pemakai: string | null;
     nama_gudang: string | null;
     gi_number: string | null;
-    status_proses: string | null;
-    nik_pemakai: string | null;
-    reservation_id_sap: string | null;
-    sap_out_check: boolean | null;
-    mitra: string | null;
-    materials?: OutLensaDetail[];
+    wbs: string | null;
+    rekon_check: boolean | null;
 }
 
-export interface OutLensaDetail {
-    id: string;
-    header_id: string | null;
+export interface WOLensaDetail {
     material_id: string | null;
     material_desc: string | null;
-    qty_approve: number | null;
-    sap_out_matched: boolean | null;
+    uom: string | null;
+    qty_pemakaian: number | null;
 }
 
 interface PaginationInfo {
@@ -58,10 +55,20 @@ interface PaginationInfo {
     totalPages: number;
 }
 
-const columnHelper = createColumnHelper<OutLensaHeader>();
-const detailColumnHelper = createColumnHelper<OutLensaDetail>();
+const columnHelper = createColumnHelper<WOLensaHeader>();
+const detailColumnHelper = createColumnHelper<WOLensaDetail>();
 
-export default function OutLensaRefClient({
+function getTypeBadgeVariant(type: string | null): BadgeProps['variant'] {
+    if (!type) return 'outline';
+    const val = type.toLowerCase().trim();
+    if (val === 'provisioning' || val === 'psb') return 'outline';
+    if (val === 'assurance' || val === 'qe/gamas') return 'outlineWarning';
+    if (val === 'maintenance') return 'outlineSecondary';
+    if (val === 'myrep' || val === 'lintas_arta') return 'outlineInfo';
+    return 'outline';
+}
+
+export default function WOLensaRefClient({
     initialData,
     pagination,
     error,
@@ -69,7 +76,7 @@ export default function OutLensaRefClient({
     currentWarehouse = 'all',
     warehouseOptions = [],
 }: {
-    initialData: OutLensaHeader[];
+    initialData: WOLensaHeader[];
     pagination?: PaginationInfo;
     error?: string;
     isStaff?: boolean;
@@ -78,8 +85,10 @@ export default function OutLensaRefClient({
 }) {
     const data = initialData;
     const [isStarting, setIsStarting] = useState(false);
-    const [detailData, setDetailData] = useState<OutLensaDetail[]>([]);
-    const [selectedHeader, setSelectedHeader] = useState<OutLensaHeader | null>(null);
+
+    // For detail view
+    const [detailData, setDetailData] = useState<WOLensaDetail[]>([]);
+    const [selectedHeader, setSelectedHeader] = useState<WOLensaHeader | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [loadingDetail, setLoadingDetail] = useState(false);
 
@@ -122,23 +131,23 @@ export default function OutLensaRefClient({
             params.set('page', '1');
         }
         const query = params.toString();
-        router.push(`/apps/out-lensa-ref${query ? `?${query}` : ''}`);
+        router.push(`/reference/wo-lensa-ref${query ? `?${query}` : ''}`);
     };
 
     const handleRunScraping = () => {
         setIsStarting(true);
-        const pollPromise = new Promise((resolve, reject) => {
+        const pollPromise = new Promise<Record<string, unknown>>((resolve, reject) => {
             (async () => {
                 try {
-                    const res = await triggerScraping();
+                    const res = await triggerWOScraping();
                     setIsStarting(false);
 
                     if (!res.success)
-                        return reject(new Error(res.error || 'Gagal memulai scraping.'));
+                        return reject(new Error(res.error || 'Gagal memulai proses scraping.'));
 
                     const interval = setInterval(async () => {
                         try {
-                            const status = await checkScrapingStatus(res.jobId);
+                            const status = await checkWOScrapingStatus(res.jobId);
                             if (status.status === 'success') {
                                 clearInterval(interval);
                                 resolve(status.data);
@@ -158,33 +167,40 @@ export default function OutLensaRefClient({
         });
 
         toast.promise(pollPromise, {
-            loading: 'Scraping berjalan di latar belakang...',
-            success: (data: unknown) =>
-                `Berhasil menarik ${(data as { newCount?: number }).newCount || 0} reservasi baru!`,
-            error: (err: unknown) =>
-                `Scraping gagal: ${err instanceof Error ? err.message : 'Unknown error'}`,
+            loading: 'Scraping WO Lensa berjalan di latar belakang...',
+            success: (data: Record<string, unknown>) =>
+                (data.message as string) || 'Scraping berhasil diselesaikan!',
+            error: (err: Error) => `Scraping gagal: ${err.message}`,
         });
     };
 
-    const handleViewDetail = async (row: OutLensaHeader) => {
+    const handleViewDetail = async (row: WOLensaHeader) => {
         setIsDialogOpen(true);
         setLoadingDetail(true);
         setSelectedHeader(row);
 
-        const result = await getOutLensaRefDetails(row.id);
+        const result = await getWOLensaRefDetails(row.id);
 
         setLoadingDetail(false);
         if (result.success && result.data) {
-            setDetailData(result.data);
+            setDetailData(result.data as WOLensaDetail[]);
         } else {
             toast.error(result.error || 'Gagal mengambil detail material');
         }
     };
 
     const columns = [
+        columnHelper.accessor('pemakaian_id', {
+            id: 'pemakaian_id',
+            header: 'Pemakaian ID',
+            size: 130,
+            cell: (info) => (
+                <span className="font-medium text-foreground">{info.getValue() || '-'}</span>
+            ),
+        }),
         columnHelper.accessor('formatted_date', {
             id: 'formatted_date',
-            header: 'Tgl Entry',
+            header: 'Tgl Update',
             size: 110,
             sortingFn: 'datetime',
             cell: (info) => {
@@ -198,55 +214,64 @@ export default function OutLensaRefClient({
                 }
             },
         }),
-        columnHelper.accessor('reservation_id', {
-            id: 'reservation_id',
-            header: 'ID Reservasi',
-            size: 140,
-            cell: (info) => (
-                <span className="font-medium text-foreground">{info.getValue() || '-'}</span>
-            ),
+        columnHelper.accessor('type', {
+            header: () => <div className="text-center">Tipe</div>,
+            size: 130,
+            cell: (info) => {
+                const val = info.getValue();
+                return (
+                    <div className="flex justify-center">
+                        <Badge variant={getTypeBadgeVariant(val)} className="capitalize">
+                            {val || '-'}
+                        </Badge>
+                    </div>
+                );
+            },
         }),
-        columnHelper.accessor('nama_gudang', {
-            header: 'Gudang',
-            size: 180,
-            cell: (info) => toCanonicalWarehouseName(info.getValue()) || '-',
+        columnHelper.accessor('wo_number', {
+            header: 'Nomor WO',
+            size: 200,
+            cell: (info) => (
+                <div className="min-w-[160px] max-w-[260px] whitespace-normal break-words font-medium">
+                    {info.getValue() || '-'}
+                </div>
+            ),
         }),
         columnHelper.accessor('nik_pemakai', {
             header: 'NIK Pemakai',
             size: 120,
             cell: (info) => info.getValue() || '-',
         }),
-        columnHelper.accessor('reservation_id_sap', {
-            header: 'ID Reservasi SAP',
-            size: 130,
-            cell: (info) => info.getValue() || '-',
+        columnHelper.accessor('nama_gudang', {
+            header: 'Gudang',
+            size: 160,
+            cell: (info) => toCanonicalWarehouseName(info.getValue()) || '-',
         }),
         columnHelper.accessor('gi_number', {
             header: 'Nomor GI',
-            size: 130,
+            size: 120,
             cell: (info) => info.getValue() || '-',
         }),
-        columnHelper.accessor('status_proses', {
-            header: () => <div className="text-center">Status</div>,
-            size: 120,
-            cell: (info) => (
-                <div className="flex justify-center">
-                    <StatusBadge status={info.getValue()} />
-                </div>
-            ),
+        columnHelper.accessor('wbs', {
+            header: 'WBS',
+            size: 180,
+            cell: (info) => info.getValue() || '-',
         }),
-        columnHelper.accessor('sap_out_check', {
-            header: () => <div className="text-center">Out SAP</div>,
-            size: 90,
-            cell: (info) => (
-                <div className="flex justify-center">
-                    {info.getValue() ? (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                    ) : (
-                        <span className="text-muted-foreground">-</span>
-                    )}
-                </div>
-            ),
+        columnHelper.accessor('rekon_check', {
+            header: () => <div className="text-center">Rekon</div>,
+            size: 100,
+            cell: (info) => {
+                const val = info.getValue();
+                return (
+                    <div className="flex justify-center">
+                        {val === true ? (
+                            <Badge variant="lightSuccess">Sudah</Badge>
+                        ) : (
+                            <Badge variant="secondary">Belum</Badge>
+                        )}
+                    </div>
+                );
+            },
         }),
         columnHelper.display({
             id: 'actions',
@@ -284,10 +309,8 @@ export default function OutLensaRefClient({
         pageCount: pagination ? pagination.totalPages : undefined,
         initialState: {
             sorting: [
-                {
-                    id: 'reservation_id',
-                    desc: true,
-                },
+                { id: 'formatted_date', desc: true },
+                { id: 'pemakaian_id', desc: true },
             ],
         },
         state: {
@@ -300,7 +323,7 @@ export default function OutLensaRefClient({
                 const params = new URLSearchParams(window.location.search);
                 params.set('page', (newState.pageIndex + 1).toString());
                 params.set('pageSize', newState.pageSize.toString());
-                router.push(`/apps/out-lensa-ref?${params.toString()}`);
+                router.push(`/reference/wo-lensa-ref?${params.toString()}`);
                 return;
             }
 
@@ -317,21 +340,13 @@ export default function OutLensaRefClient({
             header: 'NAMA MATERIAL',
             cell: (info) => info.getValue() || '-',
         }),
-        detailColumnHelper.accessor('qty_approve', {
-            header: 'QTY ACCEPTED',
+        detailColumnHelper.accessor('uom', {
+            header: 'SATUAN',
             cell: (info) => info.getValue() || '-',
         }),
-        detailColumnHelper.accessor('sap_out_matched', {
-            header: 'Match',
-            cell: (info) => (
-                <div className="flex justify-center">
-                    {info.getValue() ? (
-                        <CheckCircle2 className="h-5 w-5 text-success" />
-                    ) : (
-                        <span className="text-muted-foreground">-</span>
-                    )}
-                </div>
-            ),
+        detailColumnHelper.accessor('qty_pemakaian', {
+            header: 'QTY PEMAKAIAN',
+            cell: (info) => info.getValue() || '-',
         }),
     ];
 
@@ -347,12 +362,10 @@ export default function OutLensaRefClient({
                 <Card className="border-border shadow-sm flex flex-col md:h-full md:min-h-0 md:overflow-hidden">
                     <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 shrink-0">
                         <div>
-                            <CardTitle className="text-xl font-bold">
-                                Daftar Ref Out Lensa
-                            </CardTitle>
+                            <CardTitle className="text-xl font-bold">Daftar Ref WO Lensa</CardTitle>
                             <CardDescription>
-                                Data referensi Out SAP yang ditarik secara otomatis dari aplikasi
-                                Lensa.
+                                Data referensi WO Provisioning & Maintenance yang ditarik secara
+                                otomatis dari aplikasi Lensa.
                             </CardDescription>
                         </div>
                         {!isStaff && (
@@ -397,18 +410,18 @@ export default function OutLensaRefClient({
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Detail Reservasi Material</DialogTitle>
+                        <DialogTitle>Detail Material WO Lensa</DialogTitle>
                     </DialogHeader>
 
                     {selectedHeader && (
                         <div className="mb-4 space-y-1">
                             <div>
-                                <span className="font-semibold">NIK:</span>{' '}
-                                {selectedHeader.nik_pemakai || '-'}
+                                <span className="font-semibold">Nomor WO:</span>{' '}
+                                {selectedHeader.wo_number || '-'}
                             </div>
                             <div>
-                                <span className="font-semibold">MITRA:</span>{' '}
-                                {selectedHeader.mitra || '-'}
+                                <span className="font-semibold">Nomor GI:</span>{' '}
+                                {selectedHeader.gi_number || '-'}
                             </div>
                         </div>
                     )}
@@ -416,7 +429,7 @@ export default function OutLensaRefClient({
                     <DataTable
                         table={detailTable}
                         isLoading={loadingDetail}
-                        emptyMessage="Tidak ada detail material."
+                        emptyMessage="Tidak ada detail material (Atau mungkin belum terscrape)."
                     />
                 </DialogContent>
             </Dialog>

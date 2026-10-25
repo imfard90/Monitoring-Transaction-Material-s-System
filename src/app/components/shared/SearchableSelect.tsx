@@ -27,6 +27,7 @@ interface SearchableSelectProps {
     emptyText?: string;
     className?: string;
     disabled?: boolean;
+    modal?: boolean;
 }
 
 export function SearchableSelect({
@@ -37,6 +38,7 @@ export function SearchableSelect({
     emptyText = 'Data tidak ditemukan.',
     className,
     disabled = false,
+    modal = true,
 }: SearchableSelectProps) {
     const [open, setOpen] = React.useState(false);
 
@@ -45,7 +47,7 @@ export function SearchableSelect({
     }, [options, value]);
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={setOpen} modal={modal}>
             <PopoverTrigger asChild>
                 <Button
                     variant="outline"
@@ -65,12 +67,17 @@ export function SearchableSelect({
                 </Button>
             </PopoverTrigger>
             <PopoverContent
-                className="w-[--radix-popover-trigger-width] min-w-[200px] p-0"
+                className="w-[--radix-popover-trigger-width] min-w-[200px] p-0 z-[60]"
                 align="start"
+                onWheel={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
             >
                 <Command>
                     <CommandInput placeholder="Cari..." />
-                    <CommandList>
+                    <CommandList
+                        className="max-h-[260px]! overflow-y-auto!"
+                        style={{ maxHeight: '260px', overflowY: 'auto' }}
+                    >
                         <CommandEmpty>{emptyText}</CommandEmpty>
                         <CommandGroup>
                             {options.map((option) => (

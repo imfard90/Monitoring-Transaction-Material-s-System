@@ -117,7 +117,7 @@ export function StockTable({
         return result;
     }, [items, selectedWarehouseId, statusFilter, searchQuery]);
 
-    const columns: ColumnDef<StockItem>[] = [
+    const columns: ColumnDef<StockItem, any>[] = [
         columnHelper.accessor('warehouse_name', {
             header: ({ column, table }) => (
                 <SortableHeader title="Lokasi" column={column} table={table} />

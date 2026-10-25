@@ -69,7 +69,7 @@ vi.mock('@/lib/db/db', () => ({
 }));
 
 const { getWOLensaList, getWOLensaFilterOptions, getWOLensaRefDetails } = await import(
-    '@/app/(DashboardLayout)/apps/wo-lensa-ref/_actions/wo-lensa-queries'
+    '@/app/(DashboardLayout)/reference/wo-lensa-ref/_actions/wo-lensa-queries'
 );
 
 describe('wo-lensa-queries Unit Tests', () => {

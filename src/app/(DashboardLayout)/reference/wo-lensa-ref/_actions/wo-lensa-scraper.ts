@@ -425,7 +425,7 @@ export async function checkWOScrapingStatus(jobId: string) {
 
     const parsed = JSON.parse(data);
     if (parsed.status === 'success') {
-        revalidatePath('/apps/wo-lensa-ref');
+        revalidatePath('/reference/wo-lensa-ref');
     }
     return parsed;
 }

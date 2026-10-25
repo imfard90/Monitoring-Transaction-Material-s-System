@@ -9,11 +9,13 @@ export async function register() {
     const cron = await import('node-cron');
     const { actionLogger } = await import('@/lib/logger');
     const { internalTriggerScraping } = await import(
-        './app/(DashboardLayout)/apps/out-lensa-ref/_actions/out-lensa-actions'
+        './app/(DashboardLayout)/reference/out-lensa-ref/_actions/out-lensa-actions'
     );
     const { internalTriggerWOScraping } = await import(
-        './app/(DashboardLayout)/apps/wo-lensa-ref/_actions/wo-lensa-actions'
+        './app/(DashboardLayout)/reference/wo-lensa-ref/_actions/wo-lensa-actions'
     );
+    const { bulkScrapeStockTeknisi } = await import('@/lib/services/bulk-stock-scraper');
+    const { closeBrowser } = await import('@/lib/lensa-scraper/lensa-scraper');
     const { OTHER_STOCK_SYNC_LOCK_KEY, OTHER_STOCK_SYNC_LOCK_TTL_SECONDS, syncOtherStock } =
         await import('@/lib/google_ecosystem/sheets-stock-sync');
     const { redis } = await import('@/lib/redis');
@@ -54,6 +56,50 @@ export async function register() {
                 '[CRON] Error during scheduled scraping:',
                 error instanceof Error ? error : new Error(String(error))
             );
+        }
+    };
+
+    // Bulk Technician Stock Scraper Schedules (Intech Lensa vs MTMS):
+    // 1. 00:30 WIB
+    // 2. 05:00 WIB
+    // 3. 11:00 WIB
+    // 4. 19:00 WIB
+    // 5. 22:00 WIB
+    const stockScrapeSchedules = [
+        { time: '30 0 * * *', label: '00:30 WIB' },
+        { time: '0 5 * * *', label: '05:00 WIB' },
+        { time: '0 11 * * *', label: '11:00 WIB' },
+        { time: '0 19 * * *', label: '19:00 WIB' },
+        { time: '0 22 * * *', label: '22:00 WIB' },
+    ];
+
+    const runBulkStockScraper = async (label: string) => {
+        const LOCK_KEY = 'lock:bulk_stock_scrape';
+        const LOCK_TTL = 1800; // 30 menit TTL
+
+        try {
+            // Atomic Redis lock prevent overlap with manual scraper or another cron job
+            const acquired = await redis.set(LOCK_KEY, '1', 'EX', LOCK_TTL, 'NX');
+            if (!acquired) {
+                actionLogger.warn(
+                    `[CRON] Bulk stock scraping (${label}) skipped; another scraping job is running.`
+                );
+                return;
+            }
+
+            actionLogger.info(`[CRON] Starting bulk technician stock scraping (${label})...`);
+            const result = await bulkScrapeStockTeknisi({ batchSize: 50, offset: 0 });
+            actionLogger.info(
+                `[CRON] Bulk technician stock scraping (${label}) completed: ${result.success} succeeded, ${result.failed} failed of ${result.total}.`
+            );
+        } catch (error) {
+            actionLogger.error(
+                `[CRON] Error during bulk stock scraping (${label}):`,
+                error instanceof Error ? error : new Error(String(error))
+            );
+        } finally {
+            await redis.del(LOCK_KEY);
+            await closeBrowser().catch(() => {});
         }
     };
 
@@ -144,6 +190,21 @@ export async function register() {
         actionLogger.info('[CRON] Scheduled Lensa scrapers registered for Asia/Jakarta timezone.');
         actionLogger.info(
             '[CRON] Scheduled Sheets other-stock sync at 09:00 WIB and 14:00 WIB fallback.'
+        );
+
+        for (const schedule of stockScrapeSchedules) {
+            cron.schedule(
+                schedule.time,
+                () => {
+                    void runBulkStockScraper(schedule.label);
+                },
+                {
+                    timezone: 'Asia/Jakarta',
+                }
+            );
+        }
+        actionLogger.info(
+            '[CRON] Scheduled bulk technician stock scrapers at 00:30, 05:00, 11:00, 19:00, 22:00 WIB (Asia/Jakarta).'
         );
 
         // Startup sync uses the same retry and lock policy as scheduled syncs.

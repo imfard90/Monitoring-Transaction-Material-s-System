@@ -233,8 +233,8 @@ describe('DataTable premium invariants', () => {
 
     it('Lensa reference routes default server pagination to 20 rows without a URL pageSize', async () => {
         const routes = [
-            'src/app/(DashboardLayout)/apps/out-lensa-ref/page.tsx',
-            'src/app/(DashboardLayout)/apps/wo-lensa-ref/page.tsx',
+            'src/app/(DashboardLayout)/reference/out-lensa-ref/page.tsx',
+            'src/app/(DashboardLayout)/reference/wo-lensa-ref/page.tsx',
         ];
 
         for (const route of routes) {
@@ -257,10 +257,10 @@ describe('DataTable premium invariants', () => {
 
     it('Lensa reference clients use server pagination without competing local pagination state', async () => {
         const outLensa = await readSrc(
-            'src/app/(DashboardLayout)/apps/out-lensa-ref/_components/OutLensaRefClient.tsx'
+            'src/app/(DashboardLayout)/reference/out-lensa-ref/_components/OutLensaRefClient.tsx'
         );
         const woLensa = await readSrc(
-            'src/app/(DashboardLayout)/apps/wo-lensa-ref/_components/WOLensaRefClient.tsx'
+            'src/app/(DashboardLayout)/reference/wo-lensa-ref/_components/WOLensaRefClient.tsx'
         );
 
         for (const src of [outLensa, woLensa]) {
@@ -560,14 +560,14 @@ describe('executive premium localization invariants', () => {
 
         it('Reference scraping pages localize actions and modal titles in Indonesian', async () => {
             const outLensa = await readSrc(
-                'src/app/(DashboardLayout)/apps/out-lensa-ref/_components/OutLensaRefClient.tsx'
+                'src/app/(DashboardLayout)/reference/out-lensa-ref/_components/OutLensaRefClient.tsx'
             );
             expect(outLensa).toMatch(/Jalankan Scraping/);
             expect(outLensa).not.toMatch(/>\s*Run Scraping\s*</);
             expect(outLensa).toMatch(/Detail Reservasi Material/);
 
             const woLensa = await readSrc(
-                'src/app/(DashboardLayout)/apps/wo-lensa-ref/_components/WOLensaRefClient.tsx'
+                'src/app/(DashboardLayout)/reference/wo-lensa-ref/_components/WOLensaRefClient.tsx'
             );
             expect(woLensa).toMatch(/Jalankan Scraping/);
             expect(woLensa).not.toMatch(/>\s*Run Scraping\s*</);

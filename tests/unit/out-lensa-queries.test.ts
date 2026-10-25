@@ -51,7 +51,7 @@ vi.mock('@/lib/db/db', () => ({
 }));
 
 const { getOutLensaRefList } = await import(
-    '@/app/(DashboardLayout)/apps/out-lensa-ref/_actions/out-lensa-queries'
+    '@/app/(DashboardLayout)/reference/out-lensa-ref/_actions/out-lensa-queries'
 );
 
 describe('out-lensa-queries warehouse options', () => {

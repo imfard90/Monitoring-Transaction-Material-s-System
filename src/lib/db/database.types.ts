@@ -520,6 +520,17 @@ export interface HrTechnicians {
     mitra_id: number | null;
     name: string;
     nik: string;
+    wh_id: number | null;
+    ref_intech_lensa: {
+        status: 'success' | 'failed';
+        scraped_at: string;
+        error_message?: string | null;
+        materials?: Array<{
+            id_material: string;
+            nama_material: string;
+            stock_teknisi: string;
+        }>;
+    } | null;
 }
 
 export interface HrWitel {

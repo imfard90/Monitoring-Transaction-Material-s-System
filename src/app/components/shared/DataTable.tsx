@@ -1,12 +1,14 @@
 import { flexRender, type Table } from '@tanstack/react-table';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 interface DataTableProps<TData> {
     table: Table<TData>;
     isLoading?: boolean;
     emptyMessage?: string;
     className?: string;
+    tableClassName?: string;
     maxHeight?: string;
     skeletonRowCount?: number;
 }
@@ -16,6 +18,7 @@ export function DataTable<TData>({
     isLoading = false,
     emptyMessage = 'Belum ada data yang ditemukan.',
     className,
+    tableClassName,
     maxHeight,
     skeletonRowCount = 5,
 }: DataTableProps<TData>) {
@@ -28,7 +31,12 @@ export function DataTable<TData>({
             style={maxHeight ? { maxHeight } : undefined}
             aria-busy={isLoading}
         >
-            <table className="w-full text-sm text-left text-muted-foreground whitespace-nowrap">
+            <table
+                className={cn(
+                    'w-full text-sm text-left text-muted-foreground whitespace-nowrap',
+                    tableClassName
+                )}
+            >
                 <thead className="text-sm text-foreground uppercase bg-muted border-b border-border sticky top-0 z-20 shadow-sm">
                     {table.getHeaderGroups().map((headerGroup) => (
                         <tr key={headerGroup.id} className="bg-muted">

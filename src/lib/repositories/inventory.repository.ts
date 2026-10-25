@@ -332,6 +332,46 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
             .where('designator_id', '=', designatorId)
             .selectAll()
             .executeTakeFirst(),
+
+    /**
+     * Get technician intech stock from outstanding SAP out
+     */
+    getTechnicianIntechStock: (nik: string) =>
+        dbClient
+            .selectFrom('inventory.sap_out_header as soh')
+            .innerJoin('inventory.sap_out_items as soi', 'soi.header_id', 'soh.id')
+            .innerJoin('inventory.materials as m', 'm.id', 'soi.designator_id')
+            .select([
+                'm.code as material_code',
+                'm.description as material_name',
+                sql<number>`SUM(soi.qty_req - COALESCE(soi.qty_used, 0))`.as('qty_intech'),
+            ])
+            .where('soh.nik_teknisi', '=', nik)
+            .where('soh.end_status', '=', 'intech')
+            .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0)
+            .groupBy(['m.code', 'm.description'])
+            .execute(),
+
+    /**
+     * Batch get technician intech stock from outstanding SAP out for multiple NIKs
+     */
+    getBatchTechnicianIntechStock: (niks: string[]) => {
+        if (niks.length === 0) return Promise.resolve([]);
+        return dbClient
+            .selectFrom('inventory.sap_out_header as soh')
+            .innerJoin('inventory.sap_out_items as soi', 'soi.header_id', 'soh.id')
+            .innerJoin('inventory.materials as m', 'm.id', 'soi.designator_id')
+            .select([
+                'soh.nik_teknisi',
+                'm.code as material_code',
+                sql<number>`SUM(soi.qty_req - COALESCE(soi.qty_used, 0))`.as('qty_intech'),
+            ])
+            .where('soh.nik_teknisi', 'in', niks)
+            .where('soh.end_status', '=', 'intech')
+            .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0)
+            .groupBy(['soh.nik_teknisi', 'm.code'])
+            .execute();
+    },
 });
 
 /**
