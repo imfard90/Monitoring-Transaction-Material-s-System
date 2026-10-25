@@ -1,87 +1,42 @@
 /**
- * Bulk Stock Scraper Service
- * Purpose: Scrape Lensa stock for batch of technicians and cache results
+ * Bulk Stock Scraper Service (Architecture Option B)
+ *
+ * Pola Eksekusi:
+ * - 1 Instance BrowserContext per 1 Gudang (Akun Lensa PIC masing-masing, bebas bentrok sesi).
+ * - Multi-Gudang berjalan Paralel (Promise.all).
+ * - Di dalam 1 Gudang: Micro-pool (2 tab paralel) memproses 10 NIK secara bergantian.
+ * - Login dilakukan 1 kali per context gudang, tab di-reuse tanpa overhead context startup.
  */
 
 import { sql } from 'kysely';
 import { decryptLensaPassword } from '@/lib/crypto/decrypt-lensa';
 import { db } from '@/lib/db/db';
-import { scrapeStockTeknisi } from '@/lib/lensa-scraper/lensa-scraper';
+import { scrapeStockTeknisiOnPage, setupContext } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
+import { redis } from '@/lib/redis';
 
-interface ScrapingResult {
+export interface ScrapingResult {
     nik: string;
     status: 'success' | 'failed';
     error?: string;
+    warehouseId?: number;
+    warehouseName?: string;
 }
 
-/**
- * Scrape stock untuk satu teknisi dengan retry 3x.
- * Update hr.technicians.ref_intech_lensa dengan hasil.
- */
-async function scrapeTeknisiWithRetry(
-    nik: string,
-    lensaUsername: string,
-    lensaPassword: string,
-    maxRetries = 3
-): Promise<ScrapingResult> {
-    let lastError: Error | null = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            const result = await scrapeStockTeknisi(nik, lensaUsername, lensaPassword);
-
-            // Success — update DB
-            await db
-                .updateTable('hr.technicians')
-                .set({
-                    ref_intech_lensa: sql`${JSON.stringify({
-                        status: 'success',
-                        scraped_at: new Date().toISOString(),
-                        error_message: null,
-                        materials: result.materials,
-                    })}::jsonb`,
-                })
-                .where('nik', '=', nik)
-                .execute();
-
-            actionLogger.info(`Scraping success for NIK ${nik} on attempt ${attempt}`);
-            return { nik, status: 'success' };
-        } catch (error) {
-            lastError = error instanceof Error ? error : new Error(String(error));
-            actionLogger.warn(`Scraping failed for NIK ${nik} attempt ${attempt}/${maxRetries}:`, {
-                error: lastError.message,
-            });
-
-            if (attempt < maxRetries) {
-                await new Promise((resolve) => setTimeout(resolve, 2000)); // 2s delay
-            }
-        }
-    }
-
-    // Failed after retries — update DB
-    const errorMessage = lastError?.message || 'Unknown error';
-    await db
-        .updateTable('hr.technicians')
-        .set({
-            ref_intech_lensa: sql`${JSON.stringify({
-                status: 'failed',
-                scraped_at: new Date().toISOString(),
-                error_message: errorMessage,
-                materials: [],
-            })}::jsonb`,
-        })
-        .where('nik', '=', nik)
-        .execute();
-
-    actionLogger.error(
-        `Scraping failed for NIK ${nik} after ${maxRetries} retries`,
-        lastError ?? new Error(errorMessage)
-    );
-    return { nik, status: 'failed', error: errorMessage };
+export interface WarehouseScrapeSummary {
+    warehouseId: number;
+    warehouseName: string;
+    total: number;
+    success: number;
+    failed: number;
 }
 
 export interface BulkScrapingOptions {
+    /** Jumlah NIK teknisi per gudang (default: 10) */
+    niksPerWarehouse?: number;
+    /** Concurrency tab worker di dalam satu gudang (default: 2, Opsi B) */
+    concurrencyPerWarehouse?: number;
+    /** Legacy parameter: total batch size (default: 50, dibagi rata ke gudang) */
     batchSize?: number;
     offset?: number;
 }
@@ -91,119 +46,344 @@ export interface BulkScrapingResult {
     success: number;
     failed: number;
     details: ScrapingResult[];
+    byWarehouse?: WarehouseScrapeSummary[];
 }
 
 /**
- * Bulk scrape teknisi stock — batch of 50 teknisi.
- * Returns summary of results.
+ * Concurrency Limiter Pool (Async Pool)
+ */
+async function asyncPool<T, R>(
+    poolLimit: number,
+    array: T[],
+    iteratorFn: (item: T) => Promise<R>
+): Promise<R[]> {
+    const ret: Promise<R>[] = [];
+    const executing: Promise<void>[] = [];
+    for (const item of array) {
+        const p = Promise.resolve().then(() => iteratorFn(item));
+        ret.push(p);
+
+        if (poolLimit <= array.length) {
+            const e: Promise<void> = p.then(() => {
+                executing.splice(executing.indexOf(e), 1);
+            });
+            executing.push(e);
+            if (executing.length >= poolLimit) {
+                await Promise.race(executing);
+            }
+        }
+    }
+    return Promise.all(ret);
+}
+
+/**
+ * Mengambil kredensial akun Lensa dari PIC gudang (PIC 1 fallback PIC 2)
+ */
+async function getWarehouseLensaCredentials(pic1Nik: string | null, pic2Nik: string | null) {
+    for (const picNik of [pic1Nik, pic2Nik]) {
+        if (!picNik) continue;
+
+        const picUser = await db
+            .selectFrom('auth.user')
+            .select([
+                sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
+                sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
+            ])
+            .where('nik', '=', picNik)
+            .where(sql`lensa_acount->>'username'`, 'is not', null)
+            .where(sql`lensa_acount->>'password'`, 'is not', null)
+            .executeTakeFirst();
+
+        if (picUser?.lensa_username && picUser?.lensa_password) {
+            try {
+                const decrypted = decryptLensaPassword(picUser.lensa_password);
+                return {
+                    username: picUser.lensa_username,
+                    password: decrypted,
+                    picNik,
+                };
+            } catch (err) {
+                actionLogger.error(
+                    `[BulkScrape] Gagal mendekripsi password Lensa untuk PIC ${picNik}:`,
+                    err instanceof Error ? err : new Error(String(err))
+                );
+            }
+        }
+    }
+    return null;
+}
+
+interface WarehouseWorkerParam {
+    warehouseId: number;
+    warehouseName: string;
+    username: string;
+    password: string;
+    technicians: Array<{ nik: string; name: string }>;
+    concurrency: number;
+}
+
+/**
+ * Worker untuk 1 gudang:
+ * - Membuka 1 BrowserContext tersendiri dengan sesi Lensa PIC gudang tersebut.
+ * - Memproses NIK teknisi dengan micro-pool 2 tab concurrent.
+ * - Langsung mengupdate hasil scrape ke database hr.technicians.ref_intech_lensa.
+ */
+async function scrapeWarehouseWorker(param: WarehouseWorkerParam): Promise<ScrapingResult[]> {
+    const { warehouseId, warehouseName, username, password, technicians, concurrency } = param;
+    actionLogger.info(
+        `[BulkScrape] Memulai worker gudang ${warehouseName} (id=${warehouseId}) untuk ${technicians.length} teknisi`
+    );
+
+    let context: any = null;
+
+    try {
+        const setup = await setupContext(username, password);
+        context = setup.context;
+        const { page: authPage, performLogin, sessionKey } = setup;
+
+        // Pastikan context dalam keadaan terautentikasi
+        if (authPage.url().includes('login')) {
+            await performLogin();
+        }
+        await authPage.close().catch(() => {});
+
+        // Micro-pool concurrency di dalam context gudang (Opsi B: default 2 tab)
+        const results = await asyncPool(concurrency, technicians, async (tech) => {
+            if (!context) {
+                return {
+                    nik: tech.nik,
+                    status: 'failed' as const,
+                    error: 'Browser context tidak tersedia',
+                    warehouseId,
+                    warehouseName,
+                };
+            }
+
+            const page = await context.newPage();
+            let lastError: Error | null = null;
+
+            for (let attempt = 1; attempt <= 2; attempt++) {
+                try {
+                    const scraped = await scrapeStockTeknisiOnPage(page, tech.nik);
+
+                    // Simpan sukses ke DB
+                    await db
+                        .updateTable('hr.technicians')
+                        .set({
+                            ref_intech_lensa: sql`${JSON.stringify({
+                                status: 'success',
+                                scraped_at: new Date().toISOString(),
+                                error_message: null,
+                                materials: scraped.materials,
+                            })}::jsonb`,
+                        })
+                        .where('nik', '=', tech.nik)
+                        .execute();
+
+                    actionLogger.info(
+                        `[BulkScrape] Sukses NIK ${tech.nik} (${warehouseName}) - attempt ${attempt}`
+                    );
+                    await page.close().catch(() => {});
+                    return {
+                        nik: tech.nik,
+                        status: 'success' as const,
+                        warehouseId,
+                        warehouseName,
+                    };
+                } catch (err) {
+                    lastError = err instanceof Error ? err : new Error(String(err));
+                    actionLogger.warn(
+                        `[BulkScrape] Gagal NIK ${tech.nik} (${warehouseName}) attempt ${attempt}/2: ${lastError.message}`
+                    );
+
+                    if (attempt < 2) {
+                        // Jika sesi login terputus saat bernavigasi
+                        if (page.url().includes('login')) {
+                            await redis.del(sessionKey);
+                            await performLogin();
+                        }
+                        await new Promise((resolve) => setTimeout(resolve, 1000));
+                    }
+                }
+            }
+
+            await page.close().catch(() => {});
+
+            const errorMsg = lastError?.message || 'Scrape gagal';
+            // Simpan status gagal ke DB
+            await db
+                .updateTable('hr.technicians')
+                .set({
+                    ref_intech_lensa: sql`${JSON.stringify({
+                        status: 'failed',
+                        scraped_at: new Date().toISOString(),
+                        error_message: errorMsg,
+                        materials: [],
+                    })}::jsonb`,
+                })
+                .where('nik', '=', tech.nik)
+                .execute();
+
+            return {
+                nik: tech.nik,
+                status: 'failed' as const,
+                error: errorMsg,
+                warehouseId,
+                warehouseName,
+            };
+        });
+
+        return results;
+    } catch (err) {
+        actionLogger.error(
+            `[BulkScrape] Fatal error context gudang ${warehouseName}:`,
+            err instanceof Error ? err : new Error(String(err))
+        );
+
+        const errorMsg = err instanceof Error ? err.message : 'Koneksi akun gudang gagal';
+        // Simpan status gagal untuk semua teknisi di gudang ini
+        for (const tech of technicians) {
+            await db
+                .updateTable('hr.technicians')
+                .set({
+                    ref_intech_lensa: sql`${JSON.stringify({
+                        status: 'failed',
+                        scraped_at: new Date().toISOString(),
+                        error_message: errorMsg,
+                        materials: [],
+                    })}::jsonb`,
+                })
+                .where('nik', '=', tech.nik)
+                .execute();
+        }
+
+        return technicians.map((tech) => ({
+            nik: tech.nik,
+            status: 'failed' as const,
+            error: errorMsg,
+            warehouseId,
+            warehouseName,
+        }));
+    } finally {
+        if (context) {
+            await context.close().catch(() => {});
+        }
+    }
+}
+
+/**
+ * Bulk scrape teknisi stock:
+ * - 1 Instance BrowserContext per 1 Gudang.
+ * - Multi-gudang paralel.
+ * - 1 gudang memproses NIK teknisi dengan micro-pool (2 tab paralel).
  */
 export async function bulkScrapeStockTeknisi(
     options: BulkScrapingOptions = {}
 ): Promise<BulkScrapingResult> {
-    const { batchSize = 50, offset = 0 } = options;
+    const niksPerWarehouse =
+        options.niksPerWarehouse ??
+        (options.batchSize ? Math.max(1, Math.floor(options.batchSize / 5)) : 10);
+    const concurrencyPerWarehouse = options.concurrencyPerWarehouse ?? 2;
 
-    actionLogger.info('Starting bulk stock scraping', { batchSize, offset });
+    actionLogger.info('[BulkScrape] Memulai bulk stock scraping multi-gudang', {
+        niksPerWarehouse,
+        concurrencyPerWarehouse,
+    });
 
-    // 1. Ambil batch teknisi yang sudah di-assign gudang
-    const teknisiList = await db
-        .selectFrom('hr.technicians as t')
-        .innerJoin('inventory.mas_wh as wh', 't.wh_id', 'wh.id')
-        .select(['t.nik', 't.name', 't.wh_id', 'wh.pic_1', 'wh.pic_2'])
-        .where('t.wh_id', 'is not', null)
-        .orderBy(sql`t.ref_intech_lensa->>'scraped_at' ASC NULLS FIRST`)
-        .orderBy('t.nik', 'asc')
-        .limit(batchSize)
-        .offset(offset)
+    // 1. Ambil seluruh gudang dari master warehouse
+    const warehouses = await db
+        .selectFrom('inventory.mas_wh')
+        .select(['id', 'name', 'pic_1', 'pic_2'])
+        .orderBy('id', 'asc')
         .execute();
 
-    if (teknisiList.length === 0) {
-        actionLogger.info('No teknisi to scrape in this batch');
+    if (warehouses.length === 0) {
+        actionLogger.warn('[BulkScrape] Tidak ada gudang ditemukan di database.');
         return { total: 0, success: 0, failed: 0, details: [] };
     }
 
-    const results: ScrapingResult[] = [];
+    // 2. Siapkan worker task untuk setiap gudang yang memiliki akun Lensa aktif
+    const workerParams: WarehouseWorkerParam[] = [];
 
-    // 2. Scrape setiap teknisi
-    for (const teknisi of teknisiList) {
-        try {
-            // Ambil kredensial Lensa dari PIC gudang (PIC 1 → fallback PIC 2)
-            let lensaUsername: string | undefined;
-            let lensaPassword: string | undefined;
-
-            for (const picNik of [teknisi.pic_1, teknisi.pic_2]) {
-                if (!picNik) continue;
-
-                const picUser = await db
-                    .selectFrom('auth.user')
-                    .select([
-                        sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
-                        sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
-                    ])
-                    .where('nik', '=', picNik)
-                    .where(sql`lensa_acount->>'username'`, 'is not', null)
-                    .where(sql`lensa_acount->>'password'`, 'is not', null)
-                    .executeTakeFirst();
-
-                if (picUser?.lensa_username && picUser?.lensa_password) {
-                    lensaUsername = picUser.lensa_username;
-                    lensaPassword = decryptLensaPassword(picUser.lensa_password);
-                    break;
-                }
-            }
-
-            if (!lensaUsername || !lensaPassword) {
-                actionLogger.warn(
-                    `No Lensa credentials for teknisi ${teknisi.nik} (gudang ${teknisi.wh_id})`
-                );
-                results.push({
-                    nik: teknisi.nik,
-                    status: 'failed',
-                    error: 'Gudang tidak memiliki akun Lensa terhubung',
-                });
-
-                // Update DB dengan status failed
-                await db
-                    .updateTable('hr.technicians')
-                    .set({
-                        ref_intech_lensa: sql`${JSON.stringify({
-                            status: 'failed',
-                            scraped_at: new Date().toISOString(),
-                            error_message: 'Gudang tidak memiliki akun Lensa terhubung',
-                            materials: [],
-                        })}::jsonb`,
-                    })
-                    .where('nik', '=', teknisi.nik)
-                    .execute();
-
-                continue;
-            }
-
-            // Scrape dengan retry
-            const result = await scrapeTeknisiWithRetry(teknisi.nik, lensaUsername, lensaPassword);
-            results.push(result);
-
-            // Delay 2s antar scrape untuk avoid throttle
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-        } catch (error) {
-            actionLogger.error(
-                `Unexpected error scraping teknisi ${teknisi.nik}`,
-                error instanceof Error ? error : new Error(String(error))
+    for (const wh of warehouses) {
+        const creds = await getWarehouseLensaCredentials(wh.pic_1, wh.pic_2);
+        if (!creds) {
+            actionLogger.warn(
+                `[BulkScrape] Gudang "${wh.name}" (id=${wh.id}) dilewati: PIC tidak memiliki akun Lensa terhubung.`
             );
-            results.push({
-                nik: teknisi.nik,
-                status: 'failed',
-                error: error instanceof Error ? error.message : String(error),
-            });
+            continue;
         }
+
+        // Ambil NIK teknisi terlama / belum pernah discrape di gudang ini
+        const technicians = await db
+            .selectFrom('hr.technicians as t')
+            .select(['t.nik', 't.name'])
+            .where('t.wh_id', '=', wh.id)
+            .orderBy(sql`t.ref_intech_lensa->>'scraped_at' ASC NULLS FIRST`)
+            .orderBy('t.nik', 'asc')
+            .limit(niksPerWarehouse)
+            .execute();
+
+        if (technicians.length === 0) {
+            actionLogger.info(
+                `[BulkScrape] Gudang "${wh.name}" (id=${wh.id}) tidak memiliki teknisi yang perlu discrape.`
+            );
+            continue;
+        }
+
+        workerParams.push({
+            warehouseId: wh.id,
+            warehouseName: wh.name,
+            username: creds.username,
+            password: creds.password,
+            technicians,
+            concurrency: concurrencyPerWarehouse,
+        });
     }
 
-    const summary = {
-        total: results.length,
-        success: results.filter((r) => r.status === 'success').length,
-        failed: results.filter((r) => r.status === 'failed').length,
-        details: results,
+    if (workerParams.length === 0) {
+        actionLogger.info(
+            '[BulkScrape] Tidak ada teknisi atau akun gudang yang memenuhi syarat scraping.'
+        );
+        return { total: 0, success: 0, failed: 0, details: [] };
+    }
+
+    actionLogger.info(
+        `[BulkScrape] Meluncurkan ${workerParams.length} instance gudang paralel (total target: ${workerParams.reduce((acc, w) => acc + w.technicians.length, 0)} teknisi)...`
+    );
+
+    // 3. Jalankan seluruh gudang secara PARALEL (1 instance context per gudang)
+    const warehouseExecutionResults = await Promise.all(
+        workerParams.map((param) => scrapeWarehouseWorker(param))
+    );
+
+    // 4. Kumpulkan hasil keseluruhan dan ringkasan per gudang
+    const allDetails = warehouseExecutionResults.flat();
+    const byWarehouse: WarehouseScrapeSummary[] = workerParams.map((param, index) => {
+        const whResults = warehouseExecutionResults[index];
+        return {
+            warehouseId: param.warehouseId,
+            warehouseName: param.warehouseName,
+            total: whResults.length,
+            success: whResults.filter((r) => r.status === 'success').length,
+            failed: whResults.filter((r) => r.status === 'failed').length,
+        };
+    });
+
+    const summary: BulkScrapingResult = {
+        total: allDetails.length,
+        success: allDetails.filter((r) => r.status === 'success').length,
+        failed: allDetails.filter((r) => r.status === 'failed').length,
+        details: allDetails,
+        byWarehouse,
     };
 
-    actionLogger.info('Bulk scraping completed', summary);
+    actionLogger.info('[BulkScrape] Multi-warehouse bulk scraping selesai:', {
+        total: summary.total,
+        success: summary.success,
+        failed: summary.failed,
+        warehouses: byWarehouse.map((w) => `${w.warehouseName}: ${w.success}/${w.total} sukses`),
+    });
+
     return summary;
 }
