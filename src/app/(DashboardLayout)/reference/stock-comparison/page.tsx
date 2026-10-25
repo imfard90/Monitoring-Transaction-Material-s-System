@@ -29,13 +29,15 @@ export default async function StockComparisonPage() {
     const result = await getTeknisiStockList();
 
     return (
-        <main className="flex flex-col gap-4 p-4 md:p-6 md:h-full md:min-h-0 md:overflow-hidden">
-            <BreadcrumbComp title="Intech Lensa vs MTMS" items={BCrumb} />
+        <div className="flex flex-col flex-1 gap-6 md:h-full md:min-h-0 md:overflow-hidden">
+            <div className="shrink-0">
+                <BreadcrumbComp title="Intech Lensa vs MTMS" items={BCrumb} />
+            </div>
             <StockComparisonTableView
                 initialData={result.data ?? []}
                 initialError={result.error}
                 isStaff={user.isStaff}
             />
-        </main>
+        </div>
     );
 }
