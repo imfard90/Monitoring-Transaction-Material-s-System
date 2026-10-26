@@ -11,14 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface StockWarning {
     warehouse_name: string | null;
@@ -61,15 +54,15 @@ export const StockWarningTable = ({
     }, [selectedWarehouse, isStaff]);
 
     return (
-        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none relative flex min-h-0 flex-1 w-full flex-col overflow-hidden">
+        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none relative flex flex-col w-full h-full min-h-0 flex-1 overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-warning/5 to-transparent pointer-events-none" />
 
-            <div className="relative z-10 mb-3 flex shrink-0 flex-wrap items-start justify-between gap-3">
+            <div className="relative z-10 mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
                 <div>
-                    <h2 className="text-xl font-bold tracking-tight text-foreground">
+                    <h2 className="text-lg font-semibold tracking-tight text-foreground">
                         Peringatan Stok Minimum
                     </h2>
-                    <p className="text-sm text-muted-foreground font-medium mt-1">
+                    <p className="text-xs text-muted-foreground font-normal mt-0.5">
                         Daftar material yang memerlukan isi ulang stok
                     </p>
                 </div>
@@ -77,7 +70,7 @@ export const StockWarningTable = ({
                     <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
                         <SelectTrigger
                             aria-label="Filter gudang peringatan stok"
-                            className="w-full sm:w-52"
+                            className="w-[140px] sm:w-[160px] h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors"
                         >
                             <SelectValue placeholder="Pilih Gudang" />
                         </SelectTrigger>
@@ -93,24 +86,34 @@ export const StockWarningTable = ({
                 )}
             </div>
 
-            <div className="relative z-10 max-h-[calc(100vh-15rem)] min-h-0 flex-1 overflow-auto">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Gudang</TableHead>
-                            <TableHead>Kode Material</TableHead>
-                            <TableHead className="max-w-24 whitespace-normal px-1 text-right leading-tight">
+            <div className="relative z-10 flex-1 min-h-0 overflow-auto rounded-lg border border-border/60">
+                <table className="w-full caption-bottom text-sm border-separate border-spacing-0">
+                    <TableHeader className="sticky top-0 z-20">
+                        <TableRow className="hover:bg-transparent border-0">
+                            <TableHead className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm font-semibold text-foreground/90 shadow-[inset_0_-1px_0_0_hsl(var(--border))]">
+                                Gudang
+                            </TableHead>
+                            <TableHead className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm font-semibold text-foreground/90 shadow-[inset_0_-1px_0_0_hsl(var(--border))]">
+                                Kode Material
+                            </TableHead>
+                            <TableHead className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm max-w-24 whitespace-normal px-2 text-right leading-tight font-semibold text-foreground/90 shadow-[inset_0_-1px_0_0_hsl(var(--border))]">
                                 Rata-rata Kebutuhan
                             </TableHead>
-                            <TableHead className="max-w-16 whitespace-normal px-1 text-right leading-tight">
+                            <TableHead className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm max-w-16 whitespace-normal px-2 text-right leading-tight font-semibold text-foreground/90 shadow-[inset_0_-1px_0_0_hsl(var(--border))]">
                                 Lead Time (Mg)
                             </TableHead>
-                            <TableHead className="max-w-16 whitespace-normal px-1 text-right leading-tight">
+                            <TableHead className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm max-w-16 whitespace-normal px-2 text-right leading-tight font-semibold text-foreground/90 shadow-[inset_0_-1px_0_0_hsl(var(--border))]">
                                 Safety Stock %
                             </TableHead>
-                            <TableHead className="text-right">Stok Min</TableHead>
-                            <TableHead className="text-right">Stok Saat Ini</TableHead>
-                            <TableHead className="text-center">Status</TableHead>
+                            <TableHead className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm text-right font-semibold text-foreground/90 shadow-[inset_0_-1px_0_0_hsl(var(--border))]">
+                                Stok Min
+                            </TableHead>
+                            <TableHead className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm text-right font-semibold text-foreground/90 shadow-[inset_0_-1px_0_0_hsl(var(--border))]">
+                                Stok Saat Ini
+                            </TableHead>
+                            <TableHead className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm text-center font-semibold text-foreground/90 shadow-[inset_0_-1px_0_0_hsl(var(--border))]">
+                                Status
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -183,7 +186,7 @@ export const StockWarningTable = ({
                             )}
                         </AnimatePresence>
                     </TableBody>
-                </Table>
+                </table>
             </div>
         </Card>
     );

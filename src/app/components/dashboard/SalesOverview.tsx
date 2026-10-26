@@ -70,33 +70,48 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
             fontFamily: 'inherit',
             foreColor: 'var(--color-muted-foreground, #7C8FAC)',
             height: 310,
-            stacked: true, // stacked instead of side-by-side
+            stacked: true,
             width: '100%',
             offsetX: -20,
         },
-        colors: ['var(--color-primary)', 'var(--color-secondary)'],
+        colors: ['#0085db', '#13deb9'],
         plotOptions: {
             bar: {
                 horizontal: false,
-                columnWidth: '40%',
-                borderRadius: 4,
+                columnWidth: '36%',
+                borderRadius: 5,
+                borderRadiusApplication: 'end',
             },
         },
         dataLabels: { enabled: false },
-        legend: { show: true, position: 'top', horizontalAlign: 'right' },
-        grid: { borderColor: 'var(--color-border, rgba(0,0,0,0.1))', strokeDashArray: 3 },
+        legend: {
+            show: true,
+            position: 'top',
+            horizontalAlign: 'right',
+            fontSize: '12px',
+            fontWeight: 500,
+            labels: { colors: 'var(--muted-foreground, #7C8FAC)' },
+            markers: { size: 6, shape: 'circle' },
+        },
+        grid: { borderColor: 'var(--color-border, rgba(0,0,0,0.08))', strokeDashArray: 3 },
         xaxis: {
             categories: chartData.dates,
             axisBorder: { show: false },
             axisTicks: { show: false },
+            labels: {
+                style: { fontSize: '11px' },
+            },
         },
         yaxis: {
             tickAmount: 5,
-            labels: { formatter: (val) => `${Math.abs(val)}` },
+            labels: {
+                style: { fontSize: '11px' },
+                formatter: (val) => `${Math.abs(val)}`,
+            },
         },
         tooltip: {
             theme: 'dark',
-            y: { formatter: (val) => `${Math.abs(val)}` },
+            y: { formatter: (val) => `${Math.abs(val)} transaksi` },
         },
     };
 
@@ -122,25 +137,25 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
     }, []);
 
     return (
-        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none pb-0 h-full w-full relative overflow-hidden motion-reduce:transition-none">
+        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none pb-0 h-full w-full relative overflow-hidden">
             <div
-                className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"
+                className="absolute top-0 left-0 w-full h-28 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"
                 aria-hidden="true"
             />
 
-            <div className="relative z-10 sm:flex items-center justify-between mb-6">
+            <div className="relative z-10 sm:flex items-center justify-between mb-4">
                 <div>
-                    <h2 className="text-xl font-bold tracking-tight text-foreground">
+                    <h2 className="text-lg font-semibold tracking-tight text-foreground">
                         Out Material vs Hasil Rekon
                     </h2>
-                    <p className="text-sm text-muted-foreground font-medium mt-1">
-                        Perbandingan per hari
+                    <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                        Perbandingan transaksi per hari
                     </p>
                 </div>
-                <div className="sm:mt-0 mt-4 flex gap-3">
+                <div className="sm:mt-0 mt-3 flex items-center gap-2">
                     {!isStaff && (
                         <Select value={selectedWh} onValueChange={setSelectedWh}>
-                            <SelectTrigger className="w-[140px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
+                            <SelectTrigger className="w-[130px] sm:w-[145px] h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
                                 <SelectValue placeholder="Pilih Gudang" />
                             </SelectTrigger>
                             <SelectContent>
@@ -155,7 +170,7 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
                     )}
 
                     <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                        <SelectTrigger className="w-[160px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
+                        <SelectTrigger className="w-[145px] sm:w-[160px] h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
                             <SelectValue placeholder="Pilih Periode" />
                         </SelectTrigger>
                         <SelectContent>

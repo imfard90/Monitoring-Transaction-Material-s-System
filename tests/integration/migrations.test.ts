@@ -277,4 +277,42 @@ describeDb('L5 query logging migration tracked (018)', () => {
             expect(row?.def).not.toMatch(/::\s*enum_wo_type\b/);
         });
     });
+
+    describeDb('Price in inventory.materials (039)', () => {
+        it('039_add_price_to_materials.sql recorded in migration log', async () => {
+            const rows = await query<{ filename: string }>(`
+                SELECT filename FROM inventory._migration_log WHERE filename LIKE '039_%'
+            `);
+            expect(rows.length).toBe(1);
+            expect(rows[0].filename).toBe('039_add_price_to_materials.sql');
+        });
+
+        it('inventory.materials table has price column with numeric(15, 2) and default 0', async () => {
+            const row = await queryOne<{
+                data_type: string;
+                numeric_precision: number;
+                numeric_scale: number;
+                column_default: string;
+            }>(`
+                SELECT data_type, numeric_precision, numeric_scale, column_default
+                FROM information_schema.columns
+                WHERE table_schema = 'inventory'
+                  AND table_name = 'materials'
+                  AND column_name = 'price'
+            `);
+            expect(row).toBeDefined();
+            expect(row?.data_type).toBe('numeric');
+            expect(Number(row?.numeric_precision)).toBe(15);
+            expect(Number(row?.numeric_scale)).toBe(2);
+        });
+
+        it('has seeded prices from tmp/harga.csv', async () => {
+            const row = await queryOne<{ count: string }>(`
+                SELECT COUNT(*)::text AS count
+                FROM inventory.materials
+                WHERE price > 0
+            `);
+            expect(Number(row?.count)).toBe(291);
+        });
+    });
 });

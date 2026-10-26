@@ -20,6 +20,13 @@ vi.mock('@/lib/logger', () => ({
     actionLogger: { info: vi.fn(), error: vi.fn() },
 }));
 
+vi.mock('@/lib/redis', () => ({
+    redis: {
+        get: vi.fn(),
+        set: vi.fn(),
+    },
+}));
+
 vi.mock('@/lib/db/db', () => {
     const chain: Record<string, unknown> = {};
     const self = () => chain;
@@ -31,6 +38,7 @@ vi.mock('@/lib/db/db', () => {
     chain.where = self;
     chain.select = self;
     chain.execute = () => mockExecute();
+    chain.executeTakeFirst = () => mockExecute();
     return { db: chain };
 });
 

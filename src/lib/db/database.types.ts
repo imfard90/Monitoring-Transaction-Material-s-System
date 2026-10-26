@@ -642,6 +642,7 @@ export interface InventoryMaterials {
     created_at: Generated<Timestamp>;
     description: string | null;
     id: Generated<number>;
+    price: Generated<Numeric | null>;
     unit: string;
     updated_at: Generated<Timestamp>;
 }

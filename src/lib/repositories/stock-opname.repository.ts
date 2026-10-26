@@ -1,7 +1,24 @@
-import type { Kysely } from 'kysely';
+import type { ColumnType, Generated, Kysely } from 'kysely';
 
-// Temporary type alias until database.types.ts is regenerated
-type Database = Record<string, any>;
+export interface InventoryStockOpnameLogRow {
+    id: Generated<number>;
+    warehouse_id: number;
+    warehouse_name: string;
+    details: string | unknown;
+    total_items: number;
+    total_difference: number;
+    status: Generated<'pending' | 'approved' | 'rejected'>;
+    approval_reason: string | null;
+    approved_by: string | null;
+    approved_at: ColumnType<Date | null, string | null, string | null>;
+    created_by: string;
+    created_at: Generated<Date>;
+    updated_at: Generated<Date>;
+}
+
+type StockOpnameDatabase = {
+    'inventory.stock_opname_log': InventoryStockOpnameLogRow;
+};
 
 export interface StockOpnameLogInsert {
     warehouse_id: number;
@@ -44,23 +61,26 @@ export interface StockOpnameLog {
 export interface StockOpnameFilters {
     warehouseIds?: number[];
     status?: 'pending' | 'approved' | 'rejected';
+    search?: string;
     limit?: number;
     offset?: number;
 }
 
-export function createStockOpnameRepository(db: Kysely<Database>) {
+export function createStockOpnameRepository(db: Kysely<any>) {
+    const typedDb = db as unknown as Kysely<StockOpnameDatabase>;
+
     return {
         async createLog(data: StockOpnameLogInsert): Promise<StockOpnameLog> {
-            const result = await db
+            const result = await typedDb
                 .insertInto('inventory.stock_opname_log')
                 .values({
                     warehouse_id: data.warehouse_id,
                     warehouse_name: data.warehouse_name,
-                    details: JSON.stringify(data.details) as any,
+                    details: JSON.stringify(data.details),
                     total_items: data.total_items,
                     total_difference: data.total_difference,
                     created_by: data.created_by,
-                    status: data.status ?? 'pending',
+                    status: (data.status ?? 'pending') as any,
                 })
                 .returningAll()
                 .executeTakeFirstOrThrow();
@@ -78,7 +98,7 @@ export function createStockOpnameRepository(db: Kysely<Database>) {
         },
 
         async getLogs(filters: StockOpnameFilters = {}): Promise<StockOpnameLog[]> {
-            let query = db
+            let query = typedDb
                 .selectFrom('inventory.stock_opname_log')
                 .selectAll()
                 .orderBy('created_at', 'desc');
@@ -91,7 +111,17 @@ export function createStockOpnameRepository(db: Kysely<Database>) {
                 query = query.where('status', '=', filters.status);
             }
 
-            const limit = filters.limit ?? 50;
+            if (filters.search?.trim()) {
+                const term = `%${filters.search.trim()}%`;
+                query = query.where((eb) =>
+                    eb.or([
+                        eb('warehouse_name', 'ilike', term),
+                        eb('created_by', 'ilike', term),
+                    ])
+                );
+            }
+
+            const limit = filters.limit ?? 100;
             const offset = filters.offset ?? 0;
 
             const results = await query.limit(limit).offset(offset).execute();
@@ -106,7 +136,7 @@ export function createStockOpnameRepository(db: Kysely<Database>) {
         },
 
         async getLogById(id: number): Promise<StockOpnameLog | null> {
-            const result = await db
+            const result = await typedDb
                 .selectFrom('inventory.stock_opname_log')
                 .selectAll()
                 .where('id', '=', id)
@@ -127,38 +157,38 @@ export function createStockOpnameRepository(db: Kysely<Database>) {
         },
 
         async approveLog(id: number, approvedBy: string): Promise<void> {
-            await db
+            await typedDb
                 .updateTable('inventory.stock_opname_log')
                 .set({
-                    status: 'approved',
+                    status: 'approved' as any,
                     approved_by: approvedBy,
-                    approved_at: new Date().toISOString(),
+                    approved_at: new Date().toISOString() as any,
                 })
                 .where('id', '=', id)
-                .where('status', '=', 'pending')
+                .where('status', '=', 'pending' as any)
                 .execute();
         },
 
         async rejectLog(id: number, approvedBy: string, reason: string): Promise<void> {
-            await db
+            await typedDb
                 .updateTable('inventory.stock_opname_log')
                 .set({
-                    status: 'rejected',
+                    status: 'rejected' as any,
                     approved_by: approvedBy,
-                    approved_at: new Date().toISOString(),
+                    approved_at: new Date().toISOString() as any,
                     approval_reason: reason,
                 })
                 .where('id', '=', id)
-                .where('status', '=', 'pending')
+                .where('status', '=', 'pending' as any)
                 .execute();
         },
 
         async countLogs(
-            filters: Pick<StockOpnameFilters, 'warehouseIds' | 'status'> = {}
+            filters: Pick<StockOpnameFilters, 'warehouseIds' | 'status' | 'search'> = {}
         ): Promise<number> {
-            let query = db
+            let query = typedDb
                 .selectFrom('inventory.stock_opname_log')
-                .select(db.fn.count<number>('id').as('count'));
+                .select((eb) => eb.fn.count<number>('id').as('count'));
 
             if (filters.warehouseIds?.length) {
                 query = query.where('warehouse_id', 'in', filters.warehouseIds);
@@ -166,6 +196,16 @@ export function createStockOpnameRepository(db: Kysely<Database>) {
 
             if (filters.status) {
                 query = query.where('status', '=', filters.status);
+            }
+
+            if (filters.search?.trim()) {
+                const term = `%${filters.search.trim()}%`;
+                query = query.where((eb) =>
+                    eb.or([
+                        eb('warehouse_name', 'ilike', term),
+                        eb('created_by', 'ilike', term),
+                    ])
+                );
             }
 
             const result = await query.executeTakeFirst();

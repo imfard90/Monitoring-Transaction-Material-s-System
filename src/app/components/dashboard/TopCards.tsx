@@ -13,6 +13,8 @@ export async function TopCards() {
                   returnTek: number;
                   intechOpen: number;
                   intechClose: number;
+                  stockInventoryRp: number;
+                  stockIntechRp: number;
               })
             : {
                   onlineUsers: 0,
@@ -22,6 +24,8 @@ export async function TopCards() {
                   returnTek: 0,
                   intechOpen: 0,
                   intechClose: 0,
+                  stockInventoryRp: 0,
+                  stockIntechRp: 0,
               };
 
     return <TopCardsCarousel kpis={kpis} />;

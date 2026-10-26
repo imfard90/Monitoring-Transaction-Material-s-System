@@ -11,6 +11,7 @@ import { ProductPerformance } from '../components/dashboard/ProductPerformance';
 import ProfileWelcome from '../components/dashboard/ProfileWelcome';
 import { RecentTransaction } from '../components/dashboard/RecentTransaction';
 import SalesOverview from '../components/dashboard/SalesOverview';
+import StockValueDonutChart from '../components/dashboard/StockValueDonutChart';
 import { StockWarningTable } from '../components/dashboard/StockWarningTable';
 import { TopCards } from '../components/dashboard/TopCards';
 
@@ -38,8 +39,8 @@ function ProfileSkeleton() {
 function KpiSkeleton() {
     return (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={`kpi-skeleton-${i}`} className="h-24 rounded-xl" />
+            {['kpi-skel-1', 'kpi-skel-2', 'kpi-skel-3', 'kpi-skel-4'].map((skelId) => (
+                <Skeleton key={skelId} className="h-24 rounded-xl" />
             ))}
         </div>
     );
@@ -80,17 +81,24 @@ export default async function Page() {
                 </StaggerItem>
 
                 <StaggerItem className="col-span-12">
-                    <OutMaterialLineChart isStaff={isStaff} warehouses={warehouses} />
+                    <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-stretch">
+                        <div className="lg:col-span-3 min-w-0 flex">
+                            <StockValueDonutChart isStaff={isStaff} warehouses={warehouses} />
+                        </div>
+                        <div className="lg:col-span-7 min-w-0 flex">
+                            <OutMaterialLineChart isStaff={isStaff} warehouses={warehouses} />
+                        </div>
+                    </div>
                 </StaggerItem>
 
-                <StaggerItem className="col-span-12 flex min-w-0 lg:col-span-8">
-                    <div className="flex h-full w-full min-w-0 flex-col gap-4">
+                <StaggerItem className="col-span-12 lg:col-span-8 min-w-0 relative">
+                    <div className="flex flex-col h-[520px] lg:h-full lg:absolute lg:inset-0">
                         <StockWarningTable isStaff={isStaff} warehouses={warehouses} />
                     </div>
                 </StaggerItem>
 
-                <StaggerItem className="col-span-12 flex min-w-0 lg:col-span-4">
-                    <div className="grid w-full min-w-0 grid-cols-1 content-start gap-4">
+                <StaggerItem className="col-span-12 lg:col-span-4 min-w-0 flex flex-col">
+                    <div className="flex flex-col gap-4">
                         <ProductPerformance />
                         <Suspense fallback={<KpiSkeleton />}>
                             <LensaPerformance />

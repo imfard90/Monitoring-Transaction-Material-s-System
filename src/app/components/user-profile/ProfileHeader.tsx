@@ -53,6 +53,7 @@ export function ProfileHeader({ profileData }: ProfileHeaderProps) {
                             {/* Status Indicator Badge */}
                             {profileData?.is_active && (
                                 <div
+                                    role="status"
                                     className="absolute -bottom-1 -right-1 sm:-bottom-1.5 sm:-right-1.5 z-20 flex items-center justify-center p-1 rounded-full bg-background border-2 border-background shadow-lg"
                                     title="Status Akun Aktif"
                                     aria-label="Status Akun Aktif"

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
 import { getSessionUser } from '@/lib/auth-server';
+import { db } from '@/lib/db/db';
 import { StockOpnameClient } from './_components/StockOpnameClient';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +13,16 @@ export const metadata: Metadata = {
 
 export default async function StockOpnamePage() {
     const user = await getSessionUser();
-    if (!user?.role) throw new Error('Unauthorized');
+    if (!user?.role) {
+        redirect('/auth/login');
+    }
+
+    const masterWarehouses = await db
+        .selectFrom('inventory.mas_wh')
+        .select(['id', 'name'])
+        .orderBy('name', 'asc')
+        .execute()
+        .catch(() => []);
 
     return (
         <div className="flex flex-col gap-4">
@@ -25,6 +36,7 @@ export default async function StockOpnamePage() {
                     role: user.role ?? 'staff',
                     warehouseIds: user.warehouseIds,
                 }}
+                masterWarehouses={masterWarehouses}
             />
         </div>
     );

@@ -7,6 +7,7 @@ import { AuthenticationError, AuthorizationError, errors } from '@/lib/errors';
 import { actionLogger } from '@/lib/logger';
 import { canAccessWarehouse, canApproveStockOpname } from '@/lib/policies';
 import { createStockOpnameRepository } from '@/lib/repositories/stock-opname.repository';
+import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 const stockOpnameRepo = createStockOpnameRepository(db);
 
@@ -23,6 +24,7 @@ const SaveStockOpnameSchema = z.object({
         })
     ),
     status: z.enum(['pending', 'approved']).default('pending'),
+    idemKey: z.string().optional(),
 });
 
 export async function saveStockOpname(input: unknown) {
@@ -34,22 +36,31 @@ export async function saveStockOpname(input: unknown) {
         return { success: false, error: 'Data tidak valid' };
     }
 
-    const { warehouse_id, warehouse_name, details, status } = parsed.data;
+    const { warehouse_id, warehouse_name, details, status, idemKey } = parsed.data;
 
     // Staff: validate warehouse access
     if (!canAccessWarehouse(user, warehouse_id)) {
         throw errors.accessDenied();
     }
 
-    // Non-staff dapat approve langsung, staff hanya pending
+    // Non-staff can approve directly; staff is forced to pending
     const finalStatus = user.isStaff ? 'pending' : status;
-
     const total_difference = details.reduce((sum, d) => sum + Math.abs(d.difference), 0);
 
-    try {
+    const executeSave = async () => {
+        // Resolve canonical warehouse name from mas_wh if possible
+        const whRecord = await db
+            .selectFrom('inventory.mas_wh')
+            .where('id', '=', warehouse_id)
+            .select('name')
+            .executeTakeFirst()
+            .catch(() => null);
+
+        const canonicalName = whRecord?.name ?? warehouse_name;
+
         const log = await stockOpnameRepo.createLog({
             warehouse_id,
-            warehouse_name,
+            warehouse_name: canonicalName,
             details,
             total_items: details.length,
             total_difference,
@@ -65,6 +76,29 @@ export async function saveStockOpname(input: unknown) {
             nik: user.nik,
         });
 
+        return log;
+    };
+
+    try {
+        if (idemKey) {
+            try {
+                const { result } = await checkAndStoreIdempotency(
+                    idemKey,
+                    parsed.data,
+                    async () => executeSave()
+                );
+                return { success: true, data: result };
+            } catch (idemErr) {
+                // If redis is unavailable in some environments, fallback to direct save
+                actionLogger.warn?.('Idempotency check failed, executing save directly', {
+                    error: idemErr instanceof Error ? idemErr.message : String(idemErr),
+                });
+                const log = await executeSave();
+                return { success: true, data: log };
+            }
+        }
+
+        const log = await executeSave();
         return { success: true, data: log };
     } catch (err) {
         actionLogger.error(
@@ -77,6 +111,9 @@ export async function saveStockOpname(input: unknown) {
 
 export async function getStockOpnameLogs(filters?: {
     status?: 'pending' | 'approved' | 'rejected';
+    search?: string;
+    limit?: number;
+    offset?: number;
 }) {
     const user = await getSessionUser();
     if (!user) throw errors.auth();
@@ -87,7 +124,9 @@ export async function getStockOpnameLogs(filters?: {
         const logs = await stockOpnameRepo.getLogs({
             warehouseIds,
             status: filters?.status,
-            limit: 100,
+            search: filters?.search,
+            limit: filters?.limit ?? 100,
+            offset: filters?.offset ?? 0,
         });
 
         return { success: true, data: logs };

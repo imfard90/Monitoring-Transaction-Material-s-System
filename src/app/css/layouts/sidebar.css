@@ -1,16 +1,16 @@
-/* tailwind-sidebar package override styles */
+/* MTMS Sidebar Custom Styling */
 
-/* Hover fix: prevent default hover bg when inside collapsible (handled by MTMS custom styles) */
-[data-slot="collapsible"] [data-slot="sidebar-menu-item"] [data-slot="sidebar-menu-button"]:hover {
-    background-color: transparent;
+/* Smooth scrolling for sidebar content */
+aside[aria-label="Navigasi sidebar"] .simplebar-content-wrapper {
+    scrollbar-width: thin;
 }
 
-/* Compact badge sizing */
-[data-slot="badge"] {
-    font-size: x-small;
+aside[aria-label="Navigasi sidebar"] .simplebar-scrollbar:before {
+    background-color: var(--color-muted-foreground);
+    opacity: 0.25;
+    border-radius: 9999px;
 }
 
-/* Sidebar group fills height */
-[data-slot="sidebar-group"] {
-    height: 100%;
+aside[aria-label="Navigasi sidebar"] .simplebar-scrollbar.simplebar-visible:before {
+    opacity: 0.45;
 }

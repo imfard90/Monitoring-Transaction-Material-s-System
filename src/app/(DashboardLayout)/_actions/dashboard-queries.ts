@@ -266,7 +266,13 @@ export async function getStockWarnings(warehouseId: string = 'all') {
 
 export async function getDashboardKpis() {
     try {
-        const cacheKey = `dashboard_kpis`;
+        const user = await getSessionUser();
+        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+        const cacheKey =
+            scopedWarehouseIds && scopedWarehouseIds.length > 0
+                ? `dashboard_kpis_${scopedWarehouseIds.slice().sort().join('_')}`
+                : 'dashboard_kpis_all';
+
         const cached = await encryptedCache.getGeneral<unknown>('dashboard', cacheKey);
         if (cached) {
             return { success: true, data: cached };
@@ -280,6 +286,8 @@ export async function getDashboardKpis() {
             returnTek: 0,
             intechOpen: 0,
             intechClose: 0,
+            stockInventoryRp: 0,
+            stockIntechRp: 0,
         };
 
         // 0. Online Users
@@ -340,6 +348,38 @@ export async function getDashboardKpis() {
             .select(sql<number>`COUNT(id)`.as('total'))
             .executeTakeFirst();
         data.returnTek = Number(returnTek?.total || 0);
+
+        // 5. Stock Inventory Rupiah
+        let invStockQuery = db
+            .selectFrom('inventory.stock_balance as sb')
+            .innerJoin('inventory.materials as m', 'm.id', 'sb.designator_id')
+            .select(
+                sql<number>`COALESCE(SUM(sb.qty_stock * COALESCE(m.price, 0)), 0)`.as('total_rp')
+            )
+            .where('sb.qty_stock', '>', 0);
+        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+            invStockQuery = invStockQuery.where('sb.warehouse_id', 'in', scopedWarehouseIds);
+        }
+        const invStock = await invStockQuery.executeTakeFirst();
+        data.stockInventoryRp = Number(invStock?.total_rp || 0);
+
+        // 6. Stock Intech Rupiah
+        let intechStockQuery = db
+            .selectFrom('inventory.sap_out_header as soh')
+            .innerJoin('inventory.sap_out_items as soi', 'soi.header_id', 'soh.id')
+            .innerJoin('inventory.materials as m', 'm.id', 'soi.designator_id')
+            .select(
+                sql<number>`COALESCE(SUM((soi.qty_req - COALESCE(soi.qty_used, 0)) * COALESCE(m.price, soi.unit_price, 0)), 0)`.as(
+                    'total_rp'
+                )
+            )
+            .where('soh.end_status', '=', 'intech')
+            .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0);
+        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+            intechStockQuery = intechStockQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        }
+        const intechStock = await intechStockQuery.executeTakeFirst();
+        data.stockIntechRp = Number(intechStock?.total_rp || 0);
 
         await encryptedCache.setGeneral('dashboard', data, cacheKey, 10);
         return { success: true, data };

@@ -18,6 +18,8 @@ interface TopCardsCarouselProps {
         returnTek: number;
         intechOpen: number;
         intechClose: number;
+        stockInventoryRp?: number;
+        stockIntechRp?: number;
     };
 }
 
@@ -29,6 +31,22 @@ const kpiConfig = [
         bgcolor: 'bg-primary/10 dark:bg-primary/10',
         iconColor: 'text-primary',
         url: '#',
+    },
+    {
+        key: 'stockInventoryRp',
+        title: 'Stock Inventory',
+        icon: 'solar:box-minimalistic-bold-duotone',
+        bgcolor: 'bg-primary/10 dark:bg-primary/10',
+        iconColor: 'text-primary',
+        url: '/apps/stock-gudang',
+    },
+    {
+        key: 'stockIntechRp',
+        title: 'Stock Intech',
+        icon: 'solar:hand-money-bold-duotone',
+        bgcolor: 'bg-warning/10 dark:bg-warning/10',
+        iconColor: 'text-warning',
+        url: '/form/out-sap',
     },
     {
         key: 'requestTag',
@@ -82,6 +100,42 @@ const kpiConfig = [
 
 type KpiKey = (typeof kpiConfig)[number]['key'];
 
+function formatKpiDisplay(key: string, value: number): { formatted: string; full: string } {
+    if (key === 'stockInventoryRp' || key === 'stockIntechRp') {
+        const full = new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            maximumFractionDigits: 0,
+        }).format(value || 0);
+
+        if (value >= 1_000_000_000) {
+            return {
+                formatted: `Rp ${(value / 1_000_000_000).toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} M`,
+                full,
+            };
+        }
+        if (value >= 1_000_000) {
+            return {
+                formatted: `Rp ${(value / 1_000_000).toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} Jt`,
+                full,
+            };
+        }
+        if (value >= 1_000) {
+            return {
+                formatted: `Rp ${(value / 1_000).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} Rb`,
+                full,
+            };
+        }
+        return { formatted: full, full };
+    }
+
+    const val = value ?? 0;
+    return {
+        formatted: val.toLocaleString('id-ID'),
+        full: val.toLocaleString('id-ID'),
+    };
+}
+
 export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
     const { data } = useQuery<TopCardsCarouselProps['kpis']>({
         queryKey: ['dashboardKpis'],
@@ -108,6 +162,7 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
                 autoplay={{
                     delay: 0,
                     disableOnInteraction: false,
+                    pauseOnMouseEnter: true,
                 }}
                 modules={[Autoplay]}
                 breakpoints={{
@@ -121,57 +176,63 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
                     },
                     768: {
                         slidesPerView: 3,
-                        spaceBetween: 18,
+                        spaceBetween: 16,
                     },
                     1030: {
                         slidesPerView: 4,
-                        spaceBetween: 18,
+                        spaceBetween: 16,
                     },
                     1200: {
                         slidesPerView: 6,
-                        spaceBetween: 24,
+                        spaceBetween: 20,
                     },
                 }}
                 className="mySwiper"
             >
-                {kpiConfig.map((item) => (
-                    <SwiperSlide key={item.key} className="py-2">
-                        <Link href={item.url} className="block group">
-                            <Card
-                                className={`relative overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 motion-reduce:transition-none ${item.bgcolor} w-full border border-white/20 dark:border-white/5 py-6 group-hover:-translate-y-1 motion-reduce:group-hover:translate-y-0`}
-                            >
-                                {/* Decorative gradient blob */}
-                                <div
-                                    className="absolute -right-6 -top-6 w-24 h-24 bg-white/20 dark:bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 motion-reduce:transition-none"
-                                    aria-hidden="true"
-                                />
+                {kpiConfig.map((item) => {
+                    const rawValue = kpis[item.key as KpiKey] ?? 0;
+                    const { formatted, full } = formatKpiDisplay(item.key, rawValue);
 
-                                <div className="relative z-10 flex items-center gap-4">
+                    return (
+                        <SwiperSlide key={item.key} className="py-1">
+                            <Link href={item.url} className="block group">
+                                <Card
+                                    className={`relative overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 motion-reduce:transition-none ${item.bgcolor} w-full border border-white/20 dark:border-white/5 py-3.5 px-4 group-hover:-translate-y-0.5 motion-reduce:group-hover:translate-y-0`}
+                                >
+                                    {/* Decorative gradient blob */}
                                     <div
-                                        className={`rounded-2xl p-3 bg-white/50 dark:bg-black/20 backdrop-blur-sm shadow-sm border border-white/40 dark:border-white/10 group-hover:scale-110 transition-transform duration-300 motion-reduce:transition-none`}
-                                    >
-                                        <Icon
-                                            icon={item.icon}
-                                            width={32}
-                                            height={32}
-                                            className={item.iconColor}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <p className="text-sm text-muted-foreground font-medium mb-0.5">
-                                            {item.title}
-                                        </p>
-                                        <p
-                                            className={`text-2xl font-bold tracking-tight ${item.iconColor}`}
+                                        className="absolute -right-6 -top-6 w-20 h-20 bg-white/20 dark:bg-white/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500 motion-reduce:transition-none"
+                                        aria-hidden="true"
+                                    />
+
+                                    <div className="relative z-10 flex items-center gap-3 min-w-0">
+                                        <div
+                                            className={`rounded-xl p-2.5 shrink-0 bg-white/60 dark:bg-black/25 backdrop-blur-sm shadow-xs border border-white/40 dark:border-white/10 group-hover:scale-105 transition-transform duration-300 motion-reduce:transition-none`}
                                         >
-                                            {kpis[item.key as KpiKey]?.toLocaleString() ?? 0}
-                                        </p>
+                                            <Icon
+                                                icon={item.icon}
+                                                width={24}
+                                                height={24}
+                                                className={item.iconColor}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <p className="text-xs text-muted-foreground font-medium mb-0.5 truncate">
+                                                {item.title}
+                                            </p>
+                                            <p
+                                                title={full}
+                                                className={`text-lg sm:text-xl font-bold tracking-tight tabular-nums truncate ${item.iconColor}`}
+                                            >
+                                                {formatted}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                            </Card>
-                        </Link>
-                    </SwiperSlide>
-                ))}
+                                </Card>
+                            </Link>
+                        </SwiperSlide>
+                    );
+                })}
             </Swiper>
         </div>
     );

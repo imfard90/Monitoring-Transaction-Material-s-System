@@ -1,16 +1,16 @@
+'use client';
+
 import { Icon } from '@iconify/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import SimpleBar from 'simplebar-react';
-import { AMMenu, AMSidebar, AMSubmenu } from 'tailwind-sidebar';
-import { useTheme } from '@/components/theme-provider';
+import { cn } from '@/lib/utils';
 import { getSidebarUserAccess, type SidebarUserAccess } from '../../management/users/actions';
 import FullLogo from '../shared/logo/FullLogo';
 import { SidebarAnnouncement } from './SidebarAnnouncement';
 import SidebarContent from './sidebaritems';
-import 'tailwind-sidebar/styles.css';
 
 interface SidebarItemType {
     heading?: string;
@@ -18,6 +18,7 @@ interface SidebarItemType {
     name?: string;
     title?: string;
     icon?: string;
+    iconActive?: string;
     url?: string;
     children?: SidebarItemType[];
     disabled?: boolean;
@@ -31,74 +32,77 @@ const renderSidebarItems = (
     isSubItem: boolean = false
 ) => {
     return items.map((item, index) => {
-        const isSelected = currentPath === item?.url;
-        const IconComp = item.icon || null;
+        const isSelected =
+            item.url === '/'
+                ? currentPath === '/'
+                : currentPath === item.url ||
+                  (item.url ? currentPath.startsWith(`${item.url}/`) : false);
 
-        const iconElement = IconComp ? (
-            <Icon icon={IconComp} height={22} width={22} />
+        const activeIconName = item.iconActive || item.icon;
+        const iconName = isSelected ? activeIconName : item.icon;
+
+        const iconElement = iconName ? (
+            <Icon
+                icon={iconName}
+                height={19}
+                width={19}
+                className={cn(
+                    'shrink-0 transition-transform duration-150 group-hover:scale-105',
+                    isSelected
+                        ? 'text-primary dark:text-primary-foreground'
+                        : 'text-muted-foreground/80 group-hover:text-foreground'
+                )}
+            />
         ) : (
-            <Icon icon={'ri:checkbox-blank-circle-line'} height={9} width={9} />
+            <Icon
+                icon="ri:checkbox-blank-circle-line"
+                height={8}
+                width={8}
+                className="shrink-0 text-muted-foreground/60"
+            />
         );
 
-        // Submenu
-        if (item.children?.length) {
-            return (
-                <AMSubmenu
-                    key={item.id}
-                    icon={iconElement}
-                    title={item.name}
-                    ClassName="mt-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 rounded-md px-3 py-1.5"
-                >
-                    {renderSidebarItems(item.children, currentPath, onClose, true)}
-                </AMSubmenu>
-            );
-        }
-
-        // Regular menu item
         const linkTarget = item.url?.startsWith('https') ? '_blank' : '_self';
 
-        const itemClassNames = isSubItem
-            ? `mt-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 rounded-md ${
-                  isSelected ? 'bg-primary/10 text-primary font-medium shadow-sm' : ''
-              } px-3 py-1.5`
-            : `mt-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 rounded-md ${
-                  isSelected ? 'bg-primary text-primary-foreground font-medium shadow-md' : ''
-              } px-3 py-1.5`;
-
         return (
-            // biome-ignore lint/a11y/noStaticElementInteractions: Sidebar menu item wrapper
-            <div
-                onClick={onClose}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') onClose?.();
-                }}
+            <Link
                 key={item.id || index}
+                href={item.url || '#'}
+                target={linkTarget}
+                aria-current={isSelected ? 'page' : undefined}
+                aria-disabled={item.disabled || undefined}
+                onClick={(event) => {
+                    if (item.disabled) {
+                        event.preventDefault();
+                        return;
+                    }
+                    onClose?.();
+                }}
+                className={cn(
+                    'group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+                    isSubItem ? 'pl-8 text-xs' : '',
+                    isSelected
+                        ? 'bg-primary/10 text-primary font-semibold shadow-2xs dark:bg-primary/20 dark:text-primary-foreground border border-primary/20'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/70 active:scale-[0.99] border border-transparent',
+                    item.disabled ? 'pointer-events-none opacity-50' : ''
+                )}
             >
-                <Link
-                    href={item.url || '#'}
-                    target={linkTarget}
-                    aria-current={isSelected ? 'page' : undefined}
-                    aria-disabled={item.disabled || undefined}
-                    onClick={(event) => {
-                        if (item.disabled) {
-                            event.preventDefault();
-                            return;
-                        }
-                        onClose?.();
-                    }}
-                    className={`flex items-center gap-2 ${itemClassNames} ${
-                        item.disabled ? 'pointer-events-none opacity-50' : ''
-                    }`}
-                >
-                    {iconElement}
-                    <span className="truncate flex-1">{item.title || item.name}</span>
-                    {item.isPro && (
-                        <span className="rounded bg-lightsecondary px-1.5 py-0.5 text-xs text-secondary">
-                            Pro
-                        </span>
-                    )}
-                </Link>
-            </div>
+                {isSelected && (
+                    <span
+                        className="absolute left-1 top-2 bottom-2 w-1 rounded-full bg-primary"
+                        aria-hidden="true"
+                    />
+                )}
+                {iconElement}
+                <span className="truncate flex-1 tracking-tight">
+                    {item.title || item.name}
+                </span>
+                {item.isPro && (
+                    <span className="rounded bg-secondary/10 text-secondary border border-secondary/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                        Pro
+                    </span>
+                )}
+            </Link>
         );
     });
 };
@@ -114,45 +118,80 @@ const SidebarSection = ({
 }) => {
     const [isHovered, setIsHovered] = useState(false);
 
-    // Check if any child is active
+    // Check if any child in this section is currently active
     const isActive = section.children?.some((child) => {
-        if (child.url === pathname) return true;
-        if (child.children) {
-            return child.children.some((subChild) => subChild.url === pathname);
-        }
-        return false;
+        if (!child.url) return false;
+        if (child.url === '/') return pathname === '/';
+        return pathname === child.url || pathname.startsWith(`${child.url}/`);
     });
 
-    const isOpen = isActive || isHovered;
+    const isOpen = Boolean(isActive || isHovered);
 
     return (
-        // biome-ignore lint/a11y/noStaticElementInteractions: Sidebar section wrapper
+        // biome-ignore lint/a11y/noStaticElementInteractions: accordion hover preview interaction
         <div
-            className="relative mb-3 pb-2 after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-border after:to-transparent last:after:hidden"
+            className="relative mb-2.5 pb-2.5 after:absolute after:inset-x-2 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-border/80 after:to-transparent last:after:hidden last:mb-0 last:pb-0"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            {/* Heading */}
             {section.heading && (
-                <div className="mb-0 cursor-pointer">
-                    <AMMenu
-                        subHeading={section.heading}
-                        ClassName={`hide-menu leading-21 font-semibold uppercase text-[11px] tracking-wider mt-4 mb-1 px-3 transition-colors duration-200 ${
-                            isOpen ? 'text-primary' : 'text-muted-foreground'
-                        }`}
-                    />
-                </div>
+                <button
+                    type="button"
+                    onClick={() => setIsHovered((prev) => !prev)}
+                    className="w-full px-3 py-1 flex items-center justify-between text-left group cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded-lg transition-colors"
+                    aria-expanded={isOpen}
+                >
+                    <span
+                        className={cn(
+                            'text-[10.5px] font-bold uppercase tracking-wider transition-colors duration-150',
+                            isOpen
+                                ? 'text-primary dark:text-primary font-bold'
+                                : 'text-muted-foreground/75 group-hover:text-foreground'
+                        )}
+                    >
+                        {section.heading}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                        {section.children && section.children.length > 0 && (
+                            <span className="text-[10px] font-medium text-muted-foreground/40 tabular-nums">
+                                {section.children.length}
+                            </span>
+                        )}
+                        <Icon
+                            icon="solar:alt-arrow-down-linear"
+                            width={12}
+                            height={12}
+                            className={cn(
+                                'text-muted-foreground/50 transition-transform duration-200 ease-out group-hover:text-foreground',
+                                isOpen ? 'rotate-180 text-primary' : 'rotate-0'
+                            )}
+                            aria-hidden="true"
+                        />
+                    </div>
+                </button>
             )}
 
-            {/* Children */}
             <AnimatePresence initial={false}>
                 {isOpen && (
                     <motion.div
                         initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: 'easeInOut' }}
-                        className="overflow-hidden"
+                        animate={{
+                            height: 'auto',
+                            opacity: 1,
+                            transition: {
+                                height: { duration: 0.22, ease: [0.04, 0.62, 0.23, 0.98] },
+                                opacity: { duration: 0.18, delay: 0.04 },
+                            },
+                        }}
+                        exit={{
+                            height: 0,
+                            opacity: 0,
+                            transition: {
+                                height: { duration: 0.18, ease: 'easeInOut' },
+                                opacity: { duration: 0.12 },
+                            },
+                        }}
+                        className="overflow-hidden space-y-0.5 pt-1"
                     >
                         {renderSidebarItems(section.children || [], pathname, onClose)}
                     </motion.div>
@@ -170,7 +209,6 @@ const SidebarLayout = ({
     isMobile?: boolean;
 }) => {
     const pathname = usePathname();
-    const { theme } = useTheme();
     const [access, setAccess] = useState<SidebarUserAccess>({
         isStaff: true,
         isTeknisi: false,
@@ -199,55 +237,50 @@ const SidebarLayout = ({
         return section;
     }).filter((section) => !section.heading || (section.children && section.children.length > 0));
 
-    // Only allow "light" or "dark" for AMSidebar
-    const sidebarMode = theme === 'light' || theme === 'dark' ? theme : undefined;
-
     return (
-        <AMSidebar
-            collapsible="none"
-            animation={true}
-            showProfile={false}
-            width={'270px'}
-            showTrigger={false}
-            mode={sidebarMode}
-            className={
+        <aside
+            aria-label="Navigasi sidebar"
+            className={cn(
+                'flex flex-col select-none overflow-hidden transition-colors duration-200',
                 isMobile
-                    ? 'bg-sidebar dark:bg-sidebar w-full h-full'
-                    : 'fixed left-0 top-0 border-r border-border bg-card dark:bg-card z-10 h-[100dvh] shadow-lg'
-            }
+                    ? 'h-full w-full bg-card dark:bg-card text-card-foreground'
+                    : 'fixed left-0 top-0 z-10 h-[100dvh] w-[270px] border-r border-border bg-card dark:bg-card text-card-foreground shadow-xs'
+            )}
         >
             <div className="flex flex-col h-full w-full justify-between">
-                {/* Logo */}
-                <div className="px-6 py-6 flex items-center brand-logo shrink-0 overflow-hidden">
-                    <Link href="/" className="flex items-center">
+                {/* Brand Logo Header - Aligned with main navbar height */}
+                <div className="h-16 px-6 flex items-center brand-logo shrink-0 border-b border-border/50">
+                    <Link
+                        href="/"
+                        onClick={onClose}
+                        className="flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
                         <FullLogo />
                     </Link>
                 </div>
 
-                {/* Sidebar items */}
+                {/* Sidebar Navigation Items */}
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    <nav aria-label="Navigasi sidebar">
-                        <SimpleBar className="h-full">
-                            <div className="px-4 pb-2">
-                                {filteredSidebarContent.map((section, index) => (
-                                    <SidebarSection
-                                        key={section.heading || index}
-                                        section={section}
-                                        pathname={pathname}
-                                        onClose={onClose}
-                                    />
-                                ))}
-                            </div>
-                        </SimpleBar>
-                    </nav>
+                    <SimpleBar className="h-full">
+                        <nav aria-label="Menu navigasi" className="px-3.5 py-3">
+                            {filteredSidebarContent.map((section, index) => (
+                                <SidebarSection
+                                    key={section.heading || index}
+                                    section={section}
+                                    pathname={pathname}
+                                    onClose={onClose}
+                                />
+                            ))}
+                        </nav>
+                    </SimpleBar>
                 </div>
 
-                {/* Announcement Widget - Pinned at the bottom with spacing */}
-                <div className="shrink-0 px-3 pb-5 pt-2">
+                {/* Announcement Widget - Pinned at the bottom */}
+                <div className="shrink-0 px-3 pb-3 pt-2 border-t border-border/50 bg-card/60 backdrop-blur-xs">
                     <SidebarAnnouncement />
                 </div>
             </div>
-        </AMSidebar>
+        </aside>
     );
 };
 

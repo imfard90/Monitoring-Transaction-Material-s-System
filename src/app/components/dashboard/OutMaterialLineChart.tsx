@@ -124,40 +124,51 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
             toolbar: { show: false },
             type: 'line',
             fontFamily: 'inherit',
-            foreColor: '#7C8FAC',
-            height: 310,
+            foreColor: 'var(--color-muted-foreground, #7C8FAC)',
+            height: 316,
             width: '100%',
             offsetX: -20,
         },
         colors: [
-            'var(--color-primary)',
-            'var(--color-chart-2)',
-            'var(--color-chart-3)',
-            'var(--color-chart-4)',
-            'var(--color-chart-5)',
-            'var(--color-chart-6)',
-            'var(--color-chart-7)',
-            'var(--color-chart-8)',
-            'var(--color-chart-9)',
-            'var(--color-chart-10)',
+            '#0085db',
+            '#13deb9',
+            '#745ff2',
+            '#f59e0b',
+            '#ef4444',
+            '#06b6d4',
+            '#84cc16',
+            '#ec4899',
+            '#8b5cf6',
+            '#64748b',
         ],
         stroke: {
             curve: 'smooth',
-            width: 2,
+            width: 2.5,
+        },
+        markers: {
+            size: 0,
+            hover: { size: 4 },
         },
         dataLabels: { enabled: false },
         legend: {
             show: false,
         },
-        grid: { borderColor: 'rgba(0,0,0,0.1)', strokeDashArray: 3 },
+        grid: { borderColor: 'var(--color-border, rgba(0,0,0,0.08))', strokeDashArray: 3 },
         xaxis: {
             categories: chartData.dates,
             axisBorder: { show: false },
             axisTicks: { show: false },
             tickAmount: 10,
+            labels: {
+                style: { fontSize: '11px' },
+            },
         },
         yaxis: {
             tickAmount: 5,
+            labels: {
+                style: { fontSize: '11px' },
+                formatter: (val) => `${Math.round(val)}`,
+            },
         },
         tooltip: {
             theme: 'dark',
@@ -168,21 +179,24 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
 
     return (
         <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none pb-0 h-full w-full relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+            <div
+                className="absolute top-0 left-0 w-full h-28 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"
+                aria-hidden="true"
+            />
 
-            <div className="relative z-10 sm:flex items-center justify-between mb-6">
+            <div className="relative z-10 sm:flex items-center justify-between mb-4">
                 <div>
-                    <h2 className="text-xl font-bold tracking-tight text-foreground">
+                    <h2 className="text-lg font-semibold tracking-tight text-foreground">
                         Out Material per Hari (30 Hari Terakhir)
                     </h2>
-                    <p className="text-sm text-muted-foreground font-medium mt-1">
+                    <p className="text-xs text-muted-foreground font-normal mt-0.5">
                         Tren penggunaan material harian
                     </p>
                 </div>
-                <div className="sm:mt-0 mt-4 flex gap-3">
+                <div className="sm:mt-0 mt-3 flex items-center gap-2">
                     {!isStaff && (
                         <Select value={selectedWh} onValueChange={setSelectedWh}>
-                            <SelectTrigger className="w-[140px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
+                            <SelectTrigger className="w-[130px] sm:w-[140px] h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
                                 <SelectValue placeholder="Pilih Gudang" />
                             </SelectTrigger>
                             <SelectContent>
@@ -197,7 +211,7 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                     )}
 
                     <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
-                        <SelectTrigger className="w-[180px] bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
+                        <SelectTrigger className="w-[160px] sm:w-[175px] h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
                             <SelectValue placeholder="Pilih Material" />
                         </SelectTrigger>
                         <SelectContent>
@@ -217,7 +231,7 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                     options={ChartOptions}
                     series={filteredSeries}
                     type="line"
-                    height={350}
+                    height={316}
                     width="100%"
                 />
             </div>

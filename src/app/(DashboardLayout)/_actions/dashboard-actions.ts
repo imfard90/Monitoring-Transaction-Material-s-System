@@ -11,6 +11,7 @@
 export {
     getOutMaterialLineChartData,
     getSalesOverviewData,
+    getStockValueComparison,
     getTopOutMaterials,
     getWarehousePerformance,
 } from './dashboard-charts-queries';

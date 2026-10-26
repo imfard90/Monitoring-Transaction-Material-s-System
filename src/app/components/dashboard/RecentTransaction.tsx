@@ -144,12 +144,12 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
                 aria-hidden="true"
             />
 
-            <div className="relative z-10 mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div className="relative z-10 mb-4 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                    <h2 className="text-xl font-bold tracking-tight text-foreground">
+                    <h2 className="text-lg font-semibold tracking-tight text-foreground">
                         Top Out Material
                     </h2>
-                    <p className="text-sm text-muted-foreground font-medium mt-1">
+                    <p className="text-xs text-muted-foreground font-normal mt-0.5">
                         30 Hari Terakhir
                     </p>
                 </div>
@@ -157,7 +157,7 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
                     <Select value={selectedWh} onValueChange={setSelectedWh}>
                         <SelectTrigger
                             aria-label="Filter gudang top out material"
-                            className="w-full sm:w-52"
+                            className="w-[130px] sm:w-[150px] h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors"
                         >
                             <SelectValue placeholder="Pilih Gudang" />
                         </SelectTrigger>

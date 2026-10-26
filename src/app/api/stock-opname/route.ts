@@ -41,23 +41,26 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Data materials wajib diisi.' }, { status: 400 });
         }
 
-        const sapItems = new Map<string, number>();
+        // Filter materials according to staff warehouse authorization
+        const authorizedMaterials: Array<{
+            warehouse_id: number;
+            material_code: string;
+            saldo_sap: number;
+        }> = [];
+
         for (const item of parsed.data.materials) {
-            if (!canAccessWarehouse(user, item.warehouse_id)) continue;
-            sapItems.set(
-                `${item.warehouse_id}|${item.material_code.toUpperCase()}`,
-                item.saldo_sap
-            );
+            if (canAccessWarehouse(user, item.warehouse_id)) {
+                authorizedMaterials.push(item);
+            }
         }
 
-        if (sapItems.size === 0) {
+        if (authorizedMaterials.length === 0) {
             return NextResponse.json({ error: 'Akses gudang ditolak.' }, { status: 403 });
         }
 
-        const warehouseIds = [
-            ...new Set([...sapItems.keys()].map((key) => Number(key.split('|')[0]))),
-        ];
+        const warehouseIds = [...new Set(authorizedMaterials.map((item) => item.warehouse_id))];
 
+        // Query MTMS current stock balance for the authorized warehouses
         const mtmsStock = await db
             .selectFrom('inventory.stock_balance')
             .innerJoin('inventory.mas_wh as wh', (join) =>
@@ -77,20 +80,30 @@ export async function POST(req: NextRequest) {
             ])
             .execute();
 
-        const results = mtmsStock.flatMap((row) => {
+        const mtmsStockMap = new Map<string, { qty: number; name: string }>();
+        for (const row of mtmsStock) {
             const key = `${row.warehouse_id}|${String(row.material_code).trim().toUpperCase()}`;
-            const sapQty = sapItems.get(key);
-            if (sapQty === undefined) return [];
-            const mtmsQty = row.qty_stock ?? 0;
-            return [
-                {
-                    material_code: row.material_code,
-                    material_name: row.material_name ?? '',
-                    qty_system: mtmsQty,
-                    qty_opname: sapQty,
-                    difference: sapQty - mtmsQty,
-                },
-            ];
+            mtmsStockMap.set(key, {
+                qty: row.qty_stock ?? 0,
+                name: row.material_name ?? '',
+            });
+        }
+
+        // Map every authorized item from SAP against MTMS (robust outer match)
+        const results = authorizedMaterials.map((item) => {
+            const code = item.material_code.trim().toUpperCase();
+            const key = `${item.warehouse_id}|${code}`;
+            const existing = mtmsStockMap.get(key);
+            const mtmsQty = existing ? existing.qty : 0;
+            const matName = existing?.name ?? '';
+
+            return {
+                material_code: code,
+                material_name: matName,
+                qty_system: mtmsQty,
+                qty_opname: item.saldo_sap,
+                difference: item.saldo_sap - mtmsQty,
+            };
         });
 
         actionLogger.info('Stock opname matched', {

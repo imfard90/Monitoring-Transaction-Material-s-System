@@ -1,58 +1,55 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
     getSortedRowModel,
-    flexRender,
+    getPaginationRowModel,
+    getFilteredRowModel,
     type ColumnDef,
     type SortingState,
 } from '@tanstack/react-table';
-import { ChevronDown, ChevronUp, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { getStockOpnameLogs } from '../_actions/stock-opname-actions';
-import { toast } from 'sonner';
-import type { StockOpnameLog } from '@/lib/repositories/stock-opname.repository';
+import { Eye, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
+import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SearchField } from '@/components/ui/search-field';
+import { DataTable } from '@/app/components/shared/DataTable';
+import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { StatusBadge } from '@/app/components/shared/StatusBadge';
+import { EmptyState } from '@/app/components/shared/EmptyState';
+import { getStockOpnameLogs } from '../_actions/stock-opname-actions';
+import type { StockOpnameLog } from '@/lib/repositories/stock-opname.repository';
 
 interface Props {
     onViewDetail: (log: StockOpnameLog) => void;
     refreshTrigger?: number;
 }
 
-const statusBadge = (status: string) => {
-    const variants = {
-        pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-        approved: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-        rejected: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    };
-    return (
-        <span
-            className={`px-2 py-1 rounded-full text-xs font-medium ${variants[status as keyof typeof variants]}`}
-        >
-            {status === 'pending' ? 'Pending' : status === 'approved' ? 'Approved' : 'Rejected'}
-        </span>
-    );
-};
+type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 
 export function StockOpnameLogTable({ onViewDetail, refreshTrigger }: Props) {
     const [logs, setLogs] = useState<StockOpnameLog[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [sorting, setSorting] = useState<SortingState>([]);
+    const [sorting, setSorting] = useState<SortingState>([{ id: 'created_at', desc: true }]);
+    const [globalFilter, setGlobalFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
     const loadLogs = async () => {
         setIsLoading(true);
         try {
             const res = await getStockOpnameLogs();
             if (!res.success) {
-                toast.error(res.error ?? 'Gagal memuat data');
+                toast.error(res.error ?? 'Gagal memuat data riwayat');
                 return;
             }
             setLogs(res.data ?? []);
-        } catch (err) {
-            toast.error('Terjadi kesalahan');
+        } catch {
+            toast.error('Terjadi kesalahan saat memuat data');
         } finally {
             setIsLoading(false);
         }
@@ -62,145 +59,236 @@ export function StockOpnameLogTable({ onViewDetail, refreshTrigger }: Props) {
         loadLogs();
     }, [refreshTrigger]);
 
-    const columns: ColumnDef<StockOpnameLog>[] = [
-        {
-            accessorKey: 'id',
-            header: 'ID',
-            cell: ({ row }) => <span className="font-mono text-sm">{row.original.id}</span>,
-        },
-        {
-            accessorKey: 'warehouse_name',
-            header: 'Gudang',
-            cell: ({ row }) => <span className="font-medium">{row.original.warehouse_name}</span>,
-        },
-        {
-            accessorKey: 'total_items',
-            header: 'Total Item',
-            cell: ({ row }) => <span className="font-mono">{row.original.total_items}</span>,
-        },
-        {
-            accessorKey: 'total_difference',
-            header: 'Total Selisih',
-            cell: ({ row }) => (
-                <span className="font-mono font-semibold text-destructive">
-                    {row.original.total_difference}
-                </span>
-            ),
-        },
-        {
-            accessorKey: 'status',
-            header: 'Status',
-            cell: ({ row }) => statusBadge(row.original.status),
-        },
-        {
-            accessorKey: 'created_by',
-            header: 'Dibuat Oleh',
-            cell: ({ row }) => <span className="font-mono text-sm">{row.original.created_by}</span>,
-        },
-        {
-            accessorKey: 'created_at',
-            header: 'Tanggal',
-            cell: ({ row }) => (
-                <span className="text-sm text-muted-foreground">
-                    {format(row.original.created_at, 'dd MMM yyyy HH:mm', { locale: localeId })}
-                </span>
-            ),
-        },
-        {
-            id: 'actions',
-            header: 'Aksi',
-            cell: ({ row }) => (
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onViewDetail(row.original)}
-                    className="h-8 w-8 p-0"
-                >
-                    <Eye className="h-4 w-4" />
-                </Button>
-            ),
-        },
-    ];
+    // Client-side filtering by status tab
+    const filteredLogs = useMemo(() => {
+        if (statusFilter === 'all') return logs;
+        return logs.filter((log) => log.status === statusFilter);
+    }, [logs, statusFilter]);
+
+    const columns: ColumnDef<StockOpnameLog>[] = useMemo(
+        () => [
+            {
+                accessorKey: 'id',
+                header: 'ID',
+                size: 80,
+                cell: ({ row }) => (
+                    <span className="font-mono text-xs font-semibold text-foreground">
+                        #{row.original.id}
+                    </span>
+                ),
+            },
+            {
+                accessorKey: 'warehouse_name',
+                header: 'Gudang',
+                size: 180,
+                cell: ({ row }) => (
+                    <span className="font-medium text-foreground">
+                        {row.original.warehouse_name}
+                    </span>
+                ),
+            },
+            {
+                accessorKey: 'total_items',
+                header: 'Total Item',
+                size: 100,
+                cell: ({ row }) => (
+                    <span className="font-mono text-sm">{row.original.total_items}</span>
+                ),
+            },
+            {
+                accessorKey: 'total_difference',
+                header: 'Total Selisih',
+                size: 120,
+                cell: ({ row }) => {
+                    const diff = row.original.total_difference;
+                    return (
+                        <span
+                            className={`font-mono text-sm font-semibold ${
+                                diff > 0 ? 'text-destructive' : 'text-muted-foreground'
+                            }`}
+                        >
+                            {diff}
+                        </span>
+                    );
+                },
+            },
+            {
+                accessorKey: 'status',
+                header: 'Status',
+                size: 120,
+                cell: ({ row }) => <StatusBadge status={row.original.status} />,
+            },
+            {
+                accessorKey: 'created_by',
+                header: 'Dibuat Oleh',
+                size: 120,
+                cell: ({ row }) => (
+                    <span className="font-mono text-xs">{row.original.created_by}</span>
+                ),
+            },
+            {
+                accessorKey: 'created_at',
+                header: 'Tanggal',
+                size: 160,
+                cell: ({ row }) => (
+                    <span className="text-xs text-muted-foreground">
+                        {format(row.original.created_at, 'dd MMM yyyy HH:mm', {
+                            locale: localeId,
+                        })}
+                    </span>
+                ),
+            },
+            {
+                id: 'actions',
+                header: 'Aksi',
+                size: 70,
+                cell: ({ row }) => (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onViewDetail(row.original)}
+                        className="h-8 w-8 p-0 hover:bg-muted"
+                        aria-label={`Lihat detail stock opname #${row.original.id}`}
+                        title={`Lihat detail stock opname #${row.original.id}`}
+                    >
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                ),
+            },
+        ],
+        [onViewDetail]
+    );
 
     const table = useReactTable({
-        data: logs,
+        data: filteredLogs,
         columns,
-        state: { sorting },
+        state: {
+            sorting,
+            globalFilter,
+        },
         onSortingChange: setSorting,
+        onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        initialState: {
+            pagination: {
+                pageSize: 10,
+            },
+        },
     });
 
-    if (isLoading) {
-        return (
-            <div className="rounded-lg border border-border/50 bg-card/30 backdrop-blur-sm p-8 text-center">
-                <p className="text-muted-foreground">Memuat data...</p>
-            </div>
-        );
-    }
-
-    if (logs.length === 0) {
-        return (
-            <div className="rounded-lg border border-border/50 bg-card/30 backdrop-blur-sm p-8 text-center">
-                <p className="text-muted-foreground">Belum ada data stock opname</p>
-            </div>
-        );
-    }
+    const statusCounts = useMemo(() => {
+        const counts = { all: logs.length, pending: 0, approved: 0, rejected: 0 };
+        for (const log of logs) {
+            if (log.status in counts) {
+                counts[log.status as keyof typeof counts]++;
+            }
+        }
+        return counts;
+    }, [logs]);
 
     return (
-        <div className="rounded-lg border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden">
-            <table className="w-full">
-                <thead className="bg-muted/80 backdrop-blur-sm border-b border-border/50">
-                    {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id}>
-                            {headerGroup.headers.map((header) => (
-                                <th
-                                    key={header.id}
-                                    className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+        <Card className="border-border/70 shadow-sm">
+            <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-3">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <CardTitle className="text-base font-semibold sm:text-lg">
+                            Riwayat Stock Opname
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            Daftar hasil rekonsiliasi dan arsip berita acara stock opname
+                        </p>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={loadLogs}
+                        disabled={isLoading}
+                        className="self-start sm:self-auto gap-2"
+                        aria-label="Muat ulang riwayat stock opname"
+                    >
+                        <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                        Segarkan
+                    </Button>
+                </div>
+
+                {/* Filters & Status Tabs */}
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    {/* Search Field */}
+                    <div className="w-full sm:w-72">
+                        <SearchField
+                            placeholder="Cari ID, gudang, atau NIK..."
+                            value={globalFilter}
+                            onValueChange={setGlobalFilter}
+                            onClear={() => setGlobalFilter('')}
+                        />
+                    </div>
+
+                    {/* Status Chips */}
+                    <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Filter status stock opname">
+                        {(
+                            [
+                                { key: 'all', label: 'Semua', count: statusCounts.all },
+                                { key: 'pending', label: 'Pending', count: statusCounts.pending },
+                                { key: 'approved', label: 'Disetujui', count: statusCounts.approved },
+                                { key: 'rejected', label: 'Ditolak', count: statusCounts.rejected },
+                            ] as const
+                        ).map(({ key, label, count }) => {
+                            const isActive = statusFilter === key;
+                            return (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={isActive}
+                                    onClick={() => setStatusFilter(key)}
+                                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                                        isActive
+                                            ? 'bg-primary text-primary-foreground shadow-xs'
+                                            : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    }`}
                                 >
-                                    {header.isPlaceholder ? null : (
-                                        <div
-                                            className={
-                                                header.column.getCanSort()
-                                                    ? 'flex items-center gap-2 cursor-pointer select-none'
-                                                    : ''
-                                            }
-                                            onClick={header.column.getToggleSortingHandler()}
-                                        >
-                                            {flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext()
-                                            )}
-                                            {header.column.getCanSort() && (
-                                                <span className="text-muted-foreground/50">
-                                                    {header.column.getIsSorted() === 'asc' ? (
-                                                        <ChevronUp className="h-4 w-4" />
-                                                    ) : header.column.getIsSorted() === 'desc' ? (
-                                                        <ChevronDown className="h-4 w-4" />
-                                                    ) : (
-                                                        <ChevronDown className="h-4 w-4 opacity-0 group-hover:opacity-50" />
-                                                    )}
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                </th>
-                            ))}
-                        </tr>
-                    ))}
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                    {table.getRowModel().rows.map((row) => (
-                        <tr key={row.id} className="hover:bg-muted/20 transition-colors">
-                            {row.getVisibleCells().map((cell) => (
-                                <td key={cell.id} className="px-4 py-3 text-sm">
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </td>
-                            ))}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+                                    <span>{label}</span>
+                                    <span
+                                        className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                                            isActive
+                                                ? 'bg-primary-foreground/20 text-primary-foreground'
+                                                : 'bg-background text-muted-foreground'
+                                        }`}
+                                    >
+                                        {count}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            </CardHeader>
+
+            <CardContent className="p-4 pt-2 sm:p-6 sm:pt-3 space-y-4">
+                {!isLoading && filteredLogs.length === 0 ? (
+                    <EmptyState
+                        title="Tidak ada data stock opname"
+                        description={
+                            globalFilter || statusFilter !== 'all'
+                                ? 'Tidak ditemukan data yang sesuai dengan filter pencarian.'
+                                : 'Belum ada dokumen stock opname yang pernah diunggah.'
+                        }
+                    />
+                ) : (
+                    <>
+                        <DataTable
+                            table={table}
+                            isLoading={isLoading}
+                            emptyMessage="Belum ada data stock opname."
+                            maxHeight="min(65vh, 600px)"
+                        />
+                        <DataTablePagination table={table} />
+                    </>
+                )}
+            </CardContent>
+        </Card>
     );
 }
