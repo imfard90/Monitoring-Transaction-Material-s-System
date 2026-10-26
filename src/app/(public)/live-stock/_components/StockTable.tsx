@@ -16,9 +16,10 @@ import {
     type VisibilityState,
 } from '@tanstack/react-table';
 import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -93,6 +94,21 @@ export function StockTable({
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
+
+    const hasActiveFilters = Boolean(
+        searchQuery.trim() || statusFilter !== null || selectedWarehouseId !== 0
+    );
+
+    const handleResetFilters = useCallback(() => {
+        setSearchQuery('');
+        setStatusFilter(null);
+        onWarehouseChange(0);
+    }, [onWarehouseChange]);
+
+    usePageFilterEsc({
+        isActive: hasActiveFilters,
+        onReset: handleResetFilters,
+    });
 
     const filteredItems = useMemo(() => {
         let result = items;
@@ -346,6 +362,7 @@ export function StockTable({
                                 placeholder="Cari kode/nama material..."
                                 value={searchQuery}
                                 onValueChange={setSearchQuery}
+                                onClear={handleResetFilters}
                                 clearLabel="Hapus pencarian"
                             />
                         </div>

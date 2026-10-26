@@ -27,6 +27,7 @@ interface SearchParams {
     page?: string;
     pageSize?: string;
     warehouse?: string;
+    search?: string;
 }
 
 export default async function OutLensaRefPage({
@@ -40,8 +41,9 @@ export default async function OutLensaRefPage({
     const page = Math.max(1, parseInt(params.page ?? '1', 10));
     const pageSize = Math.min(100, Math.max(10, parseInt(params.pageSize ?? '20', 10)));
     const warehouse = params.warehouse ?? 'all';
+    const search = params.search ?? '';
 
-    const result = await getOutLensaRefList({ page, pageSize, warehouseFilter: warehouse });
+    const result = await getOutLensaRefList({ page, pageSize, warehouseFilter: warehouse, search });
 
     return (
         <div className="flex flex-col flex-1 gap-6 md:h-full md:min-h-0 md:overflow-hidden">
@@ -64,6 +66,7 @@ export default async function OutLensaRefPage({
                 error={result.success ? undefined : result.error}
                 isStaff={isStaff}
                 currentWarehouse={warehouse}
+                currentSearch={search}
                 warehouseOptions={result.success ? (result.data?.warehouses ?? []) : []}
             />
         </div>

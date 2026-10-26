@@ -6,12 +6,13 @@ import {
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { Check, ChevronsUpDown, Eye, FilterX } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { StatusBadge } from '@/app/components/shared/StatusBadge';
+import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -182,6 +183,27 @@ export default function OutMaterialTable({
         },
     });
 
+    const hasActiveFilters = Boolean(
+        searchQuery.trim() ||
+            dateFilter?.from ||
+            (whFilter && whFilter !== 'all')
+    );
+
+    const handleResetAll = useCallback(() => {
+        if (onClearFilters) {
+            onClearFilters();
+        } else {
+            onSearchChange('');
+            onDateFilterChange?.(undefined);
+            onWhChange('all');
+        }
+    }, [onClearFilters, onSearchChange, onDateFilterChange, onWhChange]);
+
+    usePageFilterEsc({
+        isActive: hasActiveFilters,
+        onReset: handleResetAll,
+    });
+
     return (
         <StaggerContainer className="space-y-4">
             <StaggerItem className="flex justify-between items-center gap-4 mb-4 p-0.5">
@@ -192,6 +214,7 @@ export default function OutMaterialTable({
                         className="bg-background"
                         value={searchQuery}
                         onValueChange={onSearchChange}
+                        onClear={handleResetAll}
                     />
                     <DateRangePicker
                         date={dateFilter}
@@ -275,7 +298,7 @@ export default function OutMaterialTable({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Hapus semua filter</p>
+                                <p>Hapus semua filter (Esc)</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

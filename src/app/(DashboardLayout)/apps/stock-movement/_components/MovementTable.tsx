@@ -8,11 +8,13 @@ import {
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { FilterX } from 'lucide-react';
+import { useCallback } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
+import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -209,6 +211,38 @@ export default function MovementTable({
         },
     });
 
+    const hasActiveFilters = Boolean(
+        searchQuery.trim() ||
+            dateRange?.from ||
+            (warehouseFilter && warehouseFilter !== 'all') ||
+            (materialFilter && materialFilter !== 'all') ||
+            (typeFilter && typeFilter.length > 0)
+    );
+
+    const handleResetAll = useCallback(() => {
+        if (onClearFilters) {
+            onClearFilters();
+        } else {
+            onSearchChange('');
+            onDateRangeChange?.(undefined);
+            onWarehouseFilterChange?.('all');
+            onMaterialFilterChange?.('all');
+            onTypeFilterChange?.([]);
+        }
+    }, [
+        onClearFilters,
+        onSearchChange,
+        onDateRangeChange,
+        onWarehouseFilterChange,
+        onMaterialFilterChange,
+        onTypeFilterChange,
+    ]);
+
+    usePageFilterEsc({
+        isActive: hasActiveFilters,
+        onReset: handleResetAll,
+    });
+
     return (
         <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0">
             {/* Toolbar */}
@@ -220,6 +254,7 @@ export default function MovementTable({
                         className="bg-background"
                         value={searchQuery}
                         onValueChange={onSearchChange}
+                        onClear={handleResetAll}
                     />
 
                     {onDateRangeChange && (
@@ -316,7 +351,7 @@ export default function MovementTable({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Hapus semua filter</p>
+                                <p>Hapus semua filter (Esc)</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

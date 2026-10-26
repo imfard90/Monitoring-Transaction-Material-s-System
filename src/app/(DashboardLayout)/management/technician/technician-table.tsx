@@ -8,10 +8,11 @@ import {
 } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
 import { Pencil, Plus } from 'lucide-react';
-import { useMemo, useState, useTransition } from 'react';
+import { useCallback, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { Button } from '@/components/ui/button';
 import { SearchField } from '@/components/ui/search-field';
 import {
@@ -48,6 +49,18 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
     const [whFilter, setWhFilter] = useState<string>('all');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [selectedTechnician, setSelectedTechnician] = useState<TechnicianItem | null>(null);
+
+    const hasActiveFilters = Boolean(nikFilter.trim() || whFilter !== 'all');
+
+    const handleResetFilters = useCallback(() => {
+        setNikFilter('');
+        setWhFilter('all');
+    }, []);
+
+    usePageFilterEsc({
+        isActive: hasActiveFilters,
+        onReset: handleResetFilters,
+    });
 
     // Extract unique service areas for the filter
     const serviceAreas = useMemo(() => {
@@ -163,6 +176,7 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
                         placeholder="Cari berdasarkan NIK atau nama..."
                         value={nikFilter}
                         onValueChange={setNikFilter}
+                        onClear={handleResetFilters}
                         clearLabel="Hapus filter NIK teknisi"
                     />
 

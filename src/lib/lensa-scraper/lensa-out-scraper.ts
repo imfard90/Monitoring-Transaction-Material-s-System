@@ -183,7 +183,7 @@ export async function scrapeLensaDetails(
 
     // Pastikan context terautentikasi
     if (authPage.url().includes('login')) {
-        await performLogin();
+        await performLogin(authPage);
     }
     await authPage.close().catch(() => {});
 
@@ -197,7 +197,7 @@ export async function scrapeLensaDetails(
 
                 if (page.url().includes('login')) {
                     await redis.del(sessionKey);
-                    await performLogin();
+                    await performLogin(page);
                     await page.goto(detailUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
                     if (page.url().includes('login')) {
@@ -205,7 +205,11 @@ export async function scrapeLensaDetails(
                     }
                 }
 
-                await page.waitForSelector('table', { timeout: 8000 }).catch(() => null);
+                // Tunggu baris data tabel muncul atau indikator data kosong (mencegah silent empty array)
+                await Promise.race([
+                    page.waitForSelector('table tbody tr td', { state: 'attached', timeout: 12000 }),
+                    page.waitForSelector('.dataTables_empty, .empty-state, text=/tidak ada data|no data/i', { timeout: 12000 }),
+                ]).catch(() => null);
 
                 const tablesData = await page.$$eval('table', (tables) => {
                     return tables.map((tableEl) => {
@@ -216,30 +220,45 @@ export async function scrapeLensaDetails(
                         );
                         let type = 'unknown';
                         if (headers.includes('ID MATERIAL')) type = 'materials';
-                        const data = rows.slice(1).map((row) => {
-                            const cells = Array.from(row.querySelectorAll('td')).map(
-                                (td) => td.textContent?.trim() || ''
-                            );
-                            const obj: Record<string, string> = {};
-                            headers.forEach((h, i) => {
-                                if (h) obj[h] = cells[i] || '';
+                        const data = rows
+                            .slice(1)
+                            .filter((row) => !row.classList.contains('dataTables_empty'))
+                            .map((row) => {
+                                const cells = Array.from(row.querySelectorAll('td')).map(
+                                    (td) => td.textContent?.trim() || ''
+                                );
+                                const obj: Record<string, string> = {};
+                                headers.forEach((h, i) => {
+                                    if (h) obj[h] = cells[i] || '';
+                                });
+                                return obj;
                             });
-                            return obj;
-                        });
                         return { type, data };
                     });
                 });
 
                 const materials = tablesData.find((t) => t.type === 'materials')?.data || [];
 
-                const fullText = await page.evaluate(() => document.body.innerText || '');
-                const lines = fullText
-                    .split('\n')
-                    .map((l: string) => l.trim())
-                    .filter((l: string) => l.length > 0);
-                const getLineAfter = (label: string) => {
+                // Ekstraksi Mitra: Utamakan pencocokan elemen DOM terstruktur, lalu fallback ke baris teks
+                const parsedMitra = await page.evaluate(() => {
+                    const elements = Array.from(document.querySelectorAll('.info-row, tr, .row, dl, div'));
+                    for (const el of elements) {
+                        const text = el.textContent || '';
+                        const match = text.match(/Mitra\s*[:\t]\s*([^\n\r]+)/i);
+                        if (match && match[1]?.trim()) {
+                            const val = match[1].trim();
+                            if (!/^(tanggal|gudang|project|nik|status)/i.test(val)) {
+                                return val;
+                            }
+                        }
+                    }
+                    const fullText = document.body.innerText || '';
+                    const lines = fullText
+                        .split('\n')
+                        .map((l: string) => l.trim())
+                        .filter((l: string) => l.length > 0);
                     const idx = lines.findIndex(
-                        (l: string) => l.toLowerCase() === label.toLowerCase()
+                        (l: string) => l.toLowerCase() === 'mitra'
                     );
                     if (idx !== -1 && idx + 1 < lines.length) {
                         const nextLine = lines[idx + 1];
@@ -258,8 +277,7 @@ export async function scrapeLensaDetails(
                         return nextLine;
                     }
                     return null;
-                };
-                const parsedMitra = getLineAfter('Mitra');
+                });
 
                 return {
                     header_id: header.id,
@@ -312,24 +330,7 @@ export async function scrapeReservation(
 
     try {
         const listUrl = `${LENSA_URL}/resevation_list_data?page=1&perpage=50&search=${id}&orderBy=reservation_id&orderDirection=desc`;
-        await safeGoto(listUrl);
-
-        if (page.url().includes('login')) {
-            await performLogin();
-            await safeGoto(listUrl);
-            if (page.url().includes('login')) {
-                await redis.del(sessionKey);
-                throw new Error('Sesi Lensa tidak valid.');
-            }
-        }
-
-        const listContent = await page.evaluate(
-            () => document.body.innerText || document.body.textContent
-        );
-        let listData: Record<string, unknown> = {};
-        try {
-            listData = JSON.parse(listContent || '{}');
-        } catch (_e) {}
+        const listData = await fetchPageJSON(page, listUrl, performLogin, safeGoto);
 
         const item = (listData?.data as Array<Record<string, unknown>>)?.[0];
         if (!item) {
@@ -340,7 +341,7 @@ export async function scrapeReservation(
         await safeGoto(detailUrl);
 
         if (page.url().includes('login')) {
-            await performLogin();
+            await performLogin(page);
             await safeGoto(detailUrl);
             if (page.url().includes('login')) {
                 await redis.del(sessionKey);
@@ -348,7 +349,10 @@ export async function scrapeReservation(
             }
         }
 
-        await page.waitForTimeout(3000);
+        await Promise.race([
+            page.waitForSelector('table tbody tr td', { state: 'attached', timeout: 12000 }),
+            page.waitForSelector('.dataTables_empty, .empty-state, text=/tidak ada data|no data/i', { timeout: 12000 }),
+        ]).catch(() => null);
 
         const tablesData = await page.$$eval('table', (tables) => {
             return tables.map((tableEl) => {
@@ -359,59 +363,74 @@ export async function scrapeReservation(
                 );
                 let type = 'unknown';
                 if (headers.includes('ID MATERIAL')) type = 'materials';
-                const data = rows.slice(1).map((row) => {
-                    const cells = Array.from(row.querySelectorAll('td')).map(
-                        (td) => td.textContent?.trim() || ''
-                    );
-                    const obj: Record<string, string> = {};
-                    headers.forEach((header, i) => {
-                        if (header) obj[header] = cells[i] || '';
+                const data = rows
+                    .slice(1)
+                    .filter((row) => !row.classList.contains('dataTables_empty'))
+                    .map((row) => {
+                        const cells = Array.from(row.querySelectorAll('td')).map(
+                            (td) => td.textContent?.trim() || ''
+                        );
+                        const obj: Record<string, string> = {};
+                        headers.forEach((header, i) => {
+                            if (header) obj[header] = cells[i] || '';
+                        });
+                        return obj;
                     });
-                    return obj;
-                });
                 return { type, data };
             });
         });
 
         const materials = tablesData.find((t) => t.type === 'materials')?.data || [];
 
-        const fullText = await page.evaluate(() => document.body.innerText || '');
-        const lines = fullText
-            .split('\n')
-            .map((l: string) => l.trim())
-            .filter((l: string) => l.length > 0);
-        const getLineAfter = (label: string) => {
-            const idx = lines.findIndex((l: string) => l.toLowerCase() === label.toLowerCase());
-            if (idx !== -1 && idx + 1 < lines.length) {
-                const nextLine = lines[idx + 1];
-                const knownLabels = [
-                    'Tanggal Target Penerimaan',
-                    'Gudang',
-                    'Project ID',
-                    'Mitra',
-                    'NIK Pemakai',
-                    'Status Reservasi',
-                    'Position',
-                    'Detail Material',
-                ];
-                if (knownLabels.some((k) => k.toLowerCase() === nextLine.toLowerCase()))
-                    return null;
-                return nextLine;
-            }
-            return null;
-        };
+        const metaInfo = await page.evaluate(() => {
+            const extractLabel = (targetLabel: string) => {
+                const elements = Array.from(document.querySelectorAll('.info-row, tr, .row, dl, div'));
+                for (const el of elements) {
+                    const text = el.textContent || '';
+                    const match = text.match(new RegExp(`${targetLabel}\\s*[:\t]\\s*([^\\n\\r]+)`, 'i'));
+                    if (match && match[1]?.trim()) {
+                        const val = match[1].trim();
+                        if (!/^(tanggal|gudang|project|nik|status)/i.test(val) || targetLabel.toLowerCase() === 'nik pemakai') {
+                            return val;
+                        }
+                    }
+                }
+                const fullText = document.body.innerText || '';
+                const lines = fullText
+                    .split('\n')
+                    .map((l: string) => l.trim())
+                    .filter((l: string) => l.length > 0);
+                const idx = lines.findIndex((l: string) => l.toLowerCase() === targetLabel.toLowerCase());
+                if (idx !== -1 && idx + 1 < lines.length) {
+                    const nextLine = lines[idx + 1];
+                    const knownLabels = [
+                        'Tanggal Target Penerimaan',
+                        'Gudang',
+                        'Project ID',
+                        'Mitra',
+                        'NIK Pemakai',
+                        'Status Reservasi',
+                        'Position',
+                        'Detail Material',
+                    ];
+                    if (knownLabels.some((k) => k.toLowerCase() === nextLine.toLowerCase()))
+                        return null;
+                    return nextLine;
+                }
+                return null;
+            };
 
-        const nikPemakai = getLineAfter('NIK Pemakai');
-        const mitra = getLineAfter('Mitra');
+            return {
+                nikPemakai: extractLabel('NIK Pemakai'),
+                mitra: extractLabel('Mitra'),
+            };
+        });
 
         return {
             listData,
             detailContent: {
                 materials,
-                headerInfo: {
-                    nikPemakai,
-                    mitra,
-                },
+                headerInfo: metaInfo,
             },
         };
     } finally {

@@ -44,10 +44,11 @@ export interface GetOutLensaRefListOptions {
     page?: number;
     pageSize?: number;
     warehouseFilter?: string;
+    search?: string;
 }
 
 export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}) {
-    const { page = 1, pageSize = 20, warehouseFilter } = options;
+    const { page = 1, pageSize = 20, warehouseFilter, search } = options;
 
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
@@ -94,6 +95,20 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             countQuery = countQuery.where('nama_gudang', 'in', filterWarehouse);
         }
 
+        if (search?.trim()) {
+            const s = `%${search.trim()}%`;
+            countQuery = countQuery.where((eb) =>
+                eb.or([
+                    eb('reservation_id', 'ilike', s),
+                    eb('gi_number', 'ilike', s),
+                    eb('nik_pemakai', 'ilike', s),
+                    eb('reservation_id_sap', 'ilike', s),
+                    eb('mitra', 'ilike', s),
+                    eb('nama_gudang', 'ilike', s),
+                ])
+            );
+        }
+
         const countResult = await countQuery.executeTakeFirst();
         const total = Number(countResult?.total ?? 0);
 
@@ -124,6 +139,20 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
 
         if (filterWarehouse) {
             headerQuery = headerQuery.where('nama_gudang', 'in', filterWarehouse);
+        }
+
+        if (search?.trim()) {
+            const s = `%${search.trim()}%`;
+            headerQuery = headerQuery.where((eb) =>
+                eb.or([
+                    eb('reservation_id', 'ilike', s),
+                    eb('gi_number', 'ilike', s),
+                    eb('nik_pemakai', 'ilike', s),
+                    eb('reservation_id_sap', 'ilike', s),
+                    eb('mitra', 'ilike', s),
+                    eb('nama_gudang', 'ilike', s),
+                ])
+            );
         }
 
         const headers = await headerQuery.execute();

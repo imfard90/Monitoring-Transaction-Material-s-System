@@ -9,17 +9,19 @@ import {
 import { format } from 'date-fns';
 import { CheckCircle2, Eye, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { StatusBadge } from '@/app/components/shared/StatusBadge';
+import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
+import { SearchField } from '@/components/ui/search-field';
 import { toCanonicalWarehouseName } from '@/lib/warehouse-helper';
 import {
     checkScrapingStatus,
@@ -67,6 +69,7 @@ export default function OutLensaRefClient({
     error,
     isStaff = false,
     currentWarehouse = 'all',
+    currentSearch = '',
     warehouseOptions = [],
 }: {
     initialData: OutLensaHeader[];
@@ -74,6 +77,7 @@ export default function OutLensaRefClient({
     error?: string;
     isStaff?: boolean;
     currentWarehouse?: string;
+    currentSearch?: string;
     warehouseOptions?: string[];
 }) {
     const data = initialData;
@@ -83,14 +87,40 @@ export default function OutLensaRefClient({
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [loadingDetail, setLoadingDetail] = useState(false);
 
+    const [searchQuery, setSearchQuery] = useState(currentSearch);
     const [selectedGudang, setSelectedGudang] = useState<string>(
         toCanonicalWarehouseName(currentWarehouse)
     );
     const router = useRouter();
 
     useEffect(() => {
+        setSearchQuery(currentSearch);
+    }, [currentSearch]);
+
+    useEffect(() => {
         setSelectedGudang(toCanonicalWarehouseName(currentWarehouse));
     }, [currentWarehouse]);
+
+    // Debounce search update to URL query
+    useEffect(() => {
+        if (searchQuery === currentSearch) return;
+
+        const timer = setTimeout(() => {
+            const params = new URLSearchParams(window.location.search);
+            if (searchQuery.trim()) {
+                params.set('search', searchQuery.trim());
+            } else {
+                params.delete('search');
+            }
+            if (pagination && pagination.page > 1) {
+                params.set('page', '1');
+            }
+            const query = params.toString();
+            router.push(`/reference/out-lensa-ref${query ? `?${query}` : ''}`);
+        }, 350);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery, currentSearch, pagination, router]);
 
     const uniqueGudang = useMemo(() => {
         if (warehouseOptions && warehouseOptions.length > 0) {
@@ -124,6 +154,28 @@ export default function OutLensaRefClient({
         const query = params.toString();
         router.push(`/reference/out-lensa-ref${query ? `?${query}` : ''}`);
     };
+
+    const handleResetAll = useCallback(() => {
+        setSearchQuery('');
+        setSelectedGudang('all');
+        const params = new URLSearchParams(window.location.search);
+        params.delete('search');
+        params.delete('warehouse');
+        if (pagination && pagination.page > 1) {
+            params.set('page', '1');
+        }
+        const query = params.toString();
+        router.push(`/reference/out-lensa-ref${query ? `?${query}` : ''}`);
+    }, [pagination, router]);
+
+    const hasActiveFilters = Boolean(
+        searchQuery.trim() || (!isStaff && selectedGudang && selectedGudang !== 'all')
+    );
+
+    usePageFilterEsc({
+        isActive: hasActiveFilters,
+        onReset: handleResetAll,
+    });
 
     const handleRunScraping = () => {
         setIsStarting(true);
@@ -355,8 +407,15 @@ export default function OutLensaRefClient({
                                 Lensa.
                             </CardDescription>
                         </div>
-                        {!isStaff && (
-                            <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <SearchField
+                                value={searchQuery}
+                                onValueChange={setSearchQuery}
+                                onClear={handleResetAll}
+                                placeholder="Cari reservasi, GI, NIK..."
+                                wrapperClassName="w-full sm:w-[220px]"
+                            />
+                            {!isStaff && (
                                 <WarehouseCombobox
                                     value={selectedGudang}
                                     onValueChange={handleWarehouseChange}
@@ -365,7 +424,8 @@ export default function OutLensaRefClient({
                                     allLabel="Semua Gudang"
                                     emptyText="Gudang tidak ditemukan."
                                 />
-
+                            )}
+                            {!isStaff && (
                                 <Button
                                     onClick={handleRunScraping}
                                     disabled={isStarting}
@@ -378,8 +438,8 @@ export default function OutLensaRefClient({
                                     )}
                                     Jalankan Scraping
                                 </Button>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </CardHeader>
                     <CardContent className="flex flex-col md:min-h-0 md:overflow-hidden gap-4">
                         <DataTable

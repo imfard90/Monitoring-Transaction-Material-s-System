@@ -18,6 +18,7 @@ import { getSidebarUserAccess } from '@/app/(DashboardLayout)/management/users/a
 import { OtherStockModal } from '@/app/components/dashboard/OtherStockModal';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,18 @@ export default function StockBalanceOverview() {
     const [searchQuery, setSearchQuery] = useState('');
     const [whFilter, setWhFilter] = useState<string>('all');
     const [openCombo, setOpenCombo] = useState(false);
+
+    const hasActiveFilters = Boolean(searchQuery.trim() || whFilter !== 'all');
+
+    const handleResetFilters = React.useCallback(() => {
+        setSearchQuery('');
+        setWhFilter('all');
+    }, []);
+
+    usePageFilterEsc({
+        isActive: hasActiveFilters,
+        onReset: handleResetFilters,
+    });
     const [selectedMaterial, setSelectedMaterial] = useState<{
         code: string;
         name: string;
@@ -321,6 +334,7 @@ export default function StockBalanceOverview() {
                                 placeholder="Cari kode atau nama material..."
                                 value={searchQuery}
                                 onValueChange={setSearchQuery}
+                                onClear={handleResetFilters}
                                 clearLabel="Hapus pencarian material"
                             />
                             <WarehouseCombobox

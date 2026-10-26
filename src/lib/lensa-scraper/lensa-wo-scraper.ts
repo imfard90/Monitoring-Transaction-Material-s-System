@@ -292,7 +292,7 @@ export async function scrapeWOLensaDetails(
 
     // Pastikan context terautentikasi
     if (authPage.url().includes('login')) {
-        await performLogin();
+        await performLogin(authPage);
     }
     await authPage.close().catch(() => {});
 
@@ -351,7 +351,7 @@ export async function scrapeWOLensaDetails(
 
                     if (page.url().includes('login')) {
                         await redis.del(sessionKey);
-                        await performLogin();
+                        await performLogin(page);
                         await page.goto(detailUrl, {
                             waitUntil: 'domcontentloaded',
                             timeout: 30000,
@@ -363,7 +363,11 @@ export async function scrapeWOLensaDetails(
                         }
                     }
 
-                    await page.waitForSelector('table', { timeout: 8000 }).catch(() => null);
+                    // Tunggu baris data tabel muncul atau indikator data kosong (mencegah silent empty array)
+                    await Promise.race([
+                        page.waitForSelector('table tbody tr td', { state: 'attached', timeout: 12000 }),
+                        page.waitForSelector('.dataTables_empty, .empty-state, text=/tidak ada data|no data/i', { timeout: 12000 }),
+                    ]).catch(() => null);
 
                     const tablesData = await page.$$eval('table', (tables) => {
                         return tables.map((tableEl) => {
@@ -379,16 +383,19 @@ export async function scrapeWOLensaDetails(
                             ) {
                                 type = 'materials';
                             }
-                            const data = rows.slice(1).map((row) => {
-                                const cells = Array.from(row.querySelectorAll('td')).map(
-                                    (td) => td.textContent?.trim() || ''
-                                );
-                                const obj: Record<string, string> = {};
-                                headers.forEach((h, i) => {
-                                    if (h) obj[h] = cells[i] || '';
+                            const data = rows
+                                .slice(1)
+                                .filter((row) => !row.classList.contains('dataTables_empty'))
+                                .map((row) => {
+                                    const cells = Array.from(row.querySelectorAll('td')).map(
+                                        (td) => td.textContent?.trim() || ''
+                                    );
+                                    const obj: Record<string, string> = {};
+                                    headers.forEach((h, i) => {
+                                        if (h) obj[h] = cells[i] || '';
+                                    });
+                                    return obj;
                                 });
-                                return obj;
-                            });
                             return { type, data };
                         });
                     });

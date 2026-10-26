@@ -108,4 +108,11 @@ describe('out-lensa-queries warehouse options', () => {
             expect.arrayContaining(['SO Gresik'])
         );
     });
+
+    it('accepts search option and executes successfully', async () => {
+        const result = await getOutLensaRefList({ search: '10001234' });
+
+        expect(result.success).toBe(true);
+        expect(result.data?.page).toBe(1);
+    });
 });

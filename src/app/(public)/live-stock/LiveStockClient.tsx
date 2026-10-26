@@ -1,7 +1,8 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SearchField } from '@/components/ui/search-field';
@@ -19,6 +20,18 @@ type Result = { success: true; data: LiveStockData } | { success: false; error: 
 export function LiveStockClient({ initialData }: { initialData?: Result }) {
     const [selectedWarehouseId, setSelectedWarehouseId] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
+
+    const hasActiveFilters = Boolean(searchQuery.trim() || selectedWarehouseId !== 0);
+
+    const handleResetFilters = useCallback(() => {
+        setSearchQuery('');
+        setSelectedWarehouseId(0);
+    }, []);
+
+    usePageFilterEsc({
+        isActive: hasActiveFilters,
+        onReset: handleResetFilters,
+    });
 
     const { data, isFetching, error, dataUpdatedAt, refetch } = useQuery({
         queryKey: ['liveStock'],
@@ -90,6 +103,7 @@ export function LiveStockClient({ initialData }: { initialData?: Result }) {
                         <SearchField
                             value={searchQuery}
                             onValueChange={setSearchQuery}
+                            onClear={handleResetFilters}
                             placeholder="Cari kode atau nama material"
                             aria-label="Cari material"
                             className="h-9"

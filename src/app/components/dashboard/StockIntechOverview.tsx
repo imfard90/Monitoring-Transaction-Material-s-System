@@ -7,10 +7,11 @@ import {
     getPaginationRowModel,
     useReactTable,
 } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { getDashboardStockIntech } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
@@ -35,6 +36,18 @@ export const StockIntechOverview = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [whFilter, setWhFilter] = useState<string>('all');
     const [openCombo, setOpenCombo] = useState(false);
+
+    const hasActiveFilters = Boolean(searchQuery.trim() || whFilter !== 'all');
+
+    const handleResetFilters = useCallback(() => {
+        setSearchQuery('');
+        setWhFilter('all');
+    }, []);
+
+    usePageFilterEsc({
+        isActive: hasActiveFilters,
+        onReset: handleResetFilters,
+    });
     const { data, isLoading } = useQuery({
         queryKey: ['dashboardStockIntech'],
         queryFn: getDashboardStockIntech,
@@ -138,6 +151,7 @@ export const StockIntechOverview = () => {
                                 className="bg-background"
                                 value={searchQuery}
                                 onValueChange={setSearchQuery}
+                                onClear={handleResetFilters}
                             />
                             <WarehouseCombobox
                                 value={whFilter}

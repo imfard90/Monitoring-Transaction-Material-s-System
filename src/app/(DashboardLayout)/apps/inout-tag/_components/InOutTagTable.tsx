@@ -6,12 +6,13 @@ import {
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { Check, ChevronsUpDown, Edit2, Eye, FilterX, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { DateRangePicker } from '@/app/components/shared/DateRangePicker';
 import { StatusBadge } from '@/app/components/shared/StatusBadge';
+import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -204,6 +205,27 @@ export default function InOutTagTable({
         },
     });
 
+    const hasActiveFilters = Boolean(
+        searchQuery.trim() ||
+            dateFilter?.from ||
+            (toWhFilter && toWhFilter !== 'all')
+    );
+
+    const handleResetAll = useCallback(() => {
+        if (onClearFilters) {
+            onClearFilters();
+        } else {
+            onSearchChange('');
+            onDateFilterChange?.(undefined);
+            onToWhChange('all');
+        }
+    }, [onClearFilters, onSearchChange, onDateFilterChange, onToWhChange]);
+
+    usePageFilterEsc({
+        isActive: hasActiveFilters,
+        onReset: handleResetAll,
+    });
+
     return (
         <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0">
             <StaggerItem className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 p-0.5">
@@ -214,6 +236,7 @@ export default function InOutTagTable({
                         className="bg-background"
                         value={searchQuery}
                         onValueChange={onSearchChange}
+                        onClear={handleResetAll}
                     />
 
                     <DateRangePicker
@@ -300,7 +323,7 @@ export default function InOutTagTable({
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Hapus semua filter</p>
+                                    <p>Hapus semua filter (Esc)</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>

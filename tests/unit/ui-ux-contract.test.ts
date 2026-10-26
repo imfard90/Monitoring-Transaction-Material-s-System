@@ -172,8 +172,16 @@ describe('SearchField clear behavior', () => {
     it('renders a labeled clear button only when a search value is present', async () => {
         const src = await readSrc('src/components/ui/search-field.tsx');
         expect(src).toMatch(/aria-label=\{clearLabel\}/);
-        expect(src).toMatch(/onClick=\{\(\) => onValueChange\(''\)\}/);
+        expect(src).toMatch(/onValueChange\(''\)/);
         expect(src).toMatch(/\{value && \(/);
+    });
+
+    it('clears query on Escape key and stops propagation when search value is present', async () => {
+        const src = await readSrc('src/components/ui/search-field.tsx');
+        expect(src).toMatch(/event\.key === 'Escape'/);
+        expect(src).toMatch(/event\.preventDefault\(\)/);
+        expect(src).toMatch(/event\.stopPropagation\(\)/);
+        expect(src).toMatch(/title=\{`\$\{clearLabel\} \(Esc\)`\}/);
     });
 
     it('hides the browser-native search clear affordance when using a custom clear button', async () => {

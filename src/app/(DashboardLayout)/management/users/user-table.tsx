@@ -9,11 +9,12 @@ import {
 } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
 import { ShieldAlert, Trash2 } from 'lucide-react';
-import { useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SearchField } from '@/components/ui/search-field';
@@ -270,6 +271,17 @@ export default function UserTable({ data }: UserTableProps) {
         onGlobalFilterChange: setNikFilter,
     });
 
+    const hasActiveFilters = Boolean(nikFilter.trim());
+
+    const handleResetFilters = useCallback(() => {
+        setNikFilter('');
+    }, []);
+
+    usePageFilterEsc({
+        isActive: hasActiveFilters,
+        onReset: handleResetFilters,
+    });
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -283,6 +295,7 @@ export default function UserTable({ data }: UserTableProps) {
                     placeholder="Cari berdasarkan NIK..."
                     value={nikFilter}
                     onValueChange={setNikFilter}
+                    onClear={handleResetFilters}
                     clearLabel="Hapus filter NIK pengguna"
                 />
             </div>

@@ -90,8 +90,11 @@ export const LENSA_URL = (process.env.LENSA_URL || '').replace(/\/+$/, '');
 const SESSION_TTL = 60 * 60 * 2;
 const MAX_RETRIES = 3;
 
+// Mutex in-memory untuk mencegah session stampede (multiple concurrent login form submissions)
+const loginLocks = new Map<string, Promise<void>>();
+
 export type LensaPage = Page;
-export type LensaPerformLogin = () => Promise<void>;
+export type LensaPerformLogin = (targetPage?: Page) => Promise<void>;
 export type LensaSafeGoto = (url: string) => Promise<void>;
 
 export interface LensaResponse {
@@ -108,9 +111,13 @@ export async function setupContext(username: string, password: string) {
     let isAuthenticated = false;
 
     if (cachedCookies) {
-        const cookies = JSON.parse(cachedCookies);
-        await context.addCookies(cookies);
-        isAuthenticated = true;
+        try {
+            const cookies = JSON.parse(cachedCookies);
+            await context.addCookies(cookies);
+            isAuthenticated = true;
+        } catch (_parseErr) {
+            isAuthenticated = false;
+        }
     }
 
     const page = await context.newPage();
@@ -125,28 +132,69 @@ export async function setupContext(username: string, password: string) {
                 actionLogger.info(`Nav to ${url} failed, retrying... (${i + 1}/${retries})`, {
                     error: error instanceof Error ? error.message : String(error),
                 });
-                await page.waitForTimeout(2000);
+                await page.waitForTimeout(1000 * (i + 1));
             }
         }
     };
 
-    const performLogin = async () => {
-        await safeGoto(`${LENSA_URL}/login`);
-        await page.fill('input[type="text"], input[name="username"]', username);
-        await page.fill('input[type="password"], input[name="password"]', password);
-        await page.click('button[type="submit"]');
-        await page.waitForURL('**/dashboard**', { timeout: 10000 }).catch(() => null);
-
-        if (page.url().includes('login')) {
-            throw new Error('Gagal login ke sistem Lensa.');
+    const performLogin: LensaPerformLogin = async (targetPage?: Page) => {
+        // Cek apakah login untuk username ini sedang berjalan oleh worker lain
+        const activeLock = loginLocks.get(username);
+        if (activeLock) {
+            try {
+                await activeLock;
+                const freshCookies = await redis.get(sessionKey);
+                if (freshCookies) {
+                    await context.addCookies(JSON.parse(freshCookies));
+                    return;
+                }
+            } catch (_lockErr) {
+                // Jika login sebelumnya gagal, coba lagi secara mandiri
+            }
         }
 
-        const freshCookies = await context.cookies();
-        await redis.set(sessionKey, JSON.stringify(freshCookies), 'EX', SESSION_TTL);
+        const executeLogin = (async () => {
+            let activePage: Page;
+            let shouldCloseActivePage = false;
+
+            // Prioritaskan targetPage jika aktif, lalu page context awal, atau buat page baru sementara jika sudah tertutup
+            if (targetPage && !targetPage.isClosed()) {
+                activePage = targetPage;
+            } else if (!page.isClosed()) {
+                activePage = page;
+            } else {
+                activePage = await context.newPage();
+                shouldCloseActivePage = true;
+            }
+
+            try {
+                await activePage.goto(`${LENSA_URL}/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await activePage.waitForSelector('input[type="text"], input[name="username"]', { timeout: 15000 }).catch(() => null);
+                await activePage.fill('input[type="text"], input[name="username"]', username);
+                await activePage.fill('input[type="password"], input[name="password"]', password);
+                await activePage.click('button[type="submit"]');
+                await activePage.waitForURL('**/dashboard**', { timeout: 15000 }).catch(() => null);
+
+                if (activePage.url().includes('login')) {
+                    throw new Error('Gagal login ke sistem Lensa (masih tertahan di halaman login).');
+                }
+
+                const freshCookies = await context.cookies();
+                await redis.set(sessionKey, JSON.stringify(freshCookies), 'EX', SESSION_TTL);
+            } finally {
+                if (shouldCloseActivePage) {
+                    await activePage.close().catch(() => {});
+                }
+                loginLocks.delete(username);
+            }
+        })();
+
+        loginLocks.set(username, executeLogin);
+        await executeLogin;
     };
 
     if (!isAuthenticated) {
-        await performLogin();
+        await performLogin(page);
     }
 
     return { context, page, safeGoto, sessionKey, performLogin };
@@ -187,43 +235,84 @@ export async function fetchPageJSON(
 ): Promise<LensaResponse> {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-            await safeGoto(url);
+            // 1. Eksekusi cepat melalui context.request (APIRequestContext)
+            // Memanfaatkan session cookies yang sudah tersimpan tanpa overhead parsing DOM & CSS
+            const resp = await page.request.get(url, {
+                headers: {
+                    Accept: 'application/json, text/plain, */*',
+                },
+                timeout: 30000,
+            });
 
-            if (page.url().includes('login')) {
-                await performLogin();
-                await safeGoto(url);
-                if (page.url().includes('login')) {
-                    throw new Error('Sesi tidak valid walau sudah relogin.');
-                }
+            const status = resp.status();
+            const text = await resp.text();
+
+            // Deteksi redirect ke halaman login atau sesi habis
+            const isLoginRedirect =
+                status === 401 ||
+                status === 403 ||
+                text.includes('name="username"') ||
+                (text.includes('<html') && text.includes('login'));
+
+            if (isLoginRedirect) {
+                actionLogger.warn(
+                    `[fetchPageJSON] Sesi expired terdeteksi pada ${url} (status: ${status}), relogin ulang...`
+                );
+                await performLogin(page);
+                await page.waitForTimeout(1000 * attempt);
+                continue;
             }
 
-            const body = await page.evaluate(
-                () => document.body.innerText || document.body.textContent || ''
-            );
+            if (!resp.ok()) {
+                throw new Error(`HTTP ${status}: ${text.slice(0, 150)}`);
+            }
+
             try {
-                const parsed = JSON.parse(body || '{}') as LensaResponse;
+                const parsed = JSON.parse(text || '{}') as LensaResponse;
                 const itemCount = parsed?.data?.length ?? 0;
                 const lastPage = parsed?.pagination?.last_page ?? '?';
                 actionLogger.info(
                     `   [fetchPageJSON] OK data=${itemCount} last_page=${lastPage} url=${url.slice(-90)}`
                 );
                 return parsed;
-            } catch (_e) {
-                actionLogger.info(
-                    `   [fetchPageJSON] JSON.parse FAILED — bodyLen=${body.length} bodyPreview="${body.slice(0, 200)}"`
+            } catch (jsonErr) {
+                throw new Error(
+                    `JSON.parse error: ${jsonErr instanceof Error ? jsonErr.message : String(jsonErr)}`
                 );
-                return {};
             }
         } catch (err) {
+            actionLogger.info(
+                `[fetchPageJSON] Request error attempt ${attempt}/${MAX_RETRIES} for ${url}: ${
+                    err instanceof Error ? err.message : String(err)
+                }`
+            );
+
+            // Pada attempt terakhir, jika APIRequestContext gagal, coba fallback navigasi browser penuh
             if (attempt === MAX_RETRIES) {
-                actionLogger.error(
-                    `Max retries (${MAX_RETRIES}) reached for ${url}. — ${
-                        err instanceof Error ? err.message : String(err)
-                    }`
-                );
-                return {};
+                try {
+                    actionLogger.info(`[fetchPageJSON] Fallback ke safeGoto untuk ${url}`);
+                    await safeGoto(url);
+
+                    if (page.url().includes('login')) {
+                        await performLogin(page);
+                        await safeGoto(url);
+                    }
+
+                    const body = await page.evaluate(
+                        () => document.body.innerText || document.body.textContent || ''
+                    );
+                    const parsed = JSON.parse(body || '{}') as LensaResponse;
+                    return parsed;
+                } catch (fallbackErr) {
+                    actionLogger.error(
+                        `Max retries (${MAX_RETRIES}) reached for ${url}. — ${
+                            fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)
+                        }`
+                    );
+                    return {};
+                }
             }
-            actionLogger.info(`[fetchPageJSON] retry ${attempt}/${MAX_RETRIES} for ${url}`);
+
             await page.waitForTimeout(1000 * attempt);
         }
     }

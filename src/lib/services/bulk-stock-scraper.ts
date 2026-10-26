@@ -143,7 +143,7 @@ async function scrapeWarehouseWorker(param: WarehouseWorkerParam): Promise<Scrap
 
         // Pastikan context dalam keadaan terautentikasi
         if (authPage.url().includes('login')) {
-            await performLogin();
+            await performLogin(authPage);
         }
         await authPage.close().catch(() => {});
 
@@ -200,7 +200,7 @@ async function scrapeWarehouseWorker(param: WarehouseWorkerParam): Promise<Scrap
                         // Jika sesi login terputus saat bernavigasi
                         if (page.url().includes('login')) {
                             await redis.del(sessionKey);
-                            await performLogin();
+                            await performLogin(page);
                         }
                         await new Promise((resolve) => setTimeout(resolve, 1000));
                     }

@@ -13,6 +13,7 @@ import { useCallback, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
+import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,6 +65,22 @@ export default function StockComparisonTableView({
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [isScrapingStarting, setIsScrapingStarting] = useState(false);
     const [busy, startTransition] = useTransition();
+
+    const hasActiveFilters = Boolean(
+        globalFilter.trim() || (!isStaff && warehouse && warehouse !== 'all')
+    );
+
+    const handleResetFilters = useCallback(() => {
+        setGlobalFilter('');
+        if (!isStaff) {
+            setWarehouse('all');
+        }
+    }, [isStaff]);
+
+    usePageFilterEsc({
+        isActive: hasActiveFilters,
+        onReset: handleResetFilters,
+    });
 
     const warehouses = useMemo(
         () =>
@@ -241,6 +258,7 @@ export default function StockComparisonTableView({
                             <SearchField
                                 value={globalFilter}
                                 onValueChange={setGlobalFilter}
+                                onClear={handleResetFilters}
                                 placeholder="Cari NIK atau nama..."
                                 wrapperClassName="flex-1 sm:w-[220px]"
                             />

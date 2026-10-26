@@ -49,6 +49,18 @@ function Search() {
         return searchItems(SidebarContent, query);
     }, [query]);
 
+    const handleClear = () => {
+        setQuery('');
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Escape' && query) {
+            e.preventDefault();
+            e.stopPropagation();
+            setQuery('');
+        }
+    };
+
     return (
         <div className="relative w-full">
             <div className="flex items-center relative lg:w-xs mx-auto ">
@@ -56,19 +68,32 @@ function Search() {
                     icon="solar:magnifer-linear"
                     width="18"
                     height="18"
-                    className="absolute left-3 top-1/2 -translate-y-1/2"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
                 />
 
                 <Input
                     placeholder="Search...."
-                    className="rounded-xl pl-10"
+                    className="rounded-xl pl-10 pr-9"
                     required
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={handleKeyDown}
                 />
+
+                {query && (
+                    <button
+                        type="button"
+                        aria-label="Hapus pencarian (Esc)"
+                        title="Hapus pencarian (Esc)"
+                        onClick={handleClear}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-0.5 rounded-full"
+                    >
+                        <Icon icon="solar:close-circle-linear" width="18" height="18" />
+                    </button>
+                )}
             </div>
             <div
-                className={`absolute w-full  bg-background rounded-md top-11 z-10 start-0 shadow-md border border-border ${
+                className={`absolute w-full bg-background rounded-md top-11 z-10 start-0 shadow-md border border-border ${
                     query ? 'block' : 'hidden'
                 }`}
             >
