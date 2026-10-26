@@ -13,7 +13,7 @@ export interface BulkScrapeJobResult {
 }
 
 export type BulkScrapeJobStatus =
-    | { status: 'running' }
+    | { status: 'running'; processed?: number; total?: number; message?: string }
     | { status: 'success'; data: BulkScrapeJobResult; message: string }
     | { status: 'error'; error: string }
     | { status: 'not_found' };
@@ -22,11 +22,11 @@ export type BulkScrapeJobStatus =
  * Manual trigger bulk stock scraping (Non-staff only).
  * Runs asynchronously via Redis job queue & atomic lock, returns jobId immediately.
  */
-export async function triggerManualStockScraping(): Promise<
-    { success: true; jobId: string } | { success: false; error: string }
-> {
+export async function triggerManualStockScraping(
+    warehouseId?: number
+): Promise<{ success: true; jobId: string } | { success: false; error: string }> {
     const LOCK_KEY = 'lock:bulk_stock_scrape';
-    const LOCK_TTL = 1800; // 30 menit TTL
+    const LOCK_TTL = 3600; // 1 jam TTL
 
     try {
         const user = await getSessionUser();
@@ -51,7 +51,7 @@ export async function triggerManualStockScraping(): Promise<
         const jobId = `bulk_stock_scrape_${Date.now()}`;
         await redis.set(
             `job:${jobId}`,
-            JSON.stringify({ status: 'running' }),
+            JSON.stringify({ status: 'running', message: 'Memulai scraping seluruh teknisi...' }),
             'EX',
             3600
         );
@@ -61,13 +61,29 @@ export async function triggerManualStockScraping(): Promise<
         // Background worker execution (non-blocking)
         Promise.resolve().then(async () => {
             try {
-                const result = await bulkScrapeStockTeknisi({ batchSize: 50, offset: 0 });
+                const result = await bulkScrapeStockTeknisi({
+                    warehouseId,
+                    onProgress: async (prog) => {
+                        await redis.set(
+                            `job:${jobId}`,
+                            JSON.stringify({
+                                status: 'running',
+                                processed: prog.processed,
+                                total: prog.total,
+                                message: `Memproses ${prog.processed}/${prog.total} teknisi (${prog.success} sukses, ${prog.failed} gagal)...`,
+                            }),
+                            'EX',
+                            3600
+                        );
+                    },
+                });
+
                 await redis.set(
                     `job:${jobId}`,
                     JSON.stringify({
                         status: 'success',
                         data: result,
-                        message: `Scraper selesai: ${result.success} berhasil, ${result.failed} gagal`,
+                        message: `Scraper selesai: ${result.total} teknisi diproses (${result.success} berhasil, ${result.failed} gagal)`,
                     }),
                     'EX',
                     3600

@@ -163,7 +163,7 @@ export default function StockComparisonTableView({
 
     function runBulkScrape() {
         setIsScrapingStarting(true);
-        const pollPromise = new Promise<{ message?: string; success?: number; failed?: number }>(
+        const pollPromise = new Promise<{ message?: string; success?: number; failed?: number; total?: number }>(
             (resolve, reject) => {
                 (async () => {
                     try {
@@ -177,9 +177,15 @@ export default function StockComparisonTableView({
                         const interval = setInterval(async () => {
                             try {
                                 const status = await checkBulkScrapingStatus(res.jobId);
-                                if (status.status === 'success') {
+                                if (status.status === 'running') {
+                                    // Refresh berkala agar baris tabel yang baru selesai langsung terupdate di layar
+                                    const refreshed = await getTeknisiStockList();
+                                    if (refreshed.success && refreshed.data) {
+                                        setRows(refreshed.data);
+                                    }
+                                } else if (status.status === 'success') {
                                     clearInterval(interval);
-                                    // Refresh data tabel otomatis setelah scraping selesai
+                                    // Refresh final setelah seluruh teknisi selesai
                                     const refreshed = await getTeknisiStockList();
                                     if (refreshed.success && refreshed.data) {
                                         setRows(refreshed.data);
@@ -202,10 +208,10 @@ export default function StockComparisonTableView({
         );
 
         toast.promise(pollPromise, {
-            loading: 'Scraper masal stok teknisi berjalan di latar belakang...',
+            loading: 'Scraper masal sedang memproses seluruh teknisi (batch 10/gudang berjalan simultan)...',
             success: (data) =>
                 data?.message ||
-                `Scraper selesai: ${data?.success ?? 0} berhasil, ${data?.failed ?? 0} gagal`,
+                `Scraper selesai: ${data?.total ?? 0} teknisi diproses (${data?.success ?? 0} berhasil, ${data?.failed ?? 0} gagal)`,
             error: (err: Error) => `Scraper gagal: ${err.message}`,
         });
     }

@@ -88,7 +88,7 @@ export async function register() {
             }
 
             actionLogger.info(`[CRON] Starting bulk technician stock scraping (${label})...`);
-            const result = await bulkScrapeStockTeknisi({ batchSize: 50, offset: 0 });
+            const result = await bulkScrapeStockTeknisi();
             actionLogger.info(
                 `[CRON] Bulk technician stock scraping (${label}) completed: ${result.success} succeeded, ${result.failed} failed of ${result.total}.`
             );

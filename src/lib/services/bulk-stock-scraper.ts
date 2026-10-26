@@ -32,13 +32,23 @@ export interface WarehouseScrapeSummary {
 }
 
 export interface BulkScrapingOptions {
-    /** Jumlah NIK teknisi per gudang (default: 10) */
-    niksPerWarehouse?: number;
+    /** Target warehouse ID jika ingin scrape 1 gudang saja (opsional, default: seluruh gudang) */
+    warehouseId?: number;
+    /** Jumlah NIK per batch per putaran di setiap gudang (default: 10, total ~50 teknisi simultan lintas 5 gudang) */
+    chunkSizePerWarehouse?: number;
     /** Concurrency tab worker di dalam satu gudang (default: 2, Opsi B) */
     concurrencyPerWarehouse?: number;
-    /** Legacy parameter: total batch size (default: 50, dibagi rata ke gudang) */
+    /** Legacy parameter: total batch size (jika ditentukan, dipetakan ke chunkSizePerWarehouse) */
     batchSize?: number;
     offset?: number;
+    /** Progress callback untuk real-time status reporting */
+    onProgress?: (progress: {
+        total: number;
+        processed: number;
+        success: number;
+        failed: number;
+        warehouseName?: string;
+    }) => Promise<void> | void;
 }
 
 export interface BulkScrapingResult {
@@ -120,18 +130,31 @@ interface WarehouseWorkerParam {
     password: string;
     technicians: Array<{ nik: string; name: string }>;
     concurrency: number;
+    chunkSize: number;
+    onChunkComplete?: (chunkResults: ScrapingResult[], whName: string) => Promise<void> | void;
 }
 
 /**
  * Worker untuk 1 gudang:
  * - Membuka 1 BrowserContext tersendiri dengan sesi Lensa PIC gudang tersebut.
- * - Memproses NIK teknisi dengan micro-pool 2 tab concurrent.
- * - Langsung mengupdate hasil scrape ke database hr.technicians.ref_intech_lensa.
+ * - Memproses NIK teknisi secara berkesinambungan dalam batch potongan (default: 10 per putaran).
+ * - Di dalam tiap batch, micro-pool 2 tab concurrent mengekstrak data Lensa.
+ * - Melaporkan kemajuan progres per batch agar status real-time dapat dipantau.
  */
 async function scrapeWarehouseWorker(param: WarehouseWorkerParam): Promise<ScrapingResult[]> {
-    const { warehouseId, warehouseName, username, password, technicians, concurrency } = param;
+    const {
+        warehouseId,
+        warehouseName,
+        username,
+        password,
+        technicians,
+        concurrency,
+        chunkSize,
+        onChunkComplete,
+    } = param;
+
     actionLogger.info(
-        `[BulkScrape] Memulai worker gudang ${warehouseName} (id=${warehouseId}) untuk ${technicians.length} teknisi`
+        `[BulkScrape] Memulai worker gudang ${warehouseName} (id=${warehouseId}) untuk total ${technicians.length} teknisi (chunk: ${chunkSize} per putaran)`
     );
 
     let context: any = null;
@@ -147,93 +170,113 @@ async function scrapeWarehouseWorker(param: WarehouseWorkerParam): Promise<Scrap
         }
         await authPage.close().catch(() => {});
 
-        // Micro-pool concurrency di dalam context gudang (Opsi B: default 2 tab)
-        const results = await asyncPool(concurrency, technicians, async (tech) => {
-            if (!context) {
-                return {
-                    nik: tech.nik,
-                    status: 'failed' as const,
-                    error: 'Browser context tidak tersedia',
-                    warehouseId,
-                    warehouseName,
-                };
-            }
+        const allResults: ScrapingResult[] = [];
 
-            const page = await context.newPage();
-            let lastError: Error | null = null;
+        // Loop per-chunk (10 teknisi per putaran) sampai SEMUA teknisi di gudang ini selesai
+        for (let i = 0; i < technicians.length; i += chunkSize) {
+            const currentChunk = technicians.slice(i, i + chunkSize);
+            actionLogger.info(
+                `[BulkScrape] Gudang ${warehouseName}: Memproses batch ${Math.floor(i / chunkSize) + 1} (${currentChunk.length} teknisi, antrean ${i + 1}-${i + currentChunk.length}/${technicians.length})`
+            );
 
-            for (let attempt = 1; attempt <= 2; attempt++) {
-                try {
-                    const scraped = await scrapeStockTeknisiOnPage(page, tech.nik);
-
-                    // Simpan sukses ke DB
-                    await db
-                        .updateTable('hr.technicians')
-                        .set({
-                            ref_intech_lensa: sql`${JSON.stringify({
-                                status: 'success',
-                                scraped_at: new Date().toISOString(),
-                                error_message: null,
-                                materials: scraped.materials,
-                            })}::jsonb`,
-                        })
-                        .where('nik', '=', tech.nik)
-                        .execute();
-
-                    actionLogger.info(
-                        `[BulkScrape] Sukses NIK ${tech.nik} (${warehouseName}) - attempt ${attempt}`
-                    );
-                    await page.close().catch(() => {});
+            // Micro-pool concurrency di dalam context gudang (default 2 tab)
+            const chunkResults = await asyncPool(concurrency, currentChunk, async (tech) => {
+                if (!context) {
                     return {
                         nik: tech.nik,
-                        status: 'success' as const,
+                        status: 'failed' as const,
+                        error: 'Browser context tidak tersedia',
                         warehouseId,
                         warehouseName,
                     };
-                } catch (err) {
-                    lastError = err instanceof Error ? err : new Error(String(err));
-                    actionLogger.warn(
-                        `[BulkScrape] Gagal NIK ${tech.nik} (${warehouseName}) attempt ${attempt}/2: ${lastError.message}`
-                    );
+                }
 
-                    if (attempt < 2) {
-                        // Jika sesi login terputus saat bernavigasi
-                        if (page.url().includes('login')) {
-                            await redis.del(sessionKey);
-                            await performLogin(page);
+                const page = await context.newPage();
+                let lastError: Error | null = null;
+
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    try {
+                        const scraped = await scrapeStockTeknisiOnPage(page, tech.nik);
+
+                        // Simpan sukses ke DB
+                        await db
+                            .updateTable('hr.technicians')
+                            .set({
+                                ref_intech_lensa: sql`${JSON.stringify({
+                                    status: 'success',
+                                    scraped_at: new Date().toISOString(),
+                                    error_message: null,
+                                    materials: scraped.materials,
+                                })}::jsonb`,
+                            })
+                            .where('nik', '=', tech.nik)
+                            .execute();
+
+                        actionLogger.info(
+                            `[BulkScrape] Sukses NIK ${tech.nik} (${warehouseName}) - attempt ${attempt}`
+                        );
+                        await page.close().catch(() => {});
+                        return {
+                            nik: tech.nik,
+                            status: 'success' as const,
+                            warehouseId,
+                            warehouseName,
+                        };
+                    } catch (err) {
+                        lastError = err instanceof Error ? err : new Error(String(err));
+                        actionLogger.warn(
+                            `[BulkScrape] Gagal NIK ${tech.nik} (${warehouseName}) attempt ${attempt}/2: ${lastError.message}`
+                        );
+
+                        if (attempt < 2) {
+                            // Jika sesi login terputus saat bernavigasi
+                            if (page.url().includes('login')) {
+                                await redis.del(sessionKey);
+                                await performLogin(page);
+                            }
+                            await new Promise((resolve) => setTimeout(resolve, 1000));
                         }
-                        await new Promise((resolve) => setTimeout(resolve, 1000));
                     }
                 }
+
+                await page.close().catch(() => {});
+
+                const errorMsg = lastError?.message || 'Scrape gagal';
+                // Simpan status gagal ke DB
+                await db
+                    .updateTable('hr.technicians')
+                    .set({
+                        ref_intech_lensa: sql`${JSON.stringify({
+                            status: 'failed',
+                            scraped_at: new Date().toISOString(),
+                            error_message: errorMsg,
+                            materials: [],
+                        })}::jsonb`,
+                    })
+                    .where('nik', '=', tech.nik)
+                    .execute();
+
+                return {
+                    nik: tech.nik,
+                    status: 'failed' as const,
+                    error: errorMsg,
+                    warehouseId,
+                    warehouseName,
+                };
+            });
+
+            allResults.push(...chunkResults);
+
+            if (onChunkComplete) {
+                try {
+                    await onChunkComplete(chunkResults, warehouseName);
+                } catch (_cbErr) {
+                    // Jangan gagalkan worker jika callback pelaporan error
+                }
             }
+        }
 
-            await page.close().catch(() => {});
-
-            const errorMsg = lastError?.message || 'Scrape gagal';
-            // Simpan status gagal ke DB
-            await db
-                .updateTable('hr.technicians')
-                .set({
-                    ref_intech_lensa: sql`${JSON.stringify({
-                        status: 'failed',
-                        scraped_at: new Date().toISOString(),
-                        error_message: errorMsg,
-                        materials: [],
-                    })}::jsonb`,
-                })
-                .where('nik', '=', tech.nik)
-                .execute();
-
-            return {
-                nik: tech.nik,
-                status: 'failed' as const,
-                error: errorMsg,
-                warehouseId,
-                warehouseName,
-            };
-        });
-
-        return results;
+        return allResults;
     } catch (err) {
         actionLogger.error(
             `[BulkScrape] Fatal error context gudang ${warehouseName}:`,
@@ -274,28 +317,33 @@ async function scrapeWarehouseWorker(param: WarehouseWorkerParam): Promise<Scrap
 /**
  * Bulk scrape teknisi stock:
  * - 1 Instance BrowserContext per 1 Gudang.
- * - Multi-gudang paralel.
- * - 1 gudang memproses NIK teknisi dengan micro-pool (2 tab paralel).
+ * - Multi-gudang berjalan Paralel.
+ * - Di dalam tiap gudang: Memproses NIK teknisi per batch (10 teknisi per putaran).
+ * - Terus berjalan berkesinambungan sampai SELURUH teknisi selesai diperiksa.
  */
 export async function bulkScrapeStockTeknisi(
     options: BulkScrapingOptions = {}
 ): Promise<BulkScrapingResult> {
-    const niksPerWarehouse =
-        options.niksPerWarehouse ??
-        (options.batchSize ? Math.max(1, Math.floor(options.batchSize / 5)) : 10);
+    const chunkSize = options.chunkSizePerWarehouse ?? 10;
     const concurrencyPerWarehouse = options.concurrencyPerWarehouse ?? 2;
 
-    actionLogger.info('[BulkScrape] Memulai bulk stock scraping multi-gudang', {
-        niksPerWarehouse,
+    actionLogger.info('[BulkScrape] Memulai bulk stock scraping multi-gudang (seluruh teknisi)', {
+        chunkSize,
         concurrencyPerWarehouse,
+        targetWarehouseId: options.warehouseId ?? 'all',
     });
 
     // 1. Ambil seluruh gudang dari master warehouse
-    const warehouses = await db
+    let whQuery = db
         .selectFrom('inventory.mas_wh')
         .select(['id', 'name', 'pic_1', 'pic_2'])
-        .orderBy('id', 'asc')
-        .execute();
+        .orderBy('id', 'asc');
+
+    if (options.warehouseId) {
+        whQuery = whQuery.where('id', '=', options.warehouseId);
+    }
+
+    const warehouses = await whQuery.execute();
 
     if (warehouses.length === 0) {
         actionLogger.warn('[BulkScrape] Tidak ada gudang ditemukan di database.');
@@ -314,14 +362,13 @@ export async function bulkScrapeStockTeknisi(
             continue;
         }
 
-        // Ambil NIK teknisi terlama / belum pernah discrape di gudang ini
+        // Ambil SELURUH NIK teknisi di gudang ini (urutkan terlama belum discrape terlebih dahulu)
         const technicians = await db
             .selectFrom('hr.technicians as t')
             .select(['t.nik', 't.name'])
             .where('t.wh_id', '=', wh.id)
             .orderBy(sql`t.ref_intech_lensa->>'scraped_at' ASC NULLS FIRST`)
             .orderBy('t.nik', 'asc')
-            .limit(niksPerWarehouse)
             .execute();
 
         if (technicians.length === 0) {
@@ -338,6 +385,7 @@ export async function bulkScrapeStockTeknisi(
             password: creds.password,
             technicians,
             concurrency: concurrencyPerWarehouse,
+            chunkSize,
         });
     }
 
@@ -348,11 +396,43 @@ export async function bulkScrapeStockTeknisi(
         return { total: 0, success: 0, failed: 0, details: [] };
     }
 
+    const grandTotal = workerParams.reduce((acc, w) => acc + w.technicians.length, 0);
+
+    let totalProcessed = 0;
+    let totalSuccess = 0;
+    let totalFailed = 0;
+
+    const reportProgress = async (chunkResults: ScrapingResult[], whName: string) => {
+        totalProcessed += chunkResults.length;
+        const succ = chunkResults.filter((r) => r.status === 'success').length;
+        const fail = chunkResults.filter((r) => r.status === 'failed').length;
+        totalSuccess += succ;
+        totalFailed += fail;
+
+        if (options.onProgress) {
+            try {
+                await options.onProgress({
+                    total: grandTotal,
+                    processed: totalProcessed,
+                    success: totalSuccess,
+                    failed: totalFailed,
+                    warehouseName: whName,
+                });
+            } catch (_err) {
+                // Abaikan kesalahan callback
+            }
+        }
+    };
+
+    for (const wp of workerParams) {
+        wp.onChunkComplete = reportProgress;
+    }
+
     actionLogger.info(
-        `[BulkScrape] Meluncurkan ${workerParams.length} instance gudang paralel (total target: ${workerParams.reduce((acc, w) => acc + w.technicians.length, 0)} teknisi)...`
+        `[BulkScrape] Meluncurkan ${workerParams.length} instance gudang paralel (total target seluruh teknisi: ${grandTotal})...`
     );
 
-    // 3. Jalankan seluruh gudang secara PARALEL (1 instance context per gudang)
+    // 3. Jalankan seluruh gudang secara PARALEL (1 context per gudang, loop internal 10 per putaran)
     const warehouseExecutionResults = await Promise.all(
         workerParams.map((param) => scrapeWarehouseWorker(param))
     );
@@ -378,7 +458,7 @@ export async function bulkScrapeStockTeknisi(
         byWarehouse,
     };
 
-    actionLogger.info('[BulkScrape] Multi-warehouse bulk scraping selesai:', {
+    actionLogger.info('[BulkScrape] Multi-warehouse bulk scraping seluruh teknisi selesai:', {
         total: summary.total,
         success: summary.success,
         failed: summary.failed,
