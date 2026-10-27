@@ -217,11 +217,11 @@ export default function ReturnForm() {
                                 <SearchableSelect
                                     options={sapOuts.map((s: ReturnSapOutOption) => ({
                                         value: s.id.toString(),
-                                        label: `${s.id_trx} - ${s.nik_teknisi} - ${s.nama_teknisi}`,
+                                        label: `${s.id_trx}${s.request_id ? ` - [REQ: ${s.request_id}]` : ''} - ${s.nik_teknisi} - ${s.nama_teknisi}`,
                                     }))}
                                     value={formData.sap_out_id}
                                     onValueChange={handleSapOutChange}
-                                    placeholder="Cari teknisi yang memiliki intech..."
+                                    placeholder="Cari transaksi / no request / teknisi..."
                                 />
                             </div>
 

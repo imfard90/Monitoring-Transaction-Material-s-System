@@ -14,10 +14,11 @@ Rilis ini membawa 3 pilar peningkatan utama:
 2. **Kredibilitas (Integritas Data & Auditability):**
    - **Migrasi 040:** Penegakan integritas data return material, validasi kuantitas di stored procedure (`sp_create_return_request` / `sp_insert_return_item`) untuk mencegah over-return secara kumulatif, dan foreign key constraints.
    - **Migrasi 041:** Pengaktifan Row-Level Security (RLS) pada tabel `inventory.stock_opname_log` dan pencabutan hak akses publik guna mematuhi prinsip *least privilege*.
+   - **Migrasi 042:** Perbaikan kalkulasi sisa return material di stored procedure `sp_insert_return_item` dan action query agar hanya mengurangi pending return (mencegah pengurangan ganda dengan accepted return).
 3. **Kualitas & Ketahanan (Resilience & Automated Testing):**
    - Standardisasi repository Kysely (`generateTrxUsedSeq`, `generateTrxUsedLensaSeq`, `markWoLensaReconciled`) menggantikan query ad-hoc.
    - Seluruh server action mengembalikan format standar `{ success, data?, error? }` dengan server-side logging terstruktur (`actionLogger`/`securityLogger`).
-   - Regresi otomatis tervalidasi via Vitest (390 unit tests + 34 integration tests).
+   - Regresi otomatis tervalidasi via Vitest (390 unit tests + 35 integration tests).
 
 ---
 
@@ -132,6 +133,7 @@ npm run migrate
 ```
 Applying migration: 040_fix_return_material_integrity.sql ... OK
 Applying migration: 041_enable_rls_stock_opname_log_and_revoke_public.sql ... OK
+Applying migration: 042_fix_return_item_pending_status_calc.sql ... OK
 All migrations applied successfully.
 ```
 
@@ -141,7 +143,7 @@ Jalankan unit dan integration tests untuk memastikan koneksi database dan skema 
 npm run test:unit
 npm run test:integration
 ```
-*Pastikan seluruh tes passed (390 unit + 34 integration).*
+*Pastikan seluruh tes passed (390 unit + 35 integration).*
 
 ### Langkah 6: Build Aplikasi Web Next.js
 Kompilasi aplikasi web untuk produksi:

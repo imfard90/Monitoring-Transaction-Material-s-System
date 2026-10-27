@@ -24,6 +24,7 @@ export async function getAvailableSapOuts() {
             .select([
                 'h.id',
                 'h.id_trx',
+                'h.request_id',
                 'h.sap_number',
                 'h.nik_teknisi',
                 't.name as nama_teknisi',
@@ -70,9 +71,13 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
                 'm.description as material_name',
                 'i.qty_req',
                 'i.qty_used',
-                sql<number>`COALESCE((SELECT SUM(rmi.qty) FROM inventory.return_material_items rmi WHERE rmi.sap_out_item_id = i.id), 0)`.as(
-                    'already_returned'
-                ),
+                sql<number>`COALESCE((
+                    SELECT SUM(rmi.qty) 
+                    FROM inventory.return_material_items rmi 
+                    JOIN inventory.return_material_header rmh ON rmh.id = rmi.header_id 
+                    WHERE rmi.sap_out_item_id = i.id 
+                      AND rmh.end_status IN ('wait_approve', 'pending')
+                ), 0)`.as('pending_returns'),
             ])
             .where('i.header_id', '=', String(headerId));
 
@@ -86,13 +91,15 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
 
         const items = await query.execute();
 
-        // Calculate actual available maxReturn considering both field usage and previous returns
+        // Calculate actual available maxReturn:
+        // (Note: accepted returns are already incorporated into qty_used via sp_return_material.
+        // Therefore, we only subtract pending_returns that have not yet been accepted)
         const mapped = items
             .map((item) => {
                 const req = Number(item.qty_req || 0);
                 const used = Number(item.qty_used || 0);
-                const ret = Number(item.already_returned || 0);
-                const maxReturn = Math.max(0, req - used - ret);
+                const pending = Number(item.pending_returns || 0);
+                const maxReturn = Math.max(0, req - used - pending);
                 return {
                     ...item,
                     maxReturn,

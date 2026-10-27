@@ -129,6 +129,7 @@ export interface OutSapFormItem {
 export interface ReturnSapOutOption {
     id: string | number;
     id_trx: string;
+    request_id?: string | null;
     sap_number: string | null;
     nik_teknisi?: string;
     nama_teknisi?: string | null;

@@ -343,6 +343,14 @@ describeDb('L5 query logging migration tracked (018)', () => {
             expect(row?.filename).toBe('041_enable_rls_stock_opname_log_and_revoke_public.sql');
         });
 
+        it('042_fix_return_item_pending_status_calc.sql recorded in migration log', async () => {
+            const row = await queryOne<{ filename: string }>(`
+                SELECT filename FROM inventory._migration_log
+                WHERE filename = '042_fix_return_item_pending_status_calc.sql'
+            `);
+            expect(row?.filename).toBe('042_fix_return_item_pending_status_calc.sql');
+        });
+
         it('inventory.stock_balance has non-negative check constraint', async () => {
             const row = await queryOne<{ conname: string; def: string }>(`
                 SELECT conname, pg_get_constraintdef(oid) as def FROM pg_constraint
