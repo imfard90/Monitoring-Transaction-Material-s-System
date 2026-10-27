@@ -176,23 +176,49 @@ export async function internalTriggerScraping(perpage: number = 20) {
         // Insert new headers sequentially
         if (deduplicatedHeaders.length > 0) {
             // Pre-check for sap_out_check before saving
-            const giNumbers = deduplicatedHeaders.map((h: any) => h.gi_number).filter(Boolean);
-            let matchedSapNumbers: string[] = [];
+            const giNumbers = deduplicatedHeaders
+                .map((h: any) => (h.gi_number ? String(h.gi_number).trim() : ''))
+                .filter(Boolean);
+            const resIds = deduplicatedHeaders
+                .map((h: any) => (h.reservation_id ? String(h.reservation_id).trim() : ''))
+                .filter(Boolean);
 
-            if (giNumbers.length > 0) {
-                const existingSap = await db
+            const matchedSapNumbers = new Set<string>();
+            const matchedRequestIds = new Set<string>();
+
+            if (giNumbers.length > 0 || resIds.length > 0) {
+                let query = db
                     .selectFrom('inventory.sap_out_header')
-                    .select(['sap_number'])
-                    .where('sap_number', 'in', giNumbers)
-                    .execute();
-                matchedSapNumbers = existingSap
-                    .map((s) => s.sap_number)
-                    .filter((n): n is string => n !== null);
+                    .select(['sap_number', 'request_id']);
+
+                if (giNumbers.length > 0 && resIds.length > 0) {
+                    query = query.where((eb) =>
+                        eb.or([
+                            eb('sap_number', 'in', giNumbers),
+                            eb('request_id', 'in', resIds),
+                        ])
+                    );
+                } else if (giNumbers.length > 0) {
+                    query = query.where('sap_number', 'in', giNumbers);
+                } else {
+                    query = query.where('request_id', 'in', resIds);
+                }
+
+                const existingSap = await query.execute();
+                for (const s of existingSap) {
+                    if (s.sap_number?.trim()) matchedSapNumbers.add(s.sap_number.trim());
+                    if (s.request_id?.trim()) matchedRequestIds.add(s.request_id.trim());
+                }
             }
 
             await db.transaction().execute(async (trx: any) => {
                 for (const h of deduplicatedHeaders) {
-                    const isSapOutCheck = matchedSapNumbers.includes(h.gi_number);
+                    const gi = h.gi_number ? String(h.gi_number).trim() : '';
+                    const res = h.reservation_id ? String(h.reservation_id).trim() : '';
+                    const isSapOutCheck =
+                        (Boolean(gi) && matchedSapNumbers.has(gi)) ||
+                        (Boolean(res) && matchedRequestIds.has(res));
+
                     await trx
                         .insertInto('inventory.out_lensa_ref_header')
                         .values({

@@ -12,13 +12,13 @@ import { inventoryRepository } from '@/lib/repositories/inventory.repository';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 const createOutSapSchema = z.object({
-    idemKey: z.string().min(1),
+    idemKey: z.string().trim().min(1),
     warehouse_id: z.number().int().positive(),
-    nik_teknisi: z.string().min(1),
-    name_sa: z.string(),
-    id_reservasi: z.string(),
-    sap_number: z.string(),
-    request_id: z.string(),
+    nik_teknisi: z.string().trim().min(1),
+    name_sa: z.string().trim(),
+    id_reservasi: z.string().trim(),
+    sap_number: z.string().trim(),
+    request_id: z.string().trim(),
     items: z
         .array(
             z.object({
@@ -279,6 +279,7 @@ export async function createOutSap(payload: {
         }
 
         revalidatePath('/form/out-sap');
+        revalidatePath('/reference/out-lensa-ref');
         revalidatePath('/stock-intech');
         revalidatePath('/stock-inventory');
         revalidatePath('/apps/out-material');

@@ -139,12 +139,12 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
         const res = await sql<{ p_header_id: string; p_id_trx: string }>`
             CALL inventory.sp_create_out_sap(
                 ${params.warehouseId}::integer,
-                ${params.nikTeknisi}::varchar,
-                ${params.nameSa}::varchar,
-                ${params.idReservasi ?? null}::varchar,
-                ${params.sapNumber}::varchar,
-                ${params.requestId}::varchar,
-                ${params.createdBy}::varchar,
+                ${params.nikTeknisi.trim()}::varchar,
+                ${params.nameSa.trim()}::varchar,
+                ${params.idReservasi ? params.idReservasi.trim() : null}::varchar,
+                ${params.sapNumber.trim()}::varchar,
+                ${params.requestId.trim()}::varchar,
+                ${params.createdBy.trim()}::varchar,
                 ${JSON.stringify(params.items)}::jsonb,
                 null,
                 null

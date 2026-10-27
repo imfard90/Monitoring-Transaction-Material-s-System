@@ -359,6 +359,14 @@ describeDb('L5 query logging migration tracked (018)', () => {
             expect(row?.filename).toBe('043_fix_sp_return_material_wait_approve_status.sql');
         });
 
+        it('044_clean_sap_out_whitespace_and_sync_out_lensa.sql recorded in migration log', async () => {
+            const row = await queryOne<{ filename: string }>(`
+                SELECT filename FROM inventory._migration_log
+                WHERE filename = '044_clean_sap_out_whitespace_and_sync_out_lensa.sql'
+            `);
+            expect(row?.filename).toBe('044_clean_sap_out_whitespace_and_sync_out_lensa.sql');
+        });
+
         it('inventory.stock_balance has non-negative check constraint', async () => {
             const row = await queryOne<{ conname: string; def: string }>(`
                 SELECT conname, pg_get_constraintdef(oid) as def FROM pg_constraint

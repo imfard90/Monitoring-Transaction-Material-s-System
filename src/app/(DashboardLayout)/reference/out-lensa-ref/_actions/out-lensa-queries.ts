@@ -91,12 +91,17 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             filterWarehouse = whNames;
         }
 
-        // Auto-update sap_out_check: flag entries matched by GI number
+        // Auto-update sap_out_check: flag entries matched by GI number or reservation ID
         await sql`
             UPDATE inventory.out_lensa_ref_header h
             SET sap_out_check = TRUE
             FROM inventory.sap_out_header s
-            WHERE h.gi_number = s.sap_number AND (h.sap_out_check IS FALSE OR h.sap_out_check IS NULL)
+            WHERE (
+                (NULLIF(TRIM(h.gi_number), '') IS NOT NULL AND TRIM(h.gi_number) = TRIM(s.sap_number))
+                OR
+                (NULLIF(TRIM(h.reservation_id), '') IS NOT NULL AND TRIM(h.reservation_id) = TRIM(s.request_id))
+            )
+            AND (h.sap_out_check IS FALSE OR h.sap_out_check IS NULL)
         `.execute(db);
 
         // Get total count first
@@ -194,20 +199,34 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             .execute();
 
         // Get SAP out items for matching in one query
-        const giNumbers = headers.map((h) => h.gi_number).filter((n): n is string => Boolean(n));
+        const giNumbers = headers
+            .map((h) => h.gi_number?.trim())
+            .filter((n): n is string => Boolean(n));
+        const reservationIds = headers
+            .map((h) => h.reservation_id?.trim())
+            .filter((n): n is string => Boolean(n));
 
         const sapOutMap: Map<string, { material_id: string; qty_req: number }[]> = new Map();
-        if (giNumbers.length > 0) {
-            const sapHeaders = await db
+        if (giNumbers.length > 0 || reservationIds.length > 0) {
+            let sapQuery = db
                 .selectFrom('inventory.sap_out_header')
-                .select(['id', 'sap_number'])
-                .where('sap_number', 'in', giNumbers)
-                .execute();
+                .select(['id', 'sap_number', 'request_id']);
 
+            if (giNumbers.length > 0 && reservationIds.length > 0) {
+                sapQuery = sapQuery.where((eb) =>
+                    eb.or([
+                        eb('sap_number', 'in', giNumbers),
+                        eb('request_id', 'in', reservationIds),
+                    ])
+                );
+            } else if (giNumbers.length > 0) {
+                sapQuery = sapQuery.where('sap_number', 'in', giNumbers);
+            } else {
+                sapQuery = sapQuery.where('request_id', 'in', reservationIds);
+            }
+
+            const sapHeaders = await sapQuery.execute();
             const sapHeaderIds = sapHeaders.map((sh) => sh.id);
-            const sapHeaderMap: Map<string, string | null> = new Map(
-                sapHeaders.map((sh) => [String(sh.id), sh.sap_number])
-            );
 
             if (sapHeaderIds.length > 0) {
                 const sapItems = await db
@@ -217,18 +236,27 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                     .where('si.header_id', 'in', sapHeaderIds)
                     .execute();
 
-                // Group by sap_number
+                const itemsByHeaderId = new Map<string, { material_id: string; qty_req: number }[]>();
                 for (const item of sapItems) {
-                    const sapNumber = item.header_id
-                        ? sapHeaderMap.get(String(item.header_id))
-                        : undefined;
-                    if (sapNumber) {
-                        const existing = sapOutMap.get(sapNumber) ?? [];
+                    if (item.header_id) {
+                        const headerKey = String(item.header_id);
+                        const existing = itemsByHeaderId.get(headerKey) ?? [];
                         existing.push({
                             material_id: item.material_id ?? '',
                             qty_req: Number(item.qty_req),
                         });
-                        sapOutMap.set(sapNumber, existing);
+                        itemsByHeaderId.set(headerKey, existing);
+                    }
+                }
+
+                // Map by both trimmed sap_number and trimmed request_id
+                for (const sh of sapHeaders) {
+                    const items = itemsByHeaderId.get(String(sh.id)) ?? [];
+                    if (sh.sap_number?.trim()) {
+                        sapOutMap.set(sh.sap_number.trim(), items);
+                    }
+                    if (sh.request_id?.trim()) {
+                        sapOutMap.set(sh.request_id.trim(), items);
                     }
                 }
             }
@@ -241,7 +269,8 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             // Match with SAP out items
             const matchedDetails: OutLensaDetail[] = headerDetails.map((d) => {
                 let sap_out_matched: boolean | null = null;
-                const sapItems = h.gi_number ? sapOutMap.get(h.gi_number) : undefined;
+                const sapItems = (h.gi_number ? sapOutMap.get(h.gi_number.trim()) : undefined)
+                    ?? (h.reservation_id ? sapOutMap.get(h.reservation_id.trim()) : undefined);
                 if (sapItems && sapItems.length > 0) {
                     const sapItem = sapItems.find(
                         (si) =>
@@ -337,17 +366,32 @@ export async function getOutLensaRefDetails(headerId: string) {
 
         const header = await db
             .selectFrom('inventory.out_lensa_ref_header')
-            .select(['gi_number'])
+            .select(['gi_number', 'reservation_id'])
             .where('id', '=', headerId)
             .executeTakeFirst();
 
         let sapItems: { material_id: string; qty_req: number }[] = [];
-        if (header?.gi_number) {
-            const sapHeader = await db
+        const giNum = header?.gi_number?.trim();
+        const resId = header?.reservation_id?.trim();
+        if (giNum || resId) {
+            let sapHeaderQuery = db
                 .selectFrom('inventory.sap_out_header')
-                .select(['id'])
-                .where('sap_number', '=', header.gi_number)
-                .executeTakeFirst();
+                .select(['id']);
+
+            if (giNum && resId) {
+                sapHeaderQuery = sapHeaderQuery.where((eb) =>
+                    eb.or([
+                        eb('sap_number', '=', giNum),
+                        eb('request_id', '=', resId),
+                    ])
+                );
+            } else if (giNum) {
+                sapHeaderQuery = sapHeaderQuery.where('sap_number', '=', giNum);
+            } else if (resId) {
+                sapHeaderQuery = sapHeaderQuery.where('request_id', '=', resId);
+            }
+
+            const sapHeader = await sapHeaderQuery.executeTakeFirst();
 
             if (sapHeader) {
                 const rawSapItems = await db

@@ -15,6 +15,8 @@ Rilis ini membawa 3 pilar peningkatan utama:
    - **Migrasi 040:** Penegakan integritas data return material, validasi kuantitas di stored procedure (`sp_create_return_request` / `sp_insert_return_item`) untuk mencegah over-return secara kumulatif, dan foreign key constraints.
    - **Migrasi 041:** Pengaktifan Row-Level Security (RLS) pada tabel `inventory.stock_opname_log` dan pencabutan hak akses publik guna mematuhi prinsip *least privilege*.
    - **Migrasi 042:** Perbaikan kalkulasi sisa return material di stored procedure `sp_insert_return_item` dan action query agar hanya mengurangi pending return (mencegah pengurangan ganda dengan accepted return).
+   - **Migrasi 043:** Perbaikan status return material ke `wait_approve` saat submit request agar selaras dengan workflow persetujuan Inout TAG.
+   - **Migrasi 044:** Sanitasi whitespace (trailing spaces) pada `inventory.sap_out_header`, pembaharuan SP `sp_create_out_sap` dengan auto-flag `sap_out_check = TRUE`, dan sinkronisasi dual-matching Out Lensa Ref berdasarkan GI Number maupun ID Permintaan (Reservation ID).
 3. **Kualitas & Ketahanan (Resilience & Automated Testing):**
    - Standardisasi repository Kysely (`generateTrxUsedSeq`, `generateTrxUsedLensaSeq`, `markWoLensaReconciled`) menggantikan query ad-hoc.
    - Seluruh server action mengembalikan format standar `{ success, data?, error? }` dengan server-side logging terstruktur (`actionLogger`/`securityLogger`).
@@ -125,7 +127,7 @@ npx playwright install chromium
 ```
 
 ### Langkah 4: Jalankan Migrasi Database
-Terapkan migrasi skema terbaru (termasuk migrasi 040, 041, 042, dan 043):
+Terapkan migrasi skema terbaru (termasuk migrasi 040, 041, 042, 043, dan 044):
 ```bash
 npm run migrate
 ```
@@ -135,6 +137,7 @@ Applying migration: 040_fix_return_material_integrity.sql ... OK
 Applying migration: 041_enable_rls_stock_opname_log_and_revoke_public.sql ... OK
 Applying migration: 042_fix_return_item_pending_status_calc.sql ... OK
 Applying migration: 043_fix_sp_return_material_wait_approve_status.sql ... OK
+Applying migration: 044_clean_sap_out_whitespace_and_sync_out_lensa.sql ... OK
 All migrations applied successfully.
 ```
 
