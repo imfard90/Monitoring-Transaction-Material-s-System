@@ -416,6 +416,40 @@ describeDb('L5 query logging migration tracked (018)', () => {
             expect(row?.def).toContain('qty_stock >= 0');
         });
 
+        it('047_add_nik_accept_and_audit_inout_tag.sql recorded in migration log', async () => {
+            const row = await queryOne<{ filename: string }>(`
+                SELECT filename FROM inventory._migration_log
+                WHERE filename = '047_add_nik_accept_and_audit_inout_tag.sql'
+            `);
+            expect(row?.filename).toBe('047_add_nik_accept_and_audit_inout_tag.sql');
+        });
+
+        it('nik_accept exists in inout_tag_header and return_material_header', async () => {
+            const inoutCol = await queryOne<{ column_name: string }>(`
+                SELECT column_name FROM information_schema.columns
+                WHERE table_schema = 'inventory' AND table_name = 'inout_tag_header' AND column_name = 'nik_accept'
+            `);
+            expect(inoutCol?.column_name).toBe('nik_accept');
+
+            const retCol = await queryOne<{ column_name: string }>(`
+                SELECT column_name FROM information_schema.columns
+                WHERE table_schema = 'inventory' AND table_name = 'return_material_header' AND column_name = 'nik_accept'
+            `);
+            expect(retCol?.column_name).toBe('nik_accept');
+        });
+
+        it('sp_cancel_inout_tag exists and validates cancellation reason', async () => {
+            const row = await queryOne<{ def: string }>(`
+                SELECT pg_get_functiondef(p.oid) AS def
+                FROM pg_proc p
+                JOIN pg_namespace n ON n.oid = p.pronamespace
+                WHERE n.nspname = 'inventory'
+                  AND p.proname = 'sp_cancel_inout_tag'
+            `);
+            expect(row?.def).toContain('Alasan pembatalan wajib diisi');
+            expect(row?.def).toContain('BATAL - ');
+        });
+
         it('inventory.trx_return_seq sequence exists', async () => {
             const row = await queryOne<{ sequencename: string }>(`
                 SELECT sequencename FROM pg_sequences

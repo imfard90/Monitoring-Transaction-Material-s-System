@@ -547,6 +547,7 @@ export interface InventoryInoutTagHeader {
     from_wh_id: number | null;
     id: Generated<Int8>;
     id_trx: string;
+    nik_accept: string | null;
     nik_send: string | null;
     notes: string | null;
     request_id: string | null;
@@ -655,6 +656,7 @@ export interface InventoryReturnMaterialHeader {
     end_status: Generated<string>;
     id: Generated<Int8>;
     id_trx: string;
+    nik_accept: string | null;
     nik_teknisi: string;
     notes: string | null;
     sap_out_id: Int8;

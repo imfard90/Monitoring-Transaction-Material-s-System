@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ModalDialog } from '@/components/ui/modal-dialog';
+import { Textarea } from '@/components/ui/textarea';
 import {
     Table,
     TableBody,
@@ -110,6 +111,7 @@ export default function UpdateTagModal({
     const [actionId, setActionId] = useState('');
     const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
     const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
+    const [cancelNotes, setCancelNotes] = useState('');
 
     useEffect(() => {
         if (isOpen && row && items.length > 0) {
@@ -184,14 +186,15 @@ export default function UpdateTagModal({
     };
 
     const cancelMutation = useMutation({
-        mutationFn: async () => {
-            return cancelTag(Number(row?.id), row?.type);
+        mutationFn: async (notes: string) => {
+            return cancelTag(Number(row?.id), notes, row?.type);
         },
         onSuccess: (res) => {
             if (res.success) {
                 toast.success('Transaksi tag berhasil dibatalkan');
                 queryClient.invalidateQueries({ queryKey: ['inoutTags'] });
                 setIsCancelConfirmOpen(false);
+                setCancelNotes('');
                 onClose();
             } else {
                 toast.error(res.error || 'Gagal membatalkan transaksi tag');
@@ -370,17 +373,21 @@ export default function UpdateTagModal({
 
             <ConfirmDialog
                 isOpen={isCancelConfirmOpen}
-                onOpenChange={setIsCancelConfirmOpen}
+                onOpenChange={(open) => {
+                    setIsCancelConfirmOpen(open);
+                    if (!open) setCancelNotes('');
+                }}
                 title="Batalkan Transaksi Tag"
-                description="Apakah Anda yakin ingin membatalkan transaksi tag ini? Tindakan ini tidak dapat dibatalkan."
+                description="Apakah Anda yakin ingin membatalkan transaksi tag ini? Tindakan ini tidak dapat dibatalkan dan wajib menyertakan alasan untuk audit trail."
                 confirmText="Batalkan Transaksi"
                 cancelText="Kembali"
                 variant="destructive"
                 loading={cancelMutation.isPending}
+                confirmDisabled={cancelNotes.trim().length < 5}
                 icon={<Ban size={16} />}
-                onConfirm={() => cancelMutation.mutate()}
+                onConfirm={() => cancelMutation.mutate(cancelNotes.trim())}
             >
-                <div className="space-y-3 text-sm">
+                <div className="space-y-4 text-sm">
                     <div className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl">
                         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
                             ID Transaksi:
@@ -389,9 +396,35 @@ export default function UpdateTagModal({
                             {row.id_trx}
                         </span>
                     </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="cancel-notes" className="text-xs font-medium">
+                            Alasan Pembatalan / Catatan Audit <span className="text-destructive">*</span>
+                        </Label>
+                        <Textarea
+                            id="cancel-notes"
+                            placeholder="Tuliskan alasan pembatalan transaksi secara jelas (minimal 5 karakter)..."
+                            value={cancelNotes}
+                            onChange={(e) => setCancelNotes(e.target.value)}
+                            rows={3}
+                            className="text-sm"
+                        />
+                        <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                            <span>
+                                {cancelNotes.trim().length < 5 ? (
+                                    <span className="text-amber-500 font-medium">
+                                        Wajib minimal 5 karakter ({cancelNotes.trim().length}/5)
+                                    </span>
+                                ) : (
+                                    <span className="text-emerald-500 font-medium">✓ Memenuhi syarat audit</span>
+                                )}
+                            </span>
+                            <span>{cancelNotes.length} karakter</span>
+                        </div>
+                    </div>
+
                     <p className="text-muted-foreground text-xs leading-relaxed">
-                        Status transaksi akan diubah menjadi batal dan alokasi terkait akan
-                        dikembalikan secara otomatis.
+                        Status transaksi akan diubah menjadi <strong className="text-foreground">cancel</strong> dan catatan pembatalan akan disimpan permanen dalam database.
                     </p>
                 </div>
             </ConfirmDialog>

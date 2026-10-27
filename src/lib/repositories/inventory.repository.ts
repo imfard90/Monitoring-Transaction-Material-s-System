@@ -29,7 +29,7 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
 
     /**
      * Create InOut Tag - atomic operation
-     * Signature matches inventory.sp_create_inout_tag
+     * Signature matches inventory.sp_create_inout_tag (migration 047)
      */
     createInOutTag: async (params: {
         fromWhId: number | null;
@@ -43,6 +43,7 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
             action?: string;
             action_id?: string;
         }>;
+        createdBy?: string | null;
     }) => {
         const res = await sql<{ p_id_trx: string }>`
             CALL inventory.sp_create_inout_tag(
@@ -52,7 +53,8 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
                 ${params.vendorName || null},
                 ${params.cost},
                 ${JSON.stringify(params.items)}::jsonb,
-                null
+                null,
+                ${params.createdBy || null}::varchar
             )
         `.execute(dbClient);
         return res.rows[0]?.p_id_trx;
@@ -60,20 +62,22 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
 
     /**
      * Update InOut Tag (request/send/accept) - atomic operation
-     * Signature matches inventory.sp_update_inout_tag (migration 009)
-     * SP accepts 4 params: p_header_id, p_action, p_action_id, p_items_json
+     * Signature matches inventory.sp_update_inout_tag (migration 047)
+     * SP accepts 5 params: p_header_id, p_action, p_action_id, p_items_json, p_user_nik
      */
     updateInOutTag: (params: {
         headerId: number;
         actionType: 'request' | 'send' | 'accept';
         actionId: string;
         items: Array<{ designator_id: number; qty: number }>;
+        userNik?: string | null;
     }) =>
         sql`CALL inventory.sp_update_inout_tag(
             ${params.headerId}::integer,
             ${params.actionType}::varchar,
             ${params.actionId}::varchar,
-            ${JSON.stringify(params.items)}::jsonb
+            ${JSON.stringify(params.items)}::jsonb,
+            ${params.userNik || null}::varchar
         )`.execute(dbClient),
 
     /**
@@ -198,12 +202,34 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
 
     /**
      * Record Return Material - atomic operation
-     * Matches inventory.sp_return_material(p_header_id, p_accept_id)
+     * Matches inventory.sp_return_material(p_header_id, p_accept_id, p_user_nik) (migration 047)
      */
-    recordReturnMaterial: (params: { headerId: number; acceptId: string }) =>
+    recordReturnMaterial: (params: {
+        headerId: number;
+        acceptId: string;
+        userNik?: string | null;
+    }) =>
         sql`CALL inventory.sp_return_material(
             ${params.headerId}::bigint,
-            ${params.acceptId}::varchar
+            ${params.acceptId}::varchar,
+            ${params.userNik || null}::varchar
+        )`.execute(dbClient),
+
+    /**
+     * Cancel InOut Tag or Return Material - atomic operation
+     * Signature matches inventory.sp_cancel_inout_tag (migration 047)
+     */
+    cancelInOutTag: (params: {
+        headerId: number;
+        type?: string;
+        reason: string;
+        userNik: string;
+    }) =>
+        sql`CALL inventory.sp_cancel_inout_tag(
+            ${params.headerId}::bigint,
+            ${params.type ?? 'inout'}::varchar,
+            ${params.reason}::text,
+            ${params.userNik}::varchar
         )`.execute(dbClient),
 
     /**

@@ -50,6 +50,9 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
                 'r.id',
                 'r.id_trx',
                 'r.accept_id',
+                'r.nik_accept',
+                'r.created_by',
+                'r.notes',
                 'r.end_status',
                 'r.created_at as request_time',
                 'r.warehouse_id as to_wh_id',
@@ -81,7 +84,11 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
                 id_trx: r.id_trx,
                 request_id: null,
                 send_id: null,
+                nik_send: null,
                 accept_id: r.accept_id,
+                nik_accept: r.nik_accept,
+                created_by: r.created_by,
+                notes: r.notes,
                 end_status:
                     r.end_status === 'pending' || r.end_status === 'wait_approve'
                         ? 'requested'
@@ -159,7 +166,11 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
                     h.id_trx,
                     h.request_id,
                     h.send_id,
+                    h.nik_send,
                     h.accept_id,
+                    h.nik_accept,
+                    h.created_by,
+                    h.notes,
                     h.end_status::text as end_status,
                     h.request_time,
                     v.name_vendor,
@@ -178,7 +189,11 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
                     r.id_trx,
                     null as request_id,
                     null as send_id,
+                    null as nik_send,
                     r.accept_id,
+                    r.nik_accept,
+                    r.created_by,
+                    r.notes,
                     CASE 
                         WHEN r.end_status IN ('pending', 'wait_approve') THEN 'requested'
                         WHEN r.end_status = 'accepted' THEN 'closed'
@@ -279,7 +294,11 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
                 id_trx,
                 request_id,
                 send_id,
+                nik_send,
                 accept_id,
+                nik_accept,
+                created_by,
+                notes,
                 end_status,
                 request_time,
                 name_vendor,

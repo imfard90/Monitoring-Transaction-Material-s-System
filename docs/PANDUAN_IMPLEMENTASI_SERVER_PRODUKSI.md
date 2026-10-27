@@ -19,6 +19,7 @@ Rilis ini membawa 3 pilar peningkatan utama:
    - **Migrasi 044:** Sanitasi whitespace (trailing spaces) pada `inventory.sap_out_header`, pembaharuan SP `sp_create_out_sap` dengan auto-flag `sap_out_check = TRUE`, dan sinkronisasi dual-matching Out Lensa Ref berdasarkan GI Number maupun ID Permintaan (Reservation ID).
    - **Migrasi 045:** Sanitasi whitespace pada `inventory.rekon_used_header` dan `inventory.wo_lensa_header`, pembaruan SP `sp_record_rekon_lensa_v2` dengan auto-flag atomik `wo_lensa_header.rekon_check = TRUE`, sinkronisasi dual-matching (ID Pemakaian & WO Number), serta normalisasi material codes pada Intech Lensa vs MTMS stock comparison.
    - **Migrasi 046:** Sanitasi whitespace `out_sap` pada `inventory.rekon_used_list`, penambahan indeks performa `idx_rekon_used_list_out_sap` untuk query Hasil Rekon staf gudang, dan pembaruan SP `sp_submit_rekon_intech` dengan sanitasi parameter database.
+   - **Migrasi 047:** Penambahan kolom `nik_accept` pada `inventory.inout_tag_header` dan `inventory.return_material_header`, pembaruan SP `sp_create_inout_tag`, `sp_update_inout_tag`, dan `sp_return_material` untuk pencatatan audit `created_by`, `nik_send`, dan `nik_accept`, serta penambahan SP `sp_cancel_inout_tag` dengan audit catatan pembatalan wajib (minimal 5 karakter).
 3. **Kualitas & Ketahanan (Resilience & Automated Testing):**
    - Standardisasi repository Kysely (`generateTrxUsedSeq`, `generateTrxUsedLensaSeq`, `markWoLensaReconciled`) menggantikan query ad-hoc.
    - Seluruh server action mengembalikan format standar `{ success, data?, error? }` dengan server-side logging terstruktur (`actionLogger`/`securityLogger`).
@@ -129,7 +130,7 @@ npx playwright install chromium
 ```
 
 ### Langkah 4: Jalankan Migrasi Database
-Terapkan migrasi skema terbaru (termasuk migrasi 040, 041, 042, 043, 044, 045, dan 046):
+Terapkan migrasi skema terbaru (termasuk migrasi 040, 041, 042, 043, 044, 045, 046, dan 047):
 ```bash
 npm run migrate
 ```
@@ -142,6 +143,7 @@ Applying migration: 043_fix_sp_return_material_wait_approve_status.sql ... OK
 Applying migration: 044_clean_sap_out_whitespace_and_sync_out_lensa.sql ... OK
 Applying migration: 045_sp_record_rekon_lensa_v2_atomic_sync_and_clean.sql ... OK
 Applying migration: 046_clean_rekon_used_list_and_sanitize_rekon_intech.sql ... OK
+Applying migration: 047_add_nik_accept_and_audit_inout_tag.sql ... OK
 All migrations applied successfully.
 ```
 

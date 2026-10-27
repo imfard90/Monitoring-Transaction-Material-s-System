@@ -151,13 +151,17 @@ describe('InventoryRepository Unit Tests', () => {
             toWhId: 2,
             cost: 50000,
             items: [{ designator_id: 10, qty: 2 }],
+            createdBy: '12345678',
         });
 
         expect(mockSqlExecute).toHaveBeenCalledTimes(1);
         expect(idTrx).toBe('TRX-TAG-KP-SBY-26100005');
+        const call = mockSqlCalls.at(-1);
+        expect(call?.strings.join('?')).toContain('CALL inventory.sp_create_inout_tag');
+        expect(call?.values[6]).toBe('12345678');
     });
 
-    it('updateInOutTag invokes sp_update_inout_tag with action payload', async () => {
+    it('updateInOutTag invokes sp_update_inout_tag with action payload and userNik', async () => {
         mockSqlExecute.mockResolvedValueOnce({ rows: [] });
 
         const repo = createInventoryRepository({} as any);
@@ -166,13 +170,20 @@ describe('InventoryRepository Unit Tests', () => {
             actionType: 'send',
             actionId: 'SEND-01',
             items: [{ designator_id: 10, qty: 2 }],
+            userNik: '12345678',
         });
 
         expect(mockSqlExecute).toHaveBeenCalledTimes(1);
         const call = mockSqlCalls.at(-1);
         expect(call?.strings.join('?')).toContain('CALL inventory.sp_update_inout_tag');
         expect(call?.strings[1]).toContain('::integer');
-        expect(call?.values).toEqual([55, 'send', 'SEND-01', '[{"designator_id":10,"qty":2}]']);
+        expect(call?.values).toEqual([
+            55,
+            'send',
+            'SEND-01',
+            '[{"designator_id":10,"qty":2}]',
+            '12345678',
+        ]);
     });
 
     it('updateInOutTag sends accept ID as the action ID for the accept action', async () => {
@@ -184,25 +195,53 @@ describe('InventoryRepository Unit Tests', () => {
             actionType: 'accept',
             actionId: 'ACCEPT-01',
             items: [{ designator_id: 10, qty: 2 }],
+            userNik: '12345678',
         });
 
         const call = mockSqlCalls.at(-1);
         expect(call?.strings.join('?')).toContain('CALL inventory.sp_update_inout_tag');
         expect(call?.strings[1]).toContain('::integer');
         expect(call?.strings[2]).toContain('::varchar');
-        expect(call?.values).toEqual([55, 'accept', 'ACCEPT-01', '[{"designator_id":10,"qty":2}]']);
+        expect(call?.values).toEqual([
+            55,
+            'accept',
+            'ACCEPT-01',
+            '[{"designator_id":10,"qty":2}]',
+            '12345678',
+        ]);
     });
 
-    it('recordReturnMaterial invokes sp_return_material with header and accept ID', async () => {
+    it('recordReturnMaterial invokes sp_return_material with header, accept ID, and userNik', async () => {
         mockSqlExecute.mockResolvedValueOnce({ rows: [] });
 
         const repo = createInventoryRepository({} as any);
         await repo.recordReturnMaterial({
             headerId: 77,
             acceptId: 'ACC-77',
+            userNik: '12345678',
         });
 
         expect(mockSqlExecute).toHaveBeenCalledTimes(1);
+        const call = mockSqlCalls.at(-1);
+        expect(call?.strings.join('?')).toContain('CALL inventory.sp_return_material');
+        expect(call?.values).toEqual([77, 'ACC-77', '12345678']);
+    });
+
+    it('cancelInOutTag invokes sp_cancel_inout_tag with header, type, reason, and userNik', async () => {
+        mockSqlExecute.mockResolvedValueOnce({ rows: [] });
+
+        const repo = createInventoryRepository({} as any);
+        await repo.cancelInOutTag({
+            headerId: 88,
+            type: 'inout',
+            reason: 'Salah tujuan pengiriman',
+            userNik: '12345678',
+        });
+
+        expect(mockSqlExecute).toHaveBeenCalledTimes(1);
+        const call = mockSqlCalls.at(-1);
+        expect(call?.strings.join('?')).toContain('CALL inventory.sp_cancel_inout_tag');
+        expect(call?.values).toEqual([88, 'inout', 'Salah tujuan pengiriman', '12345678']);
     });
 
     it('editTransactionUsed invokes sp_edit_transaction_used with 7 parameters', async () => {

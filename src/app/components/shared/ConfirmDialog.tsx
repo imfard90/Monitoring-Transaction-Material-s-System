@@ -17,6 +17,7 @@ interface ConfirmDialogProps {
     description?: string;
     onConfirm: () => void;
     loading?: boolean;
+    confirmDisabled?: boolean;
     children?: React.ReactNode;
     confirmText?: string;
     cancelText?: string;
@@ -31,6 +32,7 @@ export function ConfirmDialog({
     description,
     onConfirm,
     loading = false,
+    confirmDisabled = false,
     children,
     confirmText = 'Submit Sekarang',
     cancelText = 'Kembali & Edit',
@@ -62,7 +64,7 @@ export function ConfirmDialog({
                     <Button
                         variant={variant === 'destructive' ? 'destructive' : 'default'}
                         onClick={onConfirm}
-                        disabled={loading}
+                        disabled={loading || confirmDisabled}
                         className="gap-2"
                     >
                         {icon}

@@ -72,6 +72,15 @@ const acceptReturnTagSchema = z.object({
     idemKey: z.string().trim().min(1),
 });
 
+const cancelTagSchema = z.object({
+    headerId: z.number().int().positive(),
+    notes: z
+        .string()
+        .trim()
+        .min(5, 'Alasan pembatalan minimal 5 karakter untuk keperluan audit trail'),
+    type: z.enum(['inout', 'return']).optional(),
+});
+
 export async function createTag(payload: {
     fromWhId: number;
     toWhId: number;
@@ -113,6 +122,7 @@ export async function createTag(payload: {
                     vendorName: data.vendorName || null,
                     cost: data.cost,
                     items: data.items,
+                    createdBy: user.nik,
                 });
 
                 return res;
@@ -208,6 +218,7 @@ export async function updateTag(payload: {
                     actionType: data.actionType,
                     actionId: data.actionId,
                     items: data.items,
+                    userNik: user.nik,
                 });
 
                 return true;
@@ -245,7 +256,15 @@ export async function updateTag(payload: {
     }
 }
 
-export async function cancelTag(headerId: number, type?: string) {
+export async function cancelTag(headerId: number, notes: string, type?: string) {
+    const parsed = cancelTagSchema.safeParse({ headerId, notes, type: type ?? 'inout' });
+    if (!parsed.success) {
+        return {
+            success: false,
+            error: `Data pembatalan tidak valid: ${parsed.error.issues[0]?.message}`,
+        };
+    }
+
     try {
         const user = await getSessionUser();
 
@@ -293,23 +312,12 @@ export async function cancelTag(headerId: number, type?: string) {
             }
         }
 
-        if (type === 'return') {
-            await db
-                .updateTable('inventory.return_material_header')
-                .set({ end_status: 'cancel' })
-                .where('id', '=', String(headerId))
-                .where('end_status', '!=', 'closed')
-                .where('end_status', '!=', 'cancel')
-                .execute();
-        } else {
-            await db
-                .updateTable('inventory.inout_tag_header')
-                .set({ end_status: 'cancel' })
-                .where('id', '=', String(headerId))
-                .where('end_status', '!=', 'closed')
-                .where('end_status', '!=', 'cancel')
-                .execute();
-        }
+        await inventoryRepository.cancelInOutTag({
+            headerId: parsed.data.headerId,
+            type: parsed.data.type,
+            reason: parsed.data.notes,
+            userNik: user.nik,
+        });
 
         revalidatePath('/apps/inout-tag');
         revalidatePath('/stock-inventory');
@@ -320,7 +328,10 @@ export async function cancelTag(headerId: number, type?: string) {
             'Failed to cancel tag:',
             error instanceof Error ? error : new Error(String(error))
         );
-        return { success: false, error: 'Failed to cancel tag.' };
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to cancel tag.',
+        };
     }
 }
 
@@ -360,6 +371,7 @@ export async function acceptReturnTag(headerId: number, acceptId: string, idemKe
                 await inventoryRepository.recordReturnMaterial({
                     headerId: Number(data.headerId),
                     acceptId: data.acceptId,
+                    userNik: user.nik,
                 });
                 return true;
             }

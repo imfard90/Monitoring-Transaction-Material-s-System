@@ -34,12 +34,17 @@ vi.mock('@/lib/db/db', () => ({
     },
 }));
 
+const mockSqlCalls: { strings: TemplateStringsArray; values: any[] }[] = [];
+
 vi.mock('kysely', () => {
-    const fakeSql = (strings: TemplateStringsArray, ...values: any[]) => ({
-        strings,
-        values,
-        execute: mockSqlExecute,
-    });
+    const fakeSql = (strings: TemplateStringsArray, ...values: any[]) => {
+        mockSqlCalls.push({ strings, values });
+        return {
+            strings,
+            values,
+            execute: mockSqlExecute,
+        };
+    };
     return {
         sql: fakeSql,
     };
@@ -51,7 +56,9 @@ vi.mock('@/lib/logger', () => ({
     },
 }));
 
-const { updateTag } = await import('@/app/(DashboardLayout)/apps/inout-tag/_actions/tag-commands');
+const { updateTag, cancelTag } = await import(
+    '@/app/(DashboardLayout)/apps/inout-tag/_actions/tag-commands'
+);
 
 describe('updateTag authorization', () => {
     beforeEach(() => {
@@ -210,5 +217,47 @@ describe('updateTag authorization', () => {
         });
 
         expect(result.success).toBe(true);
+    });
+});
+
+describe('cancelTag validation and authorization', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockSqlExecute.mockResolvedValue({ rows: [] });
+    });
+
+    it('rejects cancellation when notes is less than 5 characters', async () => {
+        const result = await cancelTag(101, 'bat', 'inout');
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Alasan pembatalan minimal 5 karakter');
+        expect(mockGetSessionUser).not.toHaveBeenCalled();
+    });
+
+    it('rejects cancellation when notes is whitespace only', async () => {
+        const result = await cancelTag(101, '    ', 'inout');
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Alasan pembatalan minimal 5 karakter');
+        expect(mockGetSessionUser).not.toHaveBeenCalled();
+    });
+
+    it('permits Admin to cancel tag with valid notes', async () => {
+        mockGetSessionUser.mockResolvedValue({
+            nik: 'ADM001',
+            role: 'Administrator',
+            warehouseIds: [],
+            isStaff: false,
+        });
+
+        const result = await cancelTag(101, 'Salah input alokasi gudang tujuan', 'inout');
+        expect(result.success).toBe(true);
+        expect(mockSqlExecute).toHaveBeenCalled();
+        const call = mockSqlCalls.at(-1);
+        expect(call?.strings.join('?')).toContain('CALL inventory.sp_cancel_inout_tag');
+        expect(call?.values).toEqual([
+            101,
+            'inout',
+            'Salah input alokasi gudang tujuan',
+            'ADM001',
+        ]);
     });
 });

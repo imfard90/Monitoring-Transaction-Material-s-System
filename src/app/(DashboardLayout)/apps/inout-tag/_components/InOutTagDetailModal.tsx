@@ -1,8 +1,10 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { AlertCircle } from 'lucide-react';
 import { ModalDialog } from '@/components/ui/modal-dialog';
 import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
+import { cn } from '@/lib/utils';
 import { getInOutTagItems, getReturnMaterialItemsByHeaderId } from '../_actions/tag-actions';
 
 interface InOutTagDetailModalProps {
@@ -48,6 +50,55 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
             className="sm:max-w-[700px]"
         >
             <div className="py-4">
+                {/* Audit Information Section */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4 p-3 bg-muted/20 border border-border rounded-lg text-xs">
+                    <div>
+                        <span className="text-muted-foreground block text-[11px] mb-0.5">
+                            Dibuat Oleh:
+                        </span>
+                        <span className="font-mono font-medium text-foreground">
+                            {row?.created_by || '-'}
+                        </span>
+                    </div>
+                    <div>
+                        <span className="text-muted-foreground block text-[11px] mb-0.5">
+                            Pengirim (Send):
+                        </span>
+                        <span className="font-mono font-medium text-foreground">
+                            {row?.send_id || '-'}
+                            {row?.nik_send ? ` (${row.nik_send})` : ''}
+                        </span>
+                    </div>
+                    <div>
+                        <span className="text-muted-foreground block text-[11px] mb-0.5">
+                            Penerima (Accept):
+                        </span>
+                        <span className="font-mono font-medium text-foreground">
+                            {row?.accept_id || '-'}
+                            {row?.nik_accept ? ` (${row.nik_accept})` : ''}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Notes / Reason Alert */}
+                {row?.notes && (
+                    <div
+                        className={cn(
+                            'mb-4 p-3 rounded-lg border text-xs leading-relaxed',
+                            row.end_status === 'cancel'
+                                ? 'bg-destructive/10 border-destructive/20 text-destructive'
+                                : 'bg-muted/50 border-border text-foreground'
+                        )}
+                    >
+                        <div className="font-semibold flex items-center gap-1.5 mb-1">
+                            <AlertCircle size={14} />
+                            {row.end_status === 'cancel'
+                                ? 'Alasan Pembatalan Transaksi:'
+                                : 'Catatan Transaksi:'}
+                        </div>
+                        <p className="whitespace-pre-wrap">{row.notes}</p>
+                    </div>
+                )}
                 {isLoading ? (
                     <p className="text-center text-muted-foreground py-4" role="status">
                         Memuat data, mohon tunggu...

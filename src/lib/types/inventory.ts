@@ -35,7 +35,9 @@ export interface InOutTagRow {
     to_wh_name: string | null;
     type: 'inout' | 'return';
     /** Additional columns from selectAll('h') — present only for 'inout' type */
+    created_by?: string | null;
     nik_send?: string | null;
+    nik_accept?: string | null;
     notes?: string | null;
     from_wh_id?: number | null;
     to_wh_id?: number | null;
