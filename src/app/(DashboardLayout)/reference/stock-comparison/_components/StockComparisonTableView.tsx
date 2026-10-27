@@ -243,7 +243,7 @@ export default function StockComparisonTableView({
         <StaggerContainer className="flex flex-col gap-4 md:h-full md:min-h-0 md:overflow-hidden">
             <StaggerItem className="flex flex-col md:h-full md:min-h-0 md:overflow-hidden">
                 <Card className="flex flex-col md:h-full md:min-h-0 md:overflow-hidden border-border shadow-sm">
-                    <CardHeader className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-4 shrink-0">
+                    <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 shrink-0">
                         <div>
                             <CardTitle className="text-xl font-bold">
                                 Rekap Stok Intech Lensa vs MTMS
@@ -254,7 +254,14 @@ export default function StockComparisonTableView({
                             </CardDescription>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <SearchField
+                                value={globalFilter}
+                                onValueChange={setGlobalFilter}
+                                onClear={handleResetFilters}
+                                placeholder="Cari NIK atau nama..."
+                                wrapperClassName="w-full sm:w-[220px]"
+                            />
                             {!isStaff && (
                                 <WarehouseCombobox
                                     value={warehouse}
@@ -262,23 +269,16 @@ export default function StockComparisonTableView({
                                     warehouses={warehouses}
                                     allLabel="Semua Gudang"
                                     placeholder="Cari gudang..."
-                                    className="w-full sm:w-[190px]"
+                                    emptyText="Gudang tidak ditemukan."
                                 />
                             )}
-                            <SearchField
-                                value={globalFilter}
-                                onValueChange={setGlobalFilter}
-                                onClear={handleResetFilters}
-                                placeholder="Cari NIK atau nama..."
-                                wrapperClassName="flex-1 sm:w-[220px]"
-                            />
                             {!isStaff && (
                                 <>
                                     <Button
                                         variant="outline"
                                         onClick={runBulkScrape}
                                         disabled={isScrapingStarting}
-                                        className="shrink-0"
+                                        className="shrink-0 shadow-sm"
                                     >
                                         {isScrapingStarting && (
                                             <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />

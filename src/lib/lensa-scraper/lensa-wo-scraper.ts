@@ -153,7 +153,7 @@ async function scrapePrefixEndpoint(
     performLogin: LensaPerformLogin,
     safeGoto: LensaSafeGoto,
     perpage: number,
-    prefix: 'INC' | 'SC' | 'DGPS' | 'FMC',
+    prefix: 'INC' | 'SC' | 'DGPS' | 'FMC' | 'PDA',
     seenIds: Set<string>,
     results: WOLensaHeader[]
 ): Promise<void> {
@@ -198,6 +198,7 @@ async function scrapePrefixEndpoint(
  *   3) Prefix SC: sama seperti INC.
  *   4) Prefix DGPS: sama seperti INC/SC, tanpa filter tambahan gi_number.
  *   5) Prefix FMC: sama seperti DGPS.
+ *   6) Prefix PDA: sama seperti DGPS/FMC.
  */
 export async function scrapeWOLensaHeaders(
     existingPemakaianIds: string[],
@@ -250,6 +251,15 @@ export async function scrapeWOLensaHeaders(
             safeGoto,
             perpage,
             'FMC',
+            seenIds,
+            newHeaders
+        );
+        await scrapePrefixEndpoint(
+            page,
+            performLogin,
+            safeGoto,
+            perpage,
+            'PDA',
             seenIds,
             newHeaders
         );
