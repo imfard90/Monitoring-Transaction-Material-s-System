@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { requireTechnicianManagementAccess } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
@@ -71,6 +72,14 @@ export async function toggleTechnicianStatus(id: string | number, isActive: bool
     }
 }
 
+const upsertTechnicianSchema = z.object({
+    id: z.union([z.string(), z.number()]).optional(),
+    nik: z.string().trim().min(1, 'NIK wajib diisi'),
+    name: z.string().trim().min(1, 'Nama teknisi wajib diisi'),
+    branch_id: z.number().int().positive().nullable(),
+    mitra_id: z.number().int().positive().nullable(),
+});
+
 export async function upsertTechnician(data: {
     id?: string | number;
     nik: string;
@@ -78,28 +87,34 @@ export async function upsertTechnician(data: {
     branch_id: number | null;
     mitra_id: number | null;
 }) {
+    const parsed = upsertTechnicianSchema.safeParse(data);
+    if (!parsed.success) {
+        throw new Error(parsed.error.issues[0]?.message ?? 'Data teknisi tidak valid');
+    }
+    const cleanData = parsed.data;
+
     try {
         await requireTechnicianManagementAccess();
 
-        if (data.id) {
+        if (cleanData.id) {
             await db
                 .updateTable('hr.technicians')
                 .set({
-                    nik: data.nik,
-                    name: data.name,
-                    branch_id: data.branch_id,
-                    mitra_id: data.mitra_id,
+                    nik: cleanData.nik,
+                    name: cleanData.name,
+                    branch_id: cleanData.branch_id,
+                    mitra_id: cleanData.mitra_id,
                 })
-                .where('id', '=', String(data.id))
+                .where('id', '=', String(cleanData.id))
                 .execute();
         } else {
             await db
                 .insertInto('hr.technicians')
                 .values({
-                    nik: data.nik,
-                    name: data.name,
-                    branch_id: data.branch_id,
-                    mitra_id: data.mitra_id,
+                    nik: cleanData.nik,
+                    name: cleanData.name,
+                    branch_id: cleanData.branch_id,
+                    mitra_id: cleanData.mitra_id,
                 })
                 .execute();
         }
@@ -119,6 +134,6 @@ export async function upsertTechnician(data: {
         ) {
             throw new Error('NIK tersebut sudah terdaftar pada teknisi lain.');
         }
-        throw new Error('Failed to save technician');
+        throw new Error(error instanceof Error ? error.message : 'Failed to save technician');
     }
 }

@@ -238,7 +238,7 @@ export async function parseStockOpnamePdf(
         materials.push({
             warehouse_id: warehouseId,
             warehouse: detectedWarehouse,
-            material_code: codeItem.text.toUpperCase(),
+            material_code: codeItem.text.trim().toUpperCase(),
             material_name: materialName,
             saldo_sap: qty,
         });

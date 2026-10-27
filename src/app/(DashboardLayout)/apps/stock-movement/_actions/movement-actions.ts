@@ -74,7 +74,7 @@ export async function getStockMovements(offsetMonths = 0, limitMonths = 5) {
             query = query.where('sm.warehouse_id', 'in', warehouseIds as number[]);
         }
 
-        const movements = await query.execute();
+        const movements = await query.limit(1000).execute();
         return movements;
     } catch (error) {
         actionLogger.error(

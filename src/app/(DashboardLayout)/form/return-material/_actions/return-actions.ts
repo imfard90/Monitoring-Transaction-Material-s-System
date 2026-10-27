@@ -64,6 +64,20 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
             .selectFrom('inventory.sap_out_items as i')
             .innerJoin('inventory.materials as m', 'm.id', 'i.designator_id')
             .innerJoin('inventory.sap_out_header as h', 'h.id', 'i.header_id')
+            .leftJoin(
+                (eb) =>
+                    eb
+                        .selectFrom('inventory.return_material_items as rmi')
+                        .innerJoin('inventory.return_material_header as rmh', 'rmh.id', 'rmi.header_id')
+                        .select([
+                            'rmi.sap_out_item_id',
+                            sql<number>`SUM(rmi.qty)`.as('pending_qty'),
+                        ])
+                        .where('rmh.end_status', 'in', ['wait_approve', 'pending'])
+                        .groupBy('rmi.sap_out_item_id')
+                        .as('pending_rm'),
+                (join) => join.onRef('pending_rm.sap_out_item_id', '=', 'i.id')
+            )
             .select([
                 'i.id as sap_out_item_id',
                 'i.designator_id',
@@ -71,13 +85,7 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
                 'm.description as material_name',
                 'i.qty_req',
                 'i.qty_used',
-                sql<number>`COALESCE((
-                    SELECT SUM(rmi.qty) 
-                    FROM inventory.return_material_items rmi 
-                    JOIN inventory.return_material_header rmh ON rmh.id = rmi.header_id 
-                    WHERE rmi.sap_out_item_id = i.id 
-                      AND rmh.end_status IN ('wait_approve', 'pending')
-                ), 0)`.as('pending_returns'),
+                sql<number>`COALESCE(pending_rm.pending_qty, 0)`.as('pending_returns'),
             ])
             .where('i.header_id', '=', String(headerId));
 
@@ -118,11 +126,11 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
 }
 
 const createReturnMaterialSchema = z.object({
-    idemKey: z.string().min(1, 'Idempotency key wajib diisi'),
+    idemKey: z.string().trim().min(1, 'Idempotency key wajib diisi'),
     sap_out_id: z.number().int().positive('ID SAP Out tidak valid'),
-    nik_teknisi: z.string().min(1, 'NIK teknisi wajib diisi'),
+    nik_teknisi: z.string().trim().min(1, 'NIK teknisi wajib diisi'),
     warehouse_id: z.number().int().positive('Gudang tujuan tidak valid'),
-    notes: z.string().optional().nullable(),
+    notes: z.string().trim().optional().nullable(),
     items: z
         .array(
             z.object({

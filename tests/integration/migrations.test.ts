@@ -375,6 +375,25 @@ describeDb('L5 query logging migration tracked (018)', () => {
             expect(row?.filename).toBe('045_sp_record_rekon_lensa_v2_atomic_sync_and_clean.sql');
         });
 
+        it('046_clean_rekon_used_list_and_sanitize_rekon_intech.sql recorded in migration log', async () => {
+            const row = await queryOne<{ filename: string }>(`
+                SELECT filename FROM inventory._migration_log
+                WHERE filename = '046_clean_rekon_used_list_and_sanitize_rekon_intech.sql'
+            `);
+            expect(row?.filename).toBe('046_clean_rekon_used_list_and_sanitize_rekon_intech.sql');
+        });
+
+        it('sp_submit_rekon_intech sanitizes id_trx and wo_number', async () => {
+            const row = await queryOne<{ def: string }>(`
+                SELECT pg_get_functiondef(p.oid) AS def
+                FROM pg_proc p
+                JOIN pg_namespace n ON n.oid = p.pronamespace
+                WHERE n.nspname = 'inventory'
+                  AND p.proname = 'sp_submit_rekon_intech'
+            `);
+            expect(row?.def).toContain('v_clean_wo_number');
+        });
+
         it('sp_record_rekon_lensa_v2 exists and sets rekon_check atomically', async () => {
             const row = await queryOne<{ def: string }>(`
                 SELECT pg_get_functiondef(p.oid) AS def

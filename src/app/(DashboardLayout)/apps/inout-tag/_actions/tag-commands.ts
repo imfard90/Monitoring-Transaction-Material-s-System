@@ -13,8 +13,8 @@ const createTagSchema = z
     .object({
         fromWhId: z.number().int().positive(),
         toWhId: z.number().int().positive(),
-        requestId: z.string().optional().nullable(),
-        vendorName: z.string().optional().nullable(),
+        requestId: z.string().trim().optional().nullable(),
+        vendorName: z.string().trim().optional().nullable(),
         cost: z.number().nonnegative(),
         items: z
             .array(
@@ -24,7 +24,7 @@ const createTagSchema = z
                 })
             )
             .min(1),
-        idemKey: z.string().min(1),
+        idemKey: z.string().trim().min(1),
     })
     .refine((data) => data.fromWhId !== data.toWhId, {
         message: 'From WH and To WH cannot be the same',
@@ -35,7 +35,7 @@ const updateTagSchema = z
     .object({
         headerId: z.number().int().positive(),
         actionType: z.enum(['request', 'send', 'accept']),
-        actionId: z.string().min(1),
+        actionId: z.string().trim().min(1),
         items: z
             .array(
                 z.object({
@@ -44,7 +44,7 @@ const updateTagSchema = z
                 })
             )
             .min(1),
-        idemKey: z.string().min(1),
+        idemKey: z.string().trim().min(1),
     })
     .superRefine((data, context) => {
         data.items.forEach((item, index) => {
@@ -68,8 +68,8 @@ const updateTagSchema = z
 
 const acceptReturnTagSchema = z.object({
     headerId: z.number().int().positive(),
-    acceptId: z.string().min(1),
-    idemKey: z.string().min(1),
+    acceptId: z.string().trim().min(1),
+    idemKey: z.string().trim().min(1),
 });
 
 export async function createTag(payload: {

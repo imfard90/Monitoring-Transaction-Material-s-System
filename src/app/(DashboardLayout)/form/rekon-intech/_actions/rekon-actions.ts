@@ -10,23 +10,23 @@ import { createInventoryRepository } from '@/lib/repositories';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 const rekonItemSchema = z.object({
-    sap_out_id: z.string().min(1),
-    id_trx: z.string().min(1),
-    sap_number: z.string().nullable(),
-    name_sa: z.string().min(1),
-    name_wh: z.string().nullable(),
+    sap_out_id: z.string().trim().min(1),
+    id_trx: z.string().trim().min(1),
+    sap_number: z.string().trim().nullable(),
+    name_sa: z.string().trim().min(1),
+    name_wh: z.string().trim().nullable(),
     designator_id: z.number().int().positive(),
-    sap_out_item_id: z.string().min(1),
+    sap_out_item_id: z.string().trim().min(1),
     qty: z.number().positive(),
-    wo_type: z.string().min(1),
-    wo_number: z.string().min(1).max(50, 'Nomor WO maksimal 50 karakter'),
-    notes: z.string(),
+    wo_type: z.string().trim().min(1),
+    wo_number: z.string().trim().min(1).max(50, 'Nomor WO maksimal 50 karakter'),
+    notes: z.string().trim(),
 });
 
 const submitRekonIntechSchema = z.object({
-    nik: z.string().min(1),
+    nik: z.string().trim().min(1),
     items: z.array(rekonItemSchema).min(1),
-    idemKey: z.string().min(1),
+    idemKey: z.string().trim().min(1),
 });
 
 export async function getTechniciansWithIntechSaps() {
@@ -161,25 +161,32 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
             idemKey,
             { nik, items },
             async (data) => {
-                // Prevent a WO already managed by Rekon Lensa from being reconciled via Intech.
-                const woNumber = data.items[0].wo_number;
-                const lensaWo = await db
-                    .selectFrom('inventory.wo_lensa_header')
-                    .select('rekon_check')
-                    .where('wo_number', '=', woNumber)
-                    .executeTakeFirst();
+                // Validate that none of the WOs are managed by Rekon Lensa
+                const woNumbers = Array.from(
+                    new Set(data.items.map((item) => item.wo_number.trim()))
+                ).filter(Boolean);
 
-                if (lensaWo) {
-                    if (lensaWo.rekon_check === true) {
-                        throw new Error(`WO ${woNumber} sudah direkon melalui Rekon Lensa.`);
+                if (woNumbers.length > 0) {
+                    const lensaWos = await db
+                        .selectFrom('inventory.wo_lensa_header')
+                        .select(['wo_number', 'rekon_check'])
+                        .where('wo_number', 'in', woNumbers)
+                        .execute();
+
+                    if (lensaWos.length > 0) {
+                        const alreadyReconciled = lensaWos.find((w) => w.rekon_check === true);
+                        if (alreadyReconciled) {
+                            throw new Error(
+                                `WO ${alreadyReconciled.wo_number} sudah direkon melalui Rekon Lensa.`
+                            );
+                        }
+                        throw new Error(
+                            `WO ${lensaWos[0].wo_number} terdaftar di WO Lensa Ref. Silakan gunakan Rekon Lensa.`
+                        );
                     }
-                    throw new Error(
-                        `WO ${woNumber} terdaftar di WO Lensa Ref. Silakan gunakan Rekon Lensa.`
-                    );
                 }
 
-                // Validate WO number uniqueness
-                const woNumbers = Array.from(new Set(data.items.map((item) => item.wo_number)));
+                // Validate WO number uniqueness in transaction_used_header
                 if (woNumbers.length > 0) {
                     const existingWos = await db
                         .selectFrom('inventory.transaction_used_header')
@@ -198,7 +205,10 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
                 // Group items by sap_out_id, wo_number, wo_type
                 const groups: { [key: string]: RekonItemPayload[] } = {};
                 for (const item of data.items) {
-                    const key = `${item.sap_out_id}_${item.wo_number}_${item.wo_type}`;
+                    const cleanWoNumber = item.wo_number.trim();
+                    const cleanSapOutId = item.sap_out_id.trim();
+                    const cleanWoType = item.wo_type.trim();
+                    const key = `${cleanSapOutId}_${cleanWoNumber}_${cleanWoType}`;
                     if (!groups[key]) groups[key] = [];
                     groups[key].push(item);
                 }
@@ -215,15 +225,18 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
 
                         const repo = createInventoryRepository(trx);
                         const sequence = await repo.generateTrxUsedSeq();
-                        const generatedIdTrx = `TRX-USED-${data.nik}-${first.sap_number}-${first.wo_number}-${yymm}${sequence}`;
+                        const cleanNik = data.nik.trim();
+                        const cleanSapNumber = (first.sap_number ?? '').trim();
+                        const cleanWo = first.wo_number.trim();
+                        const generatedIdTrx = `TRX-USED-${cleanNik}-${cleanSapNumber}-${cleanWo}-${yymm}${sequence}`;
                         const normalizedWoType = first.wo_type
                             ? first.wo_type.trim().toLowerCase().replace(/\s+/g, '_')
                             : null;
                         await repo.submitRekonIntech({
                             idTrx: generatedIdTrx,
-                            nik: data.nik,
-                            sapOutId: String(first.sap_out_id),
-                            woNumber: first.wo_number,
+                            nik: cleanNik,
+                            sapOutId: String(first.sap_out_id).trim(),
+                            woNumber: cleanWo,
                             woType: normalizedWoType,
                             nameSa: first.name_sa,
                             nameWh: first.name_wh || '',

@@ -31,16 +31,19 @@ vi.mock('@/lib/repositories', () => ({
     }),
 }));
 
+const mockWoLensaExecute = vi.fn();
+
 vi.mock('@/lib/db/db', () => ({
     db: {
-        selectFrom: () => ({
-            select: () => ({
-                where: () => ({
+        selectFrom: vi.fn((table: string) => ({
+            select: vi.fn(() => ({
+                where: vi.fn(() => ({
+                    where: vi.fn().mockReturnThis(),
                     executeTakeFirst: mockDbExecuteTakeFirst,
-                    execute: mockDbExecute,
-                }),
-            }),
-        }),
+                    execute: table === 'inventory.wo_lensa_header' ? mockWoLensaExecute : mockDbExecute,
+                })),
+            })),
+        })),
         transaction: () => ({
             execute: async (cb: any) => cb({}),
         }),
@@ -81,7 +84,8 @@ describe('rekon-intech-actions Unit Tests', () => {
         mockCheckAndStoreIdempotency.mockImplementation((_key, data, cb) =>
             cb(data).then((res: any) => ({ isDuplicate: false, result: res }))
         );
-        mockDbExecuteTakeFirst.mockResolvedValue(null); // No wo_lensa_header conflict
+        mockDbExecuteTakeFirst.mockResolvedValue(null);
+        mockWoLensaExecute.mockResolvedValue([]); // No wo_lensa_header conflict
         mockDbExecute.mockResolvedValue([]); // No existing WO numbers
         mockSqlExecute.mockResolvedValue({ rows: [{ seq: '0005' }] });
         mockSubmitRekonIntechRepo.mockResolvedValue({ rows: [] });
@@ -114,7 +118,7 @@ describe('rekon-intech-actions Unit Tests', () => {
     });
 
     it('blocks submission if WO is managed by Rekon Lensa', async () => {
-        mockDbExecuteTakeFirst.mockResolvedValueOnce({ rekon_check: true });
+        mockWoLensaExecute.mockResolvedValueOnce([{ wo_number: 'WO-2026-001', rekon_check: true }]);
 
         const res = await submitRekonIntech('TKN01', [validItem], 'idem-key-2');
         expect(res.success).toBe(false);
@@ -122,7 +126,7 @@ describe('rekon-intech-actions Unit Tests', () => {
     });
 
     it('blocks submission if WO already exists in transaction_used_header', async () => {
-        mockDbExecuteTakeFirst.mockResolvedValueOnce(null);
+        mockWoLensaExecute.mockResolvedValueOnce([]);
         mockDbExecute.mockResolvedValueOnce([{ wo_number: 'WO-2026-001' }]);
 
         const res = await submitRekonIntech('TKN01', [validItem], 'idem-key-3');
