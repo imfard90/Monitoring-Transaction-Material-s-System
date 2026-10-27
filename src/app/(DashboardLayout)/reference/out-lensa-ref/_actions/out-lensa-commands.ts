@@ -13,6 +13,7 @@ import {
 import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
 import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
+import { dispatchWorkerJob, isWorkerActive } from '@/lib/workers/worker-client';
 
 // P3-S6 Fix: Derive a strict 32-byte key from the environment variable using SHA-256
 // instead of a weak slice(0,32) which might pad with weak characters or truncate.
@@ -406,9 +407,33 @@ export async function triggerScraping(): Promise<
     }
 
     const jobId = `out_lensa_scrape_${Date.now()}`;
-    await redis.set(`job:${jobId}`, JSON.stringify({ status: 'running' }));
 
-    // Background worker
+    // If standalone background worker is running, delegate execution to worker
+    const workerActive = await isWorkerActive();
+    if (workerActive) {
+        await redis.set(
+            `job:${jobId}`,
+            JSON.stringify({
+                status: 'queued',
+                message: 'Job scraping masuk ke antrean worker...',
+            }),
+            'EX',
+            3600
+        );
+        const dispatched = await dispatchWorkerJob({
+            id: jobId,
+            type: 'scrape:out-lensa',
+            createdAt: Date.now(),
+        });
+        if (!dispatched) {
+            await redis.del(LOCK_KEY);
+            return { success: false, error: 'Gagal mendispatch job ke background worker.' };
+        }
+        return { success: true, jobId };
+    }
+
+    // Fallback: in-process background worker (e.g. during local development when worker isn't running)
+    await redis.set(`job:${jobId}`, JSON.stringify({ status: 'running' }));
     Promise.resolve().then(async () => {
         try {
             const result = await internalTriggerScraping();

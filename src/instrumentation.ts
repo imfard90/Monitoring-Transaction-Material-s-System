@@ -6,6 +6,16 @@ export async function register() {
     // scrapers on the dev machine and to keep dev startup fast.
     if (process.env.NODE_ENV !== 'production') return;
 
+    // By default in production with isolated worker, we do NOT run embedded cron in Next.js web server.
+    // Only run if RUN_EMBEDDED_CRON is explicitly set to 'true'.
+    if (process.env.RUN_EMBEDDED_CRON !== 'true') {
+        const { actionLogger } = await import('@/lib/logger');
+        actionLogger.info(
+            '[INSTRUMENTATION] Embedded cron in Next.js web process is disabled (RUN_EMBEDDED_CRON !== true). Background tasks are isolated in mtms-worker.'
+        );
+        return;
+    }
+
     const cron = await import('node-cron');
     const { actionLogger } = await import('@/lib/logger');
     const { internalTriggerScraping } = await import(

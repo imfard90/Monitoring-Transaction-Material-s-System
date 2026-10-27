@@ -163,52 +163,56 @@ export default function StockComparisonTableView({
 
     function runBulkScrape() {
         setIsScrapingStarting(true);
-        const pollPromise = new Promise<{ message?: string; success?: number; failed?: number; total?: number }>(
-            (resolve, reject) => {
-                (async () => {
-                    try {
-                        const res = await triggerManualStockScraping();
-                        setIsScrapingStarting(false);
+        const pollPromise = new Promise<{
+            message?: string;
+            success?: number;
+            failed?: number;
+            total?: number;
+        }>((resolve, reject) => {
+            (async () => {
+                try {
+                    const res = await triggerManualStockScraping();
+                    setIsScrapingStarting(false);
 
-                        if (!res.success) {
-                            return reject(new Error(res.error || 'Gagal memulai scraper masal.'));
-                        }
-
-                        const interval = setInterval(async () => {
-                            try {
-                                const status = await checkBulkScrapingStatus(res.jobId);
-                                if (status.status === 'running') {
-                                    // Refresh berkala agar baris tabel yang baru selesai langsung terupdate di layar
-                                    const refreshed = await getTeknisiStockList();
-                                    if (refreshed.success && refreshed.data) {
-                                        setRows(refreshed.data);
-                                    }
-                                } else if (status.status === 'success') {
-                                    clearInterval(interval);
-                                    // Refresh final setelah seluruh teknisi selesai
-                                    const refreshed = await getTeknisiStockList();
-                                    if (refreshed.success && refreshed.data) {
-                                        setRows(refreshed.data);
-                                    }
-                                    resolve(status.data ?? { message: status.message });
-                                } else if (status.status === 'error') {
-                                    clearInterval(interval);
-                                    reject(new Error(status.error || 'Scraping gagal'));
-                                }
-                            } catch (_err) {
-                                // Abaikan network glitch sementara, polling tetap lanjut
-                            }
-                        }, 3000);
-                    } catch (err) {
-                        setIsScrapingStarting(false);
-                        reject(err);
+                    if (!res.success) {
+                        return reject(new Error(res.error || 'Gagal memulai scraper masal.'));
                     }
-                })();
-            }
-        );
+
+                    const interval = setInterval(async () => {
+                        try {
+                            const status = await checkBulkScrapingStatus(res.jobId);
+                            if (status.status === 'running') {
+                                // Refresh berkala agar baris tabel yang baru selesai langsung terupdate di layar
+                                const refreshed = await getTeknisiStockList();
+                                if (refreshed.success && refreshed.data) {
+                                    setRows(refreshed.data);
+                                }
+                            } else if (status.status === 'success') {
+                                clearInterval(interval);
+                                // Refresh final setelah seluruh teknisi selesai
+                                const refreshed = await getTeknisiStockList();
+                                if (refreshed.success && refreshed.data) {
+                                    setRows(refreshed.data);
+                                }
+                                resolve(status.data ?? { message: status.message });
+                            } else if (status.status === 'error') {
+                                clearInterval(interval);
+                                reject(new Error(status.error || 'Scraping gagal'));
+                            }
+                        } catch (_err) {
+                            // Abaikan network glitch sementara, polling tetap lanjut
+                        }
+                    }, 3000);
+                } catch (err) {
+                    setIsScrapingStarting(false);
+                    reject(err);
+                }
+            })();
+        });
 
         toast.promise(pollPromise, {
-            loading: 'Scraper masal sedang memproses seluruh teknisi (batch 10/gudang berjalan simultan)...',
+            loading:
+                'Scraper masal sedang memproses seluruh teknisi (batch 10/gudang berjalan simultan)...',
             success: (data) =>
                 data?.message ||
                 `Scraper selesai: ${data?.total ?? 0} teknisi diproses (${data?.success ?? 0} berhasil, ${data?.failed ?? 0} gagal)`,

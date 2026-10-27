@@ -24,10 +24,7 @@ const Profile = () => {
     // biome-ignore lint/suspicious/noExplicitAny: Better Auth client types might not include custom fields
     const user = session?.user as any;
 
-    const { src: avatarSrc, onError: handleAvatarError } = useProfileAvatar(
-        user?.nik,
-        user?.image
-    );
+    const { src: avatarSrc, onError: handleAvatarError } = useProfileAvatar(user?.nik, user?.image);
     const profileFallback = getInitials(user?.name);
 
     const renderAvatar = (size: number) => (

@@ -70,8 +70,11 @@ export async function exportHasilRekonData(input: ExportRekonInput): Promise<Exp
             sql`created_at <= ${endDate}`,
         ];
 
-        // Scoping data untuk Staff berdasarkan gudang PIC
-        if (isStaff && warehouseIds.length > 0) {
+        // Scoping data untuk Staff berdasarkan gudang PIC (fail-closed)
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, data: [] };
+            }
             whereConditions.push(sql`wh_id = ANY(${warehouseIds})`);
         }
 

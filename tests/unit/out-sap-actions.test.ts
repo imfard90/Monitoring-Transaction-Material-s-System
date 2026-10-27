@@ -11,9 +11,13 @@ vi.mock('next/cache', () => ({
     revalidatePath: (path: string) => mockRevalidatePath(path),
 }));
 
+const mockRequireWarehouseAccess = vi.fn();
+
 vi.mock('@/lib/auth-server', () => ({
     getSessionNik: () => mockGetSessionNik(),
     getSessionUser: vi.fn(),
+    requireWarehouseAccess: (targetWarehouseId: number) =>
+        mockRequireWarehouseAccess(targetWarehouseId),
 }));
 
 vi.mock('@/lib/security/idempotency', () => ({
@@ -63,6 +67,12 @@ describe('out-sap-actions Unit Tests', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockGetSessionNik.mockResolvedValue('STAFF_TEST_NIK');
+        mockRequireWarehouseAccess.mockResolvedValue({
+            nik: 'STAFF_TEST_NIK',
+            role: 'Staff',
+            isStaff: true,
+            warehouseIds: [1],
+        });
         mockCheckAndStoreIdempotency.mockImplementation((_key, data, cb) =>
             cb(data).then((res: any) => ({ isDuplicate: false, result: res }))
         );

@@ -184,9 +184,7 @@ export default function OutMaterialTable({
     });
 
     const hasActiveFilters = Boolean(
-        searchQuery.trim() ||
-            dateFilter?.from ||
-            (whFilter && whFilter !== 'all')
+        searchQuery.trim() || dateFilter?.from || (whFilter && whFilter !== 'all')
     );
 
     const handleResetAll = useCallback(() => {

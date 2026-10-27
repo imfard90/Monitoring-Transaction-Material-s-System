@@ -77,7 +77,10 @@ export async function getNewHasilRekon(
             .where('ruh.create_at', '>', startDate)
             .orderBy('ruh.create_at', 'desc');
 
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return [];
+            }
             query = query
                 .innerJoin('inventory.sap_out_header as soh', 'soh.sap_number', 'rul.out_sap')
                 .where('soh.warehouse_id', 'in', warehouseIds as readonly number[]);
@@ -144,7 +147,10 @@ export async function getHasilRekon(offsetMonths = 0, limitMonths = 5): Promise<
             .where('tui.created_at', '>', startDate)
             .orderBy('tui.created_at', 'desc');
 
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return [];
+            }
             query = query.where('soh.warehouse_id', 'in', warehouseIds as readonly number[]);
         }
 
@@ -195,7 +201,16 @@ export async function getHasilRekonPaginated(options: GetHasilRekonPaginatedOpti
 
         const whereConditions: ReturnType<typeof sql>[] = [];
 
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return {
+                    data: [],
+                    total: 0,
+                    page,
+                    pageSize,
+                    totalPages: 0,
+                };
+            }
             whereConditions.push(sql`wh_id = ANY(${warehouseIds})`);
         }
 

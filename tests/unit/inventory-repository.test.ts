@@ -38,6 +38,69 @@ describe('InventoryRepository Unit Tests', () => {
         expect(inventoryRepository).toBeDefined();
         expect(typeof inventoryRepository.createOutSap).toBe('function');
         expect(typeof inventoryRepository.submitRekonIntech).toBe('function');
+        expect(typeof inventoryRepository.createReturnRequest).toBe('function');
+        expect(typeof inventoryRepository.generateTrxUsedSeq).toBe('function');
+        expect(typeof inventoryRepository.generateTrxUsedLensaSeq).toBe('function');
+        expect(typeof inventoryRepository.markWoLensaReconciled).toBe('function');
+    });
+
+    it('generateTrxUsedSeq queries trx_used_seq and returns formatted sequence string', async () => {
+        mockSqlExecute.mockResolvedValueOnce({
+            rows: [{ seq: '0042' }],
+        });
+
+        const repo = createInventoryRepository({} as any);
+        const seq = await repo.generateTrxUsedSeq();
+
+        expect(mockSqlExecute).toHaveBeenCalledTimes(1);
+        expect(seq).toBe('0042');
+    });
+
+    it('generateTrxUsedLensaSeq queries trx_used_lensa_seq and returns formatted sequence string', async () => {
+        mockSqlExecute.mockResolvedValueOnce({
+            rows: [{ seq: '0105' }],
+        });
+
+        const repo = createInventoryRepository({} as any);
+        const seq = await repo.generateTrxUsedLensaSeq();
+
+        expect(mockSqlExecute).toHaveBeenCalledTimes(1);
+        expect(seq).toBe('0105');
+    });
+
+    it('markWoLensaReconciled updates rekon_check to true for the given pemakaian_id', async () => {
+        const mockExecute = vi.fn().mockResolvedValue(true);
+        const mockWhere = vi.fn().mockReturnValue({ execute: mockExecute });
+        const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+        const mockUpdateTable = vi.fn().mockReturnValue({ set: mockSet });
+
+        const fakeDb = { updateTable: mockUpdateTable };
+        const repo = createInventoryRepository(fakeDb as any);
+
+        await repo.markWoLensaReconciled('PEM-999');
+
+        expect(mockUpdateTable).toHaveBeenCalledWith('inventory.wo_lensa_header');
+        expect(mockSet).toHaveBeenCalledWith({ rekon_check: true });
+        expect(mockExecute).toHaveBeenCalledTimes(1);
+    });
+
+    it('createReturnRequest invokes sp_create_return_request and returns generated id_trx', async () => {
+        mockSqlExecute.mockResolvedValueOnce({
+            rows: [{ id_trx: 'TRX-RETURN-TKN01-KP-26100001' }],
+        });
+
+        const repo = createInventoryRepository({} as any);
+        const result = await repo.createReturnRequest({
+            sapOutId: 10,
+            nikTeknisi: 'TKN01',
+            warehouseId: 1,
+            notes: 'Test return',
+            items: [{ sap_out_item_id: 101, designator_id: 5, qty: 2 }],
+            createdBy: 'USER01',
+        });
+
+        expect(mockSqlExecute).toHaveBeenCalledTimes(1);
+        expect(result).toBe('TRX-RETURN-TKN01-KP-26100001');
     });
 
     it('createOutSap invokes sp_create_out_sap and formats result', async () => {

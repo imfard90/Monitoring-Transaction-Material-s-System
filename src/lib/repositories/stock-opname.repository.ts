@@ -114,10 +114,7 @@ export function createStockOpnameRepository(db: Kysely<any>) {
             if (filters.search?.trim()) {
                 const term = `%${filters.search.trim()}%`;
                 query = query.where((eb) =>
-                    eb.or([
-                        eb('warehouse_name', 'ilike', term),
-                        eb('created_by', 'ilike', term),
-                    ])
+                    eb.or([eb('warehouse_name', 'ilike', term), eb('created_by', 'ilike', term)])
                 );
             }
 
@@ -201,10 +198,7 @@ export function createStockOpnameRepository(db: Kysely<any>) {
             if (filters.search?.trim()) {
                 const term = `%${filters.search.trim()}%`;
                 query = query.where((eb) =>
-                    eb.or([
-                        eb('warehouse_name', 'ilike', term),
-                        eb('created_by', 'ilike', term),
-                    ])
+                    eb.or([eb('warehouse_name', 'ilike', term), eb('created_by', 'ilike', term)])
                 );
             }
 

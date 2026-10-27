@@ -20,10 +20,7 @@ export interface UsePageFilterEscOptions {
  * 3. Mengabaikan jika pengguna sedang mengetik di textarea atau input form sensitif (misal password).
  * 4. Hanya mengembalikan true jika terdapat filter yang sedang aktif (A1).
  */
-export function shouldHandlePageFilterEsc(
-    event: { key: string },
-    isActive: boolean
-): boolean {
+export function shouldHandlePageFilterEsc(event: { key: string }, isActive: boolean): boolean {
     if (event.key !== 'Escape') return false;
 
     if (typeof document !== 'undefined') {

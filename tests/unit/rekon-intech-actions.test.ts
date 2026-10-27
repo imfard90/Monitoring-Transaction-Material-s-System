@@ -12,9 +12,11 @@ vi.mock('next/cache', () => ({
     revalidatePath: (path: string) => mockRevalidatePath(path),
 }));
 
+const mockGetSessionUser = vi.fn();
+
 vi.mock('@/lib/auth-server', () => ({
     getSessionNik: () => mockGetSessionNik(),
-    getSessionUser: vi.fn(),
+    getSessionUser: () => mockGetSessionUser(),
 }));
 
 vi.mock('@/lib/security/idempotency', () => ({
@@ -25,6 +27,7 @@ vi.mock('@/lib/security/idempotency', () => ({
 vi.mock('@/lib/repositories', () => ({
     createInventoryRepository: () => ({
         submitRekonIntech: (params: any) => mockSubmitRekonIntechRepo(params),
+        generateTrxUsedSeq: vi.fn().mockResolvedValue('0005'),
     }),
 }));
 
@@ -69,6 +72,12 @@ describe('rekon-intech-actions Unit Tests', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockGetSessionNik.mockResolvedValue('STAFF_01');
+        mockGetSessionUser.mockResolvedValue({
+            nik: 'STAFF_01',
+            role: 'Admin',
+            isStaff: false,
+            warehouseIds: [],
+        });
         mockCheckAndStoreIdempotency.mockImplementation((_key, data, cb) =>
             cb(data).then((res: any) => ({ isDuplicate: false, result: res }))
         );
@@ -220,5 +229,18 @@ describe('rekon-intech-actions Unit Tests', () => {
         const res = await submitRekonIntech('TKN01', [itemWithEmptyWoType], 'idem-key-6');
         expect(res.success).toBe(false);
         expect(res.error).toContain('Invalid input data');
+    });
+
+    it('rejects submission if Staff has no assigned warehouses (fail-closed)', async () => {
+        mockGetSessionUser.mockResolvedValue({
+            nik: 'STAFF_02',
+            role: 'Staff',
+            isStaff: true,
+            warehouseIds: [],
+        });
+
+        const res = await submitRekonIntech('TKN01', [validItem], 'idem-key-staff-fail');
+        expect(res.success).toBe(false);
+        expect(res.error).toContain('Akses ditolak');
     });
 });

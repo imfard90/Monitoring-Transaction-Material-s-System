@@ -9,6 +9,7 @@ import { actionLogger } from '@/lib/logger';
 import { resolveMaterialAlias } from '@/lib/material-alias-helper';
 import { redis } from '@/lib/redis';
 import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
+import { dispatchWorkerJob, isWorkerActive } from '@/lib/workers/worker-client';
 
 const getEncryptionKey = () => {
     const secret = process.env.MFA_ENCRYPTION_SECRET;
@@ -383,8 +384,33 @@ export async function triggerWOScraping(): Promise<
     { success: true; jobId: string } | { success: false; error: string }
 > {
     const jobId = `wo_lensa_scrape_${Date.now()}`;
-    await redis.set(`job:${jobId}`, JSON.stringify({ status: 'running' }));
 
+    // If standalone background worker is running, delegate execution to worker
+    const workerActive = await isWorkerActive();
+    if (workerActive) {
+        await redis.set(
+            `job:${jobId}`,
+            JSON.stringify({
+                status: 'queued',
+                message: 'Job scraping masuk ke antrean worker...',
+            }),
+            'EX',
+            3600
+        );
+        const dispatched = await dispatchWorkerJob({
+            id: jobId,
+            type: 'scrape:wo-lensa',
+            fullLoop: true,
+            createdAt: Date.now(),
+        });
+        if (!dispatched) {
+            return { success: false, error: 'Gagal mendispatch job ke background worker.' };
+        }
+        return { success: true, jobId };
+    }
+
+    // Fallback: in-process background worker (e.g. during local development when worker isn't running)
+    await redis.set(`job:${jobId}`, JSON.stringify({ status: 'running' }));
     Promise.resolve().then(async () => {
         try {
             const result = await internalTriggerWOScraping(undefined, true);

@@ -38,6 +38,7 @@ const {
     getSessionUser,
     requireManagementAccess,
     requireTechnicianManagementAccess,
+    requireWarehouseAccess,
 } = await import('@/lib/auth-server');
 const { AuthenticationError, AuthorizationError } = await import('@/lib/errors');
 
@@ -189,5 +190,40 @@ describe('requireTechnicianManagementAccess', () => {
         mockDbReturns('Supervisor');
         const user = await requireTechnicianManagementAccess();
         expect(user.role).toBe('Supervisor');
+    });
+});
+
+describe('requireWarehouseAccess', () => {
+    it('allows non-Staff role (e.g. Administrator) to access any warehouse', async () => {
+        mockAuthGetSession.mockResolvedValue(makeSession('ADM01', 'Administrator'));
+        mockDbReturns('Administrator');
+        const user = await requireWarehouseAccess(99);
+        expect(user.isStaff).toBe(false);
+        expect(user.role).toBe('Administrator');
+    });
+
+    it('allows Staff when target warehouse is in their assigned warehouseIds', async () => {
+        mockAuthGetSession.mockResolvedValue(makeSession('STF01', 'Staff'));
+        mockDbReturns('Staff', [5, 10, 15]);
+        const user = await requireWarehouseAccess(10);
+        expect(user.isStaff).toBe(true);
+        expect(user.warehouseIds).toEqual([5, 10, 15]);
+    });
+
+    it('throws AuthorizationError when Staff has empty warehouseIds (fail-closed)', async () => {
+        mockAuthGetSession.mockResolvedValue(makeSession('STF02', 'Staff'));
+        mockDbReturns('Staff', []);
+        await expect(requireWarehouseAccess(10)).rejects.toThrow(AuthorizationError);
+    });
+
+    it('throws AuthorizationError when Staff attempts to access unassigned warehouse', async () => {
+        mockAuthGetSession.mockResolvedValue(makeSession('STF03', 'Staff'));
+        mockDbReturns('Staff', [1, 2]);
+        await expect(requireWarehouseAccess(10)).rejects.toThrow(AuthorizationError);
+    });
+
+    it('throws AuthenticationError when session is invalid', async () => {
+        mockAuthGetSession.mockResolvedValue(null);
+        await expect(requireWarehouseAccess(10)).rejects.toThrow(AuthenticationError);
     });
 });

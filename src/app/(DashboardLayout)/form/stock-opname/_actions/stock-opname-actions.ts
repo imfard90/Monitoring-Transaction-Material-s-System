@@ -82,10 +82,8 @@ export async function saveStockOpname(input: unknown) {
     try {
         if (idemKey) {
             try {
-                const { result } = await checkAndStoreIdempotency(
-                    idemKey,
-                    parsed.data,
-                    async () => executeSave()
+                const { result } = await checkAndStoreIdempotency(idemKey, parsed.data, async () =>
+                    executeSave()
                 );
                 return { success: true, data: result };
             } catch (idemErr) {

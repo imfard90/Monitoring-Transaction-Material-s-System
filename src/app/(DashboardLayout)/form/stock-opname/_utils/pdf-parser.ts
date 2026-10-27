@@ -31,20 +31,20 @@ interface TextItem {
 
 // Fallback warehouse map if dynamic master data is not yet loaded
 const DEFAULT_WH_MAP: Record<string, number> = {
-    'whsokarangpilang': 1,
-    'sokarangpilang': 1,
-    'sokarang_pilang': 1,
+    whsokarangpilang: 1,
+    sokarangpilang: 1,
+    sokarang_pilang: 1,
     'sokarang-pilang': 1,
-    'whsogresik': 2,
-    'sogresik': 2,
-    'whsolamongan': 3,
-    'solamongan': 3,
-    'whsobojonegoro': 4,
-    'sobojonegoro': 4,
-    'whsotuban': 5,
-    'sotuban': 5,
-    'whsosurabaya': 6,
-    'sosurabaya': 6,
+    whsogresik: 2,
+    sogresik: 2,
+    whsolamongan: 3,
+    solamongan: 3,
+    whsobojonegoro: 4,
+    sobojonegoro: 4,
+    whsotuban: 5,
+    sotuban: 5,
+    whsosurabaya: 6,
+    sosurabaya: 6,
 };
 
 /**
@@ -120,12 +120,7 @@ function extractQuantity(items: TextItem[]): number | null {
         .filter((it) => {
             const trimmed = it.text.trim();
             // Candidate must be in quantity column range and match numeric pattern
-            return (
-                it.x >= 370 &&
-                it.x <= 530 &&
-                /^\d[\d.,]*$/.test(trimmed) &&
-                trimmed.length > 0
-            );
+            return it.x >= 370 && it.x <= 530 && /^\d[\d.,]*$/.test(trimmed) && trimmed.length > 0;
         })
         .sort((a, b) => b.x - a.x);
 
@@ -235,7 +230,10 @@ export async function parseStockOpnamePdf(
 
         // Try to find material description in the row (between code and qty)
         const nameItems = items.filter((it) => it.x > 85 && it.x < 370);
-        const materialName = nameItems.map((n) => n.text).join(' ').trim();
+        const materialName = nameItems
+            .map((n) => n.text)
+            .join(' ')
+            .trim();
 
         materials.push({
             warehouse_id: warehouseId,

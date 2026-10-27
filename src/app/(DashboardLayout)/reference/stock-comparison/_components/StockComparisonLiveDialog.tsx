@@ -1,10 +1,6 @@
 'use client';
 
-import {
-    createColumnHelper,
-    getCoreRowModel,
-    useReactTable,
-} from '@tanstack/react-table';
+import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { LoaderCircle } from 'lucide-react';
 import { useMemo } from 'react';
@@ -12,12 +8,7 @@ import { DataTable } from '@/app/components/shared/DataTable';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import type {
     StockComparisonItem,
@@ -212,10 +203,7 @@ export function StockComparisonLiveDialog({
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                     {result.warehouse_name ?? 'Tanpa gudang'} · Scraped:{' '}
                                     {result.scraped_at
-                                        ? format(
-                                              new Date(result.scraped_at),
-                                              'dd/MM/yyyy HH:mm:ss'
-                                          )
+                                        ? format(new Date(result.scraped_at), 'dd/MM/yyyy HH:mm:ss')
                                         : '—'}
                                 </p>
                             </div>

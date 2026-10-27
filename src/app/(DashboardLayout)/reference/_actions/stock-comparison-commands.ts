@@ -67,7 +67,10 @@ export async function getLiveStockComparison(nik: string): Promise<{
     try {
         const parsedNik = NikParamSchema.safeParse(nik);
         if (!parsedNik.success) {
-            return { success: false, error: parsedNik.error.issues[0]?.message ?? 'NIK tidak valid' };
+            return {
+                success: false,
+                error: parsedNik.error.issues[0]?.message ?? 'NIK tidak valid',
+            };
         }
         const validNik = parsedNik.data;
 
@@ -104,7 +107,11 @@ export async function getLiveStockComparison(nik: string): Promise<{
             };
         }
 
-        const lensData = await scrapeStockTeknisi(validNik, credentials.username, credentials.password);
+        const lensData = await scrapeStockTeknisi(
+            validNik,
+            credentials.username,
+            credentials.password
+        );
 
         // Update database cache with scraped result
         await db

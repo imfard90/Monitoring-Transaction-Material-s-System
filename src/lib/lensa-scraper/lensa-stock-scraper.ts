@@ -35,7 +35,9 @@ export async function scrapeStockTeknisiOnPage(
     // 1. Tunggu elemen informasi teknisi atau notifikasi tidak ditemukan muncul
     await Promise.race([
         page.waitForSelector('.info-row, .card-body', { state: 'attached', timeout: 15000 }),
-        page.waitForSelector('.alert, .card-alert, text=/tidak ditemukan|not found/i', { timeout: 15000 }),
+        page.waitForSelector('.alert, .card-alert, text=/tidak ditemukan|not found/i', {
+            timeout: 15000,
+        }),
     ]).catch(() => null);
 
     // Parse NIK - NAMA Teknisi dari .info-row
@@ -75,8 +77,13 @@ export async function scrapeStockTeknisiOnPage(
 
     // 2. Tunggu table rows atau empty state muncul (mencegah silent empty data loss saat DataTables AJAX memuat data)
     await Promise.race([
-        page.waitForSelector('table tbody tr:not(.dataTables_empty)', { state: 'attached', timeout: 12000 }),
-        page.waitForSelector('.dataTables_empty, .empty-state, text=/tidak ada data|no data/i', { timeout: 12000 }),
+        page.waitForSelector('table tbody tr:not(.dataTables_empty)', {
+            state: 'attached',
+            timeout: 12000,
+        }),
+        page.waitForSelector('.dataTables_empty, .empty-state, text=/tidak ada data|no data/i', {
+            timeout: 12000,
+        }),
     ]).catch(() => null);
 
     // Parse table stock dari <table>

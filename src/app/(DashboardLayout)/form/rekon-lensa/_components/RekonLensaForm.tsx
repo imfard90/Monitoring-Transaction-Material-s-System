@@ -507,7 +507,9 @@ export default function RekonLensaForm() {
                                     key={code}
                                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background border border-border/70 text-xs shadow-2xs"
                                 >
-                                    <span className="font-mono font-semibold text-primary">{code}</span>
+                                    <span className="font-mono font-semibold text-primary">
+                                        {code}
+                                    </span>
                                     <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono font-bold text-xs">
                                         {qty}
                                     </span>

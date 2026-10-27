@@ -536,13 +536,19 @@ export default function RekonIntechForm() {
                                                         <TableCell className="py-2.5">
                                                             <div className="flex flex-col gap-0.5">
                                                                 <span className="font-mono text-xs font-semibold text-primary">
-                                                                    {String(mat?.material_code ?? '-')}
+                                                                    {String(
+                                                                        mat?.material_code ?? '-'
+                                                                    )}
                                                                 </span>
                                                                 <span
                                                                     className="text-xs text-muted-foreground line-clamp-1"
-                                                                    title={String(mat?.description ?? '')}
+                                                                    title={String(
+                                                                        mat?.description ?? ''
+                                                                    )}
                                                                 >
-                                                                    {String(mat?.description ?? '-')}
+                                                                    {String(
+                                                                        mat?.description ?? '-'
+                                                                    )}
                                                                 </span>
                                                             </div>
                                                         </TableCell>

@@ -168,15 +168,24 @@ export async function setupContext(username: string, password: string) {
             }
 
             try {
-                await activePage.goto(`${LENSA_URL}/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-                await activePage.waitForSelector('input[type="text"], input[name="username"]', { timeout: 15000 }).catch(() => null);
+                await activePage.goto(`${LENSA_URL}/login`, {
+                    waitUntil: 'domcontentloaded',
+                    timeout: 30000,
+                });
+                await activePage
+                    .waitForSelector('input[type="text"], input[name="username"]', {
+                        timeout: 15000,
+                    })
+                    .catch(() => null);
                 await activePage.fill('input[type="text"], input[name="username"]', username);
                 await activePage.fill('input[type="password"], input[name="password"]', password);
                 await activePage.click('button[type="submit"]');
                 await activePage.waitForURL('**/dashboard**', { timeout: 15000 }).catch(() => null);
 
                 if (activePage.url().includes('login')) {
-                    throw new Error('Gagal login ke sistem Lensa (masih tertahan di halaman login).');
+                    throw new Error(
+                        'Gagal login ke sistem Lensa (masih tertahan di halaman login).'
+                    );
                 }
 
                 const freshCookies = await context.cookies();

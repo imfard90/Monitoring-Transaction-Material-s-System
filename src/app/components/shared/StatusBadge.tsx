@@ -38,7 +38,13 @@ function mapStatusVariant(val: string): BadgeProps['variant'] {
     if (val === 'request' || val === 'requested') return 'lightInfo';
     if (val === 'pending' || val === 'wait_approve' || val === 'in_transit') return 'lightWarning';
     if (val === 'intech') return 'lightSecondary';
-    if (val === 'close' || val === 'closed' || val === 'rekon' || val === 'accepted' || val === 'approved') {
+    if (
+        val === 'close' ||
+        val === 'closed' ||
+        val === 'rekon' ||
+        val === 'accepted' ||
+        val === 'approved'
+    ) {
         return 'lightSuccess';
     }
     if (val === 'cancel' || val === 'rejected' || val === 'cancelled') {

@@ -390,13 +390,14 @@ LEFT JOIN inventory.mas_wh w ON n.mapping_mas_wh = w.id;
 ## 6. Catatan Verifikasi
 
 - `npx tsc --noEmit`: ✅ lolos (0 error).
-- `npx biome lint .`: ✅ lolos.
+- `npx biome lint .`: ✅ lolos (0 error).
 - `npx next build`: ✅ lolos (semua route ter-generate).
-- Migrations 001–014: ✅ sequential, no duplicate prefixes.
-- `npx tsx run-migration.ts`: ✅ 14/14 applied (tracked in `inventory._migration_log`).
-- `npx vitest run`: ✅ 44/44 tests passed (34 unit + 10 integration; auto-skip integration jika `DATABASE_URL` unset).
+- Migrations 001–041: ✅ sequential, no duplicate prefixes; migrasi 040 (integritas return material) & 041 (RLS `stock_opname_log`) terverifikasi.
+- `npx tsx run-migration.ts`: ✅ Semua migrasi diterapkan (tracked in `inventory._migration_log`).
+- `npx vitest run`: ✅ 424/424 tests passed (390 unit + 34 integration live DB; auto-skip integration jika `DATABASE_URL` unset).
+- Isolasi Background Scraper: ✅ Dikonfigurasi terpisah via PM2 (`ecosystem.config.js` -> `mtms-web` + `mtms-worker`).
 - Audit tidak menyentuh database langsung; kontrak SP diverifikasi via berkas migrasi SQL + integration test, bukan introspeksi live.
 
-**Semua temuan audit (P0, P1, P2, P3) telah ditindaklanjuti.**
+**Semua temuan audit (P0, P1, P2, P3) serta pilar Performa, Kredibilitas, dan Kualitas telah ditindaklanjuti.**
 
 Dokumen ini bersifat hidup—perbarui saat temuan ditindaklanjuti.

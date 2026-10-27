@@ -7,10 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import {
-    parseStockOpnamePdf,
-    type ParsePdfResult,
-} from '../_utils/pdf-parser';
+import { parseStockOpnamePdf, type ParsePdfResult } from '../_utils/pdf-parser';
 
 interface StockOpnameUploadZoneProps {
     onParsed: (result: ParsePdfResult) => void;
@@ -141,9 +138,7 @@ export function StockOpnameUploadZone({
     };
 
     const percent =
-        progress && progress.total > 0
-            ? Math.round((progress.current / progress.total) * 100)
-            : 0;
+        progress && progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
 
     return (
         <Card className="border-border/70 shadow-sm transition-colors">
@@ -193,7 +188,8 @@ export function StockOpnameUploadZone({
                                 <div className="space-y-1.5">
                                     <Progress value={percent} className="h-2" />
                                     <p className="text-xs text-muted-foreground">
-                                        Membaca halaman {progress.current} dari {progress.total} ({percent}%)
+                                        Membaca halaman {progress.current} dari {progress.total} (
+                                        {percent}%)
                                     </p>
                                 </div>
                             )}
@@ -227,7 +223,8 @@ export function StockOpnameUploadZone({
                                 Unggah Berita Acara (BA) Stock Opname SAP
                             </h3>
                             <p className="mt-1 text-sm text-muted-foreground max-w-md">
-                                Seret dan lepas berkas PDF ke area ini, atau klik tombol di bawah untuk memilih berkas.
+                                Seret dan lepas berkas PDF ke area ini, atau klik tombol di bawah
+                                untuk memilih berkas.
                             </p>
                             <div className="mt-5 flex items-center gap-2">
                                 <Button

@@ -45,7 +45,14 @@ export async function getOutMaterials(offsetMonths = 0, limitMonths = 5) {
             .where('h.request_time', '>', startDate)
             .orderBy('h.request_time', 'desc');
 
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return {
+                    success: true,
+                    data: [],
+                    counts: { wait_approve: 0, request: 0, intech: 0, close: 0 },
+                };
+            }
             query = query.where('h.warehouse_id', 'in', warehouseIds as number[]);
         }
 
@@ -99,8 +106,27 @@ export async function getOutMaterialsPaginated(options: GetOutMaterialsPaginated
 
         // Base query for counts by status
         let baseCountQuery = db.selectFrom('inventory.sap_out_header as h');
-        if (isStaff && warehouseIds.length > 0) {
+        let listQuery = db
+            .selectFrom('inventory.sap_out_header as h')
+            .leftJoin('hr.technicians as t', 't.nik', 'h.nik_teknisi')
+            .leftJoin('inventory.mas_wh as wh', 'wh.id', 'h.warehouse_id');
+
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return {
+                    success: true,
+                    data: {
+                        headers: [],
+                        total: 0,
+                        page,
+                        pageSize,
+                        totalPages: 0,
+                        counts: { wait_approve: 0, request: 0, intech: 0, close: 0 },
+                    },
+                };
+            }
             baseCountQuery = baseCountQuery.where('h.warehouse_id', 'in', warehouseIds as number[]);
+            listQuery = listQuery.where('h.warehouse_id', 'in', warehouseIds as number[]);
         }
 
         const countsRes = await baseCountQuery
@@ -120,16 +146,6 @@ export async function getOutMaterialsPaginated(options: GetOutMaterialsPaginated
             intech: Number(countsRes?.intech ?? 0),
             close: Number(countsRes?.close ?? 0),
         };
-
-        // Filtered list query
-        let listQuery = db
-            .selectFrom('inventory.sap_out_header as h')
-            .leftJoin('hr.technicians as t', 't.nik', 'h.nik_teknisi')
-            .leftJoin('inventory.mas_wh as wh', 'wh.id', 'h.warehouse_id');
-
-        if (isStaff && warehouseIds.length > 0) {
-            listQuery = listQuery.where('h.warehouse_id', 'in', warehouseIds as number[]);
-        }
 
         if (options.status && options.status !== 'all') {
             listQuery = listQuery.where(sql<boolean>`h.end_status::text = ${options.status}`);

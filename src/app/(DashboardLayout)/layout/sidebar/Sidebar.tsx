@@ -94,9 +94,7 @@ const renderSidebarItems = (
                     />
                 )}
                 {iconElement}
-                <span className="truncate flex-1 tracking-tight">
-                    {item.title || item.name}
-                </span>
+                <span className="truncate flex-1 tracking-tight">{item.title || item.name}</span>
                 {item.isPro && (
                     <span className="rounded bg-secondary/10 text-secondary border border-secondary/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
                         Pro

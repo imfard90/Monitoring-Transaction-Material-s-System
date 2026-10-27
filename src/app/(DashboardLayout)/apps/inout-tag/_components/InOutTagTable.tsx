@@ -206,9 +206,7 @@ export default function InOutTagTable({
     });
 
     const hasActiveFilters = Boolean(
-        searchQuery.trim() ||
-            dateFilter?.from ||
-            (toWhFilter && toWhFilter !== 'all')
+        searchQuery.trim() || dateFilter?.from || (toWhFilter && toWhFilter !== 'all')
     );
 
     const handleResetAll = useCallback(() => {

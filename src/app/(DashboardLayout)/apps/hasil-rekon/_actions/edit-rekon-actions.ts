@@ -66,8 +66,11 @@ export async function getRekonEditData(header_id: string, sap_out_id: string) {
             ])
             .where('soi.header_id', '=', String(sap_out_id));
 
-        // Staff hanya boleh akses warehouse miliknya
-        if (isStaff && warehouseIds.length > 0) {
+        // Staff hanya boleh akses warehouse miliknya (fail-closed)
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, existingItems: [], sapItems: [] };
+            }
             sapItemsQuery = sapItemsQuery.where('soh.warehouse_id', 'in', warehouseIds);
         }
 

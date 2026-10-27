@@ -131,7 +131,8 @@ export function StockOpnameResultDialog({
                             Hasil Rekonsiliasi Stock Opname
                         </DialogTitle>
                         <DialogDescription className="text-sm text-muted-foreground">
-                            Perbandingan saldo sistem MTMS dengan hasil export BA SO SAP untuk gudang{' '}
+                            Perbandingan saldo sistem MTMS dengan hasil export BA SO SAP untuk
+                            gudang{' '}
                             <span className="font-semibold text-foreground">{warehouseName}</span>.
                         </DialogDescription>
                     </DialogHeader>
@@ -139,23 +140,31 @@ export function StockOpnameResultDialog({
                     {/* Summary Cards */}
                     <div className="p-6 pb-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="rounded-lg border bg-card p-3">
-                            <span className="text-xs text-muted-foreground uppercase font-medium">Total Item</span>
+                            <span className="text-xs text-muted-foreground uppercase font-medium">
+                                Total Item
+                            </span>
                             <p className="text-xl font-bold font-mono mt-0.5">{stats.total}</p>
                         </div>
                         <div className="rounded-lg border bg-card p-3">
-                            <span className="text-xs text-muted-foreground uppercase font-medium">Sesuai (Cocok)</span>
+                            <span className="text-xs text-muted-foreground uppercase font-medium">
+                                Sesuai (Cocok)
+                            </span>
                             <p className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
                                 {stats.matchCount}
                             </p>
                         </div>
                         <div className="rounded-lg border bg-card p-3">
-                            <span className="text-xs text-muted-foreground uppercase font-medium">Selisih Fisik (+)</span>
+                            <span className="text-xs text-muted-foreground uppercase font-medium">
+                                Selisih Fisik (+)
+                            </span>
                             <p className="text-xl font-bold font-mono text-blue-600 dark:text-blue-400 mt-0.5">
                                 +{stats.plusCount}
                             </p>
                         </div>
                         <div className="rounded-lg border bg-card p-3">
-                            <span className="text-xs text-muted-foreground uppercase font-medium">Selisih Fisik (-)</span>
+                            <span className="text-xs text-muted-foreground uppercase font-medium">
+                                Selisih Fisik (-)
+                            </span>
                             <p className="text-xl font-bold font-mono text-destructive mt-0.5">
                                 -{stats.minusCount}
                             </p>
@@ -206,17 +215,26 @@ export function StockOpnameResultDialog({
                             <tbody className="divide-y divide-border/40">
                                 {filteredResults.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="py-8 text-center text-muted-foreground text-xs">
+                                        <td
+                                            colSpan={5}
+                                            className="py-8 text-center text-muted-foreground text-xs"
+                                        >
                                             Tidak ada material yang sesuai kriteria pencarian.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredResults.map((item, idx) => (
-                                        <tr key={idx} className="hover:bg-muted/40 transition-colors">
+                                        <tr
+                                            key={idx}
+                                            className="hover:bg-muted/40 transition-colors"
+                                        >
                                             <td className="px-4 py-2.5 font-mono text-xs font-medium">
                                                 {item.material_code}
                                             </td>
-                                            <td className="px-4 py-2.5 text-xs text-foreground/90 max-w-xs truncate" title={item.material_name}>
+                                            <td
+                                                className="px-4 py-2.5 text-xs text-foreground/90 max-w-xs truncate"
+                                                title={item.material_name}
+                                            >
                                                 {item.material_name || '-'}
                                             </td>
                                             <td className="px-4 py-2.5 text-xs text-right font-mono">
@@ -234,7 +252,9 @@ export function StockOpnameResultDialog({
                                                           : 'text-muted-foreground'
                                                 }`}
                                             >
-                                                {item.difference > 0 ? `+${item.difference}` : item.difference}
+                                                {item.difference > 0
+                                                    ? `+${item.difference}`
+                                                    : item.difference}
                                             </td>
                                         </tr>
                                     ))
@@ -303,7 +323,9 @@ export function StockOpnameResultDialog({
                         ? `Anda akan menyimpan dan langsung menyetujui rekonsiliasi stock opname untuk gudang "${warehouseName}" (${stats.total} material). Tindakan ini akan tercatat permanen di log audit.`
                         : `Simpan data rekonsiliasi stock opname untuk gudang "${warehouseName}" sebagai pengajuan (Pending)? Supervisor atau Admin akan meninjau hasil sebelum disetujui.`
                 }
-                confirmText={confirmAction === 'approved' ? 'Ya, Simpan & Setujui' : 'Ya, Simpan Pengajuan'}
+                confirmText={
+                    confirmAction === 'approved' ? 'Ya, Simpan & Setujui' : 'Ya, Simpan Pengajuan'
+                }
                 cancelText="Batal & Periksa Kembali"
                 icon={<Check className="h-4 w-4" />}
                 loading={isSaving}

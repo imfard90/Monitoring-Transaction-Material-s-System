@@ -73,9 +73,7 @@ export function OutSapHeaderFields({
                             <Button
                                 type="button"
                                 onClick={onGetData}
-                                disabled={
-                                    isScraping || !formData.request_id || isScraped
-                                }
+                                disabled={isScraping || !formData.request_id || isScraped}
                                 className="whitespace-nowrap w-full h-full"
                             >
                                 {isScraping ? 'Memuat data...' : 'Ambil Data'}
@@ -96,9 +94,7 @@ export function OutSapHeaderFields({
                             setFormData((prev) => ({ ...prev, nik_teknisi: nik }))
                         }
                         placeholder={
-                            isScraped && formData.nik_teknisi
-                                ? 'Teknisi terpilih'
-                                : 'Pilih Teknisi'
+                            isScraped && formData.nik_teknisi ? 'Teknisi terpilih' : 'Pilih Teknisi'
                         }
                         disabled={!formData.name_sa || isScraped}
                     />
@@ -132,9 +128,7 @@ export function OutSapHeaderFields({
                             label: w.name as string,
                         }))}
                         value={formData.warehouse_id}
-                        onValueChange={(v) =>
-                            setFormData((prev) => ({ ...prev, warehouse_id: v }))
-                        }
+                        onValueChange={(v) => setFormData((prev) => ({ ...prev, warehouse_id: v }))}
                         placeholder="Pilih Gudang"
                         disabled={!formData.nik_teknisi || isScraped}
                     />

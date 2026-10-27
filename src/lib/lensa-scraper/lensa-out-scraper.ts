@@ -92,10 +92,7 @@ export async function scrapeLensaHeaders(
     const password = customPassword || process.env.LENSA_PASSWORD;
     if (!username || !password) throw new Error('LENSA_USERNAME or LENSA_PASSWORD is not set');
 
-    const { context, page, safeGoto, performLogin } = await setupContext(
-        username,
-        password
-    );
+    const { context, page, safeGoto, performLogin } = await setupContext(username, password);
 
     try {
         const newHeaders: OutLensaHeader[] = [];
@@ -207,8 +204,14 @@ export async function scrapeLensaDetails(
 
                 // Tunggu baris data tabel muncul atau indikator data kosong (mencegah silent empty array)
                 await Promise.race([
-                    page.waitForSelector('table tbody tr td', { state: 'attached', timeout: 12000 }),
-                    page.waitForSelector('.dataTables_empty, .empty-state, text=/tidak ada data|no data/i', { timeout: 12000 }),
+                    page.waitForSelector('table tbody tr td', {
+                        state: 'attached',
+                        timeout: 12000,
+                    }),
+                    page.waitForSelector(
+                        '.dataTables_empty, .empty-state, text=/tidak ada data|no data/i',
+                        { timeout: 12000 }
+                    ),
                 ]).catch(() => null);
 
                 const tablesData = await page.$$eval('table', (tables) => {
@@ -241,7 +244,9 @@ export async function scrapeLensaDetails(
 
                 // Ekstraksi Mitra: Utamakan pencocokan elemen DOM terstruktur, lalu fallback ke baris teks
                 const parsedMitra = await page.evaluate(() => {
-                    const elements = Array.from(document.querySelectorAll('.info-row, tr, .row, dl, div'));
+                    const elements = Array.from(
+                        document.querySelectorAll('.info-row, tr, .row, dl, div')
+                    );
                     for (const el of elements) {
                         const text = el.textContent || '';
                         const match = text.match(/Mitra\s*[:\t]\s*([^\n\r]+)/i);
@@ -257,9 +262,7 @@ export async function scrapeLensaDetails(
                         .split('\n')
                         .map((l: string) => l.trim())
                         .filter((l: string) => l.length > 0);
-                    const idx = lines.findIndex(
-                        (l: string) => l.toLowerCase() === 'mitra'
-                    );
+                    const idx = lines.findIndex((l: string) => l.toLowerCase() === 'mitra');
                     if (idx !== -1 && idx + 1 < lines.length) {
                         const nextLine = lines[idx + 1];
                         const knownLabels = [
@@ -351,7 +354,10 @@ export async function scrapeReservation(
 
         await Promise.race([
             page.waitForSelector('table tbody tr td', { state: 'attached', timeout: 12000 }),
-            page.waitForSelector('.dataTables_empty, .empty-state, text=/tidak ada data|no data/i', { timeout: 12000 }),
+            page.waitForSelector(
+                '.dataTables_empty, .empty-state, text=/tidak ada data|no data/i',
+                { timeout: 12000 }
+            ),
         ]).catch(() => null);
 
         const tablesData = await page.$$eval('table', (tables) => {
@@ -384,13 +390,20 @@ export async function scrapeReservation(
 
         const metaInfo = await page.evaluate(() => {
             const extractLabel = (targetLabel: string) => {
-                const elements = Array.from(document.querySelectorAll('.info-row, tr, .row, dl, div'));
+                const elements = Array.from(
+                    document.querySelectorAll('.info-row, tr, .row, dl, div')
+                );
                 for (const el of elements) {
                     const text = el.textContent || '';
-                    const match = text.match(new RegExp(`${targetLabel}\\s*[:\t]\\s*([^\\n\\r]+)`, 'i'));
+                    const match = text.match(
+                        new RegExp(`${targetLabel}\\s*[:\t]\\s*([^\\n\\r]+)`, 'i')
+                    );
                     if (match && match[1]?.trim()) {
                         const val = match[1].trim();
-                        if (!/^(tanggal|gudang|project|nik|status)/i.test(val) || targetLabel.toLowerCase() === 'nik pemakai') {
+                        if (
+                            !/^(tanggal|gudang|project|nik|status)/i.test(val) ||
+                            targetLabel.toLowerCase() === 'nik pemakai'
+                        ) {
                             return val;
                         }
                     }
@@ -400,7 +413,9 @@ export async function scrapeReservation(
                     .split('\n')
                     .map((l: string) => l.trim())
                     .filter((l: string) => l.length > 0);
-                const idx = lines.findIndex((l: string) => l.toLowerCase() === targetLabel.toLowerCase());
+                const idx = lines.findIndex(
+                    (l: string) => l.toLowerCase() === targetLabel.toLowerCase()
+                );
                 if (idx !== -1 && idx + 1 < lines.length) {
                     const nextLine = lines[idx + 1];
                     const knownLabels = [

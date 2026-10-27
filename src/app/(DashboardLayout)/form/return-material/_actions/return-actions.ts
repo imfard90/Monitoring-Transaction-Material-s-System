@@ -2,9 +2,11 @@
 
 import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
-import { getSessionNik, getSessionUser } from '@/lib/auth-server';
+import { z } from 'zod';
+import { getSessionNik, getSessionUser, requireWarehouseAccess } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import { inventoryRepository } from '@/lib/repositories';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
 export async function getAvailableSapOuts() {
@@ -31,7 +33,10 @@ export async function getAvailableSapOuts() {
             .whereRef('i.qty_req', '>', 'i.qty_used')
             .distinct();
 
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, data: [] };
+            }
             query = query.where('h.warehouse_id', 'in', warehouseIds);
         }
 
@@ -65,22 +70,35 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
                 'm.description as material_name',
                 'i.qty_req',
                 'i.qty_used',
+                sql<number>`COALESCE((SELECT SUM(rmi.qty) FROM inventory.return_material_items rmi WHERE rmi.sap_out_item_id = i.id), 0)`.as(
+                    'already_returned'
+                ),
             ])
-            .where('i.header_id', '=', String(headerId))
-            .whereRef('i.qty_req', '>', 'i.qty_used');
+            .where('i.header_id', '=', String(headerId));
 
         // Staff hanya boleh akses item dari warehouse miliknya
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, data: [] };
+            }
             query = query.where('h.warehouse_id', 'in', warehouseIds);
         }
 
         const items = await query.execute();
 
-        // Add a maxReturn field
-        const mapped = items.map((item) => ({
-            ...item,
-            maxReturn: item.qty_req - (item.qty_used || 0),
-        }));
+        // Calculate actual available maxReturn considering both field usage and previous returns
+        const mapped = items
+            .map((item) => {
+                const req = Number(item.qty_req || 0);
+                const used = Number(item.qty_used || 0);
+                const ret = Number(item.already_returned || 0);
+                const maxReturn = Math.max(0, req - used - ret);
+                return {
+                    ...item,
+                    maxReturn,
+                };
+            })
+            .filter((item) => item.maxReturn > 0);
 
         return { success: true, data: mapped };
     } catch (error: unknown) {
@@ -92,43 +110,51 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
     }
 }
 
-export type ReturnMaterialPayload = {
-    idemKey: string;
-    sap_out_id: number;
-    nik_teknisi: string;
-    warehouse_id: number;
-    notes?: string;
-    items: {
-        designator_id: number;
-        sap_out_item_id: number;
-        qty: number;
-    }[];
-};
+const createReturnMaterialSchema = z.object({
+    idemKey: z.string().min(1, 'Idempotency key wajib diisi'),
+    sap_out_id: z.number().int().positive('ID SAP Out tidak valid'),
+    nik_teknisi: z.string().min(1, 'NIK teknisi wajib diisi'),
+    warehouse_id: z.number().int().positive('Gudang tujuan tidak valid'),
+    notes: z.string().optional().nullable(),
+    items: z
+        .array(
+            z.object({
+                designator_id: z.number().int().positive(),
+                sap_out_item_id: z.number().int().positive(),
+                qty: z.number().positive('Jumlah return harus lebih dari 0'),
+            })
+        )
+        .min(1, 'Minimal satu material harus direturn'),
+});
+
+export type ReturnMaterialPayload = z.infer<typeof createReturnMaterialSchema>;
 
 export async function createReturnMaterial(payload: ReturnMaterialPayload) {
-    if (!payload.idemKey)
+    if (!payload.idemKey) {
         return { success: false, error: 'Security constraint: Idempotency key required' };
+    }
+
+    const parsed = createReturnMaterialSchema.safeParse(payload);
+    if (!parsed.success) {
+        return { success: false, error: `Invalid input data: ${parsed.error.issues[0].message}` };
+    }
 
     try {
+        // Enforce fail-closed warehouse authorization
+        await requireWarehouseAccess(parsed.data.warehouse_id);
+
         const { isDuplicate, result } = await checkAndStoreIdempotency(
-            payload.idemKey,
-            payload,
+            parsed.data.idemKey,
+            parsed.data,
             async (data) => {
-                return await db.transaction().execute(async (trx) => {
-                    const createdBy = await getSessionNik();
-
-                    const resultId = await sql<{ id_trx: string }>`
-                        SELECT inventory.sp_create_return_request(
-                            ${data.sap_out_id},
-                            ${data.nik_teknisi},
-                            ${data.warehouse_id},
-                            ${data.notes || null},
-                            ${JSON.stringify(data.items)}::jsonb,
-                            ${createdBy}
-                        ) as id_trx
-                    `.execute(trx);
-
-                    return resultId.rows[0]?.id_trx;
+                const createdBy = await getSessionNik();
+                return await inventoryRepository.createReturnRequest({
+                    sapOutId: data.sap_out_id,
+                    nikTeknisi: data.nik_teknisi,
+                    warehouseId: data.warehouse_id,
+                    notes: data.notes ?? null,
+                    items: data.items,
+                    createdBy,
                 });
             }
         );
@@ -145,7 +171,7 @@ export async function createReturnMaterial(payload: ReturnMaterialPayload) {
         revalidatePath('/form/rekon-intech');
         revalidatePath('/form/rekon-lensa');
         revalidatePath('/');
-        return { success: true, header_id: result };
+        return { success: true, id_trx: result, header_id: result };
     } catch (error: unknown) {
         actionLogger.error(
             'Failed to create Return Material:',

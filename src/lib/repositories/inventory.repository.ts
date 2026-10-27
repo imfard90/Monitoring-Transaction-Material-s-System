@@ -169,6 +169,34 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
         )`.execute(dbClient),
 
     /**
+     * Create Return Request - atomic operation via sp_create_return_request (migration 040)
+     */
+    createReturnRequest: async (params: {
+        sapOutId: number;
+        nikTeknisi: string;
+        warehouseId: number;
+        notes?: string | null;
+        items: Array<{
+            sap_out_item_id: number;
+            designator_id: number;
+            qty: number;
+        }>;
+        createdBy: string;
+    }) => {
+        const res = await sql<{ id_trx: string }>`
+            SELECT inventory.sp_create_return_request(
+                ${params.sapOutId}::bigint,
+                ${params.nikTeknisi}::varchar,
+                ${params.warehouseId}::bigint,
+                ${params.notes ?? null}::text,
+                ${JSON.stringify(params.items)}::jsonb,
+                ${params.createdBy}::varchar
+            ) as id_trx
+        `.execute(dbClient);
+        return res.rows[0]?.id_trx;
+    },
+
+    /**
      * Record Return Material - atomic operation
      * Matches inventory.sp_return_material(p_header_id, p_accept_id)
      */
@@ -243,6 +271,37 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
             ${params.createdBy}::varchar,
             ${JSON.stringify(params.items)}::jsonb
         )`.execute(dbClient),
+
+    /**
+     * Generate deterministic 4-digit sequence for Intech rekon (trx_used_seq)
+     */
+    generateTrxUsedSeq: async (): Promise<string> => {
+        const res = await sql<{ seq: string }>`
+            SELECT to_char(nextval('inventory.trx_used_seq'), 'FM0000') as seq
+        `.execute(dbClient);
+        return res.rows[0]?.seq ?? '0001';
+    },
+
+    /**
+     * Generate deterministic 4-digit sequence for Lensa rekon (trx_used_lensa_seq)
+     */
+    generateTrxUsedLensaSeq: async (): Promise<string> => {
+        const res = await sql<{ seq: string }>`
+            SELECT to_char(nextval('inventory.trx_used_lensa_seq'), 'FM0000') as seq
+        `.execute(dbClient);
+        return res.rows[0]?.seq ?? '0001';
+    },
+
+    /**
+     * Flag WO Lensa as reconciled
+     */
+    markWoLensaReconciled: async (pemakaianId: string): Promise<void> => {
+        await dbClient
+            .updateTable('inventory.wo_lensa_header')
+            .set({ rekon_check: true })
+            .where(sql`CAST(pemakaian_id AS VARCHAR)`, '=', pemakaianId)
+            .execute();
+    },
 
     // ==================== Read Operations (Kysely Query Builder) ====================
 

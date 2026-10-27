@@ -67,7 +67,10 @@ export async function getStockMovements(offsetMonths = 0, limitMonths = 5) {
             .where('sm.created_at', '>', startDate)
             .orderBy('sm.created_at', 'desc');
 
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return [];
+            }
             query = query.where('sm.warehouse_id', 'in', warehouseIds as number[]);
         }
 
@@ -94,7 +97,16 @@ export async function getStockMovementsPaginated(options: GetStockMovementsOptio
             .leftJoin('inventory.mas_wh as w', 'w.id', 'sm.warehouse_id')
             .leftJoin('inventory.materials as m', 'm.id', 'sm.designator_id');
 
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return {
+                    data: [],
+                    total: 0,
+                    page,
+                    pageSize,
+                    totalPages: 0,
+                };
+            }
             baseQuery = baseQuery.where('sm.warehouse_id', 'in', warehouseIds as number[]);
         }
 

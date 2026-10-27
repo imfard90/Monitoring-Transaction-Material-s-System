@@ -1,0 +1,419 @@
+import 'dotenv/config';
+import { internalTriggerScraping } from '@/app/(DashboardLayout)/reference/out-lensa-ref/_actions/out-lensa-actions';
+import { internalTriggerWOScraping } from '@/app/(DashboardLayout)/reference/wo-lensa-ref/_actions/wo-lensa-actions';
+import {
+    OTHER_STOCK_SYNC_LOCK_KEY,
+    OTHER_STOCK_SYNC_LOCK_TTL_SECONDS,
+    syncOtherStock,
+} from '@/lib/google_ecosystem/sheets-stock-sync';
+import { closeBrowser } from '@/lib/lensa-scraper/lensa-scraper';
+import { actionLogger } from '@/lib/logger';
+import { redis } from '@/lib/redis';
+import { bulkScrapeStockTeknisi } from '@/lib/services/bulk-stock-scraper';
+import {
+    WORKER_HEARTBEAT_KEY,
+    WORKER_HEARTBEAT_TTL_SECONDS,
+    WORKER_QUEUE_KEY,
+    type WorkerJob,
+} from '@/lib/workers/worker-client';
+import cron from 'node-cron';
+
+actionLogger.info('====================================================');
+actionLogger.info('[MTMS-WORKER] Dedicated Background Worker Initializing');
+actionLogger.info(`[MTMS-WORKER] Process ID: ${process.pid}`);
+actionLogger.info(`[MTMS-WORKER] Node Env: ${process.env.NODE_ENV || 'development'}`);
+actionLogger.info('====================================================');
+
+let isRunning = true;
+let isJobActive = false;
+
+// Dedicated Redis connection for blocking queue pops
+const queueRedis = redis.duplicate();
+
+// ----------------------------------------------------
+// 1. Heartbeat Management
+// ----------------------------------------------------
+const sendHeartbeat = async () => {
+    try {
+        await redis.set(
+            WORKER_HEARTBEAT_KEY,
+            JSON.stringify({
+                pid: process.pid,
+                timestamp: Date.now(),
+                uptime: process.uptime(),
+            }),
+            'EX',
+            WORKER_HEARTBEAT_TTL_SECONDS
+        );
+    } catch (err) {
+        actionLogger.warn('[MTMS-WORKER] Heartbeat failed:', {
+            error: err instanceof Error ? err.message : String(err),
+        });
+    }
+};
+
+void sendHeartbeat();
+const heartbeatInterval = setInterval(() => {
+    if (isRunning) {
+        void sendHeartbeat();
+    }
+}, 5000);
+
+// ----------------------------------------------------
+// 2. Cron Tasks Implementation
+// ----------------------------------------------------
+const schedules = [
+    { time: '0 4 * * *', perpage: 100 }, // 04:00
+    { time: '30 9 * * *', perpage: 20 }, // 09:30
+    { time: '30 12 * * *', perpage: 20 }, // 12:30
+    { time: '0 15 * * *', perpage: 20 }, // 15:00
+    { time: '0 18 * * *', perpage: 20 }, // 18:00
+    { time: '0 21 * * *', perpage: 100 }, // 21:00
+    { time: '0 23 * * *', perpage: 100 }, // 23:00
+];
+
+const runScrapers = async (perpage: number) => {
+    try {
+        actionLogger.info(`[CRON] Running Lensa scrapers perpage=${perpage}...`);
+        await internalTriggerScraping(perpage);
+        actionLogger.info(`[CRON] Lensa scrapers perpage=${perpage} completed.`);
+        actionLogger.info('[CRON] Running WO Lensa scrapers...');
+        await internalTriggerWOScraping();
+        actionLogger.info('[CRON] WO Lensa scrapers completed.');
+    } catch (error) {
+        actionLogger.error(
+            '[CRON] Error during scheduled scraping:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+    }
+};
+
+const stockScrapeSchedules = [
+    { time: '30 0 * * *', label: '00:30 WIB' },
+    { time: '0 5 * * *', label: '05:00 WIB' },
+    { time: '0 11 * * *', label: '11:00 WIB' },
+    { time: '0 19 * * *', label: '19:00 WIB' },
+    { time: '0 22 * * *', label: '22:00 WIB' },
+];
+
+const runBulkStockScraper = async (label: string) => {
+    const LOCK_KEY = 'lock:bulk_stock_scrape';
+    const LOCK_TTL = 1800; // 30 minutes
+
+    try {
+        const acquired = await redis.set(LOCK_KEY, '1', 'EX', LOCK_TTL, 'NX');
+        if (!acquired) {
+            actionLogger.warn(
+                `[CRON] Bulk stock scraping (${label}) skipped; another scraping job is running.`
+            );
+            return;
+        }
+
+        actionLogger.info(`[CRON] Starting bulk technician stock scraping (${label})...`);
+        const result = await bulkScrapeStockTeknisi();
+        actionLogger.info(
+            `[CRON] Bulk technician stock scraping (${label}) completed: ${result.success} succeeded, ${result.failed} failed of ${result.total}.`
+        );
+    } catch (error) {
+        actionLogger.error(
+            `[CRON] Error during bulk stock scraping (${label}):`,
+            error instanceof Error ? error : new Error(String(error))
+        );
+    } finally {
+        await redis.del(LOCK_KEY);
+        await closeBrowser().catch(() => {});
+    }
+};
+
+const runLockedStockSync = async (context: string): Promise<boolean> => {
+    const lockToken = globalThis.crypto.randomUUID();
+    const acquired = await redis.set(
+        OTHER_STOCK_SYNC_LOCK_KEY,
+        lockToken,
+        'EX',
+        OTHER_STOCK_SYNC_LOCK_TTL_SECONDS,
+        'NX'
+    );
+    if (!acquired) {
+        actionLogger.warn(`[${context}] Sheets stock sync skipped; another sync is running.`);
+        return false;
+    }
+
+    try {
+        await syncOtherStock();
+        return true;
+    } finally {
+        await redis.eval(
+            "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+            1,
+            OTHER_STOCK_SYNC_LOCK_KEY,
+            lockToken
+        );
+    }
+};
+
+const runWithRetry = async (context: string, maxAttempts = 3): Promise<void> => {
+    const delaysMs = [30_000, 60_000];
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const completed = await runLockedStockSync(context);
+            if (!completed) throw new Error('Another stock sync currently holds the lock.');
+            actionLogger.info(
+                `[${context}] Sheets stock sync succeeded (attempt ${attempt}/${maxAttempts}).`
+            );
+            return;
+        } catch (err) {
+            actionLogger.error(
+                `[${context}] Sheets stock sync attempt ${attempt}/${maxAttempts} failed:`,
+                err instanceof Error ? err : new Error(String(err))
+            );
+            if (attempt < maxAttempts) {
+                const delayMs = delaysMs[Math.min(attempt - 1, delaysMs.length - 1)];
+                actionLogger.info(`[${context}] Retrying Sheets stock sync in ${delayMs / 1000}s.`);
+                await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+            }
+        }
+    }
+    actionLogger.error(`[${context}] All ${maxAttempts} Sheets sync attempts failed.`);
+};
+
+// ----------------------------------------------------
+// 3. Register Scheduled Crons
+// ----------------------------------------------------
+for (const schedule of schedules) {
+    cron.schedule(schedule.time, () => void runScrapers(schedule.perpage), {
+        timezone: 'Asia/Jakarta',
+    });
+}
+
+for (const schedule of stockScrapeSchedules) {
+    cron.schedule(schedule.time, () => void runBulkStockScraper(schedule.label), {
+        timezone: 'Asia/Jakarta',
+    });
+}
+
+cron.schedule('0 9 * * *', () => void runWithRetry('CRON 09:00'), {
+    timezone: 'Asia/Jakarta',
+});
+cron.schedule('0 14 * * *', () => void runWithRetry('CRON 14:00 fallback'), {
+    timezone: 'Asia/Jakarta',
+});
+
+actionLogger.info('[CRON] Registered all cron schedules in Asia/Jakarta timezone.');
+
+// Startup Google Sheets sync
+void runWithRetry('STARTUP');
+
+// ----------------------------------------------------
+// 4. Job Queue Processor (Manual Triggers from Web)
+// ----------------------------------------------------
+const handleWorkerJob = async (job: WorkerJob) => {
+    isJobActive = true;
+    actionLogger.info(`[MTMS-WORKER] Executing job: ${job.id} (${job.type})`);
+
+    try {
+        switch (job.type) {
+            case 'scrape:out-lensa': {
+                await redis.set(
+                    `job:${job.id}`,
+                    JSON.stringify({
+                        status: 'running',
+                        message: 'Scraping Out Lensa berjalan...',
+                    }),
+                    'EX',
+                    3600
+                );
+                const result = await internalTriggerScraping(job.perpage);
+                if (result.success) {
+                    await redis.set(
+                        `job:${job.id}`,
+                        JSON.stringify({ status: 'success', data: result }),
+                        'EX',
+                        3600
+                    );
+                } else {
+                    await redis.set(
+                        `job:${job.id}`,
+                        JSON.stringify({ status: 'error', error: result.error }),
+                        'EX',
+                        3600
+                    );
+                }
+                break;
+            }
+
+            case 'scrape:wo-lensa': {
+                await redis.set(
+                    `job:${job.id}`,
+                    JSON.stringify({ status: 'running', message: 'Scraping WO Lensa berjalan...' }),
+                    'EX',
+                    3600
+                );
+                const result = await internalTriggerWOScraping(job.perpage, job.fullLoop ?? true);
+                if (result.success) {
+                    await redis.set(
+                        `job:${job.id}`,
+                        JSON.stringify({ status: 'success', data: result }),
+                        'EX',
+                        3600
+                    );
+                } else {
+                    await redis.set(
+                        `job:${job.id}`,
+                        JSON.stringify({ status: 'error', error: result.message }),
+                        'EX',
+                        3600
+                    );
+                }
+                break;
+            }
+
+            case 'scrape:bulk-stock': {
+                await redis.set(
+                    `job:${job.id}`,
+                    JSON.stringify({
+                        status: 'running',
+                        message: 'Memulai scraping seluruh stok teknisi...',
+                    }),
+                    'EX',
+                    3600
+                );
+
+                const result = await bulkScrapeStockTeknisi({
+                    warehouseId: job.warehouseId,
+                    onProgress: async (prog) => {
+                        await redis.set(
+                            `job:${job.id}`,
+                            JSON.stringify({
+                                status: 'running',
+                                processed: prog.processed,
+                                total: prog.total,
+                                message: `Memproses ${prog.processed}/${prog.total} teknisi (${prog.success} sukses, ${prog.failed} gagal)...`,
+                            }),
+                            'EX',
+                            3600
+                        );
+                    },
+                });
+
+                await redis.set(
+                    `job:${job.id}`,
+                    JSON.stringify({
+                        status: 'success',
+                        data: result,
+                        message: `Scraper selesai: ${result.total} teknisi diproses (${result.success} berhasil, ${result.failed} gagal)`,
+                    }),
+                    'EX',
+                    3600
+                );
+                break;
+            }
+
+            case 'sync:sheets': {
+                await redis.set(
+                    `job:${job.id}`,
+                    JSON.stringify({ status: 'running', message: 'Sinkronisasi Google Sheets...' }),
+                    'EX',
+                    3600
+                );
+                await runWithRetry(job.context || 'JOB');
+                await redis.set(
+                    `job:${job.id}`,
+                    JSON.stringify({ status: 'success', message: 'Sinkronisasi Sheets berhasil' }),
+                    'EX',
+                    3600
+                );
+                break;
+            }
+        }
+    } catch (err) {
+        actionLogger.error(
+            `[MTMS-WORKER] Job ${job.id} failed:`,
+            err instanceof Error ? err : new Error(String(err))
+        );
+        await redis.set(
+            `job:${job.id}`,
+            JSON.stringify({
+                status: 'error',
+                error: err instanceof Error ? err.message : 'Unknown worker error',
+            }),
+            'EX',
+            3600
+        );
+    } finally {
+        if (job.type === 'scrape:out-lensa') {
+            await redis.del('lock:out_lensa_scrape');
+        } else if (job.type === 'scrape:wo-lensa') {
+            await redis.del('lock:wo_lensa_scrape');
+        } else if (job.type === 'scrape:bulk-stock') {
+            await redis.del('lock:bulk_stock_scrape');
+        }
+        await closeBrowser().catch(() => {});
+        isJobActive = false;
+    }
+};
+
+const processQueue = async () => {
+    while (isRunning) {
+        try {
+            // Wait up to 2 seconds for a job
+            const result = await queueRedis.brpop(WORKER_QUEUE_KEY, 2);
+            if (result && result.length === 2) {
+                const jobData = result[1];
+                try {
+                    const parsedJob = JSON.parse(jobData) as WorkerJob;
+                    await handleWorkerJob(parsedJob);
+                } catch (parseErr) {
+                    actionLogger.error(
+                        '[MTMS-WORKER] Invalid JSON in job queue:',
+                        parseErr instanceof Error ? parseErr : new Error(String(parseErr))
+                    );
+                }
+            }
+        } catch (err) {
+            if (isRunning) {
+                actionLogger.error(
+                    '[MTMS-WORKER] Error while popping from queue:',
+                    err instanceof Error ? err : new Error(String(err))
+                );
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+        }
+    }
+};
+
+void processQueue();
+
+// ----------------------------------------------------
+// 5. Graceful Shutdown
+// ----------------------------------------------------
+const gracefulShutdown = async (signal: string) => {
+    actionLogger.info(`[MTMS-WORKER] Received ${signal}. Starting graceful shutdown...`);
+    isRunning = false;
+    clearInterval(heartbeatInterval);
+
+    try {
+        // Wait up to 25 seconds if a job is currently active
+        const startWait = Date.now();
+        while (isJobActive && Date.now() - startWait < 25000) {
+            actionLogger.info('[MTMS-WORKER] Waiting for active job to complete...');
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+
+        await closeBrowser().catch(() => {});
+        await redis.del(WORKER_HEARTBEAT_KEY).catch(() => {});
+        await queueRedis.quit().catch(() => {});
+        await redis.quit().catch(() => {});
+        actionLogger.info('[MTMS-WORKER] Clean shutdown complete.');
+    } catch (err) {
+        actionLogger.error(
+            '[MTMS-WORKER] Error during shutdown:',
+            err instanceof Error ? err : new Error(String(err))
+        );
+    } finally {
+        process.exit(0);
+    }
+};
+
+process.on('SIGINT', () => void gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'));

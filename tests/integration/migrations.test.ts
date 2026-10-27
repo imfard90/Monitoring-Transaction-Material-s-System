@@ -177,8 +177,18 @@ describeDb('L3 fix: REVOKE EXECUTE FROM PUBLIC on inventory SPs (016)', () => {
 });
 
 describeDb('L4 fix: RLS enabled on all tables (017)', () => {
-    it('RLS enabled on all 39 tables (inventory, auth, hr)', async () => {
-        const row = await queryOne<{ count: string }>(`
+    it('RLS enabled on all tables in inventory, auth, hr schemas', async () => {
+        const withoutRls = await queryOne<{ count: string }>(`
+            SELECT count(*)::text AS count
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE c.relkind = 'r'
+              AND n.nspname IN ('inventory', 'auth', 'hr')
+              AND c.relrowsecurity = false
+        `);
+        expect(Number(withoutRls?.count)).toBe(0);
+
+        const total = await queryOne<{ count: string }>(`
             SELECT count(*)::text AS count
             FROM pg_class c
             JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -186,7 +196,7 @@ describeDb('L4 fix: RLS enabled on all tables (017)', () => {
               AND n.nspname IN ('inventory', 'auth', 'hr')
               AND c.relrowsecurity = true
         `);
-        expect(Number(row?.count)).toBe(39);
+        expect(Number(total?.count)).toBeGreaterThanOrEqual(35);
     });
 
     it('FORCE RLS on auth and hr tables (13 tables)', async () => {
@@ -313,6 +323,43 @@ describeDb('L5 query logging migration tracked (018)', () => {
                 WHERE price > 0
             `);
             expect(Number(row?.count)).toBe(291);
+        });
+    });
+
+    describeDb('Return material integrity & auditability (040 & 041)', () => {
+        it('040_fix_return_material_integrity.sql recorded in migration log', async () => {
+            const row = await queryOne<{ filename: string }>(`
+                SELECT filename FROM inventory._migration_log
+                WHERE filename = '040_fix_return_material_integrity.sql'
+            `);
+            expect(row?.filename).toBe('040_fix_return_material_integrity.sql');
+        });
+
+        it('041_enable_rls_stock_opname_log_and_revoke_public.sql recorded in migration log', async () => {
+            const row = await queryOne<{ filename: string }>(`
+                SELECT filename FROM inventory._migration_log
+                WHERE filename = '041_enable_rls_stock_opname_log_and_revoke_public.sql'
+            `);
+            expect(row?.filename).toBe('041_enable_rls_stock_opname_log_and_revoke_public.sql');
+        });
+
+        it('inventory.stock_balance has non-negative check constraint', async () => {
+            const row = await queryOne<{ conname: string; def: string }>(`
+                SELECT conname, pg_get_constraintdef(oid) as def FROM pg_constraint
+                WHERE conrelid = 'inventory.stock_balance'::regclass
+                  AND contype = 'c'
+                  AND pg_get_constraintdef(oid) LIKE '%qty_stock >= 0%'
+            `);
+            expect(row).toBeDefined();
+            expect(row?.def).toContain('qty_stock >= 0');
+        });
+
+        it('inventory.trx_return_seq sequence exists', async () => {
+            const row = await queryOne<{ sequencename: string }>(`
+                SELECT sequencename FROM pg_sequences
+                WHERE schemaname = 'inventory' AND sequencename = 'trx_return_seq'
+            `);
+            expect(row?.sequencename).toBe('trx_return_seq');
         });
     });
 });

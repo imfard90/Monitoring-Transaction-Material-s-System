@@ -99,9 +99,7 @@ export function ProfileHeader({ profileData }: ProfileHeaderProps) {
                                         className="text-primary"
                                     />
                                     <span>
-                                        {profileData?.area ||
-                                            profileData?.branch_name ||
-                                            'No Area'}
+                                        {profileData?.area || profileData?.branch_name || 'No Area'}
                                     </span>
                                 </div>
                                 {profileData?.regional && (

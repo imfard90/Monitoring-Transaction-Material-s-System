@@ -43,7 +43,10 @@ export async function getTechniciansWithIntechSaps() {
             .groupBy(['t.nik', 't.name'])
             .orderBy('t.name', 'asc');
 
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, data: [] };
+            }
             query = query.where('soh.warehouse_id', 'in', warehouseIds);
         }
 
@@ -61,7 +64,9 @@ export async function getTechniciansWithIntechSaps() {
 
 export async function getTechnicianMaterials(nik: string) {
     try {
-        const materials = await db
+        const { isStaff, warehouseIds } = await getSessionUser();
+
+        let query = db
             .selectFrom('inventory.sap_out_header as soh')
             .innerJoin('inventory.sap_out_items as soi', 'soi.header_id', 'soh.id')
             .innerJoin('inventory.materials as m', 'm.id', 'soi.designator_id')
@@ -83,8 +88,16 @@ export async function getTechnicianMaterials(nik: string) {
             .where('soh.nik_teknisi', '=', nik)
             .where('soh.end_status', '=', 'intech')
             .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0)
-            .orderBy('soh.id_trx', 'asc')
-            .execute();
+            .orderBy('soh.id_trx', 'asc');
+
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, data: [] };
+            }
+            query = query.where('soh.warehouse_id', 'in', warehouseIds);
+        }
+
+        const materials = await query.execute();
 
         return { success: true, data: materials };
     } catch (error: unknown) {
@@ -119,6 +132,31 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
     }
 
     try {
+        const { isStaff, warehouseIds } = await getSessionUser();
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return {
+                    success: false,
+                    error: 'Akses ditolak: Anda tidak memiliki akses ke gudang manapun',
+                };
+            }
+            const sapOutIds = Array.from(
+                new Set(parsed.data.items.map((item) => String(item.sap_out_id)))
+            );
+            const allowedHeaders = await db
+                .selectFrom('inventory.sap_out_header')
+                .select('id')
+                .where('id', 'in', sapOutIds)
+                .where('warehouse_id', 'in', warehouseIds)
+                .execute();
+            if (allowedHeaders.length !== sapOutIds.length) {
+                return {
+                    success: false,
+                    error: 'Akses ditolak: Sebagian transaksi bukan dari gudang wewenang Anda',
+                };
+            }
+        }
+
         const { isDuplicate, result: _result } = await checkAndStoreIdempotency(
             idemKey,
             { nik, items },
@@ -175,15 +213,9 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
                         const groupItems = groups[key];
                         const first = groupItems[0];
 
-                        // Generate deterministic sequence via PostgreSQL SEQUENCE (P0-D2 fix)
-                        const seqRes = await sql<{ seq: string }>`
-                            SELECT to_char(nextval('inventory.trx_used_seq'), 'FM0000') as seq
-                        `.execute(trx);
-                        const sequence = seqRes.rows[0]?.seq ?? '0001';
-                        const generatedIdTrx = `TRX-USED-${data.nik}-${first.sap_number}-${first.wo_number}-${yymm}${sequence}`;
-
-                        // Call SP via repository — atomic insert header, items, update sap_out_items, audit movement, auto-close (P0-D1 fix)
                         const repo = createInventoryRepository(trx);
+                        const sequence = await repo.generateTrxUsedSeq();
+                        const generatedIdTrx = `TRX-USED-${data.nik}-${first.sap_number}-${first.wo_number}-${yymm}${sequence}`;
                         const normalizedWoType = first.wo_type
                             ? first.wo_type.trim().toLowerCase().replace(/\s+/g, '_')
                             : null;

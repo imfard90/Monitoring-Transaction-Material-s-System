@@ -227,12 +227,20 @@ export function StockOpnameLogTable({ onViewDetail, refreshTrigger }: Props) {
                     </div>
 
                     {/* Status Chips */}
-                    <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Filter status stock opname">
+                    <div
+                        className="flex flex-wrap items-center gap-1.5"
+                        role="tablist"
+                        aria-label="Filter status stock opname"
+                    >
                         {(
                             [
                                 { key: 'all', label: 'Semua', count: statusCounts.all },
                                 { key: 'pending', label: 'Pending', count: statusCounts.pending },
-                                { key: 'approved', label: 'Disetujui', count: statusCounts.approved },
+                                {
+                                    key: 'approved',
+                                    label: 'Disetujui',
+                                    count: statusCounts.approved,
+                                },
                                 { key: 'rejected', label: 'Ditolak', count: statusCounts.rejected },
                             ] as const
                         ).map(({ key, label, count }) => {

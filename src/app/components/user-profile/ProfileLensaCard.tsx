@@ -122,9 +122,7 @@ export function ProfileLensaCard({ profileData }: ProfileLensaCardProps) {
                                 className="text-muted-foreground"
                                 aria-hidden="true"
                             />
-                            <span className="text-muted-foreground">
-                                Akun terhubung
-                            </span>
+                            <span className="text-muted-foreground">Akun terhubung</span>
                             <span className="font-medium text-foreground">
                                 {String(profileData.lensa_acount.username)}
                             </span>
@@ -132,19 +130,11 @@ export function ProfileLensaCard({ profileData }: ProfileLensaCardProps) {
                     ) : (
                         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1">
-                                <Icon
-                                    icon="lucide:lock-keyhole"
-                                    width="14"
-                                    aria-hidden="true"
-                                />
+                                <Icon icon="lucide:lock-keyhole" width="14" aria-hidden="true" />
                                 Kredensial terenkripsi
                             </span>
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1">
-                                <Icon
-                                    icon="lucide:shield-check"
-                                    width="14"
-                                    aria-hidden="true"
-                                />
+                                <Icon icon="lucide:shield-check" width="14" aria-hidden="true" />
                                 Akses latar belakang aman
                             </span>
                         </div>
@@ -167,11 +157,7 @@ export function ProfileLensaCard({ profileData }: ProfileLensaCardProps) {
                         className="w-full sm:w-auto"
                     >
                         <Icon
-                            icon={
-                                profileData?.lensa_acount
-                                    ? 'lucide:refresh-cw'
-                                    : 'lucide:link'
-                            }
+                            icon={profileData?.lensa_acount ? 'lucide:refresh-cw' : 'lucide:link'}
                             width="16"
                             className="mr-2"
                         />
@@ -195,16 +181,12 @@ export function ProfileLensaCard({ profileData }: ProfileLensaCardProps) {
             <ModalDialog
                 isOpen={isLensaDialogOpen}
                 onClose={() => setIsLensaDialogOpen(false)}
-                title={
-                    profileData?.lensa_acount
-                        ? 'Perbarui Akun Lensa'
-                        : 'Hubungkan Akun Lensa'
-                }
+                title={profileData?.lensa_acount ? 'Perbarui Akun Lensa' : 'Hubungkan Akun Lensa'}
             >
                 <div className="space-y-4 pt-2">
                     <p className="text-sm text-muted-foreground">
-                        Kredensial Anda dienkripsi sebelum disimpan ke database dan hanya
-                        digunakan untuk proses scraping otomatis.
+                        Kredensial Anda dienkripsi sebelum disimpan ke database dan hanya digunakan
+                        untuk proses scraping otomatis.
                     </p>
                     <div className="space-y-3">
                         <div className="space-y-1">
@@ -239,11 +221,7 @@ export function ProfileLensaCard({ profileData }: ProfileLensaCardProps) {
                         >
                             Batal
                         </Button>
-                        <Button
-                            type="button"
-                            onClick={handleSaveLensa}
-                            disabled={isPending}
-                        >
+                        <Button type="button" onClick={handleSaveLensa} disabled={isPending}>
                             {isPending ? 'Menyimpan...' : 'Simpan Kredensial'}
                         </Button>
                     </div>

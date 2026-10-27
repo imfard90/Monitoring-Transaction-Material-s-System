@@ -108,7 +108,8 @@ export function StockOpnameDetailPane({ open, onOpenChange, log, isStaff, onUpda
                                     Detail Berita Acara Stock Opname #{log.id}
                                 </DialogTitle>
                                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                                    Catatan rekonsiliasi fisik vs sistem di gudang {log.warehouse_name}
+                                    Catatan rekonsiliasi fisik vs sistem di gudang{' '}
+                                    {log.warehouse_name}
                                 </DialogDescription>
                             </div>
                             <div>
@@ -120,23 +121,35 @@ export function StockOpnameDetailPane({ open, onOpenChange, log, isStaff, onUpda
                     {/* Metadata Overview Card */}
                     <div className="p-6 pb-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="rounded-lg border bg-card p-3">
-                            <span className="text-[11px] text-muted-foreground uppercase font-medium">Gudang</span>
+                            <span className="text-[11px] text-muted-foreground uppercase font-medium">
+                                Gudang
+                            </span>
                             <p className="font-semibold text-sm mt-0.5">{log.warehouse_name}</p>
                         </div>
                         <div className="rounded-lg border bg-card p-3">
-                            <span className="text-[11px] text-muted-foreground uppercase font-medium">Dibuat Oleh</span>
+                            <span className="text-[11px] text-muted-foreground uppercase font-medium">
+                                Dibuat Oleh
+                            </span>
                             <p className="font-mono text-sm mt-0.5">{log.created_by}</p>
                             <span className="text-[10px] text-muted-foreground">
                                 {format(log.created_at, 'dd MMM yyyy HH:mm', { locale: localeId })}
                             </span>
                         </div>
                         <div className="rounded-lg border bg-card p-3">
-                            <span className="text-[11px] text-muted-foreground uppercase font-medium">Total Item</span>
-                            <p className="font-mono font-semibold text-sm mt-0.5">{log.total_items} Material</p>
+                            <span className="text-[11px] text-muted-foreground uppercase font-medium">
+                                Total Item
+                            </span>
+                            <p className="font-mono font-semibold text-sm mt-0.5">
+                                {log.total_items} Material
+                            </p>
                         </div>
                         <div className="rounded-lg border bg-card p-3">
-                            <span className="text-[11px] text-muted-foreground uppercase font-medium">Total Selisih</span>
-                            <p className={`font-mono font-semibold text-sm mt-0.5 ${log.total_difference > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                            <span className="text-[11px] text-muted-foreground uppercase font-medium">
+                                Total Selisih
+                            </span>
+                            <p
+                                className={`font-mono font-semibold text-sm mt-0.5 ${log.total_difference > 0 ? 'text-destructive' : 'text-muted-foreground'}`}
+                            >
                                 {log.total_difference} Unit
                             </p>
                         </div>
@@ -147,12 +160,17 @@ export function StockOpnameDetailPane({ open, onOpenChange, log, isStaff, onUpda
                         <div className="mx-6 p-3 rounded-lg border bg-muted/30 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                             <div>
                                 <span className="font-medium text-foreground">
-                                    {log.status === 'approved' ? 'Disetujui oleh:' : 'Ditolak oleh:'}{' '}
+                                    {log.status === 'approved'
+                                        ? 'Disetujui oleh:'
+                                        : 'Ditolak oleh:'}{' '}
                                 </span>
                                 <span className="font-mono font-semibold">{log.approved_by}</span>
                                 {log.approved_at && (
                                     <span className="text-muted-foreground ml-2">
-                                        pada {format(log.approved_at, 'dd MMMM yyyy HH:mm', { locale: localeId })}
+                                        pada{' '}
+                                        {format(log.approved_at, 'dd MMMM yyyy HH:mm', {
+                                            locale: localeId,
+                                        })}
                                     </span>
                                 )}
                             </div>
@@ -203,17 +221,26 @@ export function StockOpnameDetailPane({ open, onOpenChange, log, isStaff, onUpda
                             <tbody className="divide-y divide-border/40">
                                 {filteredDetails.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="py-8 text-center text-muted-foreground text-xs">
+                                        <td
+                                            colSpan={5}
+                                            className="py-8 text-center text-muted-foreground text-xs"
+                                        >
                                             Tidak ada material yang sesuai kriteria pencarian.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredDetails.map((item, idx) => (
-                                        <tr key={idx} className="hover:bg-muted/40 transition-colors">
+                                        <tr
+                                            key={idx}
+                                            className="hover:bg-muted/40 transition-colors"
+                                        >
                                             <td className="px-4 py-2.5 font-mono text-xs font-medium">
                                                 {item.material_code}
                                             </td>
-                                            <td className="px-4 py-2.5 text-xs text-foreground/90 max-w-xs truncate" title={item.material_name}>
+                                            <td
+                                                className="px-4 py-2.5 text-xs text-foreground/90 max-w-xs truncate"
+                                                title={item.material_name}
+                                            >
                                                 {item.material_name || '-'}
                                             </td>
                                             <td className="px-4 py-2.5 text-xs text-right font-mono">
@@ -231,7 +258,9 @@ export function StockOpnameDetailPane({ open, onOpenChange, log, isStaff, onUpda
                                                           : 'text-muted-foreground'
                                                 }`}
                                             >
-                                                {item.difference > 0 ? `+${item.difference}` : item.difference}
+                                                {item.difference > 0
+                                                    ? `+${item.difference}`
+                                                    : item.difference}
                                             </td>
                                         </tr>
                                     ))
@@ -296,9 +325,12 @@ export function StockOpnameDetailPane({ open, onOpenChange, log, isStaff, onUpda
             <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
                 <DialogContent className="sm:max-w-md border border-border">
                     <DialogHeader>
-                        <DialogTitle className="text-lg font-semibold">Alasan Penolakan</DialogTitle>
+                        <DialogTitle className="text-lg font-semibold">
+                            Alasan Penolakan
+                        </DialogTitle>
                         <DialogDescription className="text-xs text-muted-foreground">
-                            Mohon berikan alasan penolakan untuk Stock Opname #{log.id} agar staf gudang dapat melakukan verifikasi ulang.
+                            Mohon berikan alasan penolakan untuk Stock Opname #{log.id} agar staf
+                            gudang dapat melakukan verifikasi ulang.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3 py-2">

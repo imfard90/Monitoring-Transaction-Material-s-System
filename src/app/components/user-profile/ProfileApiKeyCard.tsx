@@ -92,9 +92,7 @@ export function ProfileApiKeyCard({ profileData }: ProfileApiKeyCardProps) {
                         />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h5 className="text-lg font-semibold text-foreground">
-                            MTMS Public API
-                        </h5>
+                        <h5 className="text-lg font-semibold text-foreground">MTMS Public API</h5>
                         <p className="mt-0.5 text-sm text-muted-foreground">
                             Generate kunci akses untuk integrasi sistem eksternal via REST API.
                         </p>
@@ -105,11 +103,7 @@ export function ProfileApiKeyCard({ profileData }: ProfileApiKeyCardProps) {
                         className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${profileData.appr_api ? 'border-success/20 bg-success/10 text-success' : 'border-warning/20 bg-warning/10 text-warning'}`}
                     >
                         <Icon
-                            icon={
-                                profileData.appr_api
-                                    ? 'lucide:check-circle'
-                                    : 'lucide:clock'
-                            }
+                            icon={profileData.appr_api ? 'lucide:check-circle' : 'lucide:clock'}
                             width="14"
                         />
                         {profileData.appr_api ? 'Disetujui' : 'Menunggu'}
@@ -159,9 +153,7 @@ export function ProfileApiKeyCard({ profileData }: ProfileApiKeyCardProps) {
                                         }
                                         width="16"
                                         className={
-                                            profileData.appr_api
-                                                ? 'text-success'
-                                                : 'text-warning'
+                                            profileData.appr_api ? 'text-success' : 'text-warning'
                                         }
                                     />
                                     <p className="text-xs text-muted-foreground">
@@ -195,7 +187,7 @@ export function ProfileApiKeyCard({ profileData }: ProfileApiKeyCardProps) {
                             </Button>
                             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1 border border-border">
-                                <Icon icon="lucide:lock-keyhole" width="14" />
+                                    <Icon icon="lucide:lock-keyhole" width="14" />
                                     SHA-256 Hash
                                 </span>
                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1 border border-border">
@@ -212,48 +204,28 @@ export function ProfileApiKeyCard({ profileData }: ProfileApiKeyCardProps) {
                     <div className="relative">
                         <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg animate-pulse" />
                         <div className="relative w-14 h-14 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 flex items-center justify-center rotate-3 hover:rotate-0 transition-transform duration-500">
-                            <Icon
-                                icon="lucide:server"
-                                width="28"
-                                className="text-primary/80"
-                            />
+                            <Icon icon="lucide:server" width="28" className="text-primary/80" />
                         </div>
                     </div>
 
                     <div className="absolute top-1 left-3">
                         <div className="w-7 h-7 rounded-lg bg-background/90 border border-border/60 flex items-center justify-center shadow-sm hover:scale-110 transition-transform duration-300">
-                            <Icon
-                                icon="lucide:code-2"
-                                width="12"
-                                className="text-primary/70"
-                            />
+                            <Icon icon="lucide:code-2" width="12" className="text-primary/70" />
                         </div>
                     </div>
                     <div className="absolute top-4 right-0">
                         <div className="w-6 h-6 rounded-lg bg-background/90 border border-border/60 flex items-center justify-center shadow-sm hover:scale-110 transition-transform duration-300">
-                            <Icon
-                                icon="lucide:webhook"
-                                width="10"
-                                className="text-primary/60"
-                            />
+                            <Icon icon="lucide:webhook" width="10" className="text-primary/60" />
                         </div>
                     </div>
                     <div className="absolute bottom-3 left-1">
                         <div className="w-5 h-5 rounded-full bg-background/90 border border-border/60 flex items-center justify-center shadow-sm">
-                            <Icon
-                                icon="lucide:database"
-                                width="9"
-                                className="text-primary/50"
-                            />
+                            <Icon icon="lucide:database" width="9" className="text-primary/50" />
                         </div>
                     </div>
                     <div className="absolute bottom-0 right-4">
                         <div className="w-5 h-5 rounded-full bg-success/20 border border-success/30 flex items-center justify-center shadow-sm">
-                            <Icon
-                                icon="lucide:arrow-right"
-                                width="8"
-                                className="text-success/80"
-                            />
+                            <Icon icon="lucide:arrow-right" width="8" className="text-success/80" />
                         </div>
                     </div>
 

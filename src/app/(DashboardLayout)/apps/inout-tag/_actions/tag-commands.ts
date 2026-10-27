@@ -90,6 +90,18 @@ export async function createTag(payload: {
     }
 
     try {
+        const user = await getSessionUser();
+        if (user.isStaff) {
+            const hasFromAccess = canAccessWarehouse(user, payload.fromWhId);
+            const hasToAccess = canAccessWarehouse(user, payload.toWhId);
+            if (!hasFromAccess && !hasToAccess) {
+                return {
+                    success: false,
+                    error: 'Akses ditolak: Anda tidak memiliki akses ke gudang asal maupun gudang tujuan.',
+                };
+            }
+        }
+
         const { isDuplicate, result } = await checkAndStoreIdempotency(
             payload.idemKey,
             payload,

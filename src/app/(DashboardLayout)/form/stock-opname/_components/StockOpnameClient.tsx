@@ -94,10 +94,7 @@ export function StockOpnameClient({ user, masterWarehouses }: StockOpnameClientP
             />
 
             {/* Riwayat Log Table */}
-            <StockOpnameLogTable
-                onViewDetail={handleViewDetail}
-                refreshTrigger={refreshTrigger}
-            />
+            <StockOpnameLogTable onViewDetail={handleViewDetail} refreshTrigger={refreshTrigger} />
 
             {/* Dialog Hasil Parsing & Rekonsiliasi */}
             <StockOpnameResultDialog

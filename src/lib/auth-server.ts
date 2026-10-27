@@ -119,3 +119,25 @@ export async function requireTechnicianManagementAccess(): Promise<SessionUser> 
     }
     return session;
 }
+
+/**
+ * Helper untuk memvalidasi akses gudang tertentu bagi user yang sedang login.
+ * Jika Staff: wajib terdaftar sebagai pic_1 atau pic_2 pada targetWarehouseId (fail-closed).
+ * Jika Non-Staff: diizinkan akses seluruh gudang.
+ * Melempar AuthorizationError jika tidak berhak (fail-closed).
+ */
+export async function requireWarehouseAccess(targetWarehouseId: number): Promise<SessionUser> {
+    const user = await getSessionUser();
+    if (user.isStaff) {
+        if (
+            !user.warehouseIds ||
+            user.warehouseIds.length === 0 ||
+            !user.warehouseIds.includes(targetWarehouseId)
+        ) {
+            throw errors.accessDenied(
+                'Akses ditolak: Anda tidak memiliki wewenang untuk gudang ini.'
+            );
+        }
+    }
+    return user;
+}

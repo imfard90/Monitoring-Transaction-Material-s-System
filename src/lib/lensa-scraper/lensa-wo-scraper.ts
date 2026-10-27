@@ -365,8 +365,14 @@ export async function scrapeWOLensaDetails(
 
                     // Tunggu baris data tabel muncul atau indikator data kosong (mencegah silent empty array)
                     await Promise.race([
-                        page.waitForSelector('table tbody tr td', { state: 'attached', timeout: 12000 }),
-                        page.waitForSelector('.dataTables_empty, .empty-state, text=/tidak ada data|no data/i', { timeout: 12000 }),
+                        page.waitForSelector('table tbody tr td', {
+                            state: 'attached',
+                            timeout: 12000,
+                        }),
+                        page.waitForSelector(
+                            '.dataTables_empty, .empty-state, text=/tidak ada data|no data/i',
+                            { timeout: 12000 }
+                        ),
                     ]).catch(() => null);
 
                     const tablesData = await page.$$eval('table', (tables) => {

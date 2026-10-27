@@ -118,9 +118,7 @@ export function OutSapConfirmModal({
                 {/* Daftar Material */}
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-semibold text-foreground">
-                            Daftar Material
-                        </h4>
+                        <h4 className="text-sm font-semibold text-foreground">Daftar Material</h4>
                         <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full border border-border/40">
                             {items.length} item material
                         </span>

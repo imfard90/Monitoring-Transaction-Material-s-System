@@ -53,7 +53,20 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
         const { isStaff, warehouseIds } = await getSessionUser();
 
         let whNames: string[] = [];
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return {
+                    success: true,
+                    data: {
+                        headers: [],
+                        warehouses: [],
+                        total: 0,
+                        page,
+                        pageSize,
+                        totalPages: 0,
+                    },
+                };
+            }
             const allowedWhNames = await db
                 .selectFrom('inventory.mas_wh')
                 .select('name')
@@ -224,7 +237,10 @@ export async function getWOLensaFilterOptions() {
         const { isStaff, warehouseIds } = await getSessionUser();
 
         let whQuery = db.selectFrom('inventory.mas_wh').select('name').orderBy('name', 'asc');
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { warehouses: [] };
+            }
             whQuery = whQuery.where('id', 'in', warehouseIds as number[]);
         }
         const whs = await whQuery.execute();
@@ -241,7 +257,10 @@ export async function getWOLensaRefList() {
     const { isStaff, warehouseIds } = await getSessionUser();
 
     let whNames: string[] = [];
-    if (isStaff && warehouseIds.length > 0) {
+    if (isStaff) {
+        if (warehouseIds.length === 0) {
+            return [];
+        }
         const whs = await db
             .selectFrom('inventory.mas_wh')
             .select('name')

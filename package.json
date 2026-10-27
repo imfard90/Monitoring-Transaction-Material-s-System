@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "migrate": "tsx run-migration.ts",
+    "worker": "tsx src/workers/scraper-worker.ts",
     "mcp:google-sheets": "tsx src/lib/google_ecosystem/google-sheets-mcp.ts"
   },
   "dependencies": {

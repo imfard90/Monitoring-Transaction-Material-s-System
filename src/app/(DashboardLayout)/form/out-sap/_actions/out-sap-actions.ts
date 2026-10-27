@@ -3,8 +3,9 @@
 import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { getSessionNik, getSessionUser } from '@/lib/auth-server';
+import { getSessionNik, getSessionUser, requireWarehouseAccess } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { errors } from '@/lib/errors';
 import { actionLogger } from '@/lib/logger';
 import { hrRepository } from '@/lib/repositories/hr.repository';
 import { inventoryRepository } from '@/lib/repositories/inventory.repository';
@@ -55,7 +56,14 @@ export async function getOutSaps() {
 
         let countQuery = db.selectFrom('inventory.sap_out_header');
 
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return {
+                    success: true,
+                    data: [],
+                    counts: { wait_approve: 0, request: 0, intech: 0, close: 0 },
+                };
+            }
             sapQuery = sapQuery.where('soh.warehouse_id', 'in', warehouseIds as number[]);
             countQuery = countQuery.where('warehouse_id', 'in', warehouseIds as number[]);
         }
@@ -112,7 +120,10 @@ export async function getOutSapItemsByHeaderId(headerId: number | string) {
             .where('i.header_id', '=', String(headerId));
 
         // Staff hanya boleh melihat item dari warehouse miliknya
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, data: [] };
+            }
             query = query.where('h.warehouse_id', 'in', warehouseIds);
         }
 
@@ -193,10 +204,11 @@ export async function getWarehouses() {
         const { isStaff, warehouseIds } = await getSessionUser();
         let query = db.selectFrom('inventory.mas_wh').selectAll();
 
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, data: [] };
+            }
             query = query.where('id', 'in', warehouseIds);
-        } else if (isStaff && warehouseIds.length === 0) {
-            return { success: true, data: [] };
         }
 
         const whs = await query.execute();
@@ -243,6 +255,7 @@ export async function createOutSap(payload: {
     }
 
     try {
+        await requireWarehouseAccess(parsed.data.warehouse_id);
         const { isDuplicate, result } = await checkAndStoreIdempotency(
             payload.idemKey,
             payload,
@@ -300,7 +313,12 @@ export async function updateOutSapStatusToIntech(headerId: number | string) {
                 .where('id', '=', String(headerId))
                 .executeTakeFirst();
 
-            const warehouseId = header?.warehouse_id;
+            if (!header) {
+                throw errors.notFound('Data Out SAP tidak ditemukan.');
+            }
+
+            const warehouseId = Number(header.warehouse_id);
+            await requireWarehouseAccess(warehouseId);
             const createdBy = await getSessionNik();
 
             // Call SP sp_sap_out for this header to reduce stock

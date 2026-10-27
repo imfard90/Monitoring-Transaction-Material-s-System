@@ -54,7 +54,20 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
         const { isStaff, warehouseIds } = await getSessionUser();
 
         let whNames: string[] = [];
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return {
+                    success: true,
+                    data: {
+                        headers: [],
+                        warehouses: [],
+                        total: 0,
+                        page: 1,
+                        pageSize,
+                        totalPages: 0,
+                    },
+                };
+            }
             const whs = await db
                 .selectFrom('inventory.mas_wh')
                 .select('name')
@@ -286,7 +299,10 @@ export async function getOutLensaFilterOptions() {
         const { isStaff, warehouseIds } = await getSessionUser();
 
         let whQuery = db.selectFrom('inventory.mas_wh').select('name').orderBy('name', 'asc');
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { warehouses: [] };
+            }
             whQuery = whQuery.where('id', 'in', warehouseIds as number[]);
         }
         const whs = await whQuery.execute();

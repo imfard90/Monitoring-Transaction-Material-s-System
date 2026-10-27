@@ -39,8 +39,7 @@ export function ProfilePersonalInfoCard({ profileData }: ProfilePersonalInfoCard
     return (
         <StaggerItem className="space-y-4 rounded-xl border border-border bg-card md:px-6 md:py-4 px-4 py-3 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
             <h5 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <Icon icon="lucide:user" className="text-primary" width="20" /> Personal
-                Information
+                <Icon icon="lucide:user" className="text-primary" width="20" /> Personal Information
             </h5>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-7 2xl:gap-x-32">
                 <div>
@@ -55,9 +54,7 @@ export function ProfilePersonalInfoCard({ profileData }: ProfilePersonalInfoCard
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
                         NIK
                     </p>
-                    <p className="text-sm font-medium text-foreground">
-                        {profileData?.nik || '-'}
-                    </p>
+                    <p className="text-sm font-medium text-foreground">{profileData?.nik || '-'}</p>
                 </div>
                 <div>
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
@@ -106,9 +103,7 @@ export function ProfilePersonalInfoCard({ profileData }: ProfilePersonalInfoCard
                         {profileData?.is_active ? (
                             <span className="text-success font-medium">Aktif</span>
                         ) : (
-                            <span className="text-destructive font-medium">
-                                Nonaktif
-                            </span>
+                            <span className="text-destructive font-medium">Nonaktif</span>
                         )}
                     </p>
                 </div>

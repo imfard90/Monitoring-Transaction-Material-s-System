@@ -55,9 +55,7 @@ export async function getTeknisiStockList(): Promise<{
 
         const niks = rows.map((r) => r.nik).filter(Boolean);
         const mtmsStockRows =
-            niks.length > 0
-                ? await inventoryRepository.getBatchTechnicianIntechStock(niks)
-                : [];
+            niks.length > 0 ? await inventoryRepository.getBatchTechnicianIntechStock(niks) : [];
 
         const mtmsStockByNik = new Map<string, Map<string, number>>();
         for (const row of mtmsStockRows) {
@@ -142,7 +140,10 @@ export async function getStockComparison(nik: string): Promise<{
     try {
         const parsedNik = NikParamSchema.safeParse(nik);
         if (!parsedNik.success) {
-            return { success: false, error: parsedNik.error.issues[0]?.message ?? 'NIK tidak valid' };
+            return {
+                success: false,
+                error: parsedNik.error.issues[0]?.message ?? 'NIK tidak valid',
+            };
         }
         const validNik = parsedNik.data;
 

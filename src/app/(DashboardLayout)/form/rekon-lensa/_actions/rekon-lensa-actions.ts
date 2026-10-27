@@ -23,7 +23,10 @@ export async function getTechniciansWithIntechSaps() {
             .groupBy(['t.nik', 't.name'])
             .orderBy('t.name', 'asc');
 
-        if (isStaff && warehouseIds.length > 0) {
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, data: [] };
+            }
             query = query.where('soh.warehouse_id', 'in', warehouseIds);
         }
 
@@ -41,7 +44,9 @@ export async function getTechniciansWithIntechSaps() {
 
 export async function getTechnicianMaterials(nik: string) {
     try {
-        const materials = await db
+        const { isStaff, warehouseIds } = await getSessionUser();
+
+        let query = db
             .selectFrom('inventory.sap_out_header as soh')
             .innerJoin('inventory.sap_out_items as soi', 'soi.header_id', 'soh.id')
             .innerJoin('inventory.materials as m', 'm.id', 'soi.designator_id')
@@ -63,8 +68,16 @@ export async function getTechnicianMaterials(nik: string) {
             .where('soh.nik_teknisi', '=', nik)
             .where('soh.end_status', '=', 'intech')
             .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0)
-            .orderBy('soh.request_time', 'asc') // FIFO: oldest request first
-            .execute();
+            .orderBy('soh.request_time', 'asc'); // FIFO: oldest request first
+
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, data: [] };
+            }
+            query = query.where('soh.warehouse_id', 'in', warehouseIds);
+        }
+
+        const materials = await query.execute();
 
         return { success: true, data: materials };
     } catch (error: unknown) {
@@ -78,6 +91,7 @@ export async function getTechnicianMaterials(nik: string) {
 
 export async function getWOLensa(nik: string) {
     try {
+        await getSessionUser();
         // Get WO Lensa that haven't been reconciled yet
         const wos = await db
             .selectFrom('inventory.wo_lensa_header as h')
@@ -163,6 +177,31 @@ export async function submitRekonLensa(
     }
 
     try {
+        const { isStaff, warehouseIds } = await getSessionUser();
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return {
+                    success: false,
+                    error: 'Akses ditolak: Anda tidak memiliki akses ke gudang manapun',
+                };
+            }
+            const sapOutIds = Array.from(
+                new Set(parsed.data.items.map((item) => String(item.sap_out_id)))
+            );
+            const allowedHeaders = await db
+                .selectFrom('inventory.sap_out_header')
+                .select('id')
+                .where('id', 'in', sapOutIds)
+                .where('warehouse_id', 'in', warehouseIds)
+                .execute();
+            if (allowedHeaders.length !== sapOutIds.length) {
+                return {
+                    success: false,
+                    error: 'Akses ditolak: Sebagian transaksi bukan dari gudang wewenang Anda',
+                };
+            }
+        }
+
         const { isDuplicate, result: _result } = await checkAndStoreIdempotency(
             idemKey,
             { nik, items },
@@ -213,11 +252,8 @@ export async function submitRekonLensa(
                         const _sapString = uniqueSaps.join('-');
                         const pemakaianId = woItems[0].pemakaian_id;
 
-                        // Generate deterministic sequence via PostgreSQL SEQUENCE (P0-D2 fix)
-                        const seqRes = await sql<{ seq: string }>`
-                            SELECT to_char(nextval('inventory.trx_used_lensa_seq'), 'FM0000') as seq
-                        `.execute(trx);
-                        const sequence = seqRes.rows[0]?.seq ?? '0001';
+                        const repo = createInventoryRepository(trx);
+                        const sequence = await repo.generateTrxUsedLensaSeq();
                         const generatedIdTrx = `TRX-USED-LENSA-${data.nik}-${pemakaianId}-${yymm}${sequence}`;
 
                         const first = woItems[0];
@@ -242,7 +278,6 @@ export async function submitRekonLensa(
 
                         const codeMap = new Map(materials.map((m) => [m.id, m.code]));
 
-                        const repo = createInventoryRepository(trx);
                         await repo.recordRekonLensa({
                             idTrx: generatedIdTrx,
                             idPemakaian: pemakaianId,
@@ -261,12 +296,8 @@ export async function submitRekonLensa(
                             })),
                         });
 
-                        // Flag: mark this WO as reconciled in wo_lensa_header
-                        await trx
-                            .updateTable('inventory.wo_lensa_header')
-                            .set({ rekon_check: true })
-                            .where(sql`CAST(pemakaian_id AS VARCHAR)`, '=', pemakaianId)
-                            .execute();
+                        // Flag: mark this WO as reconciled in wo_lensa_header via repository
+                        await repo.markWoLensaReconciled(pemakaianId);
                     }
                 });
 

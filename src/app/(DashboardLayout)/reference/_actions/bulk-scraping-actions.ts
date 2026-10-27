@@ -4,6 +4,7 @@ import { getSessionUser } from '@/lib/auth-server';
 import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
 import { bulkScrapeStockTeknisi } from '@/lib/services/bulk-stock-scraper';
+import { dispatchWorkerJob, isWorkerActive } from '@/lib/workers/worker-client';
 
 export interface BulkScrapeJobResult {
     success: number;
@@ -49,16 +50,41 @@ export async function triggerManualStockScraping(
         }
 
         const jobId = `bulk_stock_scrape_${Date.now()}`;
+        actionLogger.info(`Manual bulk stock scraping job ${jobId} triggered by ${user.nik}`);
+
+        // If standalone background worker is running, delegate execution to worker
+        const workerActive = await isWorkerActive();
+        if (workerActive) {
+            await redis.set(
+                `job:${jobId}`,
+                JSON.stringify({
+                    status: 'queued',
+                    message: 'Job scraping stok teknisi masuk ke antrean worker...',
+                }),
+                'EX',
+                3600
+            );
+            const dispatched = await dispatchWorkerJob({
+                id: jobId,
+                type: 'scrape:bulk-stock',
+                warehouseId,
+                triggeredBy: user.nik,
+                createdAt: Date.now(),
+            });
+            if (!dispatched) {
+                await redis.del(LOCK_KEY);
+                return { success: false, error: 'Gagal mendispatch job ke background worker.' };
+            }
+            return { success: true, jobId };
+        }
+
+        // Fallback: in-process background worker (e.g. during local development when worker isn't running)
         await redis.set(
             `job:${jobId}`,
             JSON.stringify({ status: 'running', message: 'Memulai scraping seluruh teknisi...' }),
             'EX',
             3600
         );
-
-        actionLogger.info(`Manual bulk stock scraping job ${jobId} triggered by ${user.nik}`);
-
-        // Background worker execution (non-blocking)
         Promise.resolve().then(async () => {
             try {
                 const result = await bulkScrapeStockTeknisi({

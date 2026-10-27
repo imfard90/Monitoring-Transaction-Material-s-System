@@ -49,11 +49,7 @@ export function OutSapMaterialList({
         });
     };
 
-    const isAddDisabled =
-        !warehouseId ||
-        !idReservasi.trim() ||
-        !sapNumber.trim() ||
-        isScraped;
+    const isAddDisabled = !warehouseId || !idReservasi.trim() || !sapNumber.trim() || isScraped;
 
     return (
         <StaggerItem className="space-y-4 pt-4 border-t border-border">
@@ -81,7 +77,8 @@ export function OutSapMaterialList({
                     className="text-center p-8 border border-dashed border-border/70 rounded-xl text-muted-foreground bg-muted/40"
                     role="status"
                 >
-                    Belum ada material yang ditambahkan. Klik Tambah Material untuk memilih material.
+                    Belum ada material yang ditambahkan. Klik Tambah Material untuk memilih
+                    material.
                 </div>
             ) : (
                 <div className="space-y-3">
