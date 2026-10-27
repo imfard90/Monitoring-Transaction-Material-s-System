@@ -249,7 +249,7 @@ export default function MovementTable({
             <StaggerItem className="flex flex-col sm:flex-row flex-wrap items-center gap-4 shrink-0 p-0.5">
                 <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
                     <SearchField
-                        wrapperClassName="w-full sm:w-72 md:w-80"
+                        wrapperClassName="w-full sm:w-72 md:w-80 shrink-0"
                         placeholder="Cari referensi, material, dll..."
                         className="bg-background"
                         value={searchQuery}
@@ -261,12 +261,12 @@ export default function MovementTable({
                         <DateRangePicker
                             date={dateRange}
                             setDate={onDateRangeChange}
-                            className="w-[260px]"
+                            className="w-full sm:w-[250px] shrink-0"
                         />
                     )}
 
                     {onWarehouseFilterChange && (
-                        <div className="w-[200px]">
+                        <div className="w-full sm:w-[200px] shrink-0">
                             <SearchableSelect
                                 value={warehouseFilter || ''}
                                 onValueChange={onWarehouseFilterChange}

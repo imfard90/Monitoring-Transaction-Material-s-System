@@ -17,33 +17,35 @@ interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function DateRangePicker({ className, date, setDate }: DateRangePickerProps) {
     return (
-        <div className={cn('grid gap-2', className)}>
+        <div className={cn('w-full sm:w-[250px]', className)}>
             <Popover>
                 <PopoverTrigger asChild>
                     <Button
                         id="date"
                         variant={'outline'}
                         className={cn(
-                            'w-[260px] justify-start text-left font-normal bg-transparent dark:bg-transparent',
+                            'w-full justify-start text-left font-normal bg-transparent dark:bg-transparent h-9 px-3',
                             !date && 'text-muted-foreground'
                         )}
                     >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date?.from ? (
-                            date.to ? (
-                                <>
-                                    {format(date.from, 'LLL dd, y')} -{' '}
-                                    {format(date.to, 'LLL dd, y')}
-                                </>
+                        <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                        <span className="truncate">
+                            {date?.from ? (
+                                date.to ? (
+                                    <>
+                                        {format(date.from, 'LLL dd, y')} -{' '}
+                                        {format(date.to, 'LLL dd, y')}
+                                    </>
+                                ) : (
+                                    format(date.from, 'LLL dd, y')
+                                )
                             ) : (
-                                format(date.from, 'LLL dd, y')
-                            )
-                        ) : (
-                            <span>Filter by date range...</span>
-                        )}
+                                <span>Filter by date range...</span>
+                            )}
+                        </span>
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
+                <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                         mode="range"
                         defaultMonth={date?.from}

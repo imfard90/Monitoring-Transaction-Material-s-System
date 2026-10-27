@@ -270,10 +270,10 @@ export default function HasilRekonTable({
     return (
         <StaggerContainer className="space-y-4 flex flex-col flex-1 w-full min-w-0 max-w-full md:h-full md:min-h-0">
             {/* Toolbar */}
-            <StaggerItem className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 shrink-0 p-0.5 w-full min-w-0 max-w-full">
+            <StaggerItem className="flex flex-col xl:flex-row justify-between items-stretch xl:items-start gap-3 shrink-0 p-0.5 w-full min-w-0 max-w-full">
                 <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
                     <SearchField
-                        wrapperClassName="w-full sm:w-60 lg:w-64"
+                        wrapperClassName="w-full sm:w-56 lg:w-60 shrink-0"
                         placeholder="Cari TRX, SAP, NIK, atau WO..."
                         className="bg-background"
                         value={searchQuery}
@@ -285,12 +285,12 @@ export default function HasilRekonTable({
                         <DateRangePicker
                             date={dateRange}
                             setDate={onDateRangeChange}
-                            className="w-full sm:w-[240px]"
+                            className="w-full sm:w-[250px] shrink-0"
                         />
                     )}
 
                     {onWarehouseFilterChange && (
-                        <div className="w-full sm:w-[170px]">
+                        <div className="w-full sm:w-[160px] shrink-0">
                             <SearchableSelect
                                 value={warehouseFilter || ''}
                                 onValueChange={onWarehouseFilterChange}
@@ -304,7 +304,7 @@ export default function HasilRekonTable({
                     )}
 
                     {onTypeFilterChange && (
-                        <div className="w-full sm:w-[130px]">
+                        <div className="w-full sm:w-[125px] shrink-0">
                             <SearchableSelect
                                 value={typeFilter || ''}
                                 onValueChange={onTypeFilterChange}
@@ -321,7 +321,7 @@ export default function HasilRekonTable({
                     )}
 
                     {onMaterialFilterChange && (
-                        <div className="w-full sm:w-[170px]">
+                        <div className="w-full sm:w-[160px] shrink-0">
                             <SearchableSelect
                                 value={materialFilter || ''}
                                 onValueChange={onMaterialFilterChange}
@@ -335,7 +335,7 @@ export default function HasilRekonTable({
                     )}
                 </div>
 
-                <div className="flex items-center gap-2 self-end lg:self-auto shrink-0 w-full sm:w-auto justify-end">
+                <div className="flex items-center gap-2 self-end xl:self-start shrink-0 w-full sm:w-auto justify-end">
                     {onClearFilters && (
                         <TooltipProvider>
                             <Tooltip>
@@ -344,7 +344,7 @@ export default function HasilRekonTable({
                                         variant="outline"
                                         size="icon"
                                         onClick={onClearFilters}
-                                        className="bg-background shrink-0"
+                                        className="h-9 w-9 bg-background shrink-0"
                                         aria-label="Clear all filters"
                                     >
                                         <FilterX className="h-4 w-4 text-muted-foreground" />
@@ -365,7 +365,7 @@ export default function HasilRekonTable({
                                         variant="outline"
                                         size="icon"
                                         onClick={onExportClick}
-                                        className="bg-background text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/80 transition-colors shrink-0"
+                                        className="h-9 w-9 bg-background text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/80 transition-colors shrink-0"
                                         aria-label="Export Data Excel (.xlsx)"
                                     >
                                         <FileSpreadsheet className="h-4 w-4" />

@@ -207,7 +207,7 @@ export default function OutMaterialTable({
             <StaggerItem className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 mb-4 p-0.5 w-full min-w-0 max-w-full">
                 <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
                     <SearchField
-                        wrapperClassName="w-full sm:w-64 lg:w-72"
+                        wrapperClassName="w-full sm:w-64 lg:w-72 shrink-0"
                         placeholder="Cari ID permintaan, reservasi, SAP..."
                         className="bg-background"
                         value={searchQuery}
@@ -217,7 +217,7 @@ export default function OutMaterialTable({
                     <DateRangePicker
                         date={dateFilter}
                         setDate={onDateFilterChange}
-                        className="w-full sm:w-auto"
+                        className="w-full sm:w-[250px] shrink-0"
                     />
                     {/* Warehouse Filter */}
                     <Popover open={openCombo} onOpenChange={setOpenCombo}>
@@ -226,7 +226,7 @@ export default function OutMaterialTable({
                                 variant="outline"
                                 role="combobox"
                                 aria-expanded={openCombo}
-                                className="w-full sm:w-[180px] justify-between font-normal h-9 px-3"
+                                className="w-full sm:w-[180px] justify-between font-normal h-9 px-3 shrink-0"
                             >
                                 <span className="truncate">
                                     {whFilter === 'all' ? 'Semua Gudang' : whFilter}
