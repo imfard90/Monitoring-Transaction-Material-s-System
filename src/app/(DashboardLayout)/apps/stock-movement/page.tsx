@@ -68,8 +68,8 @@ export default async function StockMovementPage({
     ]);
 
     return (
-        <div className="flex flex-col flex-1 md:h-full md:min-h-0">
-            <div className="shrink-0">
+        <div className="flex flex-col flex-1 w-full min-w-0 max-w-full md:h-full md:min-h-0">
+            <div className="shrink-0 w-full min-w-0">
                 <BreadcrumbComp title="Stock Movement" items={BCrumb} />
             </div>
             <StockMovementClient

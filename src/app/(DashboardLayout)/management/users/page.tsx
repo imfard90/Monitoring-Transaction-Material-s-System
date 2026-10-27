@@ -39,12 +39,12 @@ export default async function UserManagementPage() {
     const users = await getUsers();
 
     return (
-        <StaggerContainer className="flex flex-col flex-1 ">
-            <StaggerItem className="shrink-0">
+        <StaggerContainer className="flex flex-col flex-1 w-full min-w-0 max-w-full">
+            <StaggerItem className="shrink-0 w-full min-w-0">
                 <BreadcrumbComp title="Manajemen Pengguna" items={BCrumb} />
             </StaggerItem>
 
-            <StaggerItem className="bg-card rounded-lg border shadow-sm mt-4  flex-1 flex flex-col">
+            <StaggerItem className="bg-card rounded-lg border shadow-sm mt-4 flex-1 flex flex-col w-full min-w-0 max-w-full overflow-hidden">
                 <UserTable data={users} />
             </StaggerItem>
         </StaggerContainer>

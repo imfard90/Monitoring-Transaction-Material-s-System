@@ -27,7 +27,10 @@ export function DataTable<TData>({
 
     return (
         <div
-            className={className || 'rounded-md border overflow-auto'}
+            className={cn(
+                'w-full min-w-0 max-w-full overflow-x-auto rounded-md border',
+                className
+            )}
             style={maxHeight ? { maxHeight } : undefined}
             aria-busy={isLoading}
         >

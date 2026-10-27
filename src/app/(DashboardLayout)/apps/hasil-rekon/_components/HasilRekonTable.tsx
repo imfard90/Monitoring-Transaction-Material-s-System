@@ -268,9 +268,9 @@ export default function HasilRekonTable({
     });
 
     return (
-        <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0">
+        <StaggerContainer className="space-y-4 flex flex-col flex-1 w-full min-w-0 max-w-full md:h-full md:min-h-0">
             {/* Toolbar */}
-            <StaggerItem className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 shrink-0 p-0.5">
+            <StaggerItem className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 shrink-0 p-0.5 w-full min-w-0 max-w-full">
                 <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
                     <SearchField
                         wrapperClassName="w-full sm:w-60 lg:w-64"
@@ -381,16 +381,16 @@ export default function HasilRekonTable({
             </StaggerItem>
 
             {/* Table */}
-            <StaggerItem className="flex-1 md:min-h-0 flex flex-col overflow-hidden">
+            <StaggerItem className="flex-1 md:min-h-0 flex flex-col w-full min-w-0 max-w-full overflow-hidden">
                 <DataTable
                     table={table}
                     emptyMessage="Tidak ada data yang ditemukan."
-                    className="rounded-md border border-border flex-1 md:overflow-auto relative"
+                    className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative"
                 />
             </StaggerItem>
 
             {/* Pagination */}
-            <StaggerItem className="py-2 px-1 shrink-0">
+            <StaggerItem className="py-2 px-1 shrink-0 w-full min-w-0 max-w-full">
                 <DataTablePagination table={table} />
             </StaggerItem>
         </StaggerContainer>

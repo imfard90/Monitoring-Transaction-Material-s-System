@@ -203,8 +203,8 @@ export default function OutMaterialTable({
     });
 
     return (
-        <StaggerContainer className="space-y-4">
-            <StaggerItem className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 mb-4 p-0.5">
+        <StaggerContainer className="space-y-4 flex flex-col flex-1 w-full min-w-0 max-w-full">
+            <StaggerItem className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 mb-4 p-0.5 w-full min-w-0 max-w-full">
                 <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
                     <SearchField
                         wrapperClassName="w-full sm:w-64 lg:w-72"
@@ -305,15 +305,15 @@ export default function OutMaterialTable({
                 )}
             </StaggerItem>
 
-            <StaggerItem>
+            <StaggerItem className="flex-1 md:min-h-0 flex flex-col w-full min-w-0 max-w-full overflow-hidden">
                 <DataTable
                     table={table}
                     isLoading={isLoading}
                     emptyMessage="Tidak ada data material."
-                    className="rounded-md border border-border overflow-auto relative max-h-[600px]"
+                    className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-[600px]"
                 />
             </StaggerItem>
-            <StaggerItem className="py-2 px-1">
+            <StaggerItem className="py-2 px-1 shrink-0 w-full min-w-0 max-w-full">
                 <DataTablePagination table={table} />
             </StaggerItem>
         </StaggerContainer>

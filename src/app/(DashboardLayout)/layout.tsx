@@ -21,12 +21,12 @@ export default function Layout({
             >
                 Lewati ke konten utama
             </a>
-            <div className="page-wrapper flex w-full">
+            <div className="page-wrapper flex flex-1 min-w-0 w-full max-w-full overflow-hidden">
                 {/* Header/sidebar */}
-                <div className="xl:block hidden">
+                <div className="xl:block hidden shrink-0">
                     <Sidebar />
                 </div>
-                <div className="body-wrapper relative w-full bg-background flex flex-col h-[100dvh] overflow-hidden">
+                <div className="body-wrapper relative flex-1 min-w-0 w-full max-w-full bg-background flex flex-col h-[100dvh] overflow-hidden">
                     {/* Fixed watermark background */}
                     <div
                         aria-hidden="true"
@@ -47,7 +47,7 @@ export default function Layout({
                     {/* Body Content */}
                     <main
                         id="main-content"
-                        className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 flex-1 flex flex-col overflow-y-auto min-w-0 relative z-[1]"
+                        className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-w-0 w-full max-w-full relative z-[1]"
                     >
                         {children}
                     </main>

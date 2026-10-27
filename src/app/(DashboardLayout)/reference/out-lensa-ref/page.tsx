@@ -46,8 +46,8 @@ export default async function OutLensaRefPage({
     const result = await getOutLensaRefList({ page, pageSize, warehouseFilter: warehouse, search });
 
     return (
-        <div className="flex flex-col flex-1 gap-4 sm:gap-6">
-            <div className="shrink-0">
+        <div className="flex flex-col flex-1 w-full min-w-0 max-w-full gap-4 sm:gap-6">
+            <div className="shrink-0 w-full min-w-0">
                 <BreadcrumbComp title="Out Lensa Ref" items={BCrumb} />
             </div>
 

@@ -412,9 +412,9 @@ export default function WOLensaRefClient({
     });
 
     return (
-        <StaggerContainer className="flex flex-col gap-4">
-            <StaggerItem>
-                <Card className="border-border shadow-sm flex flex-col">
+        <StaggerContainer className="flex flex-col gap-4 w-full min-w-0 max-w-full">
+            <StaggerItem className="w-full min-w-0 max-w-full">
+                <Card className="border-border shadow-sm flex flex-col w-full min-w-0 max-w-full overflow-hidden">
                     <CardHeader className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-4 shrink-0">
                         <div>
                             <CardTitle className="text-xl font-bold">Daftar Ref WO Lensa</CardTitle>
@@ -457,13 +457,13 @@ export default function WOLensaRefClient({
                             )}
                         </div>
                     </CardHeader>
-                    <CardContent className="flex flex-col gap-4">
+                    <CardContent className="flex flex-col gap-4 w-full min-w-0 max-w-full">
                         <DataTable
                             table={table}
                             emptyMessage="Tidak ada data."
-                            className="rounded-md border border-border flex-1 overflow-auto relative max-h-[620px]"
+                            className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-[620px]"
                         />
-                        <div className="shrink-0">
+                        <div className="shrink-0 w-full min-w-0 max-w-full">
                             <DataTablePagination table={table} />
                         </div>
                     </CardContent>

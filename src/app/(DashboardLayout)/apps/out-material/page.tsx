@@ -65,8 +65,8 @@ export default async function OutMaterialPage({
     ]);
 
     return (
-        <div className="flex flex-col flex-1 ">
-            <div className="shrink-0">
+        <div className="flex flex-col flex-1 w-full min-w-0 max-w-full">
+            <div className="shrink-0 w-full min-w-0">
                 <BreadcrumbComp title="Out Material" items={BCrumb} />
             </div>
             <OutMaterialClient

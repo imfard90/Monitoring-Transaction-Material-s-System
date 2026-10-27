@@ -21,11 +21,11 @@ const BCrumb = [
 
 export default function StockInventoryPage() {
     return (
-        <StaggerContainer className="flex flex-col flex-1 h-full min-h-0">
-            <StaggerItem className="shrink-0">
+        <StaggerContainer className="flex flex-col flex-1 w-full min-w-0 max-w-full h-full min-h-0">
+            <StaggerItem className="shrink-0 w-full min-w-0">
                 <BreadcrumbComp title="Saldo Stok" items={BCrumb} />
             </StaggerItem>
-            <StaggerItem className="flex flex-col flex-1 min-h-0">
+            <StaggerItem className="flex flex-col flex-1 min-h-0 w-full min-w-0 max-w-full">
                 <StockBalanceOverview />
             </StaggerItem>
         </StaggerContainer>
