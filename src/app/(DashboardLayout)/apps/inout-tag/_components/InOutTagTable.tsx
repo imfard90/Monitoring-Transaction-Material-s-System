@@ -226,10 +226,10 @@ export default function InOutTagTable({
 
     return (
         <StaggerContainer className="space-y-4 flex flex-col flex-1 md:h-full md:min-h-0">
-            <StaggerItem className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 p-0.5">
-                <div className="flex flex-wrap items-center gap-3 flex-1 w-full">
+            <StaggerItem className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 shrink-0 p-0.5">
+                <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
                     <SearchField
-                        wrapperClassName="w-full sm:w-72 md:w-80"
+                        wrapperClassName="w-full sm:w-64 lg:w-72"
                         placeholder="Cari ID permintaan, kirim, terima..."
                         className="bg-background"
                         value={searchQuery}
@@ -240,7 +240,7 @@ export default function InOutTagTable({
                     <DateRangePicker
                         date={dateFilter}
                         setDate={onDateFilterChange}
-                        className="w-full md:w-auto"
+                        className="w-full sm:w-auto"
                     />
 
                     {/* To WH Combobox Filter */}
@@ -250,7 +250,7 @@ export default function InOutTagTable({
                                 variant="outline"
                                 role="combobox"
                                 aria-expanded={openCombo}
-                                className="w-full md:w-[200px] justify-between font-normal h-9 px-3"
+                                className="w-full sm:w-[180px] justify-between font-normal h-9 px-3"
                             >
                                 <span className="truncate">
                                     {toWhFilter === 'all' ? 'Semua Tujuan' : toWhFilter}
@@ -306,7 +306,9 @@ export default function InOutTagTable({
                             </Command>
                         </PopoverContent>
                     </Popover>
+                </div>
 
+                <div className="flex items-center gap-2 self-end lg:self-auto shrink-0 w-full sm:w-auto justify-end">
                     {onClearFilters && (
                         <TooltipProvider>
                             <Tooltip>
@@ -315,7 +317,7 @@ export default function InOutTagTable({
                                         variant="outline"
                                         size="icon"
                                         onClick={onClearFilters}
-                                        className="bg-background ml-auto"
+                                        className="bg-background shrink-0"
                                     >
                                         <FilterX className="h-4 w-4 text-muted-foreground" />
                                     </Button>
@@ -326,17 +328,17 @@ export default function InOutTagTable({
                             </Tooltip>
                         </TooltipProvider>
                     )}
-                </div>
 
-                {canCreateTag && (
-                    <Button
-                        onClick={onCreateClick}
-                        className="flex items-center gap-2 w-full md:w-auto"
-                    >
-                        <Plus size={16} />
-                        Buat Tag
-                    </Button>
-                )}
+                    {canCreateTag && (
+                        <Button
+                            onClick={onCreateClick}
+                            className="flex items-center gap-2 w-full sm:w-auto shrink-0"
+                        >
+                            <Plus size={16} />
+                            Buat Tag
+                        </Button>
+                    )}
+                </div>
             </StaggerItem>
 
             <StaggerItem className="flex-1 md:min-h-0 flex flex-col overflow-hidden">

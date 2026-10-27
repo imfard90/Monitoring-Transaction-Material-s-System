@@ -282,9 +282,12 @@ export default function WOLensaRefClient({
         }),
         columnHelper.accessor('wo_number', {
             header: 'Nomor WO',
-            size: 200,
+            size: 190,
             cell: (info) => (
-                <div className="min-w-[160px] max-w-[260px] whitespace-normal break-words font-medium">
+                <div
+                    className="min-w-[140px] max-w-[240px] truncate font-medium text-foreground"
+                    title={info.getValue() || undefined}
+                >
                     {info.getValue() || '-'}
                 </div>
             ),
@@ -409,18 +412,18 @@ export default function WOLensaRefClient({
     });
 
     return (
-        <StaggerContainer className="flex flex-col gap-4 md:h-full md:min-h-0 md:overflow-hidden">
-            <StaggerItem className="md:h-full md:min-h-0 md:overflow-hidden">
-                <Card className="border-border shadow-sm flex flex-col md:h-full md:min-h-0 md:overflow-hidden">
-                    <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 shrink-0">
+        <StaggerContainer className="flex flex-col gap-4">
+            <StaggerItem>
+                <Card className="border-border shadow-sm flex flex-col">
+                    <CardHeader className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-4 shrink-0">
                         <div>
                             <CardTitle className="text-xl font-bold">Daftar Ref WO Lensa</CardTitle>
-                            <CardDescription>
+                            <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                                 Data referensi WO Provisioning & Maintenance yang ditarik secara
                                 otomatis dari aplikasi Lensa.
                             </CardDescription>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
                             <SearchField
                                 value={searchQuery}
                                 onValueChange={setSearchQuery}
@@ -442,7 +445,7 @@ export default function WOLensaRefClient({
                                 <Button
                                     onClick={handleRunScraping}
                                     disabled={isStarting}
-                                    className="shrink-0 shadow-sm"
+                                    className="shrink-0 w-full sm:w-auto shadow-sm"
                                 >
                                     {isStarting ? (
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -454,11 +457,11 @@ export default function WOLensaRefClient({
                             )}
                         </div>
                     </CardHeader>
-                    <CardContent className="flex flex-col md:min-h-0 md:overflow-hidden gap-4">
+                    <CardContent className="flex flex-col gap-4">
                         <DataTable
                             table={table}
                             emptyMessage="Tidak ada data."
-                            className="rounded-md border border-border flex-1 md:overflow-auto relative"
+                            className="rounded-md border border-border flex-1 overflow-auto relative max-h-[620px]"
                         />
                         <div className="shrink-0">
                             <DataTablePagination table={table} />

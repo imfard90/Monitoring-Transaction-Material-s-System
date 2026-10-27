@@ -25,41 +25,41 @@ export default function InOutTagCards({
             id: 'all',
             title: 'Semua Tag',
             value: counts.requested + counts.in_transit + counts.closed + counts.cancel,
-            icon: <Warehouse className="text-secondary" size={24} />,
+            icon: <Warehouse className="text-secondary w-5 h-5" />,
             color: 'bg-secondary/10',
         },
         {
             id: 'requested',
             title: 'Permintaan',
             value: counts.requested,
-            icon: <FileEdit className="text-info" size={24} />,
+            icon: <FileEdit className="text-info w-5 h-5" />,
             color: 'bg-info/10',
         },
         {
             id: 'in_transit',
             title: 'Dalam Transit',
             value: counts.in_transit,
-            icon: <Truck className="text-warning" size={24} />,
+            icon: <Truck className="text-warning w-5 h-5" />,
             color: 'bg-warning/10',
         },
         {
             id: 'closed',
             title: 'Selesai',
             value: counts.closed,
-            icon: <CheckCircle className="text-success" size={24} />,
+            icon: <CheckCircle className="text-success w-5 h-5" />,
             color: 'bg-success/10',
         },
         {
             id: 'cancel',
             title: 'Dibatalkan',
             value: counts.cancel,
-            icon: <XCircle className="text-error" size={24} />,
+            icon: <XCircle className="text-error w-5 h-5" />,
             color: 'bg-error/10',
         },
     ];
 
     return (
-        <StaggerContainer className="grid grid-cols-1 md:grid-cols-5 gap-4 p-1">
+        <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 p-0.5">
             {cards.map((card) => (
                 <StaggerItem key={card.id}>
                     <Card
@@ -70,14 +70,21 @@ export default function InOutTagCards({
                         )}
                         onClick={() => onFilterChange(card.id)}
                     >
-                        <CardContent className="p-4 flex items-center justify-between h-full">
-                            <div>
-                                <p className="text-sm font-medium text-foreground mb-1">
+                        <CardContent className="p-3.5 sm:p-4 flex items-center justify-between h-full min-h-[84px] sm:min-h-[88px] gap-2">
+                            <div className="min-w-0 flex-1">
+                                <p
+                                    className="text-xs sm:text-sm font-medium text-foreground mb-0.5 sm:mb-1 truncate"
+                                    title={card.title}
+                                >
                                     {card.title}
                                 </p>
-                                <h3 className="text-2xl font-bold text-foreground">{card.value}</h3>
+                                <h3 className="text-xl sm:text-2xl font-bold text-foreground">
+                                    {card.value}
+                                </h3>
                             </div>
-                            <div className="p-3 bg-background/50 rounded-full">{card.icon}</div>
+                            <div className="p-2 sm:p-2.5 bg-background/50 rounded-full shrink-0">
+                                {card.icon}
+                            </div>
                         </CardContent>
                     </Card>
                 </StaggerItem>

@@ -204,10 +204,10 @@ export default function OutMaterialTable({
 
     return (
         <StaggerContainer className="space-y-4">
-            <StaggerItem className="flex justify-between items-center gap-4 mb-4 p-0.5">
-                <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 flex-1">
+            <StaggerItem className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 mb-4 p-0.5">
+                <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
                     <SearchField
-                        wrapperClassName="w-full md:w-80"
+                        wrapperClassName="w-full sm:w-64 lg:w-72"
                         placeholder="Cari ID permintaan, reservasi, SAP..."
                         className="bg-background"
                         value={searchQuery}
@@ -217,7 +217,7 @@ export default function OutMaterialTable({
                     <DateRangePicker
                         date={dateFilter}
                         setDate={onDateFilterChange}
-                        className="w-full md:w-auto"
+                        className="w-full sm:w-auto"
                     />
                     {/* Warehouse Filter */}
                     <Popover open={openCombo} onOpenChange={setOpenCombo}>
@@ -226,7 +226,7 @@ export default function OutMaterialTable({
                                 variant="outline"
                                 role="combobox"
                                 aria-expanded={openCombo}
-                                className="w-[200px] justify-between font-normal h-9 px-3"
+                                className="w-full sm:w-[180px] justify-between font-normal h-9 px-3"
                             >
                                 <span className="truncate">
                                     {whFilter === 'all' ? 'Semua Gudang' : whFilter}
@@ -283,23 +283,25 @@ export default function OutMaterialTable({
                 </div>
 
                 {onClearFilters && (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={onClearFilters}
-                                    className="bg-background ml-auto"
-                                >
-                                    <FilterX className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Hapus semua filter (Esc)</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                    <div className="flex items-center gap-2 self-end lg:self-auto shrink-0">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={onClearFilters}
+                                        className="bg-background shrink-0"
+                                    >
+                                        <FilterX className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Hapus semua filter (Esc)</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
                 )}
             </StaggerItem>
 

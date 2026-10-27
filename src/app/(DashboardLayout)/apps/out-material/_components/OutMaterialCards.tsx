@@ -25,41 +25,41 @@ export default function OutMaterialCards({
             id: 'all',
             title: 'Semua Material',
             value: counts.wait_approve + counts.request + counts.intech + counts.close,
-            icon: <FileEdit className="text-secondary" size={24} />,
+            icon: <FileEdit className="text-secondary w-5 h-5" />,
             color: 'bg-secondary/10',
         },
         {
             id: 'wait_approve',
             title: 'Menunggu Persetujuan',
             value: counts.wait_approve,
-            icon: <Clock className="text-warning" size={24} />,
+            icon: <Clock className="text-warning w-5 h-5" />,
             color: 'bg-warning/10',
         },
         {
             id: 'request',
             title: 'Permintaan',
             value: counts.request,
-            icon: <FileEdit className="text-info" size={24} />,
+            icon: <FileEdit className="text-info w-5 h-5" />,
             color: 'bg-info/10',
         },
         {
             id: 'intech',
             title: 'Intech (Teknisi)',
             value: counts.intech,
-            icon: <Truck className="text-secondary" size={24} />,
+            icon: <Truck className="text-secondary w-5 h-5" />,
             color: 'bg-secondary/10',
         },
         {
             id: 'close',
             title: 'Selesai',
             value: counts.close,
-            icon: <CheckCircle className="text-success" size={24} />,
+            icon: <CheckCircle className="text-success w-5 h-5" />,
             color: 'bg-success/10',
         },
     ];
 
     return (
-        <StaggerContainer className="grid grid-cols-1 md:grid-cols-5 gap-4 p-1">
+        <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 p-0.5">
             {cards.map((card) => (
                 <StaggerItem key={card.id}>
                     <Card
@@ -70,14 +70,21 @@ export default function OutMaterialCards({
                         )}
                         onClick={() => onFilterChange(card.id)}
                     >
-                        <CardContent className="p-4 flex items-center justify-between h-full">
-                            <div>
-                                <p className="text-sm font-medium text-foreground mb-1">
+                        <CardContent className="p-3.5 sm:p-4 flex items-center justify-between h-full min-h-[84px] sm:min-h-[88px] gap-2">
+                            <div className="min-w-0 flex-1">
+                                <p
+                                    className="text-xs sm:text-sm font-medium text-foreground mb-0.5 sm:mb-1 truncate"
+                                    title={card.title}
+                                >
                                     {card.title}
                                 </p>
-                                <h3 className="text-2xl font-bold text-foreground">{card.value}</h3>
+                                <h3 className="text-xl sm:text-2xl font-bold text-foreground">
+                                    {card.value}
+                                </h3>
                             </div>
-                            <div className="p-3 bg-background/50 rounded-full">{card.icon}</div>
+                            <div className="p-2 sm:p-2.5 bg-background/50 rounded-full shrink-0">
+                                {card.icon}
+                            </div>
                         </CardContent>
                     </Card>
                 </StaggerItem>

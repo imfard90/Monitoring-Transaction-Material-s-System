@@ -132,7 +132,7 @@ export default function OutMaterialClient({
             </StaggerItem>
 
             <StaggerItem>
-                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none p-4 w-full">
+                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 sm:p-5 motion-reduce:transition-none w-full">
                     <OutMaterialTable
                         data={initialData}
                         pagination={pagination}
