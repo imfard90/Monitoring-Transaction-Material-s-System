@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('server-only', () => ({}));
 vi.mock('googleapis', () => ({ google: { auth: {}, sheets: vi.fn() } }));
 vi.mock('@/lib/logger', () => ({ actionLogger: { info: vi.fn(), error: vi.fn() } }));
 

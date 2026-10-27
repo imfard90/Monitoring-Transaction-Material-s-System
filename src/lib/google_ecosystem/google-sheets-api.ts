@@ -1,4 +1,3 @@
-import 'server-only';
 import path from 'node:path';
 import { google, type sheets_v4 } from 'googleapis';
 import { z } from 'zod';
