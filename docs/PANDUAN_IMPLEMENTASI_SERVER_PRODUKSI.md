@@ -125,7 +125,7 @@ npx playwright install chromium
 ```
 
 ### Langkah 4: Jalankan Migrasi Database
-Terapkan migrasi skema terbaru (termasuk migrasi 040 & 041):
+Terapkan migrasi skema terbaru (termasuk migrasi 040, 041, 042, dan 043):
 ```bash
 npm run migrate
 ```
@@ -134,6 +134,7 @@ npm run migrate
 Applying migration: 040_fix_return_material_integrity.sql ... OK
 Applying migration: 041_enable_rls_stock_opname_log_and_revoke_public.sql ... OK
 Applying migration: 042_fix_return_item_pending_status_calc.sql ... OK
+Applying migration: 043_fix_sp_return_material_wait_approve_status.sql ... OK
 All migrations applied successfully.
 ```
 

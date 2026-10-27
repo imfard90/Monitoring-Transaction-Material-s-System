@@ -83,7 +83,7 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
                 send_id: null,
                 accept_id: r.accept_id,
                 end_status:
-                    r.end_status === 'pending'
+                    r.end_status === 'pending' || r.end_status === 'wait_approve'
                         ? 'requested'
                         : r.end_status === 'accepted'
                           ? 'closed'
@@ -180,7 +180,7 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
                     null as send_id,
                     r.accept_id,
                     CASE 
-                        WHEN r.end_status = 'pending' THEN 'requested'
+                        WHEN r.end_status IN ('pending', 'wait_approve') THEN 'requested'
                         WHEN r.end_status = 'accepted' THEN 'closed'
                         ELSE r.end_status
                     END::text as end_status,
