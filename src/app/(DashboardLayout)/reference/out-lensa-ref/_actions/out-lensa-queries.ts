@@ -91,18 +91,6 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             filterWarehouse = whNames;
         }
 
-        // Auto-update sap_out_check: flag entries matched by GI number or reservation ID
-        await sql`
-            UPDATE inventory.out_lensa_ref_header h
-            SET sap_out_check = TRUE
-            FROM inventory.sap_out_header s
-            WHERE (
-                (NULLIF(TRIM(h.gi_number), '') IS NOT NULL AND TRIM(h.gi_number) = TRIM(s.sap_number))
-                OR
-                (NULLIF(TRIM(h.reservation_id), '') IS NOT NULL AND TRIM(h.reservation_id) = TRIM(s.request_id))
-            )
-            AND (h.sap_out_check IS FALSE OR h.sap_out_check IS NULL)
-        `.execute(db);
 
         // Get total count first
         let countQuery = db
@@ -260,6 +248,33 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                     }
                 }
             }
+
+            // Sync sap_out_check for any unflagged headers on the current page
+            const matchedSapNumbers = new Set(
+                sapHeaders.map((sh) => sh.sap_number?.trim()).filter((n): n is string => Boolean(n))
+            );
+            const matchedRequestIds = new Set(
+                sapHeaders.map((sh) => sh.request_id?.trim()).filter((n): n is string => Boolean(n))
+            );
+
+            const unflaggedMatchedIds = headers
+                .filter((h) => {
+                    if (h.sap_out_check) return false;
+                    const gi = h.gi_number?.trim();
+                    const res = h.reservation_id?.trim();
+                    const isGiMatch = gi ? matchedSapNumbers.has(gi) : false;
+                    const isResMatch = res ? matchedRequestIds.has(res) : false;
+                    return isGiMatch || isResMatch;
+                })
+                .map((h) => h.id);
+
+            if (unflaggedMatchedIds.length > 0) {
+                await db
+                    .updateTable('inventory.out_lensa_ref_header')
+                    .set({ sap_out_check: true })
+                    .where('id', 'in', unflaggedMatchedIds)
+                    .execute();
+            }
         }
 
         // Build result with materials attached
@@ -288,6 +303,13 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                 };
             });
 
+            const gi = h.gi_number?.trim();
+            const res = h.reservation_id?.trim();
+            const hasMatchedSap = Boolean(
+                (gi && sapOutMap.has(gi)) || (res && sapOutMap.has(res))
+            );
+            const isSapOutCheck = Boolean(h.sap_out_check || hasMatchedSap);
+
             return {
                 id: String(h.id),
                 reservation_id: h.reservation_id,
@@ -298,7 +320,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                 status_proses: h.status_proses,
                 nik_pemakai: h.nik_pemakai,
                 reservation_id_sap: h.reservation_id_sap,
-                sap_out_check: h.sap_out_check,
+                sap_out_check: isSapOutCheck,
                 mitra: h.mitra,
                 materials: matchedDetails,
             };
