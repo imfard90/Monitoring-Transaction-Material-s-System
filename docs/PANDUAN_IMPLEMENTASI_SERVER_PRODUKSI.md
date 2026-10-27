@@ -8,7 +8,7 @@ Dokumen ini merupakan panduan operasional standar (SOP) untuk menerapkan rilis t
 ## 1. Ikhtisar Arsitektur Rilis Terbaru
 
 Rilis ini membawa 3 pilar peningkatan utama:
-1. **Performa (Isolasi Scraper):** Arsitektur runtime kini terpisah menjadi 2 proses mandiri yang dikelola oleh PM2 via `ecosystem.config.js`:
+1. **Performa (Isolasi Scraper):** Arsitektur runtime kini terpisah menjadi 2 proses mandiri yang dikelola oleh PM2 via `ecosystem.config.cjs`:
    - `mtms-web`: Web server Next.js (cluster mode) yang melayani traffic HTTP/UI pengguna tanpa terbebani memory leak browser.
    - `mtms-worker`: Dedicated worker (fork mode) yang mengeksekusi browser automation Playwright untuk scraping Lensa secara terisolasi.
 2. **Kredibilitas (Integritas Data & Auditability):**
@@ -151,13 +151,18 @@ npm run build
 *Pastikan proses build berhasil tanpa error TypeScript atau lint.*
 
 ### Langkah 7: Jalankan / Reload PM2 Ecosystem
-Jalankan kedua proses (`mtms-web` dan `mtms-worker`) menggunakan konfigurasi PM2:
-```bash
-# Jika ini deployment pertama kali:
-pm2 start ecosystem.config.js --env production
+Karena project menggunakan arsitektur ESM (`"type": "module"`), gunakan file konfigurasi CommonJS `ecosystem.config.cjs` agar PM2 dapat membaca direktif `apps` tanpa kendala loader modul.
 
-# Jika aplikasi sudah berjalan sebelumnya (Zero-Downtime Reload):
-pm2 reload ecosystem.config.js --env production
+Jika sebelumnya di server terdapat proses lama dengan nama `mtms-app` (single-process), hapus terlebih dahulu agar tidak bentrok:
+```bash
+# Hapus proses lama jika ada di pm2 list:
+pm2 delete mtms-app
+
+# Jalankan ekosistem baru pertama kali:
+pm2 start ecosystem.config.cjs --env production
+
+# Atau jika mtms-web dan mtms-worker sudah ada di pm2 list, gunakan zero-downtime reload:
+pm2 reload ecosystem.config.cjs --env production
 ```
 
 Simpan konfigurasi PM2 agar otomatis berjalan saat server reboot:
@@ -223,7 +228,7 @@ npm ci
 npm run build
 
 # 3. Reload PM2
-pm2 reload ecosystem.config.js --env production
+pm2 reload ecosystem.config.cjs --env production
 ```
 
 ### Rollback Database (Jika Diperlukan)
