@@ -36,14 +36,18 @@ export interface InOutTagRow {
     type: 'inout' | 'return';
     /** Additional columns from selectAll('h') — present only for 'inout' type */
     created_by?: string | null;
+    created_by_name?: string | null;
     nik_send?: string | null;
+    send_by_name?: string | null;
+    send_time?: Date | string | null;
     nik_accept?: string | null;
+    accept_by_name?: string | null;
+    accept_time?: Date | string | null;
     notes?: string | null;
     from_wh_id?: number | null;
     to_wh_id?: number | null;
     to_wh?: string | null;
     updated_at?: Date | string | null;
-    created_by_name?: string | null;
     reject_reason?: string | null;
 }
 

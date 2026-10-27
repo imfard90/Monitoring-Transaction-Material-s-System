@@ -23,8 +23,18 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
             .leftJoin('inventory.vendor_tracking as v', 'v.header_id', 'h.id')
             .leftJoin('inventory.mas_wh as wh_from', 'wh_from.id', 'h.from_wh_id')
             .leftJoin('inventory.mas_wh as wh_to', 'wh_to.id', 'h.to_wh_id')
+            .leftJoin('auth.user as u_create', 'u_create.nik', 'h.created_by')
+            .leftJoin('auth.user as u_send', 'u_send.nik', 'h.nik_send')
+            .leftJoin('auth.user as u_accept', 'u_accept.nik', 'h.nik_accept')
             .selectAll('h')
-            .select(['v.name_vendor', 'wh_from.name as from_wh_name', 'wh_to.name as to_wh_name'])
+            .select([
+                'v.name_vendor',
+                'wh_from.name as from_wh_name',
+                'wh_to.name as to_wh_name',
+                'u_create.name as created_by_name',
+                'u_send.name as send_by_name',
+                'u_accept.name as accept_by_name',
+            ])
             .where('h.request_time', '<=', endDate)
             .where('h.request_time', '>', startDate);
 
@@ -46,6 +56,7 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
             .selectFrom('inventory.return_material_header as r')
             .innerJoin('inventory.mas_wh as wh_to', 'wh_to.id', 'r.warehouse_id')
             .innerJoin('hr.technicians as t', 't.nik', 'r.nik_teknisi')
+            .leftJoin('auth.user as u_ret_accept', 'u_ret_accept.nik', 'r.nik_accept')
             .select([
                 'r.id',
                 'r.id_trx',
@@ -55,8 +66,11 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
                 'r.notes',
                 'r.end_status',
                 'r.created_at as request_time',
+                'r.accept_time',
                 'r.warehouse_id as to_wh_id',
                 't.name as from_wh_name',
+                't.name as created_by_name',
+                'u_ret_accept.name as accept_by_name',
                 'wh_to.name as to_wh_name',
             ])
             .where('r.created_at', '<=', endDate)
@@ -85,9 +99,14 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
                 request_id: null,
                 send_id: null,
                 nik_send: null,
+                send_by_name: null,
+                send_time: null,
                 accept_id: r.accept_id,
                 nik_accept: r.nik_accept,
-                created_by: r.created_by,
+                accept_by_name: r.accept_by_name,
+                accept_time: r.accept_time,
+                created_by: r.created_by || r.from_wh_name,
+                created_by_name: r.created_by_name,
                 notes: r.notes,
                 end_status:
                     r.end_status === 'pending' || r.end_status === 'wait_approve'
@@ -167,9 +186,14 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
                     h.request_id,
                     h.send_id,
                     h.nik_send,
+                    u_send.name as send_by_name,
+                    h.send_time,
                     h.accept_id,
                     h.nik_accept,
+                    u_accept.name as accept_by_name,
+                    h.accept_time,
                     h.created_by,
+                    u_create.name as created_by_name,
                     h.notes,
                     h.end_status::text as end_status,
                     h.request_time,
@@ -183,6 +207,9 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
                 LEFT JOIN inventory.vendor_tracking v ON v.header_id = h.id
                 LEFT JOIN inventory.mas_wh wh_from ON wh_from.id = h.from_wh_id
                 LEFT JOIN inventory.mas_wh wh_to ON wh_to.id = h.to_wh_id
+                LEFT JOIN auth.user u_create ON u_create.nik = h.created_by
+                LEFT JOIN auth.user u_send ON u_send.nik = h.nik_send
+                LEFT JOIN auth.user u_accept ON u_accept.nik = h.nik_accept
                 UNION ALL
                 SELECT 
                     r.id,
@@ -190,9 +217,14 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
                     null as request_id,
                     null as send_id,
                     null as nik_send,
+                    null as send_by_name,
+                    null::timestamptz as send_time,
                     r.accept_id,
                     r.nik_accept,
+                    u_ret_accept.name as accept_by_name,
+                    r.accept_time,
                     r.created_by,
+                    t.name as created_by_name,
                     r.notes,
                     CASE 
                         WHEN r.end_status IN ('pending', 'wait_approve') THEN 'requested'
@@ -209,6 +241,7 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
                 FROM inventory.return_material_header r
                 INNER JOIN inventory.mas_wh wh_to ON wh_to.id = r.warehouse_id
                 INNER JOIN hr.technicians t ON t.nik = r.nik_teknisi
+                LEFT JOIN auth.user u_ret_accept ON u_ret_accept.nik = r.nik_accept
             )
         `;
 
@@ -295,9 +328,14 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
                 request_id,
                 send_id,
                 nik_send,
+                send_by_name,
+                send_time,
                 accept_id,
                 nik_accept,
+                accept_by_name,
+                accept_time,
                 created_by,
+                created_by_name,
                 notes,
                 end_status,
                 request_time,
