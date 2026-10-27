@@ -217,7 +217,7 @@ export default function OutMaterialTable({
                     <DateRangePicker
                         date={dateFilter}
                         setDate={onDateFilterChange}
-                        className="w-full sm:w-[250px] shrink-0"
+                        className="w-full sm:w-[260px] shrink-0"
                     />
                     {/* Warehouse Filter */}
                     <Popover open={openCombo} onOpenChange={setOpenCombo}>

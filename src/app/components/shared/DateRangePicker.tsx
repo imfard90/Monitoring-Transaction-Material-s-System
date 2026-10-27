@@ -17,7 +17,7 @@ interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function DateRangePicker({ className, date, setDate }: DateRangePickerProps) {
     return (
-        <div className={cn('w-full sm:w-[250px]', className)}>
+        <div className={cn('w-full sm:w-[260px]', className)}>
             <Popover>
                 <PopoverTrigger asChild>
                     <Button
@@ -29,7 +29,7 @@ export function DateRangePicker({ className, date, setDate }: DateRangePickerPro
                         )}
                     >
                         <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
-                        <span className="truncate">
+                        <span>
                             {date?.from ? (
                                 date.to ? (
                                     <>

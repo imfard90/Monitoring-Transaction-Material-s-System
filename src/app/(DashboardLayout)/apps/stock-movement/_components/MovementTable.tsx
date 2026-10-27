@@ -261,7 +261,7 @@ export default function MovementTable({
                         <DateRangePicker
                             date={dateRange}
                             setDate={onDateRangeChange}
-                            className="w-full sm:w-[250px] shrink-0"
+                            className="w-full sm:w-[260px] shrink-0"
                         />
                     )}
 
@@ -280,7 +280,7 @@ export default function MovementTable({
                     )}
 
                     {onMaterialFilterChange && (
-                        <div className="w-[200px]">
+                        <div className="w-full sm:w-[200px] shrink-0">
                             <SearchableSelect
                                 value={materialFilter || ''}
                                 onValueChange={onMaterialFilterChange}
@@ -294,7 +294,7 @@ export default function MovementTable({
                     )}
 
                     {onTypeFilterChange && (
-                        <div className="w-[200px]">
+                        <div className="w-full sm:w-[200px] shrink-0">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button

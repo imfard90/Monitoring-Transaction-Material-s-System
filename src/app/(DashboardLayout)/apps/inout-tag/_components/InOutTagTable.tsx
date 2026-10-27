@@ -240,7 +240,7 @@ export default function InOutTagTable({
                     <DateRangePicker
                         date={dateFilter}
                         setDate={onDateFilterChange}
-                        className="w-full sm:w-[250px] shrink-0"
+                        className="w-full sm:w-[260px] shrink-0"
                     />
 
                     {/* To WH Combobox Filter */}
