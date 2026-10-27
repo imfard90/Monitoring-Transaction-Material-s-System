@@ -60,12 +60,14 @@ export async function getTeknisiStockList(): Promise<{
         const mtmsStockByNik = new Map<string, Map<string, number>>();
         for (const row of mtmsStockRows) {
             if (!row.nik_teknisi || !row.material_code) continue;
-            let techMap = mtmsStockByNik.get(row.nik_teknisi);
+            const techNik = row.nik_teknisi.trim();
+            const matCode = row.material_code.trim().toUpperCase();
+            let techMap = mtmsStockByNik.get(techNik);
             if (!techMap) {
                 techMap = new Map();
-                mtmsStockByNik.set(row.nik_teknisi, techMap);
+                mtmsStockByNik.set(techNik, techMap);
             }
-            techMap.set(row.material_code, Number(row.qty_intech ?? 0));
+            techMap.set(matCode, Number(row.qty_intech ?? 0));
         }
 
         const items: TeknisiStockListItem[] = rows.map((row) => {
@@ -79,12 +81,15 @@ export async function getTeknisiStockList(): Promise<{
                 status = 'failed';
             } else if (cached?.status === 'success' && cached.materials) {
                 totalMaterials = cached.materials.length;
-                const techMtmsMap = mtmsStockByNik.get(row.nik) ?? new Map<string, number>();
+                const techNik = row.nik?.trim() ?? '';
+                const techMtmsMap = mtmsStockByNik.get(techNik) ?? new Map<string, number>();
 
                 const lensMap = new Map<string, number>();
                 for (const material of cached.materials) {
+                    if (!material.id_material) continue;
+                    const code = material.id_material.trim().toUpperCase();
                     lensMap.set(
-                        material.id_material,
+                        code,
                         Number.parseInt(material.stock_teknisi, 10) || 0
                     );
                 }
@@ -195,18 +200,23 @@ export async function getStockComparison(nik: string): Promise<{
         // MTMS stock: outstanding SAP out items in 'intech' status via inventoryRepository
         const mtmsRows = await inventoryRepository.getTechnicianIntechStock(validNik);
 
-        const mtmsMap = new Map<string, { name: string; qty: number }>();
+        const mtmsMap = new Map<string, { code: string; name: string; qty: number }>();
         for (const row of mtmsRows) {
             if (!row.material_code) continue;
-            mtmsMap.set(row.material_code, {
+            const codeKey = row.material_code.trim().toUpperCase();
+            mtmsMap.set(codeKey, {
+                code: row.material_code.trim(),
                 name: row.material_name ?? '',
                 qty: Number(row.qty_intech ?? 0),
             });
         }
 
-        const lensMap = new Map<string, { name: string; qty: number; satuan: string | null }>();
+        const lensMap = new Map<string, { code: string; name: string; qty: number; satuan: string | null }>();
         for (const material of cached.materials) {
-            lensMap.set(material.id_material, {
+            if (!material.id_material) continue;
+            const codeKey = material.id_material.trim().toUpperCase();
+            lensMap.set(codeKey, {
+                code: material.id_material.trim(),
                 name: material.nama_material,
                 qty: Number.parseInt(material.stock_teknisi, 10) || 0,
                 satuan: material.satuan ?? null,
@@ -215,15 +225,15 @@ export async function getStockComparison(nik: string): Promise<{
 
         const materialCodes = Array.from(new Set([...lensMap.keys(), ...mtmsMap.keys()])).sort();
 
-        const items: StockComparisonItem[] = materialCodes.map((code) => {
-            const lens = lensMap.get(code);
-            const mtms = mtmsMap.get(code);
+        const items: StockComparisonItem[] = materialCodes.map((codeKey) => {
+            const lens = lensMap.get(codeKey);
+            const mtms = mtmsMap.get(codeKey);
             const lensQty = lens?.qty ?? 0;
             const mtmsQty = mtms?.qty ?? 0;
             const selisih = lensQty - mtmsQty;
 
             return {
-                id_material: code,
+                id_material: lens?.code ?? mtms?.code ?? codeKey,
                 nama_material: lens?.name ?? mtms?.name ?? '',
                 satuan: lens?.satuan ?? null,
                 stock_lensa: lensQty,

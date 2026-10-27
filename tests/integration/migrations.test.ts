@@ -367,6 +367,25 @@ describeDb('L5 query logging migration tracked (018)', () => {
             expect(row?.filename).toBe('044_clean_sap_out_whitespace_and_sync_out_lensa.sql');
         });
 
+        it('045_sp_record_rekon_lensa_v2_atomic_sync_and_clean.sql recorded in migration log', async () => {
+            const row = await queryOne<{ filename: string }>(`
+                SELECT filename FROM inventory._migration_log
+                WHERE filename = '045_sp_record_rekon_lensa_v2_atomic_sync_and_clean.sql'
+            `);
+            expect(row?.filename).toBe('045_sp_record_rekon_lensa_v2_atomic_sync_and_clean.sql');
+        });
+
+        it('sp_record_rekon_lensa_v2 exists and sets rekon_check atomically', async () => {
+            const row = await queryOne<{ def: string }>(`
+                SELECT pg_get_functiondef(p.oid) AS def
+                FROM pg_proc p
+                JOIN pg_namespace n ON n.oid = p.pronamespace
+                WHERE n.nspname = 'inventory'
+                  AND p.proname = 'sp_record_rekon_lensa_v2'
+            `);
+            expect(row?.def).toContain('rekon_check = TRUE');
+        });
+
         it('inventory.stock_balance has non-negative check constraint', async () => {
             const row = await queryOne<{ conname: string; def: string }>(`
                 SELECT conname, pg_get_constraintdef(oid) as def FROM pg_constraint

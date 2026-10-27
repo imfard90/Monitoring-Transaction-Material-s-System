@@ -26,6 +26,11 @@ vi.mock('kysely', () => {
 
 vi.mock('@/lib/db/db', () => ({
     db: {
+        updateTable: vi.fn(() => ({
+            set: vi.fn().mockReturnThis(),
+            where: vi.fn().mockReturnThis(),
+            execute: vi.fn().mockResolvedValue({}),
+        })),
         selectFrom: vi.fn((table: string) => {
             if (table === 'inventory.mas_wh') {
                 return {
@@ -40,6 +45,13 @@ vi.mock('@/lib/db/db', () => ({
                     selectAll: vi.fn().mockReturnThis(),
                     where: vi.fn().mockReturnThis(),
                     execute: mockDetailsExecute,
+                };
+            }
+            if (table === 'inventory.rekon_used_header') {
+                return {
+                    select: vi.fn().mockReturnThis(),
+                    where: vi.fn().mockReturnThis(),
+                    execute: vi.fn().mockResolvedValue([]),
                 };
             }
             // inventory.wo_lensa_header

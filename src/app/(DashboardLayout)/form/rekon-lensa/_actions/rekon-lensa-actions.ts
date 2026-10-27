@@ -143,23 +143,23 @@ export async function getWOLensa(nik: string) {
 }
 
 const rekonLensaItemSchema = z.object({
-    sap_out_id: z.string().min(1),
-    sap_number: z.string().nullable(),
-    name_sa: z.string().min(1),
-    name_wh: z.string().nullable(),
+    sap_out_id: z.string().trim().min(1),
+    sap_number: z.string().trim().nullable(),
+    name_sa: z.string().trim().min(1),
+    name_wh: z.string().trim().nullable(),
     designator_id: z.number().int().positive(),
-    sap_out_item_id: z.string().min(1),
+    sap_out_item_id: z.string().trim().min(1),
     qty: z.number().positive(),
-    wo_type: z.string().min(1),
-    wo_number: z.string().min(1),
-    pemakaian_id: z.string().min(1),
-    notes: z.string(),
+    wo_type: z.string().trim().min(1),
+    wo_number: z.string().trim().min(1),
+    pemakaian_id: z.string().trim().min(1),
+    notes: z.string().trim(),
 });
 
 const submitRekonLensaSchema = z.object({
-    nik: z.string().min(1),
+    nik: z.string().trim().min(1),
     items: z.array(rekonLensaItemSchema).min(1),
-    idemKey: z.string().min(1),
+    idemKey: z.string().trim().min(1),
 });
 
 export type RekonLensaItemPayload = z.infer<typeof rekonLensaItemSchema>;
@@ -296,8 +296,8 @@ export async function submitRekonLensa(
                             })),
                         });
 
-                        // Flag: mark this WO as reconciled in wo_lensa_header via repository
-                        await repo.markWoLensaReconciled(pemakaianId);
+                        // Flag: mark this WO as reconciled in wo_lensa_header via repository (dual-match)
+                        await repo.markWoLensaReconciled(pemakaianId, first.wo_number);
                     }
                 });
 

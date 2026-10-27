@@ -215,8 +215,50 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
         }
 
         if (deduplicatedHeaders.length > 0) {
+            // Pre-check for rekon_check before saving
+            const pemakaianIds = deduplicatedHeaders
+                .map((h: any) => (h.pemakaian_id ? String(h.pemakaian_id).trim() : ''))
+                .filter(Boolean);
+            const woNumbers = deduplicatedHeaders
+                .map((h: any) => (h.wo_number ? String(h.wo_number).trim() : ''))
+                .filter(Boolean);
+
+            const matchedPemakaianIds = new Set<string>();
+            const matchedWoNumbers = new Set<string>();
+
+            if (pemakaianIds.length > 0 || woNumbers.length > 0) {
+                let rekonQuery = db
+                    .selectFrom('inventory.rekon_used_header')
+                    .select(['id_pemakaian', 'wo_number']);
+
+                if (pemakaianIds.length > 0 && woNumbers.length > 0) {
+                    rekonQuery = rekonQuery.where((eb) =>
+                        eb.or([
+                            eb('id_pemakaian', 'in', pemakaianIds),
+                            eb('wo_number', 'in', woNumbers),
+                        ])
+                    );
+                } else if (pemakaianIds.length > 0) {
+                    rekonQuery = rekonQuery.where('id_pemakaian', 'in', pemakaianIds);
+                } else {
+                    rekonQuery = rekonQuery.where('wo_number', 'in', woNumbers);
+                }
+
+                const existingRekon = await rekonQuery.execute();
+                for (const r of existingRekon) {
+                    if (r.id_pemakaian?.trim()) matchedPemakaianIds.add(r.id_pemakaian.trim());
+                    if (r.wo_number?.trim()) matchedWoNumbers.add(r.wo_number.trim());
+                }
+            }
+
             await db.transaction().execute(async (trx) => {
                 for (const h of deduplicatedHeaders) {
+                    const pId = h.pemakaian_id ? String(h.pemakaian_id).trim() : '';
+                    const wo = h.wo_number ? String(h.wo_number).trim() : '';
+                    const isRekonCheck =
+                        (Boolean(pId) && matchedPemakaianIds.has(pId)) ||
+                        (Boolean(wo) && matchedWoNumbers.has(wo));
+
                     await trx
                         .insertInto('inventory.wo_lensa_header')
                         .values({
@@ -229,7 +271,8 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
                             type: h.type,
                             wbs: h.wbs,
                             wo_number: h.wo_number,
-                        })
+                            rekon_check: isRekonCheck,
+                        } as any)
                         .execute();
                     totalInserted++;
                     existingPemakaianIds.push(String(h.pemakaian_id));

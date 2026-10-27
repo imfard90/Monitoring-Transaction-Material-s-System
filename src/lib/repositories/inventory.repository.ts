@@ -295,12 +295,27 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
     /**
      * Flag WO Lensa as reconciled
      */
-    markWoLensaReconciled: async (pemakaianId: string): Promise<void> => {
-        await dbClient
-            .updateTable('inventory.wo_lensa_header')
-            .set({ rekon_check: true })
-            .where(sql`CAST(pemakaian_id AS VARCHAR)`, '=', pemakaianId)
-            .execute();
+    markWoLensaReconciled: async (pemakaianId: string, woNumber?: string): Promise<void> => {
+        const cleanPemakaianId = pemakaianId.trim();
+        const cleanWoNumber = woNumber?.trim();
+        let query = dbClient.updateTable('inventory.wo_lensa_header').set({ rekon_check: true });
+
+        if (cleanPemakaianId && cleanWoNumber) {
+            query = query.where((eb) =>
+                eb.or([
+                    eb(sql`CAST(pemakaian_id AS VARCHAR)`, '=', cleanPemakaianId),
+                    eb('wo_number', '=', cleanWoNumber),
+                ])
+            );
+        } else if (cleanPemakaianId) {
+            query = query.where(sql`CAST(pemakaian_id AS VARCHAR)`, '=', cleanPemakaianId);
+        } else if (cleanWoNumber) {
+            query = query.where('wo_number', '=', cleanWoNumber);
+        } else {
+            return;
+        }
+
+        await query.execute();
     },
 
     // ==================== Read Operations (Kysely Query Builder) ====================

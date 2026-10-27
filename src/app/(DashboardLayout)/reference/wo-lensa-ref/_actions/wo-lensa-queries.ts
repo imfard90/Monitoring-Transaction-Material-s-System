@@ -100,14 +100,6 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             filterWarehouse = whNames;
         }
 
-        // Auto-update rekon_check: flag WO entries that have been submitted to rekon_used_header
-        await sql`
-            UPDATE inventory.wo_lensa_header wlh
-            SET rekon_check = TRUE
-            FROM inventory.rekon_used_header ruh
-            WHERE CAST(wlh.pemakaian_id AS VARCHAR) = ruh.id_pemakaian
-              AND (wlh.rekon_check IS FALSE OR wlh.rekon_check IS NULL)
-        `.execute(db);
 
         // Hitung total data
         let countQuery = db
@@ -198,6 +190,70 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             };
         }
 
+        // Sync rekon_check for any unflagged headers on the current page via dual-matching
+        const unflaggedHeaders = headers.filter((h) => !h.rekon_check);
+        if (unflaggedHeaders.length > 0) {
+            const pIds = unflaggedHeaders
+                .map((h) => (h.pemakaian_id ? String(h.pemakaian_id).trim() : ''))
+                .filter(Boolean);
+            const woNums = unflaggedHeaders
+                .map((h) => (h.wo_number ? String(h.wo_number).trim() : ''))
+                .filter(Boolean);
+
+            if (pIds.length > 0 || woNums.length > 0) {
+                let rekonQuery = db
+                    .selectFrom('inventory.rekon_used_header')
+                    .select(['id_pemakaian', 'wo_number']);
+
+                if (pIds.length > 0 && woNums.length > 0) {
+                    rekonQuery = rekonQuery.where((eb) =>
+                        eb.or([
+                            eb('id_pemakaian', 'in', pIds),
+                            eb('wo_number', 'in', woNums),
+                        ])
+                    );
+                } else if (pIds.length > 0) {
+                    rekonQuery = rekonQuery.where('id_pemakaian', 'in', pIds);
+                } else {
+                    rekonQuery = rekonQuery.where('wo_number', 'in', woNums);
+                }
+
+                const matchedRekons = await rekonQuery.execute();
+                if (matchedRekons.length > 0) {
+                    const matchedPIds = new Set(
+                        matchedRekons.map((r) => r.id_pemakaian?.trim()).filter((n): n is string => Boolean(n))
+                    );
+                    const matchedWos = new Set(
+                        matchedRekons.map((r) => r.wo_number?.trim()).filter((n): n is string => Boolean(n))
+                    );
+
+                    const idsToUpdate = unflaggedHeaders
+                        .filter((h) => {
+                            const pId = h.pemakaian_id ? String(h.pemakaian_id).trim() : '';
+                            const wo = h.wo_number ? String(h.wo_number).trim() : '';
+                            const isPIdMatch = pId ? matchedPIds.has(pId) : false;
+                            const isWoMatch = wo ? matchedWos.has(wo) : false;
+                            return isPIdMatch || isWoMatch;
+                        })
+                        .map((h) => h.id);
+
+                    if (idsToUpdate.length > 0) {
+                        await db
+                            .updateTable('inventory.wo_lensa_header')
+                            .set({ rekon_check: true })
+                            .where('id', 'in', idsToUpdate)
+                            .execute();
+
+                        for (const h of headers) {
+                            if (idsToUpdate.includes(h.id)) {
+                                h.rekon_check = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         const headerIds = headers.map((h) => h.id);
 
         const details = await db
@@ -275,14 +331,6 @@ export async function getWOLensaRefList() {
         return [];
     }
 
-    // Auto-update rekon_check: flag WO entries that have been submitted to rekon_used_header
-    await sql`
-        UPDATE inventory.wo_lensa_header wlh
-        SET rekon_check = TRUE
-        FROM inventory.rekon_used_header ruh
-        WHERE CAST(wlh.pemakaian_id AS VARCHAR) = ruh.id_pemakaian
-          AND (wlh.rekon_check IS FALSE OR wlh.rekon_check IS NULL)
-    `.execute(db);
 
     let query = db
         .selectFrom('inventory.wo_lensa_header as wlh')

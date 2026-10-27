@@ -17,6 +17,7 @@ Rilis ini membawa 3 pilar peningkatan utama:
    - **Migrasi 042:** Perbaikan kalkulasi sisa return material di stored procedure `sp_insert_return_item` dan action query agar hanya mengurangi pending return (mencegah pengurangan ganda dengan accepted return).
    - **Migrasi 043:** Perbaikan status return material ke `wait_approve` saat submit request agar selaras dengan workflow persetujuan Inout TAG.
    - **Migrasi 044:** Sanitasi whitespace (trailing spaces) pada `inventory.sap_out_header`, pembaharuan SP `sp_create_out_sap` dengan auto-flag `sap_out_check = TRUE`, dan sinkronisasi dual-matching Out Lensa Ref berdasarkan GI Number maupun ID Permintaan (Reservation ID).
+   - **Migrasi 045:** Sanitasi whitespace pada `inventory.rekon_used_header` dan `inventory.wo_lensa_header`, pembaruan SP `sp_record_rekon_lensa_v2` dengan auto-flag atomik `wo_lensa_header.rekon_check = TRUE`, sinkronisasi dual-matching (ID Pemakaian & WO Number), serta normalisasi material codes pada Intech Lensa vs MTMS stock comparison.
 3. **Kualitas & Ketahanan (Resilience & Automated Testing):**
    - Standardisasi repository Kysely (`generateTrxUsedSeq`, `generateTrxUsedLensaSeq`, `markWoLensaReconciled`) menggantikan query ad-hoc.
    - Seluruh server action mengembalikan format standar `{ success, data?, error? }` dengan server-side logging terstruktur (`actionLogger`/`securityLogger`).
@@ -127,7 +128,7 @@ npx playwright install chromium
 ```
 
 ### Langkah 4: Jalankan Migrasi Database
-Terapkan migrasi skema terbaru (termasuk migrasi 040, 041, 042, 043, dan 044):
+Terapkan migrasi skema terbaru (termasuk migrasi 040, 041, 042, 043, 044, dan 045):
 ```bash
 npm run migrate
 ```
@@ -138,6 +139,7 @@ Applying migration: 041_enable_rls_stock_opname_log_and_revoke_public.sql ... OK
 Applying migration: 042_fix_return_item_pending_status_calc.sql ... OK
 Applying migration: 043_fix_sp_return_material_wait_approve_status.sql ... OK
 Applying migration: 044_clean_sap_out_whitespace_and_sync_out_lensa.sql ... OK
+Applying migration: 045_sp_record_rekon_lensa_v2_atomic_sync_and_clean.sql ... OK
 All migrations applied successfully.
 ```
 
