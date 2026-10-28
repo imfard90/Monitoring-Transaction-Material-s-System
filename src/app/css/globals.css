@@ -411,7 +411,8 @@ input[type="time"] {
     opacity: light-dark(0.035, 0.05);
 }
 
-/* Baseline 2026: CSS progress() with progressive fallback for performance scorecard gauges */
+/* Baseline 2026: Universal CSS progress() meter with progressive fallback */
+.css-progress-meter,
 .champion-score-meter {
     --score-val: 0;
     /* biome-ignore lint/correctness/noUnknownFunction: Baseline 2026 CSS progress() */
@@ -420,6 +421,7 @@ input[type="time"] {
 
 /* biome-ignore lint/correctness/noUnknownFunction: Baseline 2026 CSS progress() */
 @supports not (width: calc(progress(50, 0, 100) * 100%)) {
+    .css-progress-meter,
     .champion-score-meter {
         width: calc(clamp(0, var(--score-val), 100) * 1%);
     }

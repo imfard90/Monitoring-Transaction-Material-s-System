@@ -158,14 +158,22 @@ function MetricCard({
                                     </div>
                                 </div>
 
-                                {/* Modern Linear Progress Bar */}
+                                {/* Modern Linear Progress Bar (CSS progress() Baseline 2026) */}
                                 <div className="h-1.5 w-full bg-muted/60 rounded-full overflow-hidden">
                                     <div
                                         className={cn(
-                                            'h-full rounded-full transition-all duration-500 ease-out',
+                                            'css-progress-meter h-full rounded-full transition-all duration-500 ease-out',
                                             barColor
                                         )}
-                                        style={{ width: `${row.percentage}%` }}
+                                        style={
+                                            {
+                                                '--score-val': Math.min(
+                                                    100,
+                                                    Math.max(0, row.percentage)
+                                                ),
+                                                width: `${Math.min(100, Math.max(0, row.percentage))}%`,
+                                            } as React.CSSProperties
+                                        }
                                         aria-hidden="true"
                                     />
                                 </div>
