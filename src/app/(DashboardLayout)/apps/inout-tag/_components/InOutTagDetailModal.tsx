@@ -77,8 +77,8 @@ export function getTimelineSteps(row: InOutTagRow | null): TimelineStep[] {
         let step2Status: TimelineStep['status'] = 'pending';
         let step2Label = 'Menunggu Penerimaan';
         let step2Nik = row.nik_accept || null;
-        let step2Name = row.accept_by_name || null;
-        let step2Time = row.accept_time || null;
+        const step2Name = row.accept_by_name || null;
+        const step2Time = row.accept_time || null;
 
         if (isCancelled) {
             step2Status = 'cancelled';
@@ -136,8 +136,8 @@ export function getTimelineSteps(row: InOutTagRow | null): TimelineStep[] {
     let step2Status: TimelineStep['status'] = 'pending';
     let step2Label = 'Menunggu Pengiriman';
     let step2Nik = row.nik_send || null;
-    let step2Name = row.send_by_name || null;
-    let step2Time = row.send_time || null;
+    const step2Name = row.send_by_name || null;
+    const step2Time = row.send_time || null;
 
     if (row.send_id) {
         step2Status = 'completed';
@@ -167,8 +167,8 @@ export function getTimelineSteps(row: InOutTagRow | null): TimelineStep[] {
     let step3Status: TimelineStep['status'] = 'pending';
     let step3Label = 'Menunggu Penerimaan';
     let step3Nik = row.nik_accept || null;
-    let step3Name = row.accept_by_name || null;
-    let step3Time = row.accept_time || null;
+    const step3Name = row.accept_by_name || null;
+    const step3Time = row.accept_time || null;
 
     if (row.end_status === 'closed' || row.accept_id) {
         step3Status = 'completed';
