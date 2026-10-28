@@ -91,6 +91,17 @@ export interface AuthUserMfaDevices {
     user_id: Int8;
 }
 
+export interface AuthSession {
+    createdAt: Generated<Timestamp>;
+    expiresAt: Timestamp;
+    id: string;
+    ipAddress: string | null;
+    token: string;
+    updatedAt: Generated<Timestamp>;
+    userAgent: string | null;
+    userId: string;
+}
+
 export interface AuthVerification {
     createdAt: Generated<Timestamp>;
     expiresAt: Timestamp;
@@ -1107,6 +1118,7 @@ export interface DB {
     'inventory.wo_lensa_header': inventory_wo_lensa_header;
     'inventory.wo_lensa_list': inventory_wo_lensa_list;
     'auth.account': AuthAccount;
+    'auth.session': AuthSession;
     'auth.user': AuthUser;
     'auth.user_mfa_devices': AuthUserMfaDevices;
     'auth.verification': AuthVerification;

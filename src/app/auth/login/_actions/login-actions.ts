@@ -69,13 +69,17 @@ export async function precheckLogin(email: string, turnstileToken: string) {
             }
 
             // 3. Check if user has active sessions in database
-            const activeSessionResult = await sql<{ id: string }>`
-                SELECT id FROM auth.session
-                WHERE "userId" = ${user.id} AND "expiresAt" > NOW()
-                LIMIT 1
-            `.execute(db);
-            if (activeSessionResult.rows.length > 0) {
-                return { status: 'active_session_exists' };
+            try {
+                const activeSessionResult = await sql<{ id: string }>`
+                    SELECT id FROM auth.session
+                    WHERE "userId" = ${user.id} AND "expiresAt" > NOW()
+                    LIMIT 1
+                `.execute(db);
+                if (activeSessionResult.rows.length > 0) {
+                    return { status: 'active_session_exists' };
+                }
+            } catch (dbErr: any) {
+                actionLogger.warn('Notice when querying DB session:', dbErr?.message || dbErr);
             }
         }
 
@@ -129,7 +133,11 @@ export async function revokeAllUserSessions(email: string) {
             }
 
             // 3. Purge sessions from auth.session database table
-            await sql`DELETE FROM auth.session WHERE "userId" = ${user.id}`.execute(db);
+            try {
+                await sql`DELETE FROM auth.session WHERE "userId" = ${user.id}`.execute(db);
+            } catch (dbErr: any) {
+                actionLogger.warn('Notice when revoking DB session:', dbErr?.message || dbErr);
+            }
         }
 
         return { success: true };
