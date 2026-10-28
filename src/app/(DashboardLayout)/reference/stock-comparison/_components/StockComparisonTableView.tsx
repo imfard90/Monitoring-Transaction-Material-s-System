@@ -7,7 +7,7 @@ import {
     getSortedRowModel,
     type SortingState,
     useReactTable,
-} from '@tanstack/react-table';
+} from '@/lib/table';
 import { LoaderCircle, Scale } from 'lucide-react';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';

@@ -3,7 +3,7 @@ import {
     getCoreRowModel,
     getPaginationRowModel,
     useReactTable,
-} from '@tanstack/react-table';
+} from '@/lib/table';
 import { format } from 'date-fns';
 import { Check, ChevronsUpDown, Eye, FilterX } from 'lucide-react';
 import { useCallback, useState } from 'react';

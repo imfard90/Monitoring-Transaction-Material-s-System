@@ -6,7 +6,7 @@ import {
     getFilteredRowModel,
     getPaginationRowModel,
     useReactTable,
-} from '@tanstack/react-table';
+} from '@/lib/table';
 import { motion } from 'framer-motion';
 import { ShieldAlert, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState, useTransition } from 'react';

@@ -5,7 +5,7 @@ import {
     getCoreRowModel,
     getSortedRowModel,
     useReactTable,
-} from '@tanstack/react-table';
+} from '@/lib/table';
 import { format } from 'date-fns';
 import { CheckCircle2, Eye, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -238,7 +238,7 @@ export default function OutLensaRefClient({
             id: 'formatted_date',
             header: 'Tgl Entry',
             size: 110,
-            sortingFn: 'datetime',
+            sortFn: 'datetime',
             cell: (info) => {
                 const val = info.getValue();
                 if (!val) return '-';

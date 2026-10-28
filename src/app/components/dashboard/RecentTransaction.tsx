@@ -122,7 +122,8 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
                 formatter: (value, opts) => {
                     const scaled =
                         chartData.categories[opts?.dataPointIndex ?? -1]?.endsWith(' (x10)');
-                    return `${(scaled ? value * 10 : value).toLocaleString()} unit${scaled ? ' (nilai asli)' : ''}`;
+                    const numVal = value ?? 0;
+                    return `${(scaled ? numVal * 10 : numVal).toLocaleString()} unit${scaled ? ' (nilai asli)' : ''}`;
                 },
             },
         },

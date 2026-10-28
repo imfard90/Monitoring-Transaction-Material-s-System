@@ -5,7 +5,7 @@ import {
     getCoreRowModel,
     getSortedRowModel,
     useReactTable,
-} from '@tanstack/react-table';
+} from '@/lib/table';
 import { format } from 'date-fns';
 import { Eye, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -254,7 +254,7 @@ export default function WOLensaRefClient({
             id: 'formatted_date',
             header: 'Tgl Update',
             size: 110,
-            sortingFn: 'datetime',
+            sortFn: 'datetime',
             cell: (info) => {
                 const val = info.getValue();
                 if (!val) return '-';

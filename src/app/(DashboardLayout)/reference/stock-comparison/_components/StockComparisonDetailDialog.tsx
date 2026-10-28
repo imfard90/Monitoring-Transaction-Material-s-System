@@ -1,6 +1,6 @@
 'use client';
 
-import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import { createColumnHelper, getCoreRowModel, useReactTable } from '@/lib/table';
 import { format } from 'date-fns';
 import { useMemo } from 'react';
 import { DataTable } from '@/app/components/shared/DataTable';

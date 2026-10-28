@@ -14,7 +14,7 @@ import {
     type Table,
     useReactTable,
     type VisibilityState,
-} from '@tanstack/react-table';
+} from '@/lib/table';
 import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { DataTable } from '@/app/components/shared/DataTable';
@@ -50,16 +50,14 @@ const columnHelper = createColumnHelper<StockItem>();
 function SortableHeader({
     title,
     column,
-    table,
 }: {
     title: string;
     column: Column<StockItem, unknown>;
-    table: Table<StockItem>;
+    table?: any;
 }) {
-    const sorting = table.getState().sorting;
-    const columnSorting = sorting.find((s) => s.id === column.id);
-    const isSorted = !!columnSorting;
-    const isAsc = columnSorting?.desc === false;
+    const sorted = column.getIsSorted();
+    const isSorted = Boolean(sorted);
+    const isAsc = sorted === 'asc';
 
     return (
         <button

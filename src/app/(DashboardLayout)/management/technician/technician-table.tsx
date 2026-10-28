@@ -5,7 +5,7 @@ import {
     getCoreRowModel,
     getPaginationRowModel,
     useReactTable,
-} from '@tanstack/react-table';
+} from '@/lib/table';
 import { motion } from 'framer-motion';
 import { Pencil, Plus } from 'lucide-react';
 import { useCallback, useMemo, useState, useTransition } from 'react';

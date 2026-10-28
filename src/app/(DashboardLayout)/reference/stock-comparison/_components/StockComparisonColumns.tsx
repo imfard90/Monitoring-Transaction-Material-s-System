@@ -1,6 +1,6 @@
 'use client';
 
-import { createColumnHelper } from '@tanstack/react-table';
+import { createColumnHelper } from '@/lib/table';
 import { format } from 'date-fns';
 import { Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';

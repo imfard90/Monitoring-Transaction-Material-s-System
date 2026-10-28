@@ -6,7 +6,7 @@ import {
     getCoreRowModel,
     getPaginationRowModel,
     useReactTable,
-} from '@tanstack/react-table';
+} from '@/lib/table';
 import { useCallback, useMemo, useState } from 'react';
 import { getDashboardStockIntech } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { DataTable } from '@/app/components/shared/DataTable';

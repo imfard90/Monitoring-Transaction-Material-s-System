@@ -9,7 +9,7 @@ import {
     getFilteredRowModel,
     type ColumnDef,
     type SortingState,
-} from '@tanstack/react-table';
+} from '@/lib/table';
 import { Eye, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';

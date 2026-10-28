@@ -1,4 +1,4 @@
-import { flexRender, type Table } from '@tanstack/react-table';
+import { flexRender, type Table } from '@/lib/table';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';

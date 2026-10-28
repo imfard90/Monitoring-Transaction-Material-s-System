@@ -5,7 +5,7 @@ import {
     getCoreRowModel,
     getPaginationRowModel,
     useReactTable,
-} from '@tanstack/react-table';
+} from '@/lib/table';
 import { format } from 'date-fns';
 import { FileSpreadsheet, FilterX, Pencil } from 'lucide-react';
 import { useCallback } from 'react';

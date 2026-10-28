@@ -106,12 +106,12 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
             tickAmount: 5,
             labels: {
                 style: { fontSize: '11px' },
-                formatter: (val) => `${Math.abs(val)}`,
+                formatter: (val) => `${Math.abs(val ?? 0)}`,
             },
         },
         tooltip: {
             theme: 'dark',
-            y: { formatter: (val) => `${Math.abs(val)} transaksi` },
+            y: { formatter: (val) => `${Math.abs(val ?? 0)} transaksi` },
         },
     };
 

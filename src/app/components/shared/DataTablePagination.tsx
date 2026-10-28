@@ -1,4 +1,4 @@
-import type { Table } from '@tanstack/react-table';
+import type { Table } from '@/lib/table';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';

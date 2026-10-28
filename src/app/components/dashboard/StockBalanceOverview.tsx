@@ -7,7 +7,7 @@ import {
     getCoreRowModel,
     getPaginationRowModel,
     useReactTable,
-} from '@tanstack/react-table';
+} from '@/lib/table';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import {
