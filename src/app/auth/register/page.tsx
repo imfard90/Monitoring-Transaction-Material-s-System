@@ -145,6 +145,28 @@ export default function RegisterPage() {
                         : 'Lengkapi data untuk membuat akun MTMS'
                 }
             >
+                {/* 2-Step Registration Progress Indicator with CSS progress() */}
+                <div className="mb-5 space-y-1.5">
+                    <div className="flex justify-between items-center text-xs text-muted-foreground font-medium">
+                        <span>Langkah {step} dari 2: {step === 1 ? 'Verifikasi NIK' : 'Lengkapi Akun'}</span>
+                        <span className="font-semibold text-primary tabular-nums">
+                            {step === 1 ? '50%' : '100%'}
+                        </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-muted/70 rounded-full overflow-hidden">
+                        <div
+                            className="css-progress-meter h-full rounded-full bg-primary transition-all duration-300"
+                            style={
+                                {
+                                    '--score-val': step === 1 ? 50 : 100,
+                                    width: `${step === 1 ? 50 : 100}%`,
+                                } as React.CSSProperties
+                            }
+                            aria-hidden="true"
+                        />
+                    </div>
+                </div>
+
                 {step === 1 && (
                     <form onSubmit={nikForm.handleSubmit(onNikSubmit)} noValidate>
                         <div className="mb-6">

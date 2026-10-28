@@ -30,21 +30,30 @@ interface ProgressProps
 }
 
 const Progress = React.forwardRef<React.ElementRef<typeof ProgressPrimitive.Root>, ProgressProps>(
-    ({ className, value, variant, ...props }, ref) => (
-        <ProgressPrimitive.Root
-            ref={ref}
-            className={cn(
-                'relative h-1 w-full overflow-hidden rounded-full bg-muted dark:bg-white/15',
-                className
-            )}
-            {...props}
-        >
-            <ProgressPrimitive.Indicator
-                className={cn(progressIndicatorVariants({ variant }))}
-                style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
-            />
-        </ProgressPrimitive.Root>
-    )
+    ({ className, value, variant, ...props }, ref) => {
+        const val = Math.min(100, Math.max(0, value || 0));
+
+        return (
+            <ProgressPrimitive.Root
+                ref={ref}
+                className={cn(
+                    'relative h-1 w-full overflow-hidden rounded-full bg-muted dark:bg-white/15',
+                    className
+                )}
+                style={
+                    {
+                        '--score-val': val,
+                    } as React.CSSProperties
+                }
+                {...props}
+            >
+                <ProgressPrimitive.Indicator
+                    className={cn('css-progress-meter', progressIndicatorVariants({ variant }))}
+                    style={{ transform: `translateX(-${100 - val}%)` }}
+                />
+            </ProgressPrimitive.Root>
+        );
+    }
 );
 Progress.displayName = ProgressPrimitive.Root.displayName;
 
