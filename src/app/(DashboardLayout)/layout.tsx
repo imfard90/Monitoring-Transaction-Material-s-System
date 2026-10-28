@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { PresenceHeartbeat } from '@/components/PresenceHeartbeat';
 import { FloatingSupportWidget } from '@/components/support/FloatingSupportWidget';
 import Header from './layout/header/Header';
@@ -27,20 +26,11 @@ export default function Layout({
                     <Sidebar />
                 </div>
                 <div className="body-wrapper relative flex-1 min-w-0 w-full max-w-full bg-background flex flex-col h-[100dvh] overflow-hidden">
-                    {/* Fixed watermark background */}
+                    {/* Fixed watermark background using CSS light-dark() (Baseline 2026) */}
                     <div
                         aria-hidden="true"
-                        className="pointer-events-none select-none absolute inset-0 z-0 overflow-hidden"
-                    >
-                        <Image
-                            src="/images/backgrounds/branch_lamongan.png"
-                            alt=""
-                            fill
-                            priority
-                            sizes="(max-width: 1280px) 100vw, calc(100vw - 270px)"
-                            className="object-contain object-center opacity-[0.035] dark:opacity-[0.05] transition-opacity duration-300"
-                        />
-                    </div>
+                        className="pointer-events-none select-none absolute inset-0 z-0 overflow-hidden bg-watermark-branch transition-opacity duration-300"
+                    />
 
                     {/* Top Header */}
                     <Header />

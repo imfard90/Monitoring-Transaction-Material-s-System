@@ -41,6 +41,12 @@ main {
     scroll-behavior: smooth;
 }
 
+/* Baseline 2026: Scroll Anchoring for data tables and dynamic live feeds (Zero-CLS) */
+[data-scroll-anchor='true'],
+.data-table-container {
+    overflow-anchor: auto;
+}
+
 @theme {
     --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
     --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
@@ -125,6 +131,7 @@ main {
 }
 
 :root {
+    color-scheme: light;
     --radius: 6px; /* Dense UI radius */
     --background: #f8fafc; /* Slate 50 */
     --foreground: #0f172a; /* Slate 900 */
@@ -186,6 +193,7 @@ main {
 }
 
 .dark {
+    color-scheme: dark;
     --background: #020617; /* Slate 950 */
     --foreground: #f8fafc; /* Slate 50 */
     --card: #0f172a; /* Slate 900 */
@@ -388,5 +396,31 @@ input[type="time"] {
     }
     100% {
         transform: rotate(0deg);
+    }
+}
+
+/* Baseline 2026: light-dark() with <image> values for theme-adaptive background watermark */
+.bg-watermark-branch {
+    background-image: light-dark(
+        url('/images/backgrounds/branch_lamongan.png'),
+        url('/images/backgrounds/branch_lamongan.png')
+    );
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    opacity: light-dark(0.035, 0.05);
+}
+
+/* Baseline 2026: CSS progress() with progressive fallback for performance scorecard gauges */
+.champion-score-meter {
+    --score-val: 0;
+    /* biome-ignore lint/correctness/noUnknownFunction: Baseline 2026 CSS progress() */
+    width: clamp(0%, calc(progress(var(--score-val), 0, 100) * 100%), 100%);
+}
+
+/* biome-ignore lint/correctness/noUnknownFunction: Baseline 2026 CSS progress() */
+@supports not (width: calc(progress(50, 0, 100) * 100%)) {
+    .champion-score-meter {
+        width: calc(clamp(0, var(--score-val), 100) * 1%);
     }
 }

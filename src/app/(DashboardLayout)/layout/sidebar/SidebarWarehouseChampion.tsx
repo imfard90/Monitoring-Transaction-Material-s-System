@@ -342,13 +342,19 @@ export const SidebarWarehouseChampion = () => {
                                         </div>
                                     </div>
 
-                                    {/* Progress Bar of Composite Score */}
+                                    {/* Progress Bar of Composite Score (using CSS progress() with Baseline 2026 support) */}
                                     <div className="h-1.5 w-full bg-muted/70 rounded-full overflow-hidden">
                                         <div
-                                            className="h-full rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 transition-all duration-500 ease-out"
-                                            style={{
-                                                width: `${Math.min(100, Math.max(0, champion.score))}%`,
-                                            }}
+                                            className="champion-score-meter h-full rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 transition-all duration-500 ease-out"
+                                            style={
+                                                {
+                                                    '--score-val': Math.min(
+                                                        100,
+                                                        Math.max(0, champion.score)
+                                                    ),
+                                                    width: `${Math.min(100, Math.max(0, champion.score))}%`,
+                                                } as React.CSSProperties
+                                            }
                                             aria-hidden="true"
                                         />
                                     </div>
@@ -508,7 +514,10 @@ export const SidebarWarehouseChampion = () => {
                     )}
 
                     {/* Detailed Leaderboard Table */}
-                    <div className="flex-1 overflow-y-auto min-h-[220px] max-h-[340px] pr-1 mt-2 border rounded-lg border-border/60">
+                    <div
+                        className="flex-1 overflow-y-auto min-h-[220px] max-h-[340px] pr-1 mt-2 border rounded-lg border-border/60 [overflow-anchor:auto]"
+                        data-scroll-anchor="true"
+                    >
                         <table className="w-full text-xs text-left">
                             <thead className="sticky top-0 bg-muted/80 backdrop-blur-xs text-[10.5px] uppercase tracking-wider text-muted-foreground border-b border-border/60 font-semibold">
                                 <tr>

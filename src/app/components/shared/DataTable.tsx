@@ -28,11 +28,12 @@ export function DataTable<TData>({
     return (
         <div
             className={cn(
-                'w-full min-w-0 max-w-full overflow-x-auto rounded-md border',
+                'w-full min-w-0 max-w-full overflow-x-auto rounded-md border [overflow-anchor:auto]',
                 className
             )}
             style={maxHeight ? { maxHeight } : undefined}
             aria-busy={isLoading}
+            data-scroll-anchor="true"
         >
             <table
                 className={cn(
