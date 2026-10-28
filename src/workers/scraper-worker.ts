@@ -29,6 +29,12 @@ let isJobActive = false;
 
 // Dedicated Redis connection for blocking queue pops
 const queueRedis = redis.duplicate();
+queueRedis.on('error', (err) => {
+    actionLogger.error(
+        '[MTMS-WORKER] Queue Redis error:',
+        err instanceof Error ? err : new Error(String(err))
+    );
+});
 
 // ----------------------------------------------------
 // 1. Heartbeat Management
