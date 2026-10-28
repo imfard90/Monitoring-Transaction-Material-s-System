@@ -23,6 +23,16 @@ vi.mock('@/lib/db/db', () => ({
                     execute: mockDetailsExecute,
                 };
             }
+            if (table === 'inventory.scraper_cronjob_log') {
+                return {
+                    selectAll: vi.fn().mockReturnThis(),
+                    where: vi.fn().mockReturnThis(),
+                    orderBy: vi.fn().mockReturnThis(),
+                    limit: vi.fn().mockReturnValue({
+                        executeTakeFirst: vi.fn().mockResolvedValue(null),
+                    }),
+                };
+            }
             const countQuery = {
                 where: vi.fn().mockReturnThis(),
                 executeTakeFirst: mockCountExecuteTakeFirst,

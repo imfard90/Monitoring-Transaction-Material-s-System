@@ -11,6 +11,7 @@
 export type {
     GetWOLensaListOptions,
     PaginatedWOLensaResult,
+    ScraperLastUpdateInfo,
     WOLensaDetail,
     WOLensaHeader,
 } from './wo-lensa-queries';

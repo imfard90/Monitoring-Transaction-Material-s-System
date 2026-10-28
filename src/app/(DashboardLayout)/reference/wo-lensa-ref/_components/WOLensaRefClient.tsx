@@ -7,7 +7,7 @@ import {
     useReactTable,
 } from '@/lib/table';
 import { format } from 'date-fns';
-import { Eye, Play } from 'lucide-react';
+import { Clock, Eye, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -26,6 +26,7 @@ import { toCanonicalWarehouseName } from '@/lib/warehouse-helper';
 import {
     checkWOScrapingStatus,
     getWOLensaRefDetails,
+    type ScraperLastUpdateInfo,
     triggerWOScraping,
 } from '../_actions/wo-lensa-actions';
 
@@ -78,6 +79,7 @@ export default function WOLensaRefClient({
     currentWarehouse = 'all',
     currentSearch = '',
     warehouseOptions = [],
+    lastUpdate = null,
 }: {
     initialData: WOLensaHeader[];
     pagination?: PaginationInfo;
@@ -86,9 +88,13 @@ export default function WOLensaRefClient({
     currentWarehouse?: string;
     currentSearch?: string;
     warehouseOptions?: string[];
+    lastUpdate?: ScraperLastUpdateInfo | null;
 }) {
     const data = initialData;
     const [isStarting, setIsStarting] = useState(false);
+    const [currentLastUpdate, setCurrentLastUpdate] = useState<ScraperLastUpdateInfo | null>(
+        lastUpdate ?? null
+    );
 
     // For detail view
     const [detailData, setDetailData] = useState<WOLensaDetail[]>([]);
@@ -101,6 +107,10 @@ export default function WOLensaRefClient({
         toCanonicalWarehouseName(currentWarehouse)
     );
     const router = useRouter();
+
+    useEffect(() => {
+        setCurrentLastUpdate(lastUpdate ?? null);
+    }, [lastUpdate]);
 
     useEffect(() => {
         setSearchQuery(currentSearch);
@@ -220,8 +230,16 @@ export default function WOLensaRefClient({
 
         toast.promise(pollPromise, {
             loading: 'Scraping WO Lensa berjalan di latar belakang...',
-            success: (data: Record<string, unknown>) =>
-                (data.message as string) || 'Scraping berhasil diselesaikan!',
+            success: (data: Record<string, unknown>) => {
+                const msg = (data.message as string) || 'Scraping berhasil diselesaikan!';
+                setCurrentLastUpdate({
+                    timestamp: new Date().toISOString(),
+                    action: 'manual',
+                    resume_result: msg,
+                });
+                router.refresh();
+                return msg;
+            },
             error: (err: Error) => `Scraping gagal: ${err.message}`,
         });
     };
@@ -457,7 +475,44 @@ export default function WOLensaRefClient({
                             )}
                         </div>
                     </CardHeader>
-                    <CardContent className="flex flex-col gap-4 w-full min-w-0 max-w-full">
+                    <CardContent className="flex flex-col gap-3.5 w-full min-w-0 max-w-full">
+                        <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 text-xs text-muted-foreground border-b border-border/40 pb-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
+                                {currentLastUpdate ? (
+                                    <>
+                                        <span>
+                                            Update Terakhir:{' '}
+                                            <strong className="font-semibold text-foreground">
+                                                {format(
+                                                    new Date(currentLastUpdate.timestamp),
+                                                    'dd MMM yyyy, HH:mm'
+                                                )}{' '}
+                                                WIB
+                                            </strong>
+                                        </span>
+                                        <span className="text-muted-foreground/50">•</span>
+                                        <span
+                                            className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium border ${
+                                                currentLastUpdate.action === 'system'
+                                                    ? 'bg-muted/60 text-foreground border-border'
+                                                    : 'bg-primary/10 text-primary border-primary/20'
+                                            }`}
+                                        >
+                                            {currentLastUpdate.action === 'system'
+                                                ? 'System (Cron)'
+                                                : 'Manual'}
+                                        </span>
+                                        <span className="text-muted-foreground/50">•</span>
+                                        <span className="text-foreground/80">
+                                            {currentLastUpdate.resume_result}
+                                        </span>
+                                    </>
+                                ) : (
+                                    <span>Belum ada riwayat update scraper.</span>
+                                )}
+                            </div>
+                        </div>
                         <DataTable
                             table={table}
                             emptyMessage="Tidak ada data."

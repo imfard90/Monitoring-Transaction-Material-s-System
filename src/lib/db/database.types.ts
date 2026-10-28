@@ -1036,6 +1036,14 @@ export interface UploadLogs {
     updated_by: number | null;
 }
 
+export interface InventoryScraperCronjobLog {
+    id: Generated<string | number>;
+    scraper_type: 'out_lensa' | 'wo_lensa' | 'stock_teknisi' | 'other_stock';
+    action: 'system' | 'manual';
+    resume_result: string;
+    timestamp: Generated<Timestamp>;
+}
+
 export interface InventoryOutLensaRefHeader {
     id: Generated<string>;
     reservation_id: string;
@@ -1194,4 +1202,5 @@ export interface DB {
     'inventory.out_lensa_ref_list': InventoryOutLensaRefList;
     'inventory.rekon_used_header': InventoryRekonUsedHeader;
     'inventory.rekon_used_list': InventoryRekonUsedList;
+    'inventory.scraper_cronjob_log': InventoryScraperCronjobLog;
 }

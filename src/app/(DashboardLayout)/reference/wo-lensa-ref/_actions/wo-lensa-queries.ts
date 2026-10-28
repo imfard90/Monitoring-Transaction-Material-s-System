@@ -3,7 +3,14 @@
 import { sql } from 'kysely';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
 import { expandWarehouseAliases } from '@/lib/warehouse-helper';
+
+export interface ScraperLastUpdateInfo {
+    timestamp: string;
+    action: 'system' | 'manual';
+    resume_result: string;
+}
 
 export interface WOLensaHeader {
     id: number | string;
@@ -37,6 +44,7 @@ export interface PaginatedWOLensaResult {
     page: number;
     pageSize: number;
     totalPages: number;
+    lastUpdate?: ScraperLastUpdateInfo | null;
 }
 
 export interface GetWOLensaListOptions {
@@ -64,6 +72,7 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
                         page,
                         pageSize,
                         totalPages: 0,
+                        lastUpdate: null,
                     },
                 };
             }
@@ -269,6 +278,15 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             materials: details.filter((d) => String(d.header_id) === String(h.id)),
         }));
 
+        const lastLog = await scraperLogRepository.getLatestLog('wo_lensa');
+        const lastUpdate: ScraperLastUpdateInfo | null = lastLog
+            ? {
+                  timestamp: lastLog.timestamp.toISOString(),
+                  action: lastLog.action,
+                  resume_result: lastLog.resume_result,
+              }
+            : null;
+
         return {
             success: true,
             data: {
@@ -278,6 +296,7 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
                 page,
                 pageSize,
                 totalPages: Math.ceil(total / pageSize) || 1,
+                lastUpdate,
             },
         };
     } catch (error: unknown) {

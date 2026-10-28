@@ -5,7 +5,14 @@ import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { redis } from '@/lib/redis';
+import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
 import { expandWarehouseAliases } from '@/lib/warehouse-helper';
+
+export interface ScraperLastUpdateInfo {
+    timestamp: string;
+    action: 'system' | 'manual';
+    resume_result: string;
+}
 
 export interface OutLensaHeader {
     id: string;
@@ -38,6 +45,7 @@ export interface PaginatedOutLensaResult {
     page: number;
     pageSize: number;
     totalPages: number;
+    lastUpdate?: ScraperLastUpdateInfo | null;
 }
 
 export interface GetOutLensaRefListOptions {
@@ -65,6 +73,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                         page: 1,
                         pageSize,
                         totalPages: 0,
+                        lastUpdate: null,
                     },
                 };
             }
@@ -326,6 +335,15 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             };
         });
 
+        const lastLog = await scraperLogRepository.getLatestLog('out_lensa');
+        const lastUpdate: ScraperLastUpdateInfo | null = lastLog
+            ? {
+                  timestamp: lastLog.timestamp.toISOString(),
+                  action: lastLog.action,
+                  resume_result: lastLog.resume_result,
+              }
+            : null;
+
         return {
             success: true,
             data: {
@@ -335,6 +353,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                 page,
                 pageSize,
                 totalPages: Math.ceil(total / pageSize),
+                lastUpdate,
             },
         };
     } catch (error: unknown) {

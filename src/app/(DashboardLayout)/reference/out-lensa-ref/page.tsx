@@ -68,6 +68,7 @@ export default async function OutLensaRefPage({
                 currentWarehouse={warehouse}
                 currentSearch={search}
                 warehouseOptions={result.success ? (result.data?.warehouses ?? []) : []}
+                lastUpdate={result.success ? (result.data?.lastUpdate ?? null) : null}
             />
         </div>
     );

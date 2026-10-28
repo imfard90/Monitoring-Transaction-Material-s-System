@@ -12,6 +12,10 @@ import {
 } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
+import {
+    type ScraperAction,
+    scraperLogRepository,
+} from '@/lib/repositories/scraper-log.repository';
 import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
 import { dispatchWorkerJob, isWorkerActive } from '@/lib/workers/worker-client';
 
@@ -77,7 +81,10 @@ async function asyncPool(poolLimit: number, array: any[], iteratorFn: (item: any
     return Promise.all(ret);
 }
 
-export async function internalTriggerScraping(perpage: number = 20) {
+export async function internalTriggerScraping(
+    perpage: number = 20,
+    action: ScraperAction = 'system'
+) {
     try {
         const users = await db
             .selectFrom('auth.user')
@@ -91,9 +98,19 @@ export async function internalTriggerScraping(perpage: number = 20) {
         });
 
         if (validUsers.length === 0) {
+            const errorMsg = 'Tidak ada user Lensa yang terdaftar dengan kredensial lengkap.';
+            await scraperLogRepository
+                .insertLog({
+                    scraper_type: 'out_lensa',
+                    action,
+                    resume_result: `Gagal: ${errorMsg}`,
+                })
+                .catch((err) => {
+                    actionLogger.warn('[Out-Lensa] Gagal mencatat scraper_cronjob_log:', err);
+                });
             return {
                 success: false,
-                error: 'Tidak ada user Lensa yang terdaftar dengan kredensial lengkap.',
+                error: errorMsg,
             };
         }
 
@@ -402,6 +419,21 @@ export async function internalTriggerScraping(perpage: number = 20) {
             summary: JSON.stringify(summary, null, 2),
         });
 
+        const resumeResult =
+            totalInserted > 0
+                ? `Sukses ${totalInserted} data baru (${totalUsersScraped} akun)`
+                : `Selesai: Tidak ada data baru (${totalUsersScraped} akun)`;
+
+        await scraperLogRepository
+            .insertLog({
+                scraper_type: 'out_lensa',
+                action,
+                resume_result: resumeResult,
+            })
+            .catch((err) => {
+                actionLogger.warn('[Out-Lensa] Gagal mencatat scraper_cronjob_log:', err);
+            });
+
         return {
             success: true,
             newCount: totalInserted,
@@ -413,7 +445,17 @@ export async function internalTriggerScraping(perpage: number = 20) {
             'Trigger scraping error:',
             error instanceof Error ? error : new Error(String(error))
         );
-        return { success: false, error: error.message };
+        const errMsg = error instanceof Error ? error.message : String(error);
+        await scraperLogRepository
+            .insertLog({
+                scraper_type: 'out_lensa',
+                action,
+                resume_result: `Gagal: ${errMsg}`,
+            })
+            .catch((err) => {
+                actionLogger.warn('[Out-Lensa] Gagal mencatat scraper_cronjob_log:', err);
+            });
+        return { success: false, error: errMsg };
     }
 }
 
@@ -462,7 +504,7 @@ export async function triggerScraping(): Promise<
     await redis.set(`job:${jobId}`, JSON.stringify({ status: 'running' }));
     Promise.resolve().then(async () => {
         try {
-            const result = await internalTriggerScraping();
+            const result = await internalTriggerScraping(20, 'manual');
             if (result.success) {
                 await redis.set(
                     `job:${jobId}`,

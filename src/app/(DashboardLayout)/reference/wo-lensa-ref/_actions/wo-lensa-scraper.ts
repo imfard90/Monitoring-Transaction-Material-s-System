@@ -8,6 +8,10 @@ import { scrapeWOLensaDetails, scrapeWOLensaHeaders } from '@/lib/lensa-scraper/
 import { actionLogger } from '@/lib/logger';
 import { resolveMaterialAlias } from '@/lib/material-alias-helper';
 import { redis } from '@/lib/redis';
+import {
+    type ScraperAction,
+    scraperLogRepository,
+} from '@/lib/repositories/scraper-log.repository';
 import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
 import { dispatchWorkerJob, isWorkerActive } from '@/lib/workers/worker-client';
 
@@ -75,7 +79,11 @@ async function asyncPool<T, R>(
     return Promise.all(ret);
 }
 
-export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: boolean = false) {
+export async function internalTriggerWOScraping(
+    _perpage?: number,
+    _fullLoop: boolean = false,
+    action: ScraperAction = 'system'
+) {
     // v3: ukuran halaman ditentukan internal scraper (default 100).
     // Parameter _perpage diabaikan agar perubahan jadwal Out Lensa tidak memengaruhi WO.
     const perpage = 100;
@@ -404,6 +412,21 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
             }
         }
 
+        const resumeResult =
+            totalInserted > 0
+                ? `Sukses ${totalInserted} data WO baru`
+                : 'Selesai: Tidak ada data WO baru';
+
+        await scraperLogRepository
+            .insertLog({
+                scraper_type: 'wo_lensa',
+                action,
+                resume_result: resumeResult,
+            })
+            .catch((err) => {
+                actionLogger.warn('[WO-Lensa] Gagal mencatat scraper_cronjob_log:', err);
+            });
+
         return {
             success: true,
             message: `Scraping selesai. ${totalInserted} data WO Lensa baru berhasil disimpan.`,
@@ -413,12 +436,22 @@ export async function internalTriggerWOScraping(_perpage?: number, _fullLoop: bo
             'Trigger WO scraping error:',
             error instanceof Error ? error : new Error(String(error))
         );
+        const errMsg =
+            error instanceof Error
+                ? error.message
+                : 'Terjadi kesalahan saat sinkronisasi WO Lensa.';
+        await scraperLogRepository
+            .insertLog({
+                scraper_type: 'wo_lensa',
+                action,
+                resume_result: `Gagal: ${errMsg}`,
+            })
+            .catch((err) => {
+                actionLogger.warn('[WO-Lensa] Gagal mencatat scraper_cronjob_log:', err);
+            });
         return {
             success: false,
-            message:
-                error instanceof Error
-                    ? error.message
-                    : 'Terjadi kesalahan saat sinkronisasi WO Lensa.',
+            message: errMsg,
         };
     }
 }
@@ -456,7 +489,7 @@ export async function triggerWOScraping(): Promise<
     await redis.set(`job:${jobId}`, JSON.stringify({ status: 'running' }));
     Promise.resolve().then(async () => {
         try {
-            const result = await internalTriggerWOScraping(undefined, true);
+            const result = await internalTriggerWOScraping(undefined, true, 'manual');
             if (result.success) {
                 await redis.set(
                     `job:${jobId}`,

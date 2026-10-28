@@ -7,7 +7,7 @@ import {
     useReactTable,
 } from '@/lib/table';
 import { format } from 'date-fns';
-import { CheckCircle2, Eye, Play } from 'lucide-react';
+import { CheckCircle2, Clock, Eye, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -26,6 +26,7 @@ import { toCanonicalWarehouseName } from '@/lib/warehouse-helper';
 import {
     checkScrapingStatus,
     getOutLensaRefDetails,
+    type ScraperLastUpdateInfo,
     triggerScraping,
 } from '../_actions/out-lensa-actions';
 
@@ -71,6 +72,7 @@ export default function OutLensaRefClient({
     currentWarehouse = 'all',
     currentSearch = '',
     warehouseOptions = [],
+    lastUpdate = null,
 }: {
     initialData: OutLensaHeader[];
     pagination?: PaginationInfo;
@@ -79,9 +81,13 @@ export default function OutLensaRefClient({
     currentWarehouse?: string;
     currentSearch?: string;
     warehouseOptions?: string[];
+    lastUpdate?: ScraperLastUpdateInfo | null;
 }) {
     const data = initialData;
     const [isStarting, setIsStarting] = useState(false);
+    const [currentLastUpdate, setCurrentLastUpdate] = useState<ScraperLastUpdateInfo | null>(
+        lastUpdate ?? null
+    );
     const [detailData, setDetailData] = useState<OutLensaDetail[]>([]);
     const [selectedHeader, setSelectedHeader] = useState<OutLensaHeader | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -92,6 +98,10 @@ export default function OutLensaRefClient({
         toCanonicalWarehouseName(currentWarehouse)
     );
     const router = useRouter();
+
+    useEffect(() => {
+        setCurrentLastUpdate(lastUpdate ?? null);
+    }, [lastUpdate]);
 
     useEffect(() => {
         setSearchQuery(currentSearch);
@@ -211,8 +221,19 @@ export default function OutLensaRefClient({
 
         toast.promise(pollPromise, {
             loading: 'Scraping berjalan di latar belakang...',
-            success: (data: unknown) =>
-                `Berhasil menarik ${(data as { newCount?: number }).newCount || 0} reservasi baru!`,
+            success: (data: unknown) => {
+                const count = (data as { newCount?: number })?.newCount || 0;
+                setCurrentLastUpdate({
+                    timestamp: new Date().toISOString(),
+                    action: 'manual',
+                    resume_result:
+                        count > 0
+                            ? `Sukses ${count} data baru (Manual)`
+                            : 'Selesai: Tidak ada data baru (Manual)',
+                });
+                router.refresh();
+                return `Berhasil menarik ${count} reservasi baru!`;
+            },
             error: (err: unknown) =>
                 `Scraping gagal: ${err instanceof Error ? err.message : 'Unknown error'}`,
         });
@@ -441,7 +462,44 @@ export default function OutLensaRefClient({
                             )}
                         </div>
                     </CardHeader>
-                    <CardContent className="flex flex-col gap-4 w-full min-w-0 max-w-full">
+                    <CardContent className="flex flex-col gap-3.5 w-full min-w-0 max-w-full">
+                        <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 text-xs text-muted-foreground border-b border-border/40 pb-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
+                                {currentLastUpdate ? (
+                                    <>
+                                        <span>
+                                            Update Terakhir:{' '}
+                                            <strong className="font-semibold text-foreground">
+                                                {format(
+                                                    new Date(currentLastUpdate.timestamp),
+                                                    'dd MMM yyyy, HH:mm'
+                                                )}{' '}
+                                                WIB
+                                            </strong>
+                                        </span>
+                                        <span className="text-muted-foreground/50">•</span>
+                                        <span
+                                            className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium border ${
+                                                currentLastUpdate.action === 'system'
+                                                    ? 'bg-muted/60 text-foreground border-border'
+                                                    : 'bg-primary/10 text-primary border-primary/20'
+                                            }`}
+                                        >
+                                            {currentLastUpdate.action === 'system'
+                                                ? 'System (Cron)'
+                                                : 'Manual'}
+                                        </span>
+                                        <span className="text-muted-foreground/50">•</span>
+                                        <span className="text-foreground/80">
+                                            {currentLastUpdate.resume_result}
+                                        </span>
+                                    </>
+                                ) : (
+                                    <span>Belum ada riwayat update scraper.</span>
+                                )}
+                            </div>
+                        </div>
                         <DataTable
                             table={table}
                             emptyMessage="Tidak ada data."

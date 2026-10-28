@@ -9,6 +9,7 @@ import {
 import { closeBrowser } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
+import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
 import { bulkScrapeStockTeknisi } from '@/lib/services/bulk-stock-scraper';
 import {
     WORKER_HEARTBEAT_KEY,
@@ -81,10 +82,10 @@ const schedules = [
 const runScrapers = async (perpage: number) => {
     try {
         actionLogger.info(`[CRON] Running Lensa scrapers perpage=${perpage}...`);
-        await internalTriggerScraping(perpage);
+        await internalTriggerScraping(perpage, 'system');
         actionLogger.info(`[CRON] Lensa scrapers perpage=${perpage} completed.`);
         actionLogger.info('[CRON] Running WO Lensa scrapers...');
-        await internalTriggerWOScraping();
+        await internalTriggerWOScraping(undefined, undefined, 'system');
         actionLogger.info('[CRON] WO Lensa scrapers completed.');
     } catch (error) {
         actionLogger.error(
@@ -95,14 +96,24 @@ const runScrapers = async (perpage: number) => {
 };
 
 const stockScrapeSchedules = [
-    { time: '30 0 * * *', label: '00:30 WIB' },
-    { time: '0 5 * * *', label: '05:00 WIB' },
-    { time: '0 11 * * *', label: '11:00 WIB' },
-    { time: '0 19 * * *', label: '19:00 WIB' },
-    { time: '0 22 * * *', label: '22:00 WIB' },
+    { time: '30 6 * * *', label: '06:30 WIB' },
+    { time: '0 10 * * *', label: '10:00 WIB' },
+    { time: '0 13 * * *', label: '13:00 WIB' },
+    { time: '0 16 * * *', label: '16:00 WIB' },
+    { time: '30 18 * * *', label: '18:30 WIB' },
+    { time: '30 21 * * *', label: '21:30 WIB' },
+    { time: '30 23 * * *', label: '23:30 WIB' },
 ];
 
-const runBulkStockScraper = async (label: string) => {
+const otherStockSchedules = [
+    { time: '0 5 * * *', label: '05:00 WIB' },
+    { time: '0 10 * * *', label: '10:00 WIB' },
+    { time: '0 13 * * *', label: '13:00 WIB' },
+    { time: '0 17 * * *', label: '17:00 WIB' },
+    { time: '0 20 * * *', label: '20:00 WIB' },
+];
+
+const runBulkStockScraper = async (label: string, action: 'system' | 'manual' = 'system') => {
     const LOCK_KEY = 'lock:bulk_stock_scrape';
     const LOCK_TTL = 1800; // 30 minutes
 
@@ -117,14 +128,33 @@ const runBulkStockScraper = async (label: string) => {
 
         actionLogger.info(`[CRON] Starting bulk technician stock scraping (${label})...`);
         const result = await bulkScrapeStockTeknisi();
+        const resume = `${result.success} sukses, ${result.failed} gagal dari ${result.total} teknisi (${label})`;
         actionLogger.info(
-            `[CRON] Bulk technician stock scraping (${label}) completed: ${result.success} succeeded, ${result.failed} failed of ${result.total}.`
+            `[CRON] Bulk technician stock scraping (${label}) completed: ${resume}`
         );
+        await scraperLogRepository
+            .insertLog({
+                scraper_type: 'stock_teknisi',
+                action,
+                resume_result: resume,
+            })
+            .catch((err) => {
+                actionLogger.warn('[CRON] Gagal mencatat log scraper_cronjob_log:', err);
+            });
     } catch (error) {
         actionLogger.error(
             `[CRON] Error during bulk stock scraping (${label}):`,
             error instanceof Error ? error : new Error(String(error))
         );
+        await scraperLogRepository
+            .insertLog({
+                scraper_type: 'stock_teknisi',
+                action,
+                resume_result: `Gagal: ${error instanceof Error ? error.message : String(error)}`,
+            })
+            .catch((err) => {
+                actionLogger.warn('[CRON] Gagal mencatat log scraper_cronjob_log:', err);
+            });
     } finally {
         await redis.del(LOCK_KEY);
         await closeBrowser().catch(() => {});
@@ -158,15 +188,29 @@ const runLockedStockSync = async (context: string): Promise<boolean> => {
     }
 };
 
-const runWithRetry = async (context: string, maxAttempts = 3): Promise<void> => {
+const runWithRetry = async (
+    context: string,
+    maxAttempts = 3,
+    action: 'system' | 'manual' = 'system'
+): Promise<void> => {
     const delaysMs = [30_000, 60_000];
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
             const completed = await runLockedStockSync(context);
             if (!completed) throw new Error('Another stock sync currently holds the lock.');
+            const resume = `Sukses sinkronisasi Google Sheets (${context})`;
             actionLogger.info(
                 `[${context}] Sheets stock sync succeeded (attempt ${attempt}/${maxAttempts}).`
             );
+            await scraperLogRepository
+                .insertLog({
+                    scraper_type: 'other_stock',
+                    action,
+                    resume_result: resume,
+                })
+                .catch((err) => {
+                    actionLogger.warn('[CRON] Gagal mencatat scraper_cronjob_log:', err);
+                });
             return;
         } catch (err) {
             actionLogger.error(
@@ -181,6 +225,15 @@ const runWithRetry = async (context: string, maxAttempts = 3): Promise<void> => 
         }
     }
     actionLogger.error(`[${context}] All ${maxAttempts} Sheets sync attempts failed.`);
+    await scraperLogRepository
+        .insertLog({
+            scraper_type: 'other_stock',
+            action,
+            resume_result: `Gagal: Semua ${maxAttempts} percobaan sinkronisasi Sheets gagal (${context})`,
+        })
+        .catch((err) => {
+            actionLogger.warn('[CRON] Gagal mencatat scraper_cronjob_log:', err);
+        });
 };
 
 // ----------------------------------------------------
@@ -198,12 +251,11 @@ for (const schedule of stockScrapeSchedules) {
     });
 }
 
-cron.schedule('0 9 * * *', () => void runWithRetry('CRON 09:00'), {
-    timezone: 'Asia/Jakarta',
-});
-cron.schedule('0 14 * * *', () => void runWithRetry('CRON 14:00 fallback'), {
-    timezone: 'Asia/Jakarta',
-});
+for (const schedule of otherStockSchedules) {
+    cron.schedule(schedule.time, () => void runWithRetry(`CRON ${schedule.label}`), {
+        timezone: 'Asia/Jakarta',
+    });
+}
 
 actionLogger.info('[CRON] Registered all cron schedules in Asia/Jakarta timezone.');
 
@@ -229,7 +281,7 @@ const handleWorkerJob = async (job: WorkerJob) => {
                     'EX',
                     3600
                 );
-                const result = await internalTriggerScraping(job.perpage);
+                const result = await internalTriggerScraping(job.perpage, 'manual');
                 if (result.success) {
                     await redis.set(
                         `job:${job.id}`,
@@ -255,7 +307,11 @@ const handleWorkerJob = async (job: WorkerJob) => {
                     'EX',
                     3600
                 );
-                const result = await internalTriggerWOScraping(job.perpage, job.fullLoop ?? true);
+                const result = await internalTriggerWOScraping(
+                    job.perpage,
+                    job.fullLoop ?? true,
+                    'manual'
+                );
                 if (result.success) {
                     await redis.set(
                         `job:${job.id}`,
@@ -302,6 +358,17 @@ const handleWorkerJob = async (job: WorkerJob) => {
                     },
                 });
 
+                const resume = `${result.success} sukses, ${result.failed} gagal dari ${result.total} teknisi (Manual)`;
+                await scraperLogRepository
+                    .insertLog({
+                        scraper_type: 'stock_teknisi',
+                        action: 'manual',
+                        resume_result: resume,
+                    })
+                    .catch((err) => {
+                        actionLogger.warn('[WORKER] Gagal mencatat log scraper_cronjob_log:', err);
+                    });
+
                 await redis.set(
                     `job:${job.id}`,
                     JSON.stringify({
@@ -322,7 +389,7 @@ const handleWorkerJob = async (job: WorkerJob) => {
                     'EX',
                     3600
                 );
-                await runWithRetry(job.context || 'JOB');
+                await runWithRetry(job.context || 'JOB', 3, 'manual');
                 await redis.set(
                     `job:${job.id}`,
                     JSON.stringify({ status: 'success', message: 'Sinkronisasi Sheets berhasil' }),

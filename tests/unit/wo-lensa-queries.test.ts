@@ -54,6 +54,16 @@ vi.mock('@/lib/db/db', () => ({
                     execute: vi.fn().mockResolvedValue([]),
                 };
             }
+            if (table === 'inventory.scraper_cronjob_log') {
+                return {
+                    selectAll: vi.fn().mockReturnThis(),
+                    where: vi.fn().mockReturnThis(),
+                    orderBy: vi.fn().mockReturnThis(),
+                    limit: vi.fn().mockReturnValue({
+                        executeTakeFirst: vi.fn().mockResolvedValue(null),
+                    }),
+                };
+            }
             // inventory.wo_lensa_header
             const headerQuery = {
                 where: vi.fn().mockReturnThis(),
