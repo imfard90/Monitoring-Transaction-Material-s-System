@@ -11,10 +11,11 @@ vi.mock('@/lib/google_ecosystem/sheets-stock-sync', () => ({
     OTHER_STOCK_SYNC_LOCK_TTL_SECONDS: 600,
     syncOtherStock: vi.fn(),
 }));
+const mockRedisGet = vi.fn<(...args: unknown[]) => Promise<string | null>>();
 const mockRedisSet = vi.fn<(...args: unknown[]) => Promise<string | null>>();
 const mockRedisEval = vi.fn<(...args: unknown[]) => Promise<number>>();
 vi.mock('@/lib/redis', () => ({
-    redis: { set: mockRedisSet, eval: mockRedisEval },
+    redis: { get: mockRedisGet, set: mockRedisSet, eval: mockRedisEval },
 }));
 vi.mock('@/lib/errors', () => ({
     AuthorizationError: class AuthorizationError extends Error {},
@@ -123,6 +124,7 @@ const {
     getIntechLensaWarehousePerformance,
     getLensaWarehousePerformance,
     getOtherWarehouseStock,
+    getWarehouseLeaderboard,
     triggerOtherStockSync,
     getStockWarnings,
     getWarehouses,
@@ -479,5 +481,102 @@ describe('getOtherWarehouseStock', () => {
         const result = await getOtherWarehouseStock('MAT001');
 
         expect(result.success).toBe(false);
+    });
+});
+
+// ─── getWarehouseLeaderboard ───────────────────────────────────────────────────
+
+describe('getWarehouseLeaderboard', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockRedisGet.mockResolvedValue(null);
+        mockRedisSet.mockResolvedValue('OK');
+        mockGetSessionUser.mockResolvedValue({
+            nik: 'ADMIN01',
+            role: 'admin',
+            isStaff: false,
+            warehouseIds: [],
+        });
+    });
+
+    it('rejects unauthenticated callers', async () => {
+        mockGetSessionUser.mockRejectedValue(new Error('AuthenticationError'));
+
+        const result = await getWarehouseLeaderboard();
+
+        expect(result.success).toBe(false);
+        expect(result.data).toBeNull();
+    });
+
+    it('returns cached data from redis when present', async () => {
+        const cachedPayload = {
+            champion: {
+                key: 1,
+                name: 'DC Cikutra',
+                score: 95.5,
+                totalTransactions: 30,
+                outLensa: { total: 10, completed: 10, percentage: 100 },
+                rekonLensa: { total: 10, completed: 9, percentage: 90 },
+                intechLensaVsMtms: { total: 10, completed: 10, percentage: 100 },
+            },
+            leaderboard: [],
+            updatedAt: '2026-10-28T10:00:00.000Z',
+        };
+        mockRedisGet.mockResolvedValue(JSON.stringify(cachedPayload));
+
+        const result = await getWarehouseLeaderboard();
+
+        expect(result.success).toBe(true);
+        expect(result.data).toEqual(cachedPayload);
+        expect(mockSelectFrom).not.toHaveBeenCalled();
+    });
+
+    it('aggregates outLensa, rekonLensa, and intechLensa and identifies the champion', async () => {
+        mockExecute
+            .mockResolvedValueOnce([
+                { key: 1, name: 'DC Cikutra', total: 10, completed: 10 },
+                { key: 2, name: 'DC Antapani', total: 10, completed: 8 },
+            ])
+            .mockResolvedValueOnce([
+                { key: 1, name: 'DC Cikutra', total: 10, completed: 10 },
+                { key: 2, name: 'DC Antapani', total: 10, completed: 7 },
+            ])
+            .mockResolvedValueOnce([
+                {
+                    nik: 'TECH01',
+                    wh_id: 1,
+                    warehouse_name: 'DC Cikutra',
+                    ref_intech_lensa: {
+                        status: 'success',
+                        materials: [{ id_material: 'HOOK', stock_teknisi: '5' }],
+                    },
+                },
+                {
+                    nik: 'TECH02',
+                    wh_id: 2,
+                    warehouse_name: 'DC Antapani',
+                    ref_intech_lensa: {
+                        status: 'success',
+                        materials: [{ id_material: 'HOOK', stock_teknisi: '4' }],
+                    },
+                },
+            ]);
+
+        mockGetBatchTechnicianIntechStock.mockResolvedValueOnce([
+            { nik_teknisi: 'TECH01', material_code: 'HOOK', qty_intech: 5 },
+            { nik_teknisi: 'TECH02', material_code: 'HOOK', qty_intech: 9 },
+        ]);
+
+        const result = await getWarehouseLeaderboard();
+
+        expect(result.success).toBe(true);
+        expect(result.data).not.toBeNull();
+        if (result.data) {
+            expect(result.data.champion?.name).toBe('DC Cikutra');
+            expect(result.data.champion?.score).toBe(100);
+            expect(result.data.leaderboard).toHaveLength(2);
+            expect(result.data.leaderboard[0].name).toBe('DC Cikutra');
+            expect(result.data.leaderboard[1].name).toBe('DC Antapani');
+        }
     });
 });

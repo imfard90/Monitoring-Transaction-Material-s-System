@@ -166,12 +166,7 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
         let techQuery = db
             .selectFrom('hr.technicians as t')
             .innerJoin('inventory.mas_wh as wh', 'wh.id', 't.wh_id')
-            .select([
-                't.nik',
-                't.wh_id',
-                'wh.name as warehouse_name',
-                't.ref_intech_lensa',
-            ])
+            .select(['t.nik', 't.wh_id', 'wh.name as warehouse_name', 't.ref_intech_lensa'])
             .where('t.wh_id', 'is not', null);
 
         if (user.isStaff && scopedWarehouseIds) {
@@ -202,7 +197,10 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
             techMap.set(matCode, Number(row.qty_intech ?? 0));
         }
 
-        const whMap = new Map<number, { key: number; name: string; total: number; completed: number }>();
+        const whMap = new Map<
+            number,
+            { key: number; name: string; total: number; completed: number }
+        >();
         for (const t of techRows) {
             if (!t.wh_id || !t.warehouse_name) continue;
             let whData = whMap.get(t.wh_id);
@@ -225,10 +223,7 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
                 for (const material of cached.materials) {
                     if (!material.id_material) continue;
                     const code = material.id_material.trim().toUpperCase();
-                    lensMap.set(
-                        code,
-                        Number.parseInt(String(material.stock_teknisi), 10) || 0
-                    );
+                    lensMap.set(code, Number.parseInt(String(material.stock_teknisi), 10) || 0);
                 }
 
                 const allCodes = new Set([...lensMap.keys(), ...techMtmsMap.keys()]);
@@ -261,7 +256,179 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
             'Failed to fetch Intech Lensa warehouse performance:',
             error instanceof Error ? error : new Error(String(error))
         );
-        return { success: false, data: null, error: error instanceof Error ? error.message : 'Unknown error' };
+        return {
+            success: false,
+            data: null,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        };
+    }
+}
+
+export type WarehouseMetricBreakdown = {
+    total: number;
+    completed: number;
+    percentage: number;
+};
+
+export type WarehouseLeaderboardEntry = {
+    key: number;
+    name: string;
+    score: number;
+    totalTransactions: number;
+    outLensa: WarehouseMetricBreakdown;
+    rekonLensa: WarehouseMetricBreakdown;
+    intechLensaVsMtms: WarehouseMetricBreakdown;
+};
+
+export type WarehouseChampionResponse = {
+    champion: WarehouseLeaderboardEntry | null;
+    leaderboard: WarehouseLeaderboardEntry[];
+    updatedAt: string;
+};
+
+export async function getWarehouseLeaderboard(): Promise<{
+    success: boolean;
+    data: WarehouseChampionResponse | null;
+    error?: string;
+}> {
+    try {
+        const user = await getSessionUser();
+        const cacheKey = `dashboard:warehouse_leaderboard:${user.nik}:${user.role ?? 'default'}`;
+
+        try {
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+                return { success: true, data: JSON.parse(cached) };
+            }
+        } catch {
+            // Redis error fallback
+        }
+
+        const [lensaResult, intechResult] = await Promise.all([
+            getLensaWarehousePerformance(),
+            getIntechLensaWarehousePerformance(),
+        ]);
+
+        const outRows =
+            lensaResult.success && lensaResult.data?.outLensa ? lensaResult.data.outLensa : [];
+        const rekonRows =
+            lensaResult.success && lensaResult.data?.rekonLensa ? lensaResult.data.rekonLensa : [];
+        const intechRows = intechResult.success && intechResult.data ? intechResult.data : [];
+
+        const whMap = new Map<
+            number,
+            {
+                key: number;
+                name: string;
+                outTotal: number;
+                outCompleted: number;
+                rekonTotal: number;
+                rekonCompleted: number;
+                intechTotal: number;
+                intechCompleted: number;
+            }
+        >();
+
+        const getOrCreate = (key: number, name: string) => {
+            let entry = whMap.get(key);
+            if (!entry) {
+                entry = {
+                    key,
+                    name,
+                    outTotal: 0,
+                    outCompleted: 0,
+                    rekonTotal: 0,
+                    rekonCompleted: 0,
+                    intechTotal: 0,
+                    intechCompleted: 0,
+                };
+                whMap.set(key, entry);
+            }
+            return entry;
+        };
+
+        for (const item of outRows) {
+            const entry = getOrCreate(Number(item.key), item.name);
+            entry.outTotal += Number(item.total);
+            entry.outCompleted += Number(item.completed);
+        }
+
+        for (const item of rekonRows) {
+            const entry = getOrCreate(Number(item.key), item.name);
+            entry.rekonTotal += Number(item.total);
+            entry.rekonCompleted += Number(item.completed);
+        }
+
+        for (const item of intechRows) {
+            const entry = getOrCreate(Number(item.key), item.name);
+            entry.intechTotal += Number(item.total);
+            entry.intechCompleted += Number(item.completed);
+        }
+
+        const calcPercentage = (completed: number, total: number) =>
+            total === 0 ? 0 : Math.round((completed / total) * 100);
+
+        const leaderboard: WarehouseLeaderboardEntry[] = Array.from(whMap.values()).map((wh) => {
+            const pctOut = calcPercentage(wh.outCompleted, wh.outTotal);
+            const pctRekon = calcPercentage(wh.rekonCompleted, wh.rekonTotal);
+            const pctIntech = calcPercentage(wh.intechCompleted, wh.intechTotal);
+
+            const score = Math.round(((pctOut + pctRekon + pctIntech) / 3) * 10) / 10;
+            const totalTransactions = wh.outTotal + wh.rekonTotal + wh.intechTotal;
+
+            return {
+                key: wh.key,
+                name: wh.name,
+                score,
+                totalTransactions,
+                outLensa: { total: wh.outTotal, completed: wh.outCompleted, percentage: pctOut },
+                rekonLensa: {
+                    total: wh.rekonTotal,
+                    completed: wh.rekonCompleted,
+                    percentage: pctRekon,
+                },
+                intechLensaVsMtms: {
+                    total: wh.intechTotal,
+                    completed: wh.intechCompleted,
+                    percentage: pctIntech,
+                },
+            };
+        });
+
+        leaderboard.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            if (b.totalTransactions !== a.totalTransactions)
+                return b.totalTransactions - a.totalTransactions;
+            return a.name.localeCompare(b.name);
+        });
+
+        const champion =
+            leaderboard.find((w) => w.totalTransactions > 0) ||
+            (leaderboard.length > 0 ? leaderboard[0] : null);
+
+        const responseData: WarehouseChampionResponse = {
+            champion,
+            leaderboard,
+            updatedAt: new Date().toISOString(),
+        };
+
+        try {
+            await redis.set(cacheKey, JSON.stringify(responseData), 'EX', 60);
+        } catch {
+            // Ignore Redis cache errors
+        }
+
+        return { success: true, data: responseData };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch warehouse leaderboard:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return {
+            success: false,
+            data: null,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        };
     }
 }
 

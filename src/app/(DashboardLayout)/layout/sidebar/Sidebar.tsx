@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { getSidebarUserAccess, type SidebarUserAccess } from '../../management/users/actions';
 import FullLogo from '../shared/logo/FullLogo';
 import { SidebarAnnouncement } from './SidebarAnnouncement';
+import { SidebarWarehouseChampion } from './SidebarWarehouseChampion';
 import SidebarContent from './sidebaritems';
 
 interface SidebarItemType {
@@ -273,8 +274,9 @@ const SidebarLayout = ({
                     </SimpleBar>
                 </div>
 
-                {/* Announcement Widget - Pinned at the bottom */}
-                <div className="shrink-0 px-3 pb-3 pt-2 border-t border-border/50 bg-card/60 backdrop-blur-xs">
+                {/* Widgets (Juara Gudang & Announcement) - Pinned at the bottom */}
+                <div className="shrink-0 px-3 pb-3 pt-2 space-y-2 border-t border-border/50 bg-card/60 backdrop-blur-xs">
+                    <SidebarWarehouseChampion />
                     <SidebarAnnouncement />
                 </div>
             </div>

@@ -23,6 +23,11 @@ export {
     getOtherWarehouseStock,
     getStockBalances,
     getStockWarnings,
+    getWarehouseLeaderboard,
     getWarehouses,
+    type IntechLensaWarehouseMetric,
     triggerOtherStockSync,
+    type WarehouseChampionResponse,
+    type WarehouseLeaderboardEntry,
+    type WarehouseMetricBreakdown,
 } from './dashboard-queries';
