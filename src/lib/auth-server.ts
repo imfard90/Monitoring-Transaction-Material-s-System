@@ -9,6 +9,8 @@ import {
     canAccessManagement,
     canAccessTechnicianManagement,
 } from '@/lib/policies';
+import { touchUserPresence } from '@/lib/presence';
+import { redis } from '@/lib/redis';
 
 /**
  * Helper untuk mengambil NIK pengguna dari session auth di Server Actions.
@@ -23,6 +25,7 @@ export async function getSessionNik(): Promise<string> {
         if (!nik) {
             throw errors.auth();
         }
+        void touchUserPresence(redis, nik, session?.session?.id);
         return nik;
     } catch (e: any) {
         if (e.name === 'AuthenticationError') throw e;
@@ -55,6 +58,9 @@ export async function getSessionUser(): Promise<SessionUser> {
         if (!nik) {
             throw errors.auth();
         }
+
+        // Passively refresh presence for both Staff and Non-Staff on activity
+        void touchUserPresence(redis, nik, session?.session?.id);
 
         // Query role from hr.employees → hr.levels
         const employee = await db

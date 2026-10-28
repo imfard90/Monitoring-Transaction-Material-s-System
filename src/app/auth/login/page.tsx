@@ -162,8 +162,9 @@ const LoginForm = () => {
             const { revokeAllUserSessions } = await import('./_actions/login-actions');
             await revokeAllUserSessions(pendingLogin.email);
 
-            const token = (window as Window & { __mtmsTurnstileToken?: string })
-                .__mtmsTurnstileToken;
+            const token =
+                (window as Window & { __mtmsTurnstileToken?: string }).__mtmsTurnstileToken ||
+                turnstileToken;
             if (!token) {
                 setErrorMsg({
                     type: 'error',

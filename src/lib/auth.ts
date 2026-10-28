@@ -9,7 +9,7 @@ import { VerificationEmail } from './emails/verification-email';
 import { redis } from './redis';
 import { enforceAbsoluteSessionLifetime } from './session-lifetime';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder_secret');
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -128,7 +128,7 @@ export const auth = betterAuth({
         session: {
             create: {
                 /**
-                 * Prevent sign-in for inactive users.
+                 * Prevent sign-in for inactive users and enforce single active session.
                  * Intercept session creation to check if user is active.
                  */
                 before: async (session) => {
@@ -143,6 +143,33 @@ export const auth = betterAuth({
                             throw new Error(
                                 'Akun Anda tidak aktif. Silakan hubungi administrator untuk mengaktifkan akun.'
                             );
+                        }
+
+                        // Enforce single active session invariant:
+                        // Invalidate previous sessions in Redis secondaryStorage & PostgreSQL
+                        try {
+                            const prevSessionsKey = `active-sessions-${session.userId}`;
+                            const prevTokensRaw = await redis.get(prevSessionsKey);
+                            if (prevTokensRaw) {
+                                try {
+                                    const prevTokens: Array<{ token: string }> =
+                                        JSON.parse(prevTokensRaw);
+                                    const keysToDelete = prevTokens
+                                        .map((t) => t.token)
+                                        .filter(Boolean);
+                                    if (keysToDelete.length > 0) {
+                                        await redis.del(...keysToDelete);
+                                    }
+                                } catch {
+                                    // ignore json parse error
+                                }
+                                await redis.del(prevSessionsKey);
+                            }
+                            await pool.query('DELETE FROM auth.session WHERE "userId" = $1', [
+                                session.userId,
+                            ]);
+                        } catch {
+                            // Silently continue if session revocation encountered an issue
                         }
                     }
                     return { data: enforceAbsoluteSessionLifetime(session) };

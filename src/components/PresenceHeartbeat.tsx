@@ -13,17 +13,27 @@ const USER_ACTIVITY_EVENTS = [
 ] as const;
 
 async function signOutAndRedirect(router: ReturnType<typeof useRouter>): Promise<void> {
+    try {
+        const { logoutUser } = await import('@/app/auth/login/_actions/login-actions');
+        await logoutUser();
+    } catch {
+        // Silently continue if logout action fails
+    }
     const { authClient } = await import('@/lib/auth-client');
     await authClient.signOut();
     router.replace('/auth/login?reason=idle');
 }
 
 /**
- * PresenceHeartbeat — fires POST /api/presence every 30s.
- * The server handles all role logic:
- *   - Staff → returns { skipped: true }, client stops the interval permanently.
- *   - Each non-Staff session has independent presence; concurrent sessions are allowed.
- * No client-side role check needed; avoids dependency on session data not exposed to the client.
+ * PresenceHeartbeat / Idle Tracker
+ *
+ * Passive presence tracking:
+ * - Presence is touched automatically on server-side actions/requests (getSessionUser)
+ *   without periodic client polling, keeping browser console and network tabs clean.
+ *
+ * Idle tracking:
+ * - Listens for DOM user activity events.
+ * - Automatically signs out and redirects if inactive for IDLE_TIMEOUT_MS (30 minutes).
  */
 export function PresenceHeartbeat() {
     const router = useRouter();
@@ -33,10 +43,7 @@ export function PresenceHeartbeat() {
         // Guard against StrictMode double-invoke
         if (stoppedRef.current) return;
 
-        let isMounted = true;
         let isSigningOut = false;
-        let interval: ReturnType<typeof setInterval>;
-        let heartbeatTimeout: ReturnType<typeof setTimeout>;
         let idleTimeout: ReturnType<typeof setTimeout>;
 
         const resetIdleTimer = () => {
@@ -65,45 +72,8 @@ export function PresenceHeartbeat() {
         document.addEventListener('visibilitychange', handleVisibilityChange);
         resetIdleTimer();
 
-        const sendHeartbeat = async () => {
-            if (!isMounted || stoppedRef.current || isSigningOut) return;
-            try {
-                const res = await fetch('/api/presence', { method: 'POST' });
-
-                if (res.status === 401) {
-                    isSigningOut = true;
-                    await signOutAndRedirect(router);
-                } else if (res.status === 200) {
-                    try {
-                        const data = await res.json();
-                        if (data?.skipped === true) {
-                            // Server says skip — permanently stop heartbeat
-                            stoppedRef.current = true;
-                            isMounted = false;
-                            clearTimeout(heartbeatTimeout);
-                            clearInterval(interval);
-                        }
-                    } catch {
-                        // Ignore JSON parse errors
-                    }
-                }
-            } catch {
-                // A later heartbeat retries automatically; do not sign out on network failure.
-            }
-        };
-
-        // Small delay before first heartbeat so page has settled
-        heartbeatTimeout = setTimeout(() => {
-            sendHeartbeat();
-        }, 5000);
-
-        interval = setInterval(sendHeartbeat, 30000);
-
         return () => {
-            isMounted = false;
-            clearTimeout(heartbeatTimeout);
             clearTimeout(idleTimeout);
-            clearInterval(interval);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             for (const eventName of USER_ACTIVITY_EVENTS) {
                 window.removeEventListener(eventName, resetIdleTimer);

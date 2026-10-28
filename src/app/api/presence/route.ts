@@ -2,8 +2,8 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getSessionUser } from '@/lib/auth-server';
-import { logger } from '@/lib/logger';
-import { getPresenceIndexKey, getPresenceSessionKey, getPresenceTtlSeconds } from '@/lib/presence';
+import { actionLogger } from '@/lib/logger';
+import { getPresenceTtlSeconds, touchUserPresence } from '@/lib/presence';
 import { rateLimit } from '@/lib/rate-limit';
 import { redis } from '@/lib/redis';
 
@@ -34,27 +34,19 @@ export async function POST() {
             return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
         }
 
-        // Skip presence tracking for staff — they don't need concurrent session enforcement
-        if (sessionUser.isStaff) {
-            return NextResponse.json({ success: true, skipped: true });
-        }
-
         const nik = sessionUser.nik;
 
         if (!nik) {
             return NextResponse.json({ error: 'Missing NIK' }, { status: 401 });
         }
 
-        // Each session owns a separate expiring key. Sessions for the same NIK
-        // never overwrite or invalidate each other.
+        // Touch presence for all roles (including Staff)
         const ttlSeconds = getPresenceTtlSeconds();
-        const redisKey = getPresenceSessionKey(nik, sessionId);
-        await redis.set(redisKey, sessionId, 'EX', ttlSeconds);
-        await redis.set(getPresenceIndexKey(nik), '1', 'EX', ttlSeconds);
+        await touchUserPresence(redis, nik, sessionId, ttlSeconds);
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        logger.error(
+        actionLogger.error(
             '[presence] error:',
             error instanceof Error ? error : new Error(String(error))
         );

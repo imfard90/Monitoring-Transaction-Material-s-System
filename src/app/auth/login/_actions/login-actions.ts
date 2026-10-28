@@ -1,8 +1,11 @@
 'use server';
 
+import { sql } from 'kysely';
 import { z } from 'zod';
+import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
+import { clearUserPresence, getPresenceIndexKey } from '@/lib/presence';
 import { rateLimit } from '@/lib/rate-limit';
 import { redis } from '@/lib/redis';
 
@@ -20,7 +23,7 @@ export async function precheckLogin(email: string, turnstileToken: string) {
     // Limit to 10 attempts per minute per email
     const rate = await rateLimit(`login_precheck:${email}`, { limit: 10, windowMs: 60000 });
     if (!rate.success) {
-        return { status: 'rate_limited' }; // You might want to handle this on the frontend
+        return { status: 'rate_limited' };
     }
 
     try {
@@ -38,9 +41,42 @@ export async function precheckLogin(email: string, turnstileToken: string) {
             return { status: 'inactive' };
         }
 
-        const isOnline = await redis.get(`presence:user:${user.nik}`);
-        if (isOnline) {
-            return { status: 'active_session_exists' };
+        // 1. Check if user is actively online in Redis presence
+        if (user.nik) {
+            const isOnline = await redis.get(getPresenceIndexKey(user.nik));
+            if (isOnline === '1') {
+                return { status: 'active_session_exists' };
+            }
+        }
+
+        // 2. Check if user has unexpired active sessions stored in Redis
+        if (user.id) {
+            const sessionsRaw = await redis.get(`active-sessions-${user.id}`);
+            if (sessionsRaw) {
+                try {
+                    const sessions: Array<{ token: string; expiresAt?: number }> =
+                        JSON.parse(sessionsRaw);
+                    const now = Date.now();
+                    const validSessions = sessions.filter(
+                        (s) => !s.expiresAt || s.expiresAt > now
+                    );
+                    if (validSessions.length > 0) {
+                        return { status: 'active_session_exists' };
+                    }
+                } catch {
+                    // ignore JSON parse error
+                }
+            }
+
+            // 3. Check if user has active sessions in database
+            const activeSessionResult = await sql<{ id: string }>`
+                SELECT id FROM auth.session
+                WHERE "userId" = ${user.id} AND "expiresAt" > NOW()
+                LIMIT 1
+            `.execute(db);
+            if (activeSessionResult.rows.length > 0) {
+                return { status: 'active_session_exists' };
+            }
         }
 
         return { status: 'ok' };
@@ -70,9 +106,31 @@ export async function revokeAllUserSessions(email: string) {
 
         if (!user) return { success: false };
 
-        // Delete presence so the current login check passes cleanly.
-        // The new session will set its own ID in presence via the heartbeat.
-        await redis.del(`presence:user:${user.nik}`);
+        // 1. Clear presence from Redis so presence check passes cleanly
+        if (user.nik) {
+            await clearUserPresence(redis, user.nik);
+        }
+
+        // 2. Invalidate Better Auth sessions in Redis secondaryStorage
+        if (user.id) {
+            const sessionsKey = `active-sessions-${user.id}`;
+            const sessionsRaw = await redis.get(sessionsKey);
+            if (sessionsRaw) {
+                try {
+                    const sessions: Array<{ token: string }> = JSON.parse(sessionsRaw);
+                    const tokens = sessions.map((s) => s.token).filter(Boolean);
+                    if (tokens.length > 0) {
+                        await redis.del(...tokens);
+                    }
+                } catch {
+                    // ignore JSON error
+                }
+                await redis.del(sessionsKey);
+            }
+
+            // 3. Purge sessions from auth.session database table
+            await sql`DELETE FROM auth.session WHERE "userId" = ${user.id}`.execute(db);
+        }
 
         return { success: true };
     } catch (error) {
@@ -81,5 +139,19 @@ export async function revokeAllUserSessions(email: string) {
             error instanceof Error ? error : new Error(String(error))
         );
         return { success: false };
+    }
+}
+
+/**
+ * Clear current user's presence upon explicit sign-out or idle timeout.
+ */
+export async function logoutUser() {
+    try {
+        const session = await getSessionUser();
+        if (session.nik) {
+            await clearUserPresence(redis, session.nik);
+        }
+    } catch {
+        // Silently ignore if session is already invalid
     }
 }

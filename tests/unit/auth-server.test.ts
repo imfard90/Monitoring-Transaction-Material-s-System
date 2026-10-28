@@ -33,6 +33,18 @@ vi.mock('next/headers', () => ({
     headers: vi.fn(async () => new Headers()),
 }));
 
+vi.mock('@/lib/redis', () => ({
+    redis: {
+        pipeline: vi.fn().mockReturnValue({ set: vi.fn(), exec: vi.fn().mockResolvedValue([]) }),
+        set: vi.fn().mockResolvedValue('OK'),
+        del: vi.fn().mockResolvedValue(1),
+    },
+}));
+
+vi.mock('@/lib/presence', () => ({
+    touchUserPresence: vi.fn().mockResolvedValue(undefined),
+}));
+
 const {
     getSessionNik,
     getSessionUser,

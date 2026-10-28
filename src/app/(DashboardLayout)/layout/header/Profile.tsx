@@ -102,6 +102,14 @@ const Profile = () => {
                             variant="destructive"
                             className="w-full rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
                             onClick={async () => {
+                                try {
+                                    const { logoutUser } = await import(
+                                        '@/app/auth/login/_actions/login-actions'
+                                    );
+                                    await logoutUser();
+                                } catch {
+                                    // Silently continue
+                                }
                                 await authClient.signOut();
                                 window.location.href = '/auth/login';
                             }}
