@@ -56,6 +56,15 @@ const nextConfig = {
             },
         ],
     },
+    experimental: {
+        optimizePackageImports: [
+            '@iconify/react',
+            'lucide-react',
+            '@tabler/icons-react',
+            'date-fns',
+            'lodash',
+        ],
+    },
 };
 
 export default withSerwist(nextConfig);
