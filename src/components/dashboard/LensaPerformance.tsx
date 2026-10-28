@@ -16,6 +16,7 @@ type WarehouseMetric = {
 type LensaMetrics = {
     outLensa: WarehouseMetric[];
     rekonLensa: WarehouseMetric[];
+    intechLensaVsMtms: WarehouseMetric[];
 };
 
 function calculatePercentage(completed: number, total: number): number {
@@ -58,12 +59,14 @@ function MetricCard({
     rows,
     isLoading,
     hasError,
+    ratioLabel = 'Selesai / Total (Persentase)',
 }: {
     title: string;
     description: string;
     rows: WarehouseMetric[];
     isLoading: boolean;
     hasError: boolean;
+    ratioLabel?: string;
 }) {
     const sortedRows = sortByCompletion(rows);
 
@@ -83,7 +86,7 @@ function MetricCard({
             {/* Column Label / Legend */}
             <div className="relative z-10 flex items-center justify-between text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pb-2 border-b border-border/60">
                 <span>Gudang</span>
-                <span>Selesai / Total (Persentase)</span>
+                <span>{ratioLabel}</span>
             </div>
 
             {/* Content List */}
@@ -176,7 +179,11 @@ function MetricCard({
 }
 
 export function LensaPerformance() {
-    const [metrics, setMetrics] = useState<LensaMetrics>({ outLensa: [], rekonLensa: [] });
+    const [metrics, setMetrics] = useState<LensaMetrics>({
+        outLensa: [],
+        rekonLensa: [],
+        intechLensaVsMtms: [],
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
 
@@ -184,33 +191,56 @@ export function LensaPerformance() {
         let isActive = true;
         const loadMetrics = async () => {
             try {
-                const { getLensaWarehousePerformance } = await import(
-                    '@/app/(DashboardLayout)/_actions/dashboard-actions'
-                );
-                const result = await getLensaWarehousePerformance();
-                if (isActive && result.success && result.data) {
-                    setMetrics({
-                        outLensa: result.data.outLensa.map((row) => ({
-                            ...row,
-                            total: Number(row.total),
-                            completed: Number(row.completed),
-                            percentage: calculatePercentage(
-                                Number(row.completed),
-                                Number(row.total)
-                            ),
-                        })),
-                        rekonLensa: result.data.rekonLensa.map((row) => ({
-                            ...row,
-                            total: Number(row.total),
-                            completed: Number(row.completed),
-                            percentage: calculatePercentage(
-                                Number(row.completed),
-                                Number(row.total)
-                            ),
-                        })),
-                    });
-                } else if (isActive) {
-                    setHasError(true);
+                const { getLensaWarehousePerformance, getIntechLensaWarehousePerformance } =
+                    await import('@/app/(DashboardLayout)/_actions/dashboard-actions');
+                const [lensaResult, intechResult] = await Promise.all([
+                    getLensaWarehousePerformance(),
+                    getIntechLensaWarehousePerformance(),
+                ]);
+
+                if (isActive) {
+                    if (lensaResult.success && lensaResult.data) {
+                        setMetrics((prev) => ({
+                            ...prev,
+                            outLensa: (lensaResult.data?.outLensa ?? []).map((row) => ({
+                                ...row,
+                                total: Number(row.total),
+                                completed: Number(row.completed),
+                                percentage: calculatePercentage(
+                                    Number(row.completed),
+                                    Number(row.total)
+                                ),
+                            })),
+                            rekonLensa: (lensaResult.data?.rekonLensa ?? []).map((row) => ({
+                                ...row,
+                                total: Number(row.total),
+                                completed: Number(row.completed),
+                                percentage: calculatePercentage(
+                                    Number(row.completed),
+                                    Number(row.total)
+                                ),
+                            })),
+                        }));
+                    }
+
+                    if (intechResult.success && intechResult.data) {
+                        setMetrics((prev) => ({
+                            ...prev,
+                            intechLensaVsMtms: (intechResult.data ?? []).map((row) => ({
+                                ...row,
+                                total: Number(row.total),
+                                completed: Number(row.completed),
+                                percentage: calculatePercentage(
+                                    Number(row.completed),
+                                    Number(row.total)
+                                ),
+                            })),
+                        }));
+                    }
+
+                    if (!lensaResult.success && !intechResult.success) {
+                        setHasError(true);
+                    }
                 }
             } catch {
                 if (isActive) setHasError(true);
@@ -239,6 +269,14 @@ export function LensaPerformance() {
                 rows={metrics.rekonLensa}
                 isLoading={isLoading}
                 hasError={hasError}
+            />
+            <MetricCard
+                title="Performa Intech Lensa Vs MTMS"
+                description="Kesesuaian stok fisik teknisi (Intech Lensa) dengan saldo MTMS per gudang."
+                rows={metrics.intechLensaVsMtms}
+                isLoading={isLoading}
+                hasError={hasError}
+                ratioLabel="Match / Total (Persentase)"
             />
         </section>
     );

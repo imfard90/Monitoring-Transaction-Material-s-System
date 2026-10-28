@@ -16,6 +16,7 @@ import {
 import { actionLogger } from '@/lib/logger';
 import { canAccessWarehouse, canSyncStock, warehouseScope } from '@/lib/policies';
 import { redis } from '@/lib/redis';
+import { inventoryRepository } from '@/lib/repositories/inventory.repository';
 
 const triggerOtherStockSyncSchema = z.object({}).strict();
 
@@ -139,6 +140,128 @@ export async function getLensaWarehousePerformance() {
             error instanceof Error ? error : new Error(String(error))
         );
         return { success: false, data: null };
+    }
+}
+
+export type IntechLensaWarehouseMetric = {
+    key: number;
+    name: string;
+    total: number;
+    completed: number;
+};
+
+export async function getIntechLensaWarehousePerformance(): Promise<{
+    success: boolean;
+    data: IntechLensaWarehouseMetric[] | null;
+    error?: string;
+}> {
+    try {
+        const user = await getSessionUser();
+        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+
+        if (user.isStaff && (!scopedWarehouseIds || scopedWarehouseIds.length === 0)) {
+            return { success: true, data: [] };
+        }
+
+        let techQuery = db
+            .selectFrom('hr.technicians as t')
+            .innerJoin('inventory.mas_wh as wh', 'wh.id', 't.wh_id')
+            .select([
+                't.nik',
+                't.wh_id',
+                'wh.name as warehouse_name',
+                't.ref_intech_lensa',
+            ])
+            .where('t.wh_id', 'is not', null);
+
+        if (user.isStaff && scopedWarehouseIds) {
+            techQuery = techQuery.where('t.wh_id', 'in', scopedWarehouseIds);
+        }
+
+        const techRows = (await techQuery.execute()) as Array<{
+            nik: string | null;
+            wh_id: number | null;
+            warehouse_name: string | null;
+            ref_intech_lensa: unknown;
+        }>;
+
+        const niks = techRows.map((r) => r.nik).filter((nik): nik is string => Boolean(nik));
+        const mtmsStockRows =
+            niks.length > 0 ? await inventoryRepository.getBatchTechnicianIntechStock(niks) : [];
+
+        const mtmsStockByNik = new Map<string, Map<string, number>>();
+        for (const row of mtmsStockRows) {
+            if (!row.nik_teknisi || !row.material_code) continue;
+            const techNik = row.nik_teknisi.trim();
+            const matCode = row.material_code.trim().toUpperCase();
+            let techMap = mtmsStockByNik.get(techNik);
+            if (!techMap) {
+                techMap = new Map();
+                mtmsStockByNik.set(techNik, techMap);
+            }
+            techMap.set(matCode, Number(row.qty_intech ?? 0));
+        }
+
+        const whMap = new Map<number, { key: number; name: string; total: number; completed: number }>();
+        for (const t of techRows) {
+            if (!t.wh_id || !t.warehouse_name) continue;
+            let whData = whMap.get(t.wh_id);
+            if (!whData) {
+                whData = { key: t.wh_id, name: t.warehouse_name, total: 0, completed: 0 };
+                whMap.set(t.wh_id, whData);
+            }
+            whData.total++;
+
+            const cached = t.ref_intech_lensa as {
+                status?: string;
+                materials?: Array<{ id_material?: string; stock_teknisi?: string | number }>;
+            } | null;
+
+            if (cached?.status === 'success' && Array.isArray(cached.materials)) {
+                const techNik = (t.nik ?? '').trim();
+                const techMtmsMap = mtmsStockByNik.get(techNik) ?? new Map<string, number>();
+
+                const lensMap = new Map<string, number>();
+                for (const material of cached.materials) {
+                    if (!material.id_material) continue;
+                    const code = material.id_material.trim().toUpperCase();
+                    lensMap.set(
+                        code,
+                        Number.parseInt(String(material.stock_teknisi), 10) || 0
+                    );
+                }
+
+                const allCodes = new Set([...lensMap.keys(), ...techMtmsMap.keys()]);
+                let isMatch = true;
+                for (const code of allCodes) {
+                    const lQty = lensMap.get(code) ?? 0;
+                    const mQty = techMtmsMap.get(code) ?? 0;
+                    if (lQty !== mQty) {
+                        isMatch = false;
+                        break;
+                    }
+                }
+
+                if (isMatch) {
+                    whData.completed++;
+                }
+            }
+        }
+
+        const rows = Array.from(whMap.values());
+        const sorted = [...rows].sort((left, right) => {
+            const leftPercent = left.total === 0 ? 0 : left.completed / left.total;
+            const rightPercent = right.total === 0 ? 0 : right.completed / right.total;
+            return rightPercent - leftPercent || left.name.localeCompare(right.name);
+        });
+
+        return { success: true, data: sorted };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch Intech Lensa warehouse performance:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return { success: false, data: null, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
 

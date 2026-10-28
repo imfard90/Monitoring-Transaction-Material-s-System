@@ -22,6 +22,14 @@ vi.mock('@/lib/errors', () => ({
 }));
 vi.mock('node:crypto', () => ({ randomUUID: vi.fn(() => 'test-lock-token') }));
 
+const mockGetBatchTechnicianIntechStock = vi.fn();
+vi.mock('@/lib/repositories/inventory.repository', () => ({
+    inventoryRepository: {
+        getBatchTechnicianIntechStock: (...args: unknown[]) =>
+            mockGetBatchTechnicianIntechStock(...args),
+    },
+}));
+
 const mockGetSessionUser = vi.fn();
 const mockExecute = vi.fn();
 const mockCacheGet = vi.fn();
@@ -112,6 +120,7 @@ vi.mock('@/lib/db/db', () => ({
 }));
 
 const {
+    getIntechLensaWarehousePerformance,
     getLensaWarehousePerformance,
     getOtherWarehouseStock,
     triggerOtherStockSync,
@@ -305,6 +314,76 @@ describe('getLensaWarehousePerformance', () => {
             })
         );
         expect(mockExecute).toHaveBeenCalledTimes(2);
+    });
+});
+
+// ─── getIntechLensaWarehousePerformance ────────────────────────────────────────
+
+describe('getIntechLensaWarehousePerformance', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockGetSessionUser.mockResolvedValue({ isStaff: false, warehouseIds: [] });
+        mockExecute.mockResolvedValue([]);
+        mockGetBatchTechnicianIntechStock.mockResolvedValue([]);
+    });
+
+    it('returns empty array when staff has no warehouse assignment', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [] });
+
+        const result = await getIntechLensaWarehousePerformance();
+
+        expect(result).toEqual({ success: true, data: [] });
+        expect(mockSelectFrom).not.toHaveBeenCalled();
+    });
+
+    it('calculates match ratio and completion percentage per warehouse', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: false, warehouseIds: [] });
+
+        mockExecute.mockResolvedValueOnce([
+            {
+                nik: 'TECH01',
+                wh_id: 1,
+                warehouse_name: 'SO Karangpilang',
+                ref_intech_lensa: {
+                    status: 'success',
+                    materials: [{ id_material: 'CLAMP-HOOK', stock_teknisi: '5' }],
+                },
+            },
+            {
+                nik: 'TECH02',
+                wh_id: 1,
+                warehouse_name: 'SO Karangpilang',
+                ref_intech_lensa: {
+                    status: 'success',
+                    materials: [{ id_material: 'CLAMP-HOOK', stock_teknisi: '3' }],
+                },
+            },
+        ]);
+
+        mockGetBatchTechnicianIntechStock.mockResolvedValueOnce([
+            {
+                nik_teknisi: 'TECH01',
+                material_code: 'CLAMP-HOOK',
+                qty_intech: 5,
+            },
+            {
+                nik_teknisi: 'TECH02',
+                material_code: 'CLAMP-HOOK',
+                qty_intech: 10,
+            },
+        ]);
+
+        const result = await getIntechLensaWarehousePerformance();
+
+        expect(result.success).toBe(true);
+        expect(result.data).toEqual([
+            {
+                key: 1,
+                name: 'SO Karangpilang',
+                total: 2,
+                completed: 1,
+            },
+        ]);
     });
 });
 

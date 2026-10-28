@@ -18,6 +18,7 @@ export {
 export {
     getDashboardKpis,
     getDashboardStockIntech,
+    getIntechLensaWarehousePerformance,
     getLensaWarehousePerformance,
     getOtherWarehouseStock,
     getStockBalances,
