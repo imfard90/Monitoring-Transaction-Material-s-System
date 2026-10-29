@@ -93,7 +93,14 @@ export default function InOutTagTable({
         columnHelper.accessor('from_wh_name', {
             header: 'Dari Gudang',
             size: 150,
-            cell: (info) => info.getValue() || '-',
+            cell: (info) => {
+                const val = info.getValue();
+                return (
+                    <div className="truncate max-w-[150px]" title={val || undefined}>
+                        {val || '-'}
+                    </div>
+                );
+            },
         }),
         columnHelper.accessor('to_wh_name', {
             header: 'Tujuan Gudang',

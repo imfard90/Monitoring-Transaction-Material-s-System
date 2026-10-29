@@ -351,6 +351,11 @@ export default function WOLensaRefClient({
                 }
             },
         }),
+        columnHelper.accessor('nama_gudang', {
+            header: 'Gudang',
+            size: 160,
+            cell: (info) => toCanonicalWarehouseName(info.getValue()) || '-',
+        }),
         columnHelper.accessor('type', {
             header: () => <div className="text-center">Tipe</div>,
             size: 130,
@@ -381,11 +386,6 @@ export default function WOLensaRefClient({
             header: 'NIK Pemakai',
             size: 120,
             cell: (info) => info.getValue() || '-',
-        }),
-        columnHelper.accessor('nama_gudang', {
-            header: 'Gudang',
-            size: 160,
-            cell: (info) => toCanonicalWarehouseName(info.getValue()) || '-',
         }),
         columnHelper.accessor('gi_number', {
             header: 'Nomor GI',
@@ -562,48 +562,50 @@ export default function WOLensaRefClient({
                         </div>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-3.5 w-full min-w-0 max-w-full">
-                        <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 text-xs text-muted-foreground border-b border-border/40 pb-2">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                                <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
-                                {currentLastUpdate ? (
-                                    <>
-                                        <span>
-                                            Update Terakhir:{' '}
-                                            <strong className="font-semibold text-foreground">
-                                                {format(
-                                                    new Date(currentLastUpdate.timestamp),
-                                                    'dd MMM yyyy, HH:mm'
-                                                )}{' '}
-                                                WIB
-                                            </strong>
-                                        </span>
-                                        <span className="text-muted-foreground/50">•</span>
-                                        <span
-                                            className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium border ${
-                                                currentLastUpdate.action === 'system'
-                                                    ? 'bg-muted/60 text-foreground border-border'
-                                                    : 'bg-primary/10 text-primary border-primary/20'
-                                            }`}
-                                        >
-                                            {currentLastUpdate.action === 'system'
-                                                ? 'System (Cron)'
-                                                : 'Manual'}
-                                        </span>
-                                        <span className="text-muted-foreground/50">•</span>
-                                        <span className="text-foreground/80">
-                                            {currentLastUpdate.resume_result}
-                                        </span>
-                                    </>
-                                ) : (
-                                    <span>Belum ada riwayat update scraper.</span>
-                                )}
+                        <div className="flex flex-col gap-1.5 w-full min-w-0 max-w-full">
+                            <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
+                                    {currentLastUpdate ? (
+                                        <>
+                                            <span>
+                                                Update Terakhir:{' '}
+                                                <strong className="font-semibold text-foreground">
+                                                    {format(
+                                                        new Date(currentLastUpdate.timestamp),
+                                                        'dd MMM yyyy, HH:mm'
+                                                    )}{' '}
+                                                    WIB
+                                                </strong>
+                                            </span>
+                                            <span className="text-muted-foreground/50">•</span>
+                                            <span
+                                                className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium border ${
+                                                    currentLastUpdate.action === 'system'
+                                                        ? 'bg-muted/60 text-foreground border-border'
+                                                        : 'bg-primary/10 text-primary border-primary/20'
+                                                }`}
+                                            >
+                                                {currentLastUpdate.action === 'system'
+                                                    ? 'System (Cron)'
+                                                    : 'Manual'}
+                                            </span>
+                                            <span className="text-muted-foreground/50">•</span>
+                                            <span className="text-foreground/80">
+                                                {currentLastUpdate.resume_result}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <span>Belum ada riwayat update scraper.</span>
+                                    )}
+                                </div>
                             </div>
+                            <DataTable
+                                table={table}
+                                emptyMessage="Tidak ada data."
+                                className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-[620px]"
+                            />
                         </div>
-                        <DataTable
-                            table={table}
-                            emptyMessage="Tidak ada data."
-                            className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-[620px]"
-                        />
                         <div className="shrink-0 w-full min-w-0 max-w-full">
                             <DataTablePagination table={table} />
                         </div>

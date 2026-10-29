@@ -75,7 +75,7 @@ export default function HasilRekonTable({
 }: HasilRekonTableProps) {
     const columns = [
         columnHelper.accessor('created_at', {
-            header: 'Timestamp',
+            header: 'Waktu',
             size: 160,
             cell: (info) => (
                 <div className="whitespace-nowrap text-sm">
@@ -87,22 +87,18 @@ export default function HasilRekonTable({
         }),
         columnHelper.accessor('trx_id', {
             header: 'TRX ID',
-            size: 210,
+            size: 170,
             cell: (info) => (
-                <div className="whitespace-normal break-all text-sm font-medium">
+                <div
+                    className="truncate max-w-[170px] text-sm font-medium"
+                    title={info.getValue() || undefined}
+                >
                     {info.getValue() || '-'}
                 </div>
             ),
         }),
-        columnHelper.accessor('sap_number', {
-            header: 'SAP Number',
-            size: 130,
-            cell: (info) => (
-                <div className="whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
-            ),
-        }),
         columnHelper.accessor('warehouse_name', {
-            header: 'Warehouse',
+            header: 'Gudang',
             size: 130,
             cell: (info) => (
                 <div className="whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
@@ -137,20 +133,18 @@ export default function HasilRekonTable({
                 </div>
             ),
         }),
+        columnHelper.accessor('sap_number', {
+            header: 'SAP Number',
+            size: 130,
+            cell: (info) => (
+                <div className="whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
+            ),
+        }),
         columnHelper.accessor('material_code', {
             header: 'Material Code',
             size: 140,
             cell: (info) => (
                 <div className="whitespace-nowrap text-sm">{info.getValue() || '-'}</div>
-            ),
-        }),
-        columnHelper.accessor('material_name', {
-            header: 'Description',
-            size: 200,
-            cell: (info) => (
-                <div className="min-w-[150px] max-w-[180px] whitespace-normal break-words text-sm text-muted-foreground">
-                    {info.getValue() || '-'}
-                </div>
             ),
         }),
         columnHelper.accessor('qty', {

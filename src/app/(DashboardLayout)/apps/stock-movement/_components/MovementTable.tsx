@@ -103,33 +103,27 @@ export default function MovementTable({
                 </span>
             ),
         }),
-        columnHelper.accessor('reference_trx', {
-            header: 'Referensi TRX',
-            size: 220,
-            cell: (info) => (
-                <div className="whitespace-normal break-all text-sm font-medium">
-                    {info.getValue() || '-'}
-                </div>
-            ),
-        }),
         columnHelper.accessor('warehouse_name', {
             header: 'Gudang',
             size: 150,
             cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
         }),
+        columnHelper.accessor('reference_trx', {
+            header: 'Referensi TRX',
+            size: 170,
+            cell: (info) => (
+                <div
+                    className="truncate max-w-[170px] text-sm font-medium"
+                    title={info.getValue() || undefined}
+                >
+                    {info.getValue() || '-'}
+                </div>
+            ),
+        }),
         columnHelper.accessor('material_code', {
             header: 'Kode Material',
             size: 140,
             cell: (info) => <span className="text-sm">{info.getValue() || '-'}</span>,
-        }),
-        columnHelper.accessor('material_name', {
-            header: 'Deskripsi Material',
-            size: 200,
-            cell: (info) => (
-                <div className="whitespace-normal break-words text-sm text-muted-foreground">
-                    {info.getValue() || '-'}
-                </div>
-            ),
         }),
         columnHelper.accessor('movement_type', {
             header: () => <div className="text-center">Tipe</div>,
