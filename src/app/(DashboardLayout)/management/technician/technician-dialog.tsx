@@ -28,10 +28,12 @@ interface TechnicianDialogProps {
         name?: string;
         branch_id?: number;
         mitra_id?: number;
+        wh_id?: number;
         is_active?: boolean;
     } | null;
     branches: { id: number; service_area: string; branch: string }[];
     mitras: { id: number; mitra_name: string | null }[];
+    warehouses: { id: number; name: string }[];
 }
 
 export function TechnicianDialog({
@@ -40,14 +42,17 @@ export function TechnicianDialog({
     initialData,
     branches,
     mitras,
+    warehouses,
 }: TechnicianDialogProps) {
     const [isPending, startTransition] = useTransition();
     const [branchOpen, setBranchOpen] = useState(false);
+    const [warehouseOpen, setWarehouseOpen] = useState(false);
     const [mitraOpen, setMitraOpen] = useState(false);
     const [formData, setFormData] = useState({
         nik: '',
         name: '',
         branch_id: '',
+        wh_id: '',
         mitra_id: '',
     });
 
@@ -58,6 +63,7 @@ export function TechnicianDialog({
                     nik: initialData.nik || '',
                     name: initialData.name || '',
                     branch_id: initialData.branch_id ? String(initialData.branch_id) : '',
+                    wh_id: initialData.wh_id ? String(initialData.wh_id) : '',
                     mitra_id: initialData.mitra_id ? String(initialData.mitra_id) : '',
                 });
             } else {
@@ -65,6 +71,7 @@ export function TechnicianDialog({
                     nik: '',
                     name: '',
                     branch_id: '',
+                    wh_id: '',
                     mitra_id: '',
                 });
             }
@@ -79,10 +86,12 @@ export function TechnicianDialog({
             !formData.name ||
             !formData.branch_id ||
             formData.branch_id === 'none' ||
+            !formData.wh_id ||
+            formData.wh_id === 'none' ||
             !formData.mitra_id ||
             formData.mitra_id === 'none'
         ) {
-            toast.error('Semua field wajib diisi (NIK, Nama, Service Area, dan Mitra)');
+            toast.error('Semua field wajib diisi (NIK, Nama, Service Area, Gudang, dan Mitra)');
             return;
         }
 
@@ -96,6 +105,7 @@ export function TechnicianDialog({
                         formData.branch_id && formData.branch_id !== 'none'
                             ? Number(formData.branch_id)
                             : null,
+                    wh_id: Number(formData.wh_id),
                     mitra_id:
                         formData.mitra_id && formData.mitra_id !== 'none'
                             ? Number(formData.mitra_id)
@@ -200,6 +210,64 @@ export function TechnicianDialog({
                                                     <span className="truncate">
                                                         {b.service_area} - {b.branch}
                                                     </span>
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="warehouse">
+                            Gudang <span className="text-destructive">*</span>
+                        </Label>
+                        <Popover open={warehouseOpen} onOpenChange={setWarehouseOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={warehouseOpen}
+                                    className="w-full justify-between font-normal h-9 px-3"
+                                    disabled={isPending}
+                                >
+                                    <span className="truncate">
+                                        {formData.wh_id
+                                            ? warehouses.find(
+                                                  (w) => String(w.id) === formData.wh_id
+                                              )?.name || 'Pilih Gudang'
+                                            : 'Pilih Gudang'}
+                                    </span>
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[375px] p-0" align="start">
+                                <Command>
+                                    <CommandInput placeholder="Cari gudang..." />
+                                    <CommandList>
+                                        <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
+                                        <CommandGroup>
+                                            {warehouses.map((w) => (
+                                                <CommandItem
+                                                    key={w.id}
+                                                    value={w.name}
+                                                    onSelect={() => {
+                                                        setFormData({
+                                                            ...formData,
+                                                            wh_id: String(w.id),
+                                                        });
+                                                        setWarehouseOpen(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            'mr-2 h-4 w-4 shrink-0',
+                                                            formData.wh_id === String(w.id)
+                                                                ? 'opacity-100'
+                                                                : 'opacity-0'
+                                                        )}
+                                                    />
+                                                    <span className="truncate">{w.name}</span>
                                                 </CommandItem>
                                             ))}
                                         </CommandGroup>

@@ -51,6 +51,24 @@ export async function getMitras() {
     }
 }
 
+export async function getWarehouses() {
+    try {
+        await requireTechnicianManagementAccess();
+
+        return await db
+            .selectFrom('inventory.mas_wh')
+            .select(['id', 'name', 'branch'])
+            .orderBy('name', 'asc')
+            .execute();
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch warehouses:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return [];
+    }
+}
+
 export async function toggleTechnicianStatus(id: string | number, isActive: boolean) {
     try {
         await requireTechnicianManagementAccess();
@@ -78,6 +96,7 @@ const upsertTechnicianSchema = z.object({
     name: z.string().trim().min(1, 'Nama teknisi wajib diisi'),
     branch_id: z.number().int().positive().nullable(),
     mitra_id: z.number().int().positive().nullable(),
+    wh_id: z.number().int().positive('Gudang wajib dipilih'),
 });
 
 export async function upsertTechnician(data: {
@@ -86,6 +105,7 @@ export async function upsertTechnician(data: {
     name: string;
     branch_id: number | null;
     mitra_id: number | null;
+    wh_id: number;
 }) {
     const parsed = upsertTechnicianSchema.safeParse(data);
     if (!parsed.success) {
@@ -104,6 +124,7 @@ export async function upsertTechnician(data: {
                     name: cleanData.name,
                     branch_id: cleanData.branch_id,
                     mitra_id: cleanData.mitra_id,
+                    wh_id: cleanData.wh_id,
                 })
                 .where('id', '=', String(cleanData.id))
                 .execute();
@@ -115,6 +136,7 @@ export async function upsertTechnician(data: {
                     name: cleanData.name,
                     branch_id: cleanData.branch_id,
                     mitra_id: cleanData.mitra_id,
+                    wh_id: cleanData.wh_id,
                 })
                 .execute();
         }

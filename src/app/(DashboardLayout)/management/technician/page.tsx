@@ -4,7 +4,7 @@ import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { getSessionUser } from '@/lib/auth-server';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
-import { getBranches, getMitras, getTechnicians } from './actions';
+import { getBranches, getMitras, getTechnicians, getWarehouses } from './actions';
 import TechnicianTable from './technician-table';
 
 export const dynamic = 'force-dynamic';
@@ -36,10 +36,11 @@ export default async function TechnicianManagementPage() {
         redirect('/');
     }
 
-    const [technicians, branches, mitras] = await Promise.all([
+    const [technicians, branches, mitras, warehouses] = await Promise.all([
         getTechnicians(),
         getBranches(),
         getMitras(),
+        getWarehouses(),
     ]);
 
     return (
@@ -49,7 +50,12 @@ export default async function TechnicianManagementPage() {
             </StaggerItem>
 
             <StaggerItem className="bg-card rounded-lg border shadow-sm mt-4 flex-1 flex flex-col w-full min-w-0 max-w-full overflow-hidden">
-                <TechnicianTable data={technicians} branches={branches} mitras={mitras} />
+                <TechnicianTable
+                    data={technicians}
+                    branches={branches}
+                    mitras={mitras}
+                    warehouses={warehouses}
+                />
             </StaggerItem>
         </StaggerContainer>
     );

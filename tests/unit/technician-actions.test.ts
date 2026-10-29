@@ -4,7 +4,9 @@ const mockRequireTechnicianManagementAccess = vi.fn();
 const mockRevalidatePath = vi.fn();
 const mockUpdateExecute = vi.fn();
 const mockInsertExecute = vi.fn();
-const mockSet = vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ execute: mockUpdateExecute }) });
+const mockSet = vi
+    .fn()
+    .mockReturnValue({ where: vi.fn().mockReturnValue({ execute: mockUpdateExecute }) });
 const mockValues = vi.fn().mockReturnValue({ execute: mockInsertExecute });
 
 vi.mock('@/lib/auth-server', () => ({
@@ -29,6 +31,8 @@ vi.mock('@/lib/repositories/hr.repository', () => ({
     },
 }));
 
+const mockSelectExecute = vi.fn();
+
 vi.mock('@/lib/db/db', () => ({
     db: {
         updateTable: vi.fn(() => ({
@@ -37,10 +41,15 @@ vi.mock('@/lib/db/db', () => ({
         insertInto: vi.fn(() => ({
             values: mockValues,
         })),
+        selectFrom: vi.fn(() => ({
+            select: vi.fn().mockReturnThis(),
+            orderBy: vi.fn().mockReturnThis(),
+            execute: mockSelectExecute,
+        })),
     },
 }));
 
-const { upsertTechnician } = await import(
+const { upsertTechnician, getWarehouses } = await import(
     '@/app/(DashboardLayout)/management/technician/actions'
 );
 
@@ -54,6 +63,10 @@ describe('technician-actions Unit Tests', () => {
         });
         mockUpdateExecute.mockResolvedValue({});
         mockInsertExecute.mockResolvedValue({});
+        mockSelectExecute.mockResolvedValue([
+            { id: 1, name: 'Gudang A', branch: 'SBY' },
+            { id: 2, name: 'Gudang B', branch: 'GSK' },
+        ]);
     });
 
     it('trims whitespace from nik and name on insert', async () => {
@@ -62,6 +75,7 @@ describe('technician-actions Unit Tests', () => {
             name: '  Budi Santoso  ',
             branch_id: 1,
             mitra_id: null,
+            wh_id: 5,
         });
 
         expect(result.success).toBe(true);
@@ -70,6 +84,7 @@ describe('technician-actions Unit Tests', () => {
             name: 'Budi Santoso',
             branch_id: 1,
             mitra_id: null,
+            wh_id: 5,
         });
         expect(mockRevalidatePath).toHaveBeenCalledWith('/management/technician');
     });
@@ -81,6 +96,7 @@ describe('technician-actions Unit Tests', () => {
             name: ' Andi Pratama ',
             branch_id: 2,
             mitra_id: 3,
+            wh_id: 7,
         });
 
         expect(result.success).toBe(true);
@@ -89,6 +105,7 @@ describe('technician-actions Unit Tests', () => {
             name: 'Andi Pratama',
             branch_id: 2,
             mitra_id: 3,
+            wh_id: 7,
         });
     });
 
@@ -99,6 +116,7 @@ describe('technician-actions Unit Tests', () => {
                 name: 'Teknisi Test',
                 branch_id: null,
                 mitra_id: null,
+                wh_id: 1,
             })
         ).rejects.toThrow('NIK wajib diisi');
     });
@@ -110,8 +128,21 @@ describe('technician-actions Unit Tests', () => {
                 name: '   ',
                 branch_id: null,
                 mitra_id: null,
+                wh_id: 1,
             })
         ).rejects.toThrow('Nama teknisi wajib diisi');
+    });
+
+    it('rejects missing or non-positive wh_id', async () => {
+        await expect(
+            upsertTechnician({
+                nik: '12345678',
+                name: 'Teknisi Test',
+                branch_id: null,
+                mitra_id: null,
+                wh_id: 0,
+            })
+        ).rejects.toThrow('Gudang wajib dipilih');
     });
 
     it('handles duplicate NIK error (23505) with user-friendly message', async () => {
@@ -123,7 +154,14 @@ describe('technician-actions Unit Tests', () => {
                 name: 'Budi Santoso',
                 branch_id: null,
                 mitra_id: null,
+                wh_id: 1,
             })
         ).rejects.toThrow('NIK tersebut sudah terdaftar pada teknisi lain.');
+    });
+
+    it('retrieves warehouses correctly', async () => {
+        const warehouses = await getWarehouses();
+        expect(warehouses).toHaveLength(2);
+        expect(warehouses[0].name).toBe('Gudang A');
     });
 });

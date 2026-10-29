@@ -20,6 +20,7 @@ export const hrRepository = {
             .selectFrom('hr.technicians as t')
             .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
             .leftJoin('hr.mitras as m', 'm.id', 't.mitra_id')
+            .leftJoin('inventory.mas_wh as w', 'w.id', 't.wh_id')
             .select([
                 't.id',
                 't.nik',
@@ -27,6 +28,8 @@ export const hrRepository = {
                 't.is_active',
                 't.branch_id',
                 't.mitra_id',
+                't.wh_id',
+                'w.name as warehouse_name',
                 'b.service_area',
                 'm.mitra_name',
             ]);

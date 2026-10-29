@@ -1,11 +1,5 @@
 'use client';
 
-import {
-    createColumnHelper,
-    getCoreRowModel,
-    getPaginationRowModel,
-    useReactTable,
-} from '@/lib/table';
 import { motion } from 'framer-motion';
 import { Pencil, Plus } from 'lucide-react';
 import { useCallback, useMemo, useState, useTransition } from 'react';
@@ -23,27 +17,43 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import {
+    createColumnHelper,
+    getCoreRowModel,
+    getPaginationRowModel,
+    useReactTable,
+} from '@/lib/table';
 import { toggleTechnicianStatus } from './actions';
 import { TechnicianDialog } from './technician-dialog';
 
 export interface TechnicianItem {
     id: string | number;
     service_area: string | null;
+    warehouse_name?: string | null;
+    wh_id?: number | null;
     nik: string | null;
     name: string | null;
     mitra_name: string | null;
     is_active: boolean;
+    branch_id?: number | null;
+    mitra_id?: number | null;
 }
 
 interface TechnicianTableProps {
     data: TechnicianItem[];
     branches: { id: number; service_area: string; branch: string }[];
     mitras: { id: number; mitra_name: string | null }[];
+    warehouses: { id: number; name: string }[];
 }
 
 const columnHelper = createColumnHelper<TechnicianItem>();
 
-export default function TechnicianTable({ data, branches, mitras }: TechnicianTableProps) {
+export default function TechnicianTable({
+    data,
+    branches,
+    mitras,
+    warehouses,
+}: TechnicianTableProps) {
     const [isPending, startTransition] = useTransition();
     const [nikFilter, setNikFilter] = useState('');
     const [whFilter, setWhFilter] = useState<string>('all');
@@ -95,6 +105,10 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
     const columns = [
         columnHelper.accessor('service_area', {
             header: 'Area Layanan',
+            cell: (info) => info.getValue() || '-',
+        }),
+        columnHelper.accessor('warehouse_name', {
+            header: 'Gudang',
             cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('nik', {
@@ -223,6 +237,7 @@ export default function TechnicianTable({ data, branches, mitras }: TechnicianTa
                 initialData={selectedTechnician as Record<string, unknown> | null}
                 branches={branches}
                 mitras={mitras}
+                warehouses={warehouses}
             />
         </motion.div>
     );
