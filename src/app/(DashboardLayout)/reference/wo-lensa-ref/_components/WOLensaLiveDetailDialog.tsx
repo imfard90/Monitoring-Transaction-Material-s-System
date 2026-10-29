@@ -137,7 +137,9 @@ export function WOLensaLiveDetailDialog({
                                 {isManualInput
                                     ? 'Input ID Pemakaian'
                                     : `Pilih ID Pemakaian ${
-                                          options.length > 0 ? `(${options.length} tersedia)` : ''
+                                          options.length > 0
+                                              ? `(${options.length} belum ada detail)`
+                                              : ''
                                       }`}
                             </Label>
                             <Button
@@ -167,9 +169,15 @@ export function WOLensaLiveDetailDialog({
                                 placeholder={
                                     busy && options.length === 0
                                         ? 'Memuat daftar ID Pemakaian...'
-                                        : 'Pilih atau cari ID Pemakaian / No WO...'
+                                        : options.length === 0
+                                          ? 'Semua data WO sudah memiliki detail material'
+                                          : 'Pilih atau cari ID Pemakaian / No WO...'
                                 }
-                                emptyText="ID Pemakaian tidak ditemukan."
+                                emptyText={
+                                    options.length === 0
+                                        ? 'Semua data WO sudah memiliki detail material.'
+                                        : 'ID Pemakaian tidak ditemukan.'
+                                }
                                 disabled={busy || options.length === 0}
                                 className="h-10"
                             />

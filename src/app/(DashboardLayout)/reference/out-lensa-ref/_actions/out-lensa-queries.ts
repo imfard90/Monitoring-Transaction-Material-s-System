@@ -100,7 +100,6 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             filterWarehouse = whNames;
         }
 
-
         // Get total count first
         let countQuery = db
             .selectFrom('inventory.out_lensa_ref_header')
@@ -233,7 +232,10 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                     .where('si.header_id', 'in', sapHeaderIds)
                     .execute();
 
-                const itemsByHeaderId = new Map<string, { material_id: string; qty_req: number }[]>();
+                const itemsByHeaderId = new Map<
+                    string,
+                    { material_id: string; qty_req: number }[]
+                >();
                 for (const item of sapItems) {
                     if (item.header_id) {
                         const headerKey = String(item.header_id);
@@ -293,8 +295,9 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             // Match with SAP out items
             const matchedDetails: OutLensaDetail[] = headerDetails.map((d) => {
                 let sap_out_matched: boolean | null = null;
-                const sapItems = (h.gi_number ? sapOutMap.get(h.gi_number.trim()) : undefined)
-                    ?? (h.reservation_id ? sapOutMap.get(h.reservation_id.trim()) : undefined);
+                const sapItems =
+                    (h.gi_number ? sapOutMap.get(h.gi_number.trim()) : undefined) ??
+                    (h.reservation_id ? sapOutMap.get(h.reservation_id.trim()) : undefined);
                 if (sapItems && sapItems.length > 0) {
                     const sapItem = sapItems.find(
                         (si) =>
@@ -314,9 +317,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
 
             const gi = h.gi_number?.trim();
             const res = h.reservation_id?.trim();
-            const hasMatchedSap = Boolean(
-                (gi && sapOutMap.has(gi)) || (res && sapOutMap.has(res))
-            );
+            const hasMatchedSap = Boolean((gi && sapOutMap.has(gi)) || (res && sapOutMap.has(res)));
             const isSapOutCheck = Boolean(h.sap_out_check || hasMatchedSap);
 
             return {
@@ -415,16 +416,11 @@ export async function getOutLensaRefDetails(headerId: string) {
         const giNum = header?.gi_number?.trim();
         const resId = header?.reservation_id?.trim();
         if (giNum || resId) {
-            let sapHeaderQuery = db
-                .selectFrom('inventory.sap_out_header')
-                .select(['id']);
+            let sapHeaderQuery = db.selectFrom('inventory.sap_out_header').select(['id']);
 
             if (giNum && resId) {
                 sapHeaderQuery = sapHeaderQuery.where((eb) =>
-                    eb.or([
-                        eb('sap_number', '=', giNum),
-                        eb('request_id', '=', resId),
-                    ])
+                    eb.or([eb('sap_number', '=', giNum), eb('request_id', '=', resId)])
                 );
             } else if (giNum) {
                 sapHeaderQuery = sapHeaderQuery.where('sap_number', '=', giNum);
@@ -471,6 +467,78 @@ export async function getOutLensaRefDetails(headerId: string) {
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
+        };
+    }
+}
+
+export interface OutLensaReservationOption {
+    value: string;
+    label: string;
+    gi_number: string | null;
+    nama_gudang: string | null;
+    has_details: boolean;
+}
+
+export async function getOutLensaReservationIdOptions(): Promise<{
+    success: boolean;
+    data?: OutLensaReservationOption[];
+    error?: string;
+}> {
+    try {
+        const { isStaff, warehouseIds } = await getSessionUser();
+
+        let whNames: string[] = [];
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, data: [] };
+            }
+            const allowedWhNames = await db
+                .selectFrom('inventory.mas_wh')
+                .select('name')
+                .where('id', 'in', warehouseIds)
+                .execute();
+            whNames = expandWarehouseAliases(allowedWhNames.map((w) => w.name));
+        }
+
+        let query = db
+            .selectFrom('inventory.out_lensa_ref_header as h')
+            .leftJoin('inventory.out_lensa_ref_list as l', 'l.header_id', 'h.id')
+            .select([
+                'h.id',
+                'h.reservation_id',
+                'h.gi_number',
+                'h.nama_gudang',
+                sql<number>`count(l.id)`.as('item_count'),
+            ])
+            .where('h.reservation_id', 'is not', null)
+            .groupBy(['h.id', 'h.reservation_id', 'h.gi_number', 'h.nama_gudang'])
+            .having(sql`count(l.id)`, '=', 0);
+
+        if (isStaff && whNames.length > 0) {
+            query = query.where('h.nama_gudang', 'in', whNames);
+        }
+
+        // Hanya data yang belum memiliki detail material
+        const rows = await query.orderBy('h.id', 'desc').limit(300).execute();
+
+        const options: OutLensaReservationOption[] = rows.map((r) => {
+            const resId = String(r.reservation_id);
+            const gi = r.gi_number ? `GI: ${r.gi_number}` : 'Tanpa No GI';
+            const gd = r.nama_gudang ? ` (${r.nama_gudang})` : '';
+            return {
+                value: resId,
+                label: `${resId} — ${gi}${gd}`,
+                gi_number: r.gi_number,
+                nama_gudang: r.nama_gudang,
+                has_details: false,
+            };
+        });
+
+        return { success: true, data: options };
+    } catch (error: unknown) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Gagal memuat opsi reservation ID',
         };
     }
 }

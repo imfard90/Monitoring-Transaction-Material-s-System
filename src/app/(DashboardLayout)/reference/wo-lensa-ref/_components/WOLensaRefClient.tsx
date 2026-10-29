@@ -286,6 +286,9 @@ export default function WOLensaRefClient({
             const res = await scrapeSingleWODetail(selectedPemakaianId.trim());
             if (res.success && res.data) {
                 setLiveDetailResult(res.data);
+                setLiveDetailOptions((prev) =>
+                    prev.filter((opt) => opt.value !== selectedPemakaianId.trim())
+                );
                 toast.success(
                     res.data.materials.length > 0
                         ? `Berhasil menarik ${res.data.materials.length} material untuk ID ${res.data.pemakaian_id}.`

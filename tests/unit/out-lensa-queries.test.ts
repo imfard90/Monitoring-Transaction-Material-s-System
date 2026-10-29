@@ -11,7 +11,10 @@ const mockDetailsExecute = vi.fn();
 vi.mock('@/lib/auth-server', () => ({ getSessionUser: () => mockGetSessionUser() }));
 vi.mock('@/lib/redis', () => ({ redis: { get: vi.fn() } }));
 vi.mock('kysely', () => ({
-    sql: () => ({ execute: mockSqlExecute }),
+    sql: () => ({
+        execute: mockSqlExecute,
+        as: vi.fn().mockReturnThis(),
+    }),
 }));
 vi.mock('@/lib/db/db', () => ({
     db: {
@@ -48,6 +51,10 @@ vi.mock('@/lib/db/db', () => ({
                 orderBy: vi.fn().mockReturnThis(),
                 limit: vi.fn().mockReturnThis(),
                 offset: vi.fn().mockReturnThis(),
+                groupBy: vi.fn().mockReturnThis(),
+                having: vi.fn().mockReturnThis(),
+                leftJoin: vi.fn().mockReturnThis(),
+                select: vi.fn().mockReturnThis(),
                 execute: mockHeaderExecute,
             };
             return {
@@ -55,12 +62,14 @@ vi.mock('@/lib/db/db', () => ({
                     field === 'nama_gudang' ? warehouseQuery : countQuery
                 ),
                 selectAll: vi.fn().mockReturnValue(headerQuery),
+                where: vi.fn().mockReturnThis(),
+                leftJoin: vi.fn().mockReturnValue(headerQuery),
             };
         }),
     },
 }));
 
-const { getOutLensaRefList } = await import(
+const { getOutLensaRefList, getOutLensaReservationIdOptions } = await import(
     '@/app/(DashboardLayout)/reference/out-lensa-ref/_actions/out-lensa-queries'
 );
 
@@ -124,5 +133,49 @@ describe('out-lensa-queries warehouse options', () => {
 
         expect(result.success).toBe(true);
         expect(result.data?.page).toBe(1);
+    });
+
+    it('retrieves reservation ID options for dropdown (only those without details)', async () => {
+        mockHeaderExecute.mockResolvedValueOnce([
+            {
+                id: '101',
+                reservation_id: 'RES-001',
+                gi_number: 'GI-101',
+                nama_gudang: 'SO Gresik',
+                item_count: 0,
+            },
+            {
+                id: '102',
+                reservation_id: 'RES-002',
+                gi_number: null,
+                nama_gudang: null,
+                item_count: 0,
+            },
+        ]);
+
+        const res = await getOutLensaReservationIdOptions();
+        expect(res.error).toBeUndefined();
+        expect(res.success).toBe(true);
+        expect(res.data).toHaveLength(2);
+        expect(res.data?.[0].value).toBe('RES-001');
+        expect(res.data?.[0].has_details).toBe(false);
+        expect(res.data?.[0].label).toBe('RES-001 — GI: GI-101 (SO Gresik)');
+        expect(res.data?.[1].value).toBe('RES-002');
+        expect(res.data?.[1].has_details).toBe(false);
+        expect(res.data?.[1].label).toBe('RES-002 — Tanpa No GI');
+    });
+
+    it('returns empty reservation options when staff has no assigned warehouse', async () => {
+        mockGetSessionUser.mockResolvedValueOnce({
+            id: '2',
+            nik: 'STAFF01',
+            role: 'Staff',
+            isStaff: true,
+            warehouseIds: [],
+        });
+
+        const res = await getOutLensaReservationIdOptions();
+        expect(res.success).toBe(true);
+        expect(res.data).toEqual([]);
     });
 });

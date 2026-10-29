@@ -1,13 +1,7 @@
 'use client';
 
-import {
-    createColumnHelper,
-    getCoreRowModel,
-    getSortedRowModel,
-    useReactTable,
-} from '@/lib/table';
 import { format } from 'date-fns';
-import { CheckCircle2, Clock, Eye, Play } from 'lucide-react';
+import { CheckCircle2, Clock, Eye, FileSearch, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -22,13 +16,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { createColumnHelper, getCoreRowModel, getSortedRowModel, useReactTable } from '@/lib/table';
 import { toCanonicalWarehouseName } from '@/lib/warehouse-helper';
 import {
     checkScrapingStatus,
     getOutLensaRefDetails,
+    getOutLensaReservationIdOptions,
+    type OutLensaReservationOption,
+    type ScrapedOutLensaDetailResult,
     type ScraperLastUpdateInfo,
+    scrapeSingleOutLensaDetail,
     triggerScraping,
 } from '../_actions/out-lensa-actions';
+import { OutLensaLiveDetailDialog } from './OutLensaLiveDetailDialog';
 
 export interface OutLensaHeader {
     id: string;
@@ -92,6 +93,16 @@ export default function OutLensaRefClient({
     const [selectedHeader, setSelectedHeader] = useState<OutLensaHeader | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [loadingDetail, setLoadingDetail] = useState(false);
+
+    // For manual live detail modal
+    const [isLiveDetailOpen, setIsLiveDetailOpen] = useState(false);
+    const [liveDetailOptions, setLiveDetailOptions] = useState<OutLensaReservationOption[]>([]);
+    const [selectedReservationId, setSelectedReservationId] = useState<string>('');
+    const [isScrapingLiveDetail, setIsScrapingLiveDetail] = useState(false);
+    const [liveDetailResult, setLiveDetailResult] = useState<ScrapedOutLensaDetailResult | null>(
+        null
+    );
+    const [loadingOptions, setLoadingOptions] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState(currentSearch);
     const [selectedGudang, setSelectedGudang] = useState<string>(
@@ -238,6 +249,64 @@ export default function OutLensaRefClient({
                 `Scraping gagal: ${err instanceof Error ? err.message : 'Unknown error'}`,
         });
     };
+
+    const openLiveDetailDialog = useCallback(async () => {
+        setIsLiveDetailOpen(true);
+        if (liveDetailOptions.length === 0) {
+            setLoadingOptions(true);
+            try {
+                const res = await getOutLensaReservationIdOptions();
+                if (res.success && res.data) {
+                    setLiveDetailOptions(res.data);
+                    if (res.data.length > 0 && !selectedReservationId) {
+                        setSelectedReservationId(res.data[0].value);
+                    }
+                } else if (res.error) {
+                    toast.error(res.error);
+                }
+            } catch {
+                toast.error('Gagal memuat daftar Reservation ID.');
+            } finally {
+                setLoadingOptions(false);
+            }
+        }
+    }, [liveDetailOptions.length, selectedReservationId]);
+
+    const handleRunLiveDetail = useCallback(async () => {
+        if (!selectedReservationId.trim()) {
+            toast.error('Pilih atau masukkan Reservation ID terlebih dahulu.');
+            return;
+        }
+
+        setIsScrapingLiveDetail(true);
+        try {
+            const res = await scrapeSingleOutLensaDetail(selectedReservationId.trim());
+            if (res.success && res.data) {
+                setLiveDetailResult(res.data);
+                setLiveDetailOptions((prev) =>
+                    prev.filter((opt) => opt.value !== selectedReservationId.trim())
+                );
+                toast.success(
+                    res.data.materials.length > 0
+                        ? `Berhasil menarik ${res.data.materials.length} material untuk Reservasi ${res.data.reservation_id}.`
+                        : `Selesai menarik Reservasi ${res.data.reservation_id}, namun tidak ada item material.`
+                );
+                setCurrentLastUpdate({
+                    timestamp: new Date().toISOString(),
+                    action: 'manual',
+                    resume_result: `Detail Manual: Sukses menarik ${res.data.materials.length} material untuk Reservasi ${res.data.reservation_id}`,
+                });
+                router.refresh();
+            } else {
+                toast.error(res.error || 'Gagal menarik detail Out Lensa.');
+            }
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Terjadi kesalahan sistem.';
+            toast.error(msg);
+        } finally {
+            setIsScrapingLiveDetail(false);
+        }
+    }, [selectedReservationId, router]);
 
     const handleViewDetail = async (row: OutLensaHeader) => {
         setIsDialogOpen(true);
@@ -447,18 +516,37 @@ export default function OutLensaRefClient({
                                 />
                             )}
                             {!isStaff && (
-                                <Button
-                                    onClick={handleRunScraping}
-                                    disabled={isStarting}
-                                    className="shrink-0 w-full sm:w-auto shadow-sm"
-                                >
-                                    {isStarting ? (
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                    ) : (
-                                        <Play className="h-4 w-4 mr-2" />
-                                    )}
-                                    Jalankan Scraping
-                                </Button>
+                                <>
+                                    <Button
+                                        onClick={handleRunScraping}
+                                        disabled={isStarting}
+                                        className="shrink-0 w-full sm:w-auto shadow-sm"
+                                    >
+                                        {isStarting ? (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        ) : (
+                                            <Play className="h-4 w-4 mr-2" />
+                                        )}
+                                        Jalankan Scraping
+                                    </Button>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={openLiveDetailDialog}
+                                                className="shrink-0 shadow-sm"
+                                                disabled={isStarting || isScrapingLiveDetail}
+                                                aria-label="Tarik Detail Out Lensa Manual"
+                                            >
+                                                <FileSearch className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                            <p>Tarik Detail Out Lensa Manual</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </>
                             )}
                         </div>
                     </CardHeader>
@@ -536,8 +624,41 @@ export default function OutLensaRefClient({
                         isLoading={loadingDetail}
                         emptyMessage="Tidak ada detail material."
                     />
+
+                    {detailData.length === 0 &&
+                        !loadingDetail &&
+                        selectedHeader?.reservation_id &&
+                        !isStaff && (
+                            <div className="flex justify-center pt-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        if (selectedHeader.reservation_id) {
+                                            setSelectedReservationId(selectedHeader.reservation_id);
+                                            setIsDialogOpen(false);
+                                            openLiveDetailDialog();
+                                        }
+                                    }}
+                                >
+                                    <FileSearch className="mr-1.5 h-3.5 w-3.5" />
+                                    Tarik Detail Reservasi Ini dari Lensa
+                                </Button>
+                            </div>
+                        )}
                 </DialogContent>
             </Dialog>
+
+            <OutLensaLiveDetailDialog
+                open={isLiveDetailOpen}
+                onOpenChange={setIsLiveDetailOpen}
+                options={liveDetailOptions}
+                selectedId={selectedReservationId}
+                onSelectId={setSelectedReservationId}
+                onRunScrape={handleRunLiveDetail}
+                busy={isScrapingLiveDetail || loadingOptions}
+                result={liveDetailResult}
+            />
         </StaggerContainer>
     );
 }

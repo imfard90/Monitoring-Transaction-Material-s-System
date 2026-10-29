@@ -72,6 +72,7 @@ vi.mock('@/lib/db/db', () => ({
                 limit: vi.fn().mockReturnThis(),
                 offset: vi.fn().mockReturnThis(),
                 groupBy: vi.fn().mockReturnThis(),
+                having: vi.fn().mockReturnThis(),
                 leftJoin: vi.fn().mockReturnThis(),
                 select: vi.fn().mockReturnThis(),
                 execute: mockHeadersExecute,
@@ -220,7 +221,7 @@ describe('wo-lensa-queries Unit Tests', () => {
                 pemakaian_id: '998878',
                 wo_number: null,
                 nama_gudang: null,
-                item_count: 3,
+                item_count: 0,
             },
         ]);
 
@@ -230,10 +231,10 @@ describe('wo-lensa-queries Unit Tests', () => {
         expect(res.data).toHaveLength(2);
         expect(res.data?.[0].value).toBe('998877');
         expect(res.data?.[0].has_details).toBe(false);
-        expect(res.data?.[0].label).toContain('[Belum ada detail]');
+        expect(res.data?.[0].label).toBe('998877 — WO: WO-998877 (SO Gresik)');
         expect(res.data?.[1].value).toBe('998878');
-        expect(res.data?.[1].has_details).toBe(true);
-        expect(res.data?.[1].label).toContain('[3 item]');
+        expect(res.data?.[1].has_details).toBe(false);
+        expect(res.data?.[1].label).toBe('998878 — Tanpa No WO');
     });
 
     it('returns empty pemakaian ID options when staff has no assigned warehouse', async () => {

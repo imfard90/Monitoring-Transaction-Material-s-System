@@ -2,8 +2,13 @@
 'use server';
 
 import crypto from 'node:crypto';
+import { format } from 'date-fns';
+import { sql } from 'kysely';
+import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
+import { z } from 'zod';
 import { auth } from '@/lib/auth';
+import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import {
     scrapeLensaDetails,
@@ -11,6 +16,7 @@ import {
     scrapeReservation,
 } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
+import { resolveMaterialAlias } from '@/lib/material-alias-helper';
 import { redis } from '@/lib/redis';
 import {
     type ScraperAction,
@@ -210,10 +216,7 @@ export async function internalTriggerScraping(
 
                 if (giNumbers.length > 0 && resIds.length > 0) {
                     query = query.where((eb) =>
-                        eb.or([
-                            eb('sap_number', 'in', giNumbers),
-                            eb('request_id', 'in', resIds),
-                        ])
+                        eb.or([eb('sap_number', 'in', giNumbers), eb('request_id', 'in', resIds)])
                     );
                 } else if (giNumbers.length > 0) {
                     query = query.where('sap_number', 'in', giNumbers);
@@ -567,5 +570,274 @@ export async function scrapeReservationAction(id: string) {
         return result;
     } catch (error: any) {
         return { error: error.message };
+    }
+}
+
+export interface ScrapedOutLensaDetailMaterial {
+    material_id: string | null;
+    material_desc: string | null;
+    qty_approve: string | null;
+}
+
+export interface ScrapedOutLensaDetailResult {
+    reservation_id: string;
+    gi_number: string | null;
+    nama_gudang: string | null;
+    mitra: string | null;
+    materials: ScrapedOutLensaDetailMaterial[];
+}
+
+export async function scrapeSingleOutLensaDetail(reservationIdInput: string): Promise<{
+    success: boolean;
+    data?: ScrapedOutLensaDetailResult;
+    error?: string;
+}> {
+    try {
+        const parsed = z
+            .string()
+            .trim()
+            .min(1, 'Reservation ID wajib diisi')
+            .safeParse(reservationIdInput);
+        if (!parsed.success) {
+            return {
+                success: false,
+                error: parsed.error.issues[0]?.message ?? 'ID tidak valid',
+            };
+        }
+        const reservationId = parsed.data;
+
+        // Otorisasi server action (AGENTS.md §1.1)
+        const sessionUser = await getSessionUser();
+        if (!sessionUser) {
+            return {
+                success: false,
+                error: 'Sesi kedaluwarsa. Silakan login kembali.',
+            };
+        }
+        if (sessionUser.isStaff) {
+            return {
+                success: false,
+                error: 'Hanya non-staff yang dapat melakukan scraping detail Out Lensa langsung',
+            };
+        }
+
+        // 1. Cari header di DB jika ada
+        const header = await db
+            .selectFrom('inventory.out_lensa_ref_header')
+            .selectAll()
+            .where('reservation_id', '=', reservationId)
+            .executeTakeFirst();
+
+        // 2. Resolve credentials Lensa
+        let customUsername = '';
+        let customPassword = '';
+
+        // Prioritas A: Akun Lensa pengguna login
+        const loggedUser = await db
+            .selectFrom('auth.user')
+            .select([
+                sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
+                sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
+            ])
+            .where('nik', '=', sessionUser.nik)
+            .executeTakeFirst();
+
+        if (loggedUser?.lensa_username && loggedUser?.lensa_password) {
+            try {
+                customUsername = loggedUser.lensa_username;
+                customPassword = decrypt(loggedUser.lensa_password);
+            } catch (e) {
+                actionLogger.warn('Failed to decrypt user Lensa password', {
+                    error: e instanceof Error ? e.message : String(e),
+                });
+            }
+        }
+
+        // Prioritas B: Akun PIC gudang terkait
+        if ((!customUsername || !customPassword) && header?.nama_gudang) {
+            const whs = await db
+                .selectFrom('inventory.mas_wh')
+                .select(['name', 'pic_1', 'pic_2'])
+                .execute();
+            const matchedWh = findMatchingMasterWarehouse(header.nama_gudang, whs);
+            if (matchedWh) {
+                for (const picNik of [matchedWh.pic_1, matchedWh.pic_2]) {
+                    if (!picNik) continue;
+                    const picUser = await db
+                        .selectFrom('auth.user')
+                        .select([
+                            sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
+                            sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
+                        ])
+                        .where('nik', '=', picNik)
+                        .executeTakeFirst();
+
+                    if (picUser?.lensa_username && picUser?.lensa_password) {
+                        try {
+                            customUsername = picUser.lensa_username;
+                            customPassword = decrypt(picUser.lensa_password);
+                            if (customUsername && customPassword) break;
+                        } catch {}
+                    }
+                }
+            }
+        }
+
+        // Prioritas C: Akun pengguna Lensa aktif manapun di DB
+        if (!customUsername || !customPassword) {
+            const anyLensaUsers = await db
+                .selectFrom('auth.user')
+                .select([
+                    sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
+                    sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
+                ])
+                .where('lensa_acount', 'is not', null)
+                .execute();
+
+            for (const u of anyLensaUsers) {
+                if (u.lensa_username && u.lensa_password) {
+                    try {
+                        customUsername = u.lensa_username;
+                        customPassword = decrypt(u.lensa_password);
+                        if (customUsername && customPassword) break;
+                    } catch {}
+                }
+            }
+        }
+
+        // Prioritas D: Fallback ENV
+        if (!customUsername || !customPassword) {
+            customUsername = process.env.LENSA_USERNAME || '';
+            customPassword = process.env.LENSA_PASSWORD || '';
+        }
+
+        if (!customUsername || !customPassword) {
+            return {
+                success: false,
+                error: 'Kredensial akun Lensa tidak ditemukan. Pastikan ada akun Lensa yang terhubung di profil atau master gudang.',
+            };
+        }
+
+        // 3. Jalankan scrapeLensaDetails
+        const headerId = header ? header.id : '0';
+
+        actionLogger.info(
+            `[Out-Lensa-Detail-Manual] Scraping detail for reservation_id=${reservationId}...`
+        );
+        const scrapeResults = await scrapeLensaDetails(
+            [{ id: Number(headerId) || 0, reservation_id: reservationId }],
+            customUsername,
+            customPassword,
+            1
+        );
+
+        const detailItem = scrapeResults[0];
+        const rawMaterials = detailItem?.materials || [];
+        const scrapedMitra = detailItem?.mitra || null;
+
+        // 4. Buat header jika belum ada
+        let targetHeaderId = headerId;
+        if (!header) {
+            const created = await db
+                .insertInto('inventory.out_lensa_ref_header')
+                .values({
+                    reservation_id: reservationId,
+                    tgl_entry: new Date().toISOString(),
+                    formatted_date: format(new Date(), 'yyyy-MM-dd'),
+                    mitra: scrapedMitra,
+                })
+                .returning('id')
+                .executeTakeFirst();
+            if (created) {
+                targetHeaderId = String(created.id);
+            }
+        } else if (scrapedMitra && !header.mitra) {
+            await db
+                .updateTable('inventory.out_lensa_ref_header')
+                .set({ mitra: scrapedMitra })
+                .where('id', '=', String(header.id))
+                .execute();
+        }
+
+        const mappedMaterials: ScrapedOutLensaDetailMaterial[] = rawMaterials.map(
+            (m: Record<string, string>) => {
+                const rawMaterialId = (m['ID MATERIAL'] as string)?.trim() || null;
+                const materialDesc =
+                    m['NAMA MATERIAL'] || m['MATERIAL DESC'] || m.DESCRIPTION || null;
+                let materialId = rawMaterialId;
+                if (!materialId && materialDesc) {
+                    const resolved = resolveMaterialAlias(materialDesc);
+                    if (resolved) materialId = resolved;
+                }
+                return {
+                    material_id: materialId,
+                    material_desc: materialDesc,
+                    qty_approve:
+                        m['QTY ACCEPTED'] || m['QTY APPROVE']
+                            ? String(m['QTY ACCEPTED'] || m['QTY APPROVE'])
+                            : null,
+                };
+            }
+        );
+
+        if (targetHeaderId && targetHeaderId !== '0' && mappedMaterials.length > 0) {
+            await db.transaction().execute(async (trx) => {
+                await trx
+                    .deleteFrom('inventory.out_lensa_ref_list')
+                    .where('header_id', '=', String(targetHeaderId))
+                    .execute();
+
+                const dbInserts = mappedMaterials.map((m) => ({
+                    header_id: String(targetHeaderId),
+                    material_id: m.material_id,
+                    material_desc: m.material_desc,
+                    qty_approve: m.qty_approve,
+                }));
+
+                await trx.insertInto('inventory.out_lensa_ref_list').values(dbInserts).execute();
+            });
+        }
+
+        // Catat ke inventory.scraper_cronjob_log
+        const resume =
+            mappedMaterials.length > 0
+                ? `Sukses menarik ${mappedMaterials.length} material untuk Reservasi ${reservationId}`
+                : `Selesai: Tidak ada material ditemukan untuk Reservasi ${reservationId}`;
+
+        await scraperLogRepository
+            .insertLog({
+                scraper_type: 'out_lensa',
+                action: 'manual',
+                resume_result: `Detail Manual: ${resume}`,
+            })
+            .catch((err) => {
+                actionLogger.warn('[Out-Lensa] Gagal mencatat log scraper_cronjob_log:', err);
+            });
+
+        revalidatePath('/reference/out-lensa-ref');
+        revalidatePath('/form/out-sap');
+
+        return {
+            success: true,
+            data: {
+                reservation_id: reservationId,
+                gi_number: header?.gi_number ?? null,
+                nama_gudang: header?.nama_gudang ?? null,
+                mitra: scrapedMitra || header?.mitra || null,
+                materials: mappedMaterials,
+            },
+        };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Manual Out Lensa detail scraping error:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return {
+            success: false,
+            error:
+                error instanceof Error
+                    ? error.message
+                    : 'Terjadi kesalahan saat menarik detail Out Lensa.',
+        };
     }
 }

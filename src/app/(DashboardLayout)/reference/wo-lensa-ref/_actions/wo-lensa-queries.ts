@@ -418,31 +418,26 @@ export async function getWOPemakaianIdOptions(): Promise<{
                 sql<number>`count(l.id)`.as('item_count'),
             ])
             .where('h.pemakaian_id', 'is not', null)
-            .groupBy(['h.id', 'h.pemakaian_id', 'h.wo_number', 'h.nama_gudang']);
+            .groupBy(['h.id', 'h.pemakaian_id', 'h.wo_number', 'h.nama_gudang'])
+            .having(sql`count(l.id)`, '=', 0);
 
         if (isStaff && whNames.length > 0) {
             query = query.where('h.nama_gudang', 'in', whNames);
         }
 
-        // Prioritize headers with 0 items (missing details), then newest by id
-        const rows = await query
-            .orderBy(sql`count(l.id) ASC`)
-            .orderBy('h.id', 'desc')
-            .limit(300)
-            .execute();
+        // Hanya data yang belum memiliki detail material
+        const rows = await query.orderBy('h.id', 'desc').limit(300).execute();
 
         const options: WOPemakaianOption[] = rows.map((r) => {
-            const hasDetails = Number(r.item_count) > 0;
             const pid = String(r.pemakaian_id);
             const wo = r.wo_number ? `WO: ${r.wo_number}` : 'Tanpa No WO';
             const gd = r.nama_gudang ? ` (${r.nama_gudang})` : '';
-            const status = hasDetails ? `[${r.item_count} item]` : '[Belum ada detail]';
             return {
                 value: pid,
-                label: `${pid} — ${wo}${gd} ${status}`,
+                label: `${pid} — ${wo}${gd}`,
                 wo_number: r.wo_number,
                 nama_gudang: r.nama_gudang,
-                has_details: hasDetails,
+                has_details: false,
             };
         });
 
