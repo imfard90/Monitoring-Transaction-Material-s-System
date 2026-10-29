@@ -103,14 +103,14 @@ export function createStockComparisonColumns(onShowCached: (nik: string) => void
                 if (!val) {
                     return (
                         <div className="text-center">
-                            <span className="text-muted-foreground text-xs">—</span>
+                            <span className="text-muted-foreground text-sm font-mono">—</span>
                         </div>
                     );
                 }
                 try {
                     return (
                         <div className="text-center">
-                            <span className="text-xs text-muted-foreground font-mono">
+                            <span className="text-sm text-muted-foreground font-mono">
                                 {format(new Date(val), 'dd/MM/yyyy HH:mm')}
                             </span>
                         </div>
@@ -118,7 +118,7 @@ export function createStockComparisonColumns(onShowCached: (nik: string) => void
                 } catch {
                     return (
                         <div className="text-center">
-                            <span className="text-xs text-muted-foreground">{val}</span>
+                            <span className="text-sm text-muted-foreground font-mono">{val}</span>
                         </div>
                     );
                 }

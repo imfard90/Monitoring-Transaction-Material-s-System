@@ -332,7 +332,7 @@ export default function WOLensaRefClient({
             header: 'Pemakaian ID',
             size: 130,
             cell: (info) => (
-                <span className="font-medium text-foreground">{info.getValue() || '-'}</span>
+                <span className="font-mono font-medium text-foreground">{info.getValue() || '-'}</span>
             ),
         }),
         columnHelper.accessor('formatted_date', {
@@ -342,13 +342,18 @@ export default function WOLensaRefClient({
             sortFn: 'datetime',
             cell: (info) => {
                 const val = info.getValue();
-                if (!val) return '-';
-                if (val instanceof Date) return val.toLocaleDateString('id-ID');
-                try {
-                    return format(new Date(val), 'dd/MM/yyyy');
-                } catch {
-                    return String(val);
+                if (!val) return <span className="font-mono text-muted-foreground">-</span>;
+                let formatted = String(val);
+                if (val instanceof Date) {
+                    formatted = val.toLocaleDateString('id-ID');
+                } else {
+                    try {
+                        formatted = format(new Date(val), 'dd/MM/yyyy');
+                    } catch {
+                        formatted = String(val);
+                    }
                 }
+                return <span className="font-mono text-muted-foreground">{formatted}</span>;
             },
         }),
         columnHelper.accessor('nama_gudang', {
@@ -375,7 +380,7 @@ export default function WOLensaRefClient({
             size: 190,
             cell: (info) => (
                 <div
-                    className="min-w-[140px] max-w-[240px] truncate font-medium text-foreground"
+                    className="min-w-[140px] max-w-[240px] truncate font-mono font-medium text-foreground"
                     title={info.getValue() || undefined}
                 >
                     {info.getValue() || '-'}
@@ -385,17 +390,23 @@ export default function WOLensaRefClient({
         columnHelper.accessor('nik_pemakai', {
             header: 'NIK Pemakai',
             size: 120,
-            cell: (info) => info.getValue() || '-',
+            cell: (info) => (
+                <span className="font-mono">{info.getValue() || '-'}</span>
+            ),
         }),
         columnHelper.accessor('gi_number', {
             header: 'Nomor GI',
             size: 120,
-            cell: (info) => info.getValue() || '-',
+            cell: (info) => (
+                <span className="font-mono">{info.getValue() || '-'}</span>
+            ),
         }),
         columnHelper.accessor('wbs', {
             header: 'WBS',
             size: 180,
-            cell: (info) => info.getValue() || '-',
+            cell: (info) => (
+                <span className="font-mono">{info.getValue() || '-'}</span>
+            ),
         }),
         columnHelper.accessor('rekon_check', {
             header: () => <div className="text-center">Rekon</div>,
@@ -419,15 +430,23 @@ export default function WOLensaRefClient({
             size: 80,
             cell: (info) => (
                 <div className="flex justify-center">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleViewDetail(info.row.original)}
-                        title="Lihat Detail"
-                        aria-label="Lihat detail material"
-                    >
-                        <Eye className="h-4 w-4" />
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewDetail(info.row.original)}
+                                title="Lihat Detail"
+                                aria-label="Lihat detail material"
+                                className="h-8 w-8 hover:bg-muted"
+                            >
+                                <Eye className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                            <p>Lihat Detail</p>
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
             ),
         }),

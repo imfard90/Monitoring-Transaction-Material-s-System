@@ -329,7 +329,7 @@ export default function OutLensaRefClient({
             header: 'ID Reservasi',
             size: 140,
             cell: (info) => (
-                <span className="font-medium text-foreground">{info.getValue() || '-'}</span>
+                <span className="font-mono font-medium text-foreground">{info.getValue() || '-'}</span>
             ),
         }),
         columnHelper.accessor('formatted_date', {
@@ -339,13 +339,18 @@ export default function OutLensaRefClient({
             sortFn: 'datetime',
             cell: (info) => {
                 const val = info.getValue();
-                if (!val) return '-';
-                if (val instanceof Date) return val.toLocaleDateString('id-ID');
-                try {
-                    return format(new Date(val), 'dd/MM/yyyy');
-                } catch {
-                    return String(val);
+                if (!val) return <span className="font-mono text-muted-foreground">-</span>;
+                let formatted = String(val);
+                if (val instanceof Date) {
+                    formatted = val.toLocaleDateString('id-ID');
+                } else {
+                    try {
+                        formatted = format(new Date(val), 'dd/MM/yyyy');
+                    } catch {
+                        formatted = String(val);
+                    }
                 }
+                return <span className="font-mono text-muted-foreground">{formatted}</span>;
             },
         }),
         columnHelper.accessor('nama_gudang', {
@@ -356,17 +361,23 @@ export default function OutLensaRefClient({
         columnHelper.accessor('nik_pemakai', {
             header: 'NIK Pemakai',
             size: 120,
-            cell: (info) => info.getValue() || '-',
+            cell: (info) => (
+                <span className="font-mono">{info.getValue() || '-'}</span>
+            ),
         }),
         columnHelper.accessor('reservation_id_sap', {
             header: 'ID Reservasi SAP',
             size: 130,
-            cell: (info) => info.getValue() || '-',
+            cell: (info) => (
+                <span className="font-mono">{info.getValue() || '-'}</span>
+            ),
         }),
         columnHelper.accessor('gi_number', {
             header: 'Nomor GI',
             size: 130,
-            cell: (info) => info.getValue() || '-',
+            cell: (info) => (
+                <span className="font-mono">{info.getValue() || '-'}</span>
+            ),
         }),
         columnHelper.accessor('status_proses', {
             header: () => <div className="text-center">Status</div>,
@@ -383,7 +394,7 @@ export default function OutLensaRefClient({
             cell: (info) => (
                 <div className="flex justify-center">
                     {info.getValue() ? (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                     ) : (
                         <span className="text-muted-foreground">-</span>
                     )}
@@ -396,15 +407,23 @@ export default function OutLensaRefClient({
             size: 80,
             cell: (info) => (
                 <div className="flex justify-center">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleViewDetail(info.row.original)}
-                        title="Lihat Detail"
-                        aria-label="Lihat detail material"
-                    >
-                        <Eye className="h-4 w-4" />
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewDetail(info.row.original)}
+                                title="Lihat Detail"
+                                aria-label="Lihat detail material"
+                                className="h-8 w-8 hover:bg-muted"
+                            >
+                                <Eye className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                            <p>Lihat Detail</p>
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
             ),
         }),
