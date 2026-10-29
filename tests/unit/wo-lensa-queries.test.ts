@@ -18,6 +18,7 @@ vi.mock('kysely', () => {
         strings,
         values,
         execute: mockSqlExecute,
+        as: vi.fn().mockReturnThis(),
     });
     return {
         sql: fakeSql,
@@ -70,6 +71,9 @@ vi.mock('@/lib/db/db', () => ({
                 orderBy: vi.fn().mockReturnThis(),
                 limit: vi.fn().mockReturnThis(),
                 offset: vi.fn().mockReturnThis(),
+                groupBy: vi.fn().mockReturnThis(),
+                leftJoin: vi.fn().mockReturnThis(),
+                select: vi.fn().mockReturnThis(),
                 execute: mockHeadersExecute,
                 executeTakeFirst: mockCountExecuteTakeFirst,
             };
@@ -80,19 +84,19 @@ vi.mock('@/lib/db/db', () => ({
                 execute: mockWarehouseOptionsExecute,
             };
             return {
-                select: vi.fn((field: string) =>
+                select: vi.fn((field: unknown) =>
                     field === 'nama_gudang' ? warehouseOptionsQuery : headerQuery
                 ),
                 selectAll: vi.fn().mockReturnValue(headerQuery),
                 where: vi.fn().mockReturnThis(),
+                leftJoin: vi.fn().mockReturnValue(headerQuery),
             };
         }),
     },
 }));
 
-const { getWOLensaList, getWOLensaFilterOptions, getWOLensaRefDetails } = await import(
-    '@/app/(DashboardLayout)/reference/wo-lensa-ref/_actions/wo-lensa-queries'
-);
+const { getWOLensaList, getWOLensaFilterOptions, getWOLensaRefDetails, getWOPemakaianIdOptions } =
+    await import('@/app/(DashboardLayout)/reference/wo-lensa-ref/_actions/wo-lensa-queries');
 
 describe('wo-lensa-queries Unit Tests', () => {
     beforeEach(() => {
@@ -200,5 +204,50 @@ describe('wo-lensa-queries Unit Tests', () => {
         const details = await getWOLensaRefDetails('100');
         expect(details.success).toBe(true);
         expect(details.data).toHaveLength(1);
+    });
+
+    it('retrieves pemakaian ID options for dropdown correctly', async () => {
+        mockHeadersExecute.mockResolvedValueOnce([
+            {
+                id: '10',
+                pemakaian_id: '998877',
+                wo_number: 'WO-998877',
+                nama_gudang: 'SO Gresik',
+                item_count: 0,
+            },
+            {
+                id: '11',
+                pemakaian_id: '998878',
+                wo_number: null,
+                nama_gudang: null,
+                item_count: 3,
+            },
+        ]);
+
+        const res = await getWOPemakaianIdOptions();
+        expect(res.error).toBeUndefined();
+        expect(res.success).toBe(true);
+        expect(res.data).toHaveLength(2);
+        expect(res.data?.[0].value).toBe('998877');
+        expect(res.data?.[0].has_details).toBe(false);
+        expect(res.data?.[0].label).toContain('[Belum ada detail]');
+        expect(res.data?.[1].value).toBe('998878');
+        expect(res.data?.[1].has_details).toBe(true);
+        expect(res.data?.[1].label).toContain('[3 item]');
+    });
+
+    it('returns empty pemakaian ID options when staff has no assigned warehouse', async () => {
+        mockGetSessionUser.mockResolvedValue({
+            id: '2',
+            nik: 'STAFF01',
+            role: 'Staff',
+            isStaff: true,
+            warehouseIds: [],
+        });
+
+        const res = await getWOPemakaianIdOptions();
+        expect(res.error).toBeUndefined();
+        expect(res.success).toBe(true);
+        expect(res.data).toEqual([]);
     });
 });

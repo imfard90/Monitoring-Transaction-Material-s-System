@@ -21,3 +21,4 @@ COMMENT ON COLUMN inventory.scraper_cronjob_log.scraper_type IS 'Kategori scrape
 COMMENT ON COLUMN inventory.scraper_cronjob_log.action IS 'Tipe pemicu: system (cron) atau manual (user button)';
 COMMENT ON COLUMN inventory.scraper_cronjob_log.resume_result IS 'Ringkasan hasil eksekusi (data terproses, sukses, gagal)';
 COMMENT ON COLUMN inventory.scraper_cronjob_log.timestamp IS 'Waktu eksekusi selesai';
+

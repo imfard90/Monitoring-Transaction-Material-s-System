@@ -128,3 +128,4 @@ describe('scraperLogRepository', () => {
         expect(result).toBeNull();
     });
 });
+

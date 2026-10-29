@@ -1,13 +1,7 @@
 'use client';
 
-import {
-    createColumnHelper,
-    getCoreRowModel,
-    getSortedRowModel,
-    useReactTable,
-} from '@/lib/table';
 import { format } from 'date-fns';
-import { Clock, Eye, Play } from 'lucide-react';
+import { Clock, Eye, FileSearch, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -22,13 +16,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { createColumnHelper, getCoreRowModel, getSortedRowModel, useReactTable } from '@/lib/table';
 import { toCanonicalWarehouseName } from '@/lib/warehouse-helper';
 import {
     checkWOScrapingStatus,
     getWOLensaRefDetails,
+    getWOPemakaianIdOptions,
+    type ScrapedWODetailResult,
     type ScraperLastUpdateInfo,
+    scrapeSingleWODetail,
     triggerWOScraping,
+    type WOPemakaianOption,
 } from '../_actions/wo-lensa-actions';
+import { WOLensaLiveDetailDialog } from './WOLensaLiveDetailDialog';
 
 export interface WOLensaHeader {
     id: number | string;
@@ -101,6 +102,14 @@ export default function WOLensaRefClient({
     const [selectedHeader, setSelectedHeader] = useState<WOLensaHeader | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [loadingDetail, setLoadingDetail] = useState(false);
+
+    // For manual live detail modal
+    const [isLiveDetailOpen, setIsLiveDetailOpen] = useState(false);
+    const [liveDetailOptions, setLiveDetailOptions] = useState<WOPemakaianOption[]>([]);
+    const [selectedPemakaianId, setSelectedPemakaianId] = useState<string>('');
+    const [isScrapingLiveDetail, setIsScrapingLiveDetail] = useState(false);
+    const [liveDetailResult, setLiveDetailResult] = useState<ScrapedWODetailResult | null>(null);
+    const [loadingOptions, setLoadingOptions] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState(currentSearch);
     const [selectedGudang, setSelectedGudang] = useState<string>(
@@ -243,6 +252,61 @@ export default function WOLensaRefClient({
             error: (err: Error) => `Scraping gagal: ${err.message}`,
         });
     };
+
+    const openLiveDetailDialog = useCallback(async () => {
+        setIsLiveDetailOpen(true);
+        if (liveDetailOptions.length === 0) {
+            setLoadingOptions(true);
+            try {
+                const res = await getWOPemakaianIdOptions();
+                if (res.success && res.data) {
+                    setLiveDetailOptions(res.data);
+                    if (res.data.length > 0 && !selectedPemakaianId) {
+                        setSelectedPemakaianId(res.data[0].value);
+                    }
+                } else if (res.error) {
+                    toast.error(res.error);
+                }
+            } catch {
+                toast.error('Gagal memuat daftar ID Pemakaian.');
+            } finally {
+                setLoadingOptions(false);
+            }
+        }
+    }, [liveDetailOptions.length, selectedPemakaianId]);
+
+    const handleRunLiveDetail = useCallback(async () => {
+        if (!selectedPemakaianId.trim()) {
+            toast.error('Pilih atau masukkan ID Pemakaian terlebih dahulu.');
+            return;
+        }
+
+        setIsScrapingLiveDetail(true);
+        try {
+            const res = await scrapeSingleWODetail(selectedPemakaianId.trim());
+            if (res.success && res.data) {
+                setLiveDetailResult(res.data);
+                toast.success(
+                    res.data.materials.length > 0
+                        ? `Berhasil menarik ${res.data.materials.length} material untuk ID ${res.data.pemakaian_id}.`
+                        : `Selesai menarik WO ID ${res.data.pemakaian_id}, namun tidak ada item material.`
+                );
+                setCurrentLastUpdate({
+                    timestamp: new Date().toISOString(),
+                    action: 'manual',
+                    resume_result: `Detail Manual: Sukses menarik ${res.data.materials.length} material untuk ID ${res.data.pemakaian_id}`,
+                });
+                router.refresh();
+            } else {
+                toast.error(res.error || 'Gagal menarik detail WO dari Lensa.');
+            }
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Terjadi kesalahan sistem.';
+            toast.error(msg);
+        } finally {
+            setIsScrapingLiveDetail(false);
+        }
+    }, [selectedPemakaianId, router]);
 
     const handleViewDetail = async (row: WOLensaHeader) => {
         setIsDialogOpen(true);
@@ -460,18 +524,37 @@ export default function WOLensaRefClient({
                                 />
                             )}
                             {!isStaff && (
-                                <Button
-                                    onClick={handleRunScraping}
-                                    disabled={isStarting}
-                                    className="shrink-0 w-full sm:w-auto shadow-sm"
-                                >
-                                    {isStarting ? (
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                    ) : (
-                                        <Play className="h-4 w-4 mr-2" />
-                                    )}
-                                    Jalankan Scraping
-                                </Button>
+                                <>
+                                    <Button
+                                        onClick={handleRunScraping}
+                                        disabled={isStarting}
+                                        className="shrink-0 w-full sm:w-auto shadow-sm"
+                                    >
+                                        {isStarting ? (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        ) : (
+                                            <Play className="h-4 w-4 mr-2" />
+                                        )}
+                                        Jalankan Scraping
+                                    </Button>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={openLiveDetailDialog}
+                                                className="shrink-0 shadow-sm"
+                                                disabled={isStarting || isScrapingLiveDetail}
+                                                aria-label="Tarik Detail WO Manual"
+                                            >
+                                                <FileSearch className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                            <p>Tarik Detail WO Manual</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </>
                             )}
                         </div>
                     </CardHeader>
@@ -549,8 +632,41 @@ export default function WOLensaRefClient({
                         isLoading={loadingDetail}
                         emptyMessage="Tidak ada detail material (Atau mungkin belum terscrape)."
                     />
+
+                    {detailData.length === 0 &&
+                        !loadingDetail &&
+                        selectedHeader?.pemakaian_id &&
+                        !isStaff && (
+                            <div className="flex justify-center pt-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        if (selectedHeader.pemakaian_id) {
+                                            setSelectedPemakaianId(selectedHeader.pemakaian_id);
+                                            setIsDialogOpen(false);
+                                            openLiveDetailDialog();
+                                        }
+                                    }}
+                                >
+                                    <FileSearch className="mr-1.5 h-3.5 w-3.5" />
+                                    Tarik Detail WO Ini dari Lensa
+                                </Button>
+                            </div>
+                        )}
                 </DialogContent>
             </Dialog>
+
+            <WOLensaLiveDetailDialog
+                open={isLiveDetailOpen}
+                onOpenChange={setIsLiveDetailOpen}
+                options={liveDetailOptions}
+                selectedId={selectedPemakaianId}
+                onSelectId={setSelectedPemakaianId}
+                onRunScrape={handleRunLiveDetail}
+                busy={isScrapingLiveDetail || loadingOptions}
+                result={liveDetailResult}
+            />
         </StaggerContainer>
     );
 }

@@ -109,7 +109,6 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             filterWarehouse = whNames;
         }
 
-
         // Hitung total data
         let countQuery = db
             .selectFrom('inventory.wo_lensa_header')
@@ -216,10 +215,7 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
 
                 if (pIds.length > 0 && woNums.length > 0) {
                     rekonQuery = rekonQuery.where((eb) =>
-                        eb.or([
-                            eb('id_pemakaian', 'in', pIds),
-                            eb('wo_number', 'in', woNums),
-                        ])
+                        eb.or([eb('id_pemakaian', 'in', pIds), eb('wo_number', 'in', woNums)])
                     );
                 } else if (pIds.length > 0) {
                     rekonQuery = rekonQuery.where('id_pemakaian', 'in', pIds);
@@ -230,10 +226,14 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
                 const matchedRekons = await rekonQuery.execute();
                 if (matchedRekons.length > 0) {
                     const matchedPIds = new Set(
-                        matchedRekons.map((r) => r.id_pemakaian?.trim()).filter((n): n is string => Boolean(n))
+                        matchedRekons
+                            .map((r) => r.id_pemakaian?.trim())
+                            .filter((n): n is string => Boolean(n))
                     );
                     const matchedWos = new Set(
-                        matchedRekons.map((r) => r.wo_number?.trim()).filter((n): n is string => Boolean(n))
+                        matchedRekons
+                            .map((r) => r.wo_number?.trim())
+                            .filter((n): n is string => Boolean(n))
                     );
 
                     const idsToUpdate = unflaggedHeaders
@@ -350,7 +350,6 @@ export async function getWOLensaRefList() {
         return [];
     }
 
-
     let query = db
         .selectFrom('inventory.wo_lensa_header as wlh')
         .selectAll('wlh')
@@ -376,5 +375,82 @@ export async function getWOLensaRefDetails(headerId: number | string) {
         return { success: true, data: details };
     } catch (error: unknown) {
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export interface WOPemakaianOption {
+    value: string;
+    label: string;
+    wo_number: string | null;
+    nama_gudang: string | null;
+    has_details: boolean;
+}
+
+export async function getWOPemakaianIdOptions(): Promise<{
+    success: boolean;
+    data?: WOPemakaianOption[];
+    error?: string;
+}> {
+    try {
+        const { isStaff, warehouseIds } = await getSessionUser();
+
+        let whNames: string[] = [];
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, data: [] };
+            }
+            const allowedWhNames = await db
+                .selectFrom('inventory.mas_wh')
+                .select('name')
+                .where('id', 'in', warehouseIds)
+                .execute();
+            whNames = expandWarehouseAliases(allowedWhNames.map((w) => w.name));
+        }
+
+        let query = db
+            .selectFrom('inventory.wo_lensa_header as h')
+            .leftJoin('inventory.wo_lensa_list as l', 'l.header_id', 'h.id')
+            .select([
+                'h.id',
+                'h.pemakaian_id',
+                'h.wo_number',
+                'h.nama_gudang',
+                sql<number>`count(l.id)`.as('item_count'),
+            ])
+            .where('h.pemakaian_id', 'is not', null)
+            .groupBy(['h.id', 'h.pemakaian_id', 'h.wo_number', 'h.nama_gudang']);
+
+        if (isStaff && whNames.length > 0) {
+            query = query.where('h.nama_gudang', 'in', whNames);
+        }
+
+        // Prioritize headers with 0 items (missing details), then newest by id
+        const rows = await query
+            .orderBy(sql`count(l.id) ASC`)
+            .orderBy('h.id', 'desc')
+            .limit(300)
+            .execute();
+
+        const options: WOPemakaianOption[] = rows.map((r) => {
+            const hasDetails = Number(r.item_count) > 0;
+            const pid = String(r.pemakaian_id);
+            const wo = r.wo_number ? `WO: ${r.wo_number}` : 'Tanpa No WO';
+            const gd = r.nama_gudang ? ` (${r.nama_gudang})` : '';
+            const status = hasDetails ? `[${r.item_count} item]` : '[Belum ada detail]';
+            return {
+                value: pid,
+                label: `${pid} — ${wo}${gd} ${status}`,
+                wo_number: r.wo_number,
+                nama_gudang: r.nama_gudang,
+                has_details: hasDetails,
+            };
+        });
+
+        return { success: true, data: options };
+    } catch (error: unknown) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Gagal memuat opsi pemakaian ID',
+        };
     }
 }

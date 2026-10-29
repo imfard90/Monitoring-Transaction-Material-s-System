@@ -14,16 +14,23 @@ export type {
     ScraperLastUpdateInfo,
     WOLensaDetail,
     WOLensaHeader,
+    WOPemakaianOption,
 } from './wo-lensa-queries';
 export {
     getWOLensaFilterOptions,
     getWOLensaList,
     getWOLensaRefDetails,
     getWOLensaRefList,
+    getWOPemakaianIdOptions,
 } from './wo-lensa-queries';
 
+export type {
+    ScrapedWODetailMaterial,
+    ScrapedWODetailResult,
+} from './wo-lensa-scraper';
 export {
     checkWOScrapingStatus,
     internalTriggerWOScraping,
+    scrapeSingleWODetail,
     triggerWOScraping,
 } from './wo-lensa-scraper';

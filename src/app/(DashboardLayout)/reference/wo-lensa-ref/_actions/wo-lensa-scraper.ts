@@ -1,8 +1,11 @@
 'use server';
 
 import crypto from 'node:crypto';
+import { format } from 'date-fns';
 import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { scrapeWOLensaDetails, scrapeWOLensaHeaders } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
@@ -531,4 +534,259 @@ export async function checkWOScrapingStatus(jobId: string) {
         revalidatePath('/form/rekon-lensa');
     }
     return parsed;
+}
+
+export interface ScrapedWODetailMaterial {
+    material_id: string | null;
+    material_desc: string | null;
+    uom: string | null;
+    qty_pemakaian: number | null;
+}
+
+export interface ScrapedWODetailResult {
+    pemakaian_id: string;
+    wo_number: string | null;
+    nama_gudang: string | null;
+    type: string | null;
+    materials: ScrapedWODetailMaterial[];
+}
+
+export async function scrapeSingleWODetail(pemakaianIdInput: string): Promise<{
+    success: boolean;
+    data?: ScrapedWODetailResult;
+    error?: string;
+}> {
+    try {
+        const parsed = z
+            .string()
+            .trim()
+            .min(1, 'Pemakaian ID wajib diisi')
+            .safeParse(pemakaianIdInput);
+        if (!parsed.success) {
+            return {
+                success: false,
+                error: parsed.error.issues[0]?.message ?? 'ID tidak valid',
+            };
+        }
+        const pemakaianId = parsed.data;
+
+        // Otorisasi server action (AGENTS.md §1.1)
+        const sessionUser = await getSessionUser();
+        if (!sessionUser) {
+            return {
+                success: false,
+                error: 'Sesi kedaluwarsa. Silakan login kembali.',
+            };
+        }
+        if (sessionUser.isStaff) {
+            return {
+                success: false,
+                error: 'Hanya non-staff yang dapat melakukan scraping detail WO langsung',
+            };
+        }
+
+        // 1. Cari header di DB jika ada
+        const header = await db
+            .selectFrom('inventory.wo_lensa_header')
+            .selectAll()
+            .where('pemakaian_id', '=', pemakaianId)
+            .executeTakeFirst();
+
+        // 2. Resolve credentials Lensa
+        let customUsername = '';
+        let customPassword = '';
+
+        // Prioritas A: Akun Lensa pengguna login
+        const loggedUser = await db
+            .selectFrom('auth.user')
+            .select([
+                sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
+                sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
+            ])
+            .where('nik', '=', sessionUser.nik)
+            .executeTakeFirst();
+
+        if (loggedUser?.lensa_username && loggedUser?.lensa_password) {
+            try {
+                customUsername = loggedUser.lensa_username;
+                customPassword = decrypt(loggedUser.lensa_password);
+            } catch (e) {
+                actionLogger.warn('Failed to decrypt user Lensa password', {
+                    error: e instanceof Error ? e.message : String(e),
+                });
+            }
+        }
+
+        // Prioritas B: Akun PIC gudang terkait
+        if ((!customUsername || !customPassword) && header?.nama_gudang) {
+            const whs = await db
+                .selectFrom('inventory.mas_wh')
+                .select(['name', 'pic_1', 'pic_2'])
+                .execute();
+            const matchedWh = findMatchingMasterWarehouse(header.nama_gudang, whs);
+            if (matchedWh) {
+                for (const picNik of [matchedWh.pic_1, matchedWh.pic_2]) {
+                    if (!picNik) continue;
+                    const picUser = await db
+                        .selectFrom('auth.user')
+                        .select([
+                            sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
+                            sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
+                        ])
+                        .where('nik', '=', picNik)
+                        .executeTakeFirst();
+                    if (picUser?.lensa_username && picUser?.lensa_password) {
+                        try {
+                            customUsername = picUser.lensa_username;
+                            customPassword = decrypt(picUser.lensa_password);
+                            break;
+                        } catch {}
+                    }
+                }
+            }
+        }
+
+        // Prioritas C: Akun Lensa aktif manapun di auth.user
+        if (!customUsername || !customPassword) {
+            const anyLensaUsers = await db
+                .selectFrom('auth.user')
+                .select([
+                    sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
+                    sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
+                ])
+                .where('lensa_acount', 'is not', null)
+                .execute();
+
+            for (const u of anyLensaUsers) {
+                if (u.lensa_username && u.lensa_password) {
+                    try {
+                        customUsername = u.lensa_username;
+                        customPassword = decrypt(u.lensa_password);
+                        if (customUsername && customPassword) break;
+                    } catch {}
+                }
+            }
+        }
+
+        // Prioritas D: Fallback ENV
+        if (!customUsername || !customPassword) {
+            customUsername = process.env.LENSA_USERNAME || '';
+            customPassword = process.env.LENSA_PASSWORD || '';
+        }
+
+        if (!customUsername || !customPassword) {
+            return {
+                success: false,
+                error: 'Kredensial akun Lensa tidak ditemukan. Pastikan ada akun Lensa yang terhubung di profil atau master gudang.',
+            };
+        }
+
+        // 3. Jalankan scrapeWOLensaDetails
+        const headerId = header ? Number(header.id) : 0;
+        const headerType = (header as { type?: string | null })?.type || 'assurance';
+
+        actionLogger.info(`[WO-Detail-Manual] Scraping detail for pemakaian_id=${pemakaianId}...`);
+        const scrapeResults = await scrapeWOLensaDetails(
+            [{ id: headerId, pemakaian_id: pemakaianId, type: headerType }],
+            customUsername,
+            customPassword,
+            1
+        );
+
+        const detailItem = scrapeResults[0];
+        const rawMaterials = detailItem?.materials || [];
+
+        // 4. Buat header jika belum ada
+        let targetHeaderId = headerId;
+        if (!targetHeaderId) {
+            const created = await db
+                .insertInto('inventory.wo_lensa_header')
+                .values({
+                    pemakaian_id: pemakaianId,
+                    tanggal_update: new Date().toISOString(),
+                    formatted_date: format(new Date(), 'yyyy-MM-dd'),
+                    type: headerType,
+                })
+                .returning('id')
+                .executeTakeFirst();
+            if (created) {
+                targetHeaderId = Number(created.id);
+            }
+        }
+
+        const mappedMaterials = rawMaterials.map((m: Record<string, string | number>) => {
+            const rawMaterialId = (m['ID MATERIAL'] as string)?.trim() || null;
+            const materialDesc = (m['NAMA MATERIAL'] as string) || null;
+            let materialId = rawMaterialId;
+            if (!materialId && materialDesc) {
+                const resolved = resolveMaterialAlias(materialDesc);
+                if (resolved) materialId = resolved;
+            }
+            return {
+                header_id: String(targetHeaderId),
+                material_id: materialId,
+                material_desc: materialDesc,
+                uom: (m.SATUAN as string) || null,
+                qty_pemakaian: Number(m['QTY PEMAKAIAN']) || null,
+            };
+        });
+
+        if (targetHeaderId > 0 && mappedMaterials.length > 0) {
+            await db.transaction().execute(async (trx) => {
+                await trx
+                    .deleteFrom('inventory.wo_lensa_list')
+                    .where('header_id', '=', String(targetHeaderId))
+                    .execute();
+
+                await trx.insertInto('inventory.wo_lensa_list').values(mappedMaterials).execute();
+            });
+        }
+
+        // Catat ke inventory.scraper_cronjob_log
+        const resume =
+            mappedMaterials.length > 0
+                ? `Sukses menarik ${mappedMaterials.length} material untuk ID ${pemakaianId}`
+                : `Selesai: Tidak ada material ditemukan untuk ID ${pemakaianId}`;
+
+        await scraperLogRepository
+            .insertLog({
+                scraper_type: 'wo_lensa',
+                action: 'manual',
+                resume_result: `Detail Manual: ${resume}`,
+            })
+            .catch((err) => {
+                actionLogger.warn('[WO-Lensa] Gagal mencatat log scraper_cronjob_log:', err);
+            });
+
+        revalidatePath('/reference/wo-lensa-ref');
+        revalidatePath('/form/rekon-lensa');
+
+        return {
+            success: true,
+            data: {
+                pemakaian_id: pemakaianId,
+                wo_number: header?.wo_number ?? null,
+                nama_gudang: header?.nama_gudang ?? null,
+                type: headerType,
+                materials: mappedMaterials.map((m) => ({
+                    material_id: m.material_id,
+                    material_desc: m.material_desc,
+                    uom: m.uom,
+                    qty_pemakaian: m.qty_pemakaian,
+                })),
+            },
+        };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Manual WO detail scraping error:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return {
+            success: false,
+            error:
+                error instanceof Error
+                    ? error.message
+                    : 'Terjadi kesalahan saat menarik detail WO.',
+        };
+    }
 }
