@@ -21,8 +21,8 @@ module.exports = {
         },
         {
             name: 'mtms-worker',
-            script: 'node_modules/tsx/dist/cli.mjs',
-            args: 'src/workers/scraper-worker.ts',
+            script: 'src/workers/scraper-worker.ts',
+            node_args: '--import tsx',
             instances: 1, // Dedicated worker wajib 1 instance (fork)
             exec_mode: 'fork',
             autorestart: true,
