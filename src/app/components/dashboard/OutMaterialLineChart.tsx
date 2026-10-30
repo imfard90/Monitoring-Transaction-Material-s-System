@@ -211,7 +211,7 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                     )}
 
                     <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
-                        <SelectTrigger className="w-[160px] sm:w-[175px] h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
+                        <SelectTrigger className="w-40 sm:w-[175px] h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
                             <SelectValue placeholder="Pilih Material" />
                         </SelectTrigger>
                         <SelectContent>

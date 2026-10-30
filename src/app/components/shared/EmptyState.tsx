@@ -31,7 +31,7 @@ export function EmptyState({
         <div
             role="status"
             className={cn(
-                'flex min-h-[320px] flex-col items-center justify-center gap-4 p-8 text-center',
+                'flex min-h-80 flex-col items-center justify-center gap-4 p-8 text-center',
                 'motion-reduce:transition-none',
                 className
             )}

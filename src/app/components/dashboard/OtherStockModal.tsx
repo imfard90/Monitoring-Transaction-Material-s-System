@@ -214,7 +214,7 @@ export function OtherStockModal({
                                                         {row.materialCode}
                                                     </span>
                                                 </TableCell>
-                                                <TableCell className="text-sm max-w-[240px] truncate">
+                                                <TableCell className="text-sm max-w-60 truncate">
                                                     <span title={row.materialName}>
                                                         {row.materialName}
                                                     </span>

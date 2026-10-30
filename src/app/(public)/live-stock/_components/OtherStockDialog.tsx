@@ -202,7 +202,7 @@ export function OtherStockDialog({ item, onClose }: OtherStockDialogProps) {
                                                 <TableCell className="whitespace-nowrap font-mono text-sm text-muted-foreground">
                                                     {row.materialCode}
                                                 </TableCell>
-                                                <TableCell className="max-w-[240px] truncate text-sm">
+                                                <TableCell className="max-w-60 truncate text-sm">
                                                     <span title={row.materialName}>
                                                         {row.materialName}
                                                     </span>

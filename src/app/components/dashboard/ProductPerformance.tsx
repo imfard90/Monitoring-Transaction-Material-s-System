@@ -106,7 +106,7 @@ export const ProductPerformance = () => {
             </div>
 
             {/* Content List */}
-            <div className="relative z-10 mt-3 space-y-3.5 max-h-[320px] overflow-y-auto pr-1">
+            <div className="relative z-10 mt-3 space-y-3.5 max-h-80 overflow-y-auto pr-1">
                 {isLoading ? (
                     <div
                         className="space-y-3 py-1"

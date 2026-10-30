@@ -70,7 +70,7 @@ export const StockWarningTable = ({
                     <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
                         <SelectTrigger
                             aria-label="Filter gudang peringatan stok"
-                            className="w-[140px] sm:w-[160px] h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors"
+                            className="w-[140px] sm:w-40 h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors"
                         >
                             <SelectValue placeholder="Pilih Gudang" />
                         </SelectTrigger>

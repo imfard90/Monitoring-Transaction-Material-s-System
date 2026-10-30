@@ -285,7 +285,9 @@ export default function WOLensaRefClient({
             header: 'Pemakaian ID',
             size: 130,
             cell: (info) => (
-                <span className="font-mono font-medium text-foreground">{info.getValue() || '-'}</span>
+                <span className="font-mono font-medium text-foreground">
+                    {info.getValue() || '-'}
+                </span>
             ),
         }),
         columnHelper.accessor('formatted_date', {
@@ -333,7 +335,7 @@ export default function WOLensaRefClient({
             size: 190,
             cell: (info) => (
                 <div
-                    className="min-w-[140px] max-w-[240px] truncate font-mono font-medium text-foreground"
+                    className="min-w-[140px] max-w-60 truncate font-mono font-medium text-foreground"
                     title={info.getValue() || undefined}
                 >
                     {info.getValue() || '-'}
@@ -343,23 +345,17 @@ export default function WOLensaRefClient({
         columnHelper.accessor('nik_pemakai', {
             header: 'NIK Pemakai',
             size: 120,
-            cell: (info) => (
-                <span className="font-mono">{info.getValue() || '-'}</span>
-            ),
+            cell: (info) => <span className="font-mono">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('gi_number', {
             header: 'Nomor GI',
             size: 120,
-            cell: (info) => (
-                <span className="font-mono">{info.getValue() || '-'}</span>
-            ),
+            cell: (info) => <span className="font-mono">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('wbs', {
             header: 'WBS',
             size: 180,
-            cell: (info) => (
-                <span className="font-mono">{info.getValue() || '-'}</span>
-            ),
+            cell: (info) => <span className="font-mono">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('rekon_check', {
             header: () => <div className="text-center">Rekon</div>,

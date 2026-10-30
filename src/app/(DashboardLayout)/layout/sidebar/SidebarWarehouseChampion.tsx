@@ -122,7 +122,7 @@ export const SidebarWarehouseChampion = () => {
                 <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
                     <motion.div
                         aria-hidden="true"
-                        className="w-1/2 h-full bg-linear-to-r from-transparent via-white/35 to-transparent skew-x-[-25deg]"
+                        className="w-1/2 h-full bg-linear-to-r from-transparent via-white/35 to-transparent -skew-x-[25deg]"
                         animate={
                             shouldReduceMotion
                                 ? {}

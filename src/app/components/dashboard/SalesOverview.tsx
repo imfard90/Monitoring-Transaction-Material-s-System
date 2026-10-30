@@ -170,7 +170,7 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
                     )}
 
                     <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                        <SelectTrigger className="w-[145px] sm:w-[160px] h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
+                        <SelectTrigger className="w-[145px] sm:w-40 h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
                             <SelectValue placeholder="Pilih Periode" />
                         </SelectTrigger>
                         <SelectContent>

@@ -6,7 +6,6 @@ import {
     AlertCircle,
     Ban,
     CheckCircle2,
-    Clock,
     FileText,
     PackageCheck,
     RotateCcw,
@@ -15,12 +14,7 @@ import {
 } from 'lucide-react';
 import type * as React from 'react';
 import { ModalDialog } from '@/components/ui/modal-dialog';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
 import { cn } from '@/lib/utils';
 import { getInOutTagItems, getReturnMaterialItemsByHeaderId } from '../_actions/tag-actions';
@@ -260,7 +254,7 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
                         {steps.map((step, idx) => {
                             const StepIcon = step.icon;
                             const isLast = idx === steps.length - 1;
-                            const nextStep = !isLast ? steps[idx + 1] : null;
+                            const nextStep = isLast ? null : steps[idx + 1];
 
                             return (
                                 <div
@@ -271,7 +265,7 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
                                     {!isLast && nextStep && (
                                         <div
                                             className={cn(
-                                                'absolute top-4 sm:top-5 left-1/2 w-full h-[2px] transition-colors',
+                                                'absolute top-4 sm:top-5 left-1/2 w-full h-0.5 transition-colors',
                                                 step.status === 'completed' &&
                                                     nextStep.status === 'completed'
                                                     ? 'bg-primary'
@@ -348,7 +342,7 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
                                     </div>
 
                                     {/* Actor (NIK - Nama) */}
-                                    <div className="mt-1.5 text-center w-full px-1 flex flex-col justify-center min-h-[28px]">
+                                    <div className="mt-1.5 text-center w-full px-1 flex flex-col justify-center min-h-7">
                                         {step.status === 'pending' ? (
                                             <span className="text-[11px] text-muted-foreground/40">
                                                 -
