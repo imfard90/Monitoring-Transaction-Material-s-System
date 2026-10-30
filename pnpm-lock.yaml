@@ -95,9 +95,6 @@ importers:
       better-auth:
         specifier: ^1.7.14
         version: 1.7.14(next@16.4.3(@types/node@26.6.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
-      chance:
-        specifier: 1.1.13
-        version: 1.1.13
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -140,9 +137,6 @@ importers:
       lucide-react:
         specifier: ^1.62.0
         version: 1.62.0(@types/react@19.3.0)(react@19.3.1)
-      moment:
-        specifier: 2.31.0
-        version: 2.31.0
       next:
         specifier: ^16.4.3
         version: 16.4.3(@types/node@26.6.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -182,15 +176,9 @@ importers:
       react-hook-form:
         specifier: ^7.91.0
         version: 7.91.0(@types/react@19.3.0)(react@19.3.1)
-      react-icons:
-        specifier: ^5.7.0
-        version: 5.7.0(react@19.3.1)
       react-syntax-highlighter:
         specifier: ^16.1.2
         version: 16.1.2(react@19.3.1)
-      redux-persist:
-        specifier: 6.0.0
-        version: 6.0.0(react@19.3.1)(redux@5.0.1)
       resend:
         specifier: ^6.34.1
         version: 6.34.1(@react-email/render@2.1.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
@@ -234,9 +222,6 @@ importers:
       '@types/aos':
         specifier: 3.0.8
         version: 3.0.8
-      '@types/chance':
-        specifier: 1.1.8
-        version: 1.1.8
       '@types/lodash':
         specifier: ^4.17.27
         version: 4.17.27
@@ -1991,9 +1976,6 @@ packages:
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
 
-  '@types/chance@1.1.8':
-    resolution: {integrity: sha512-isycXjm4a88/zl3n9lfgMcEClR9wUi+m72lkE9MvEbkgZDQrKzolWbonBiUqDNAJFIwO9GKjzmJFq79qtKVTAQ==}
-
   '@types/cors@2.8.19':
     resolution: {integrity: sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg==}
 
@@ -2407,9 +2389,6 @@ packages:
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
     engines: {node: '>=10'}
-
-  chance@1.1.13:
-    resolution: {integrity: sha512-V6lQCljcLznE7tUYUM9EOAnnKXbctE6j/rdQkYOHIWbfGQbrzTsAXNW9CdU5XCo4ArXQCj/rb6HgxPlmGJcaUg==}
 
   character-entities-legacy@3.0.0:
     resolution: {integrity: sha512-RpPp0asT/6ufRm//AJVwpViZbGM/MkjQFxJccQRHmISF/22NBtsHqAWmL+/pmkPWoIUJdWyeVleTl1wydHATVQ==}
@@ -3347,9 +3326,6 @@ packages:
     resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
     engines: {node: '>=16 || 14 >=14.17'}
 
-  moment@2.31.0:
-    resolution: {integrity: sha512-0acOTfMiWOheYS4eoWb80yYMb/JLvVv9SHbs2PehaDzfUG0Bw855SKyk0IKTnPGa5+U2bmi3W68l1+sGLX/pvw==}
-
   motion-dom@14.7.1:
     resolution: {integrity: sha512-p9q9F7+HoijbQjUG/cSGNmWS2t1OaAKxkd2RG5gQJRoDwoTap/Khb7K1P5rLW90crnSmx0rcRXzh3Jd5UNrpEw==}
 
@@ -3693,11 +3669,6 @@ packages:
       '@types/react':
         optional: true
 
-  react-icons@5.7.0:
-    resolution: {integrity: sha512-LBLy340Rzqy6+/yVhZKT3B/QpP1BZaesGqasf09HPOBzRarcDIFH0WwXlXQfE7q7ipxK4MSiC5DIBWURCny6fw==}
-    peerDependencies:
-      react: '*'
-
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
@@ -3768,18 +3739,6 @@ packages:
   redis-errors@1.2.0:
     resolution: {integrity: sha512-1qny3OExCf0UvUV/5wpYKf2YwPcOqXzkwKKSmKHiE6ZMQs5heeE/c8eXK+PNllPvmjgAbfnsbpkGZWy8cBpn9w==}
     engines: {node: '>=4'}
-
-  redux-persist@6.0.0:
-    resolution: {integrity: sha512-71LLMbUq2r02ng2We9S215LtPu3fY0KgaGE0k8WRgl6RkqxtGfl7HUozz1Dftwsb0D/5mZ8dwAaPbtnzfvbEwQ==}
-    peerDependencies:
-      react: '>=16'
-      redux: '>4.0.0'
-    peerDependenciesMeta:
-      react:
-        optional: true
-
-  redux@5.0.1:
-    resolution: {integrity: sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==}
 
   refractor@5.0.0:
     resolution: {integrity: sha512-QXOrHQF5jOpjjLfiNk5GFnWhRXvxjUVnlFxkeDmewR5sXkr3iM46Zo+CnRR8B+MDVqkULW4EcLVcRBNOPXHosw==}
@@ -5597,8 +5556,6 @@ snapshots:
       '@types/deep-eql': 4.0.2
       assertion-error: 2.0.1
 
-  '@types/chance@1.1.8': {}
-
   '@types/cors@2.8.19':
     dependencies:
       '@types/node': 26.6.5
@@ -5926,8 +5883,6 @@ snapshots:
     dependencies:
       ansi-styles: 4.3.0
       supports-color: 7.2.0
-
-  chance@1.1.13: {}
 
   character-entities-legacy@3.0.0: {}
 
@@ -6781,8 +6736,6 @@ snapshots:
 
   minipass@7.1.3: {}
 
-  moment@2.31.0: {}
-
   motion-dom@14.7.1:
     dependencies:
       motion-utils: 14.7.0
@@ -7132,10 +7085,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  react-icons@5.7.0(react@19.3.1):
-    dependencies:
-      react: 19.3.1
-
   react-is@16.13.1: {}
 
   react-remove-scroll-bar@2.3.8(@types/react@19.3.0)(react@19.3.1):
@@ -7196,14 +7145,6 @@ snapshots:
   real-require@1.0.0: {}
 
   redis-errors@1.2.0: {}
-
-  redux-persist@6.0.0(react@19.3.1)(redux@5.0.1):
-    dependencies:
-      redux: 5.0.1
-    optionalDependencies:
-      react: 19.3.1
-
-  redux@5.0.1: {}
 
   refractor@5.0.0:
     dependencies:
