@@ -4,6 +4,7 @@ import { sql } from 'kysely';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { applyWarehouseScope } from '@/lib/db/scopes';
 import { AuthorizationError, ConflictError } from '@/lib/errors';
 import {
     loadOtherStockCache,
@@ -13,7 +14,7 @@ import {
     syncOtherStock,
 } from '@/lib/google_ecosystem/sheets-stock-sync';
 import { actionLogger } from '@/lib/logger';
-import { canSyncStock, warehouseScope } from '@/lib/policies';
+import { canSyncStock } from '@/lib/policies';
 import { redis } from '@/lib/redis';
 
 export type { OtherStockItem };
@@ -79,7 +80,6 @@ export async function getStockBalances() {
 export async function getDashboardStockIntech() {
     try {
         const user = await getSessionUser();
-        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
 
         let query = db
             .selectFrom('inventory.sap_out_header as soh')
@@ -100,9 +100,7 @@ export async function getDashboardStockIntech() {
             .where('soh.end_status', '=', 'intech')
             .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0);
 
-        if (scopedWarehouseIds) {
-            query = query.where('soh.warehouse_id', 'in', scopedWarehouseIds);
-        }
+        query = applyWarehouseScope(query, 'soh.warehouse_id', user);
 
         const data = await query
             .orderBy('soh.request_time', 'asc')

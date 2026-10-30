@@ -1,6 +1,5 @@
 'use server';
 
-import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSessionNik, getSessionUser, requireWarehouseAccess } from '@/lib/auth-server';
@@ -34,62 +33,20 @@ export async function getOutSaps() {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
 
-        let sapQuery = db
-            .selectFrom('inventory.sap_out_header as soh')
-            .leftJoin('hr.technicians as t', 't.nik', 'soh.nik_teknisi')
-            .leftJoin('inventory.mas_wh as w', 'w.id', 'soh.warehouse_id')
-            .select([
-                'soh.id',
-                'soh.id_trx',
-                'soh.nik_teknisi',
-                't.name as nama_teknisi',
-                'soh.name_sa',
-                'soh.warehouse_id',
-                'w.name as nama_gudang',
-                'soh.id_reservasi',
-                'soh.sap_number',
-                'soh.request_id',
-                'soh.request_time',
-                'soh.end_status',
-            ])
-            .orderBy('soh.request_time', 'desc');
-
-        let countQuery = db.selectFrom('inventory.sap_out_header');
-
-        if (isStaff) {
-            if (warehouseIds.length === 0) {
-                return {
-                    success: true,
-                    data: [],
-                    counts: { wait_approve: 0, request: 0, intech: 0, close: 0 },
-                };
-            }
-            sapQuery = sapQuery.where('soh.warehouse_id', 'in', warehouseIds as number[]);
-            countQuery = countQuery.where('warehouse_id', 'in', warehouseIds as number[]);
+        if (isStaff && warehouseIds.length === 0) {
+            return {
+                success: true,
+                data: [],
+                counts: { wait_approve: 0, request: 0, intech: 0, close: 0 },
+            };
         }
 
-        // P2 audit fix: add default LIMIT to prevent unbounded result sets
-        const saps = await sapQuery.limit(200).execute();
+        const { data, counts } = await inventoryRepository.getOutSaps({
+            warehouseIds: isStaff ? warehouseIds : undefined,
+            limit: 200,
+        });
 
-        const resultCount = await countQuery
-            .select([
-                sql<number>`SUM(CASE WHEN end_status = 'wait_approve' THEN 1 ELSE 0 END)`.as(
-                    'wait_approve'
-                ),
-                sql<number>`SUM(CASE WHEN end_status = 'request' THEN 1 ELSE 0 END)`.as('request'),
-                sql<number>`SUM(CASE WHEN end_status = 'intech' THEN 1 ELSE 0 END)`.as('intech'),
-                sql<number>`SUM(CASE WHEN end_status = 'close' THEN 1 ELSE 0 END)`.as('close'),
-            ])
-            .executeTakeFirst();
-
-        const counts = {
-            wait_approve: Number(resultCount?.wait_approve || 0),
-            request: Number(resultCount?.request || 0),
-            intech: Number(resultCount?.intech || 0),
-            close: Number(resultCount?.close || 0),
-        };
-
-        return { success: true, data: saps, counts };
+        return { success: true, data, counts };
     } catch (error: unknown) {
         actionLogger.error(
             'Failed to fetch Out SAPs:',
@@ -103,31 +60,14 @@ export async function getOutSapItemsByHeaderId(headerId: number | string) {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
 
-        let query = db
-            .selectFrom('inventory.sap_out_items as i')
-            .innerJoin('inventory.materials as m', 'm.id', 'i.designator_id')
-            .innerJoin('inventory.sap_out_header as h', 'h.id', 'i.header_id')
-            .select([
-                'i.id',
-                'i.header_id',
-                'i.designator_id',
-                'm.code as material_code',
-                'm.description as material_name',
-                'i.qty_req',
-                'i.qty_used',
-                'i.unit_price',
-            ])
-            .where('i.header_id', '=', String(headerId));
-
-        // Staff hanya boleh melihat item dari warehouse miliknya
-        if (isStaff) {
-            if (warehouseIds.length === 0) {
-                return { success: true, data: [] };
-            }
-            query = query.where('h.warehouse_id', 'in', warehouseIds);
+        if (isStaff && warehouseIds.length === 0) {
+            return { success: true, data: [] };
         }
 
-        const items = await query.execute();
+        const items = await inventoryRepository.getOutSapItemsByHeaderId(
+            headerId,
+            isStaff ? warehouseIds : undefined
+        );
 
         return { success: true, data: items };
     } catch (error: unknown) {
@@ -169,7 +109,7 @@ export async function getTechnicians(sa?: string) {
 
 export async function getMaterials() {
     try {
-        const mats = await db.selectFrom('inventory.materials').selectAll().execute();
+        const mats = await inventoryRepository.listMaterials();
         return { success: true, data: mats };
     } catch (error: unknown) {
         actionLogger.error(
@@ -182,13 +122,7 @@ export async function getMaterials() {
 
 export async function getMaterialsInWarehouse(whId: number) {
     try {
-        const mats = await db
-            .selectFrom('inventory.materials as m')
-            .innerJoin('inventory.stock_balance as sb', 'm.id', 'sb.designator_id')
-            .select(['m.id', 'm.code', 'm.description', 'sb.qty_stock as qty'])
-            .where('sb.warehouse_id', '=', whId)
-            .where('sb.qty_stock', '>', 0)
-            .execute();
+        const mats = await inventoryRepository.getMaterialsInWarehouse(whId);
         return { success: true, data: mats };
     } catch (error: unknown) {
         actionLogger.error(
@@ -202,16 +136,12 @@ export async function getMaterialsInWarehouse(whId: number) {
 export async function getWarehouses() {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
-        let query = db.selectFrom('inventory.mas_wh').selectAll();
 
-        if (isStaff) {
-            if (warehouseIds.length === 0) {
-                return { success: true, data: [] };
-            }
-            query = query.where('id', 'in', warehouseIds);
+        if (isStaff && warehouseIds.length === 0) {
+            return { success: true, data: [] };
         }
 
-        const whs = await query.execute();
+        const whs = await inventoryRepository.getWarehouses(isStaff ? warehouseIds : undefined);
         return { success: true, data: whs };
     } catch (error: unknown) {
         actionLogger.error(
