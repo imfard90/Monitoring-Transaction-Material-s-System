@@ -156,22 +156,15 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
     error?: string;
 }> {
     try {
-        const user = await getSessionUser();
-        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+        await getSessionUser();
 
-        if (user.isStaff && (!scopedWarehouseIds || scopedWarehouseIds.length === 0)) {
-            return { success: true, data: [] };
-        }
-
-        let techQuery = db
+        // For dashboard & champions leaderboard, Intech Lensa performance represents
+        // the warehouse competition across all warehouses (no PIC filter).
+        const techQuery = db
             .selectFrom('hr.technicians as t')
             .innerJoin('inventory.mas_wh as wh', 'wh.id', 't.wh_id')
             .select(['t.nik', 't.wh_id', 'wh.name as warehouse_name', 't.ref_intech_lensa'])
             .where('t.wh_id', 'is not', null);
-
-        if (user.isStaff && scopedWarehouseIds) {
-            techQuery = techQuery.where('t.wh_id', 'in', scopedWarehouseIds);
-        }
 
         const techRows = (await techQuery.execute()) as Array<{
             nik: string | null;
@@ -292,8 +285,8 @@ export async function getWarehouseLeaderboard(): Promise<{
     error?: string;
 }> {
     try {
-        const user = await getSessionUser();
-        const cacheKey = `dashboard:warehouse_leaderboard:${user.nik}:${user.role ?? 'default'}`;
+        await getSessionUser();
+        const cacheKey = 'dashboard:warehouse_leaderboard_global';
 
         try {
             const cached = await redis.get(cacheKey);
@@ -601,50 +594,87 @@ export async function getDashboardKpis() {
         }
 
         // 0.1 Intech Open (end_status = 'intech')
-        const intechOpen = await db
+        let intechOpenQuery = db
             .selectFrom('inventory.sap_out_header')
             .select(sql<number>`COUNT(id)`.as('total'))
-            .where('end_status', '=', 'intech')
-            .executeTakeFirst();
+            .where('end_status', '=', 'intech');
+        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+            intechOpenQuery = intechOpenQuery.where('warehouse_id', 'in', scopedWarehouseIds);
+        }
+        const intechOpen = await intechOpenQuery.executeTakeFirst();
         data.intechOpen = Number(intechOpen?.total || 0);
 
         // 0.2 Intech Close (end_status = 'close')
-        const intechClose = await db
+        let intechCloseQuery = db
             .selectFrom('inventory.sap_out_header')
             .select(sql<number>`COUNT(id)`.as('total'))
-            .where('end_status', '=', 'close')
-            .executeTakeFirst();
+            .where('end_status', '=', 'close');
+        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+            intechCloseQuery = intechCloseQuery.where('warehouse_id', 'in', scopedWarehouseIds);
+        }
+        const intechClose = await intechCloseQuery.executeTakeFirst();
         data.intechClose = Number(intechClose?.total || 0);
 
         // 1. Request Tag
-        const requestTag = await db
+        let requestTagQuery = db
             .selectFrom('inventory.inout_tag_header')
             .select(sql<number>`COUNT(id)`.as('total'))
-            .where('end_status', '=', 'requested')
-            .executeTakeFirst();
+            .where('end_status', '=', 'requested');
+        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+            requestTagQuery = requestTagQuery.where((eb) =>
+                eb.or([
+                    eb('from_wh_id', 'in', scopedWarehouseIds),
+                    eb('to_wh_id', 'in', scopedWarehouseIds),
+                ])
+            );
+        }
+        const requestTag = await requestTagQuery.executeTakeFirst();
         data.requestTag = Number(requestTag?.total || 0);
 
         // 2. Transit Tag
-        const transitTag = await db
+        let transitTagQuery = db
             .selectFrom('inventory.inout_tag_header')
             .select(sql<number>`COUNT(id)`.as('total'))
-            .where('end_status', '=', 'in_transit')
-            .executeTakeFirst();
+            .where('end_status', '=', 'in_transit');
+        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+            transitTagQuery = transitTagQuery.where((eb) =>
+                eb.or([
+                    eb('from_wh_id', 'in', scopedWarehouseIds),
+                    eb('to_wh_id', 'in', scopedWarehouseIds),
+                ])
+            );
+        }
+        const transitTag = await transitTagQuery.executeTakeFirst();
         data.transitTag = Number(transitTag?.total || 0);
 
         // 3. Close Tag
-        const closeTag = await db
+        let closeTagQuery = db
             .selectFrom('inventory.inout_tag_header')
             .select(sql<number>`COUNT(id)`.as('total'))
-            .where('end_status', '=', 'closed')
-            .executeTakeFirst();
+            .where('end_status', '=', 'closed');
+        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+            closeTagQuery = closeTagQuery.where((eb) =>
+                eb.or([
+                    eb('from_wh_id', 'in', scopedWarehouseIds),
+                    eb('to_wh_id', 'in', scopedWarehouseIds),
+                ])
+            );
+        }
+        const closeTag = await closeTagQuery.executeTakeFirst();
         data.closeTag = Number(closeTag?.total || 0);
 
         // 4. Return Tek
-        const returnTek = await db
+        let returnTekQuery = db
             .selectFrom('inventory.return_material_header')
-            .select(sql<number>`COUNT(id)`.as('total'))
-            .executeTakeFirst();
+            .select(sql<number>`COUNT(id)`.as('total'));
+        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+            returnTekQuery = returnTekQuery.where(
+                'warehouse_id',
+                'in',
+                scopedWarehouseIds.map(String)
+            );
+        }
+        const returnTek = await returnTekQuery.executeTakeFirst();
         data.returnTek = Number(returnTek?.total || 0);
 
         // 5. Stock Inventory Rupiah

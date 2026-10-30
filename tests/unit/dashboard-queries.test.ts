@@ -33,6 +33,7 @@ vi.mock('@/lib/repositories/inventory.repository', () => ({
 
 const mockGetSessionUser = vi.fn();
 const mockExecute = vi.fn();
+const mockExecuteTakeFirst = vi.fn();
 const mockCacheGet = vi.fn();
 const mockCacheSet = vi.fn();
 const mockSql = vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
@@ -114,6 +115,7 @@ vi.mock('@/lib/db/db', () => ({
                 orderBy: vi.fn(() => query),
                 limit: vi.fn(() => query),
                 execute: mockExecute,
+                executeTakeFirst: mockExecuteTakeFirst,
             };
             return query;
         },
@@ -121,6 +123,7 @@ vi.mock('@/lib/db/db', () => ({
 }));
 
 const {
+    getDashboardKpis,
     getIntechLensaWarehousePerformance,
     getLensaWarehousePerformance,
     getOtherWarehouseStock,
@@ -329,13 +332,16 @@ describe('getIntechLensaWarehousePerformance', () => {
         mockGetBatchTechnicianIntechStock.mockResolvedValue([]);
     });
 
-    it('returns empty array when staff has no warehouse assignment', async () => {
-        mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [] });
+    it('evaluates all warehouses without filtering to caller warehouseIds', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [1] });
+        mockExecute.mockResolvedValue([]);
 
         const result = await getIntechLensaWarehousePerformance();
 
         expect(result).toEqual({ success: true, data: [] });
-        expect(mockSelectFrom).not.toHaveBeenCalled();
+        expect(mockSelectFrom).toHaveBeenCalledWith('hr.technicians as t');
+        expect(mockWhere).toHaveBeenCalledWith('t.wh_id', 'is not', null);
+        expect(mockWhere).not.toHaveBeenCalledWith('t.wh_id', 'in', expect.anything());
     });
 
     it('calculates match ratio and completion percentage per warehouse', async () => {
@@ -578,5 +584,36 @@ describe('getWarehouseLeaderboard', () => {
             expect(result.data.leaderboard[0].name).toBe('DC Cikutra');
             expect(result.data.leaderboard[1].name).toBe('DC Antapani');
         }
+    });
+});
+
+// ─── getDashboardKpis ──────────────────────────────────────────────────────────
+
+describe('getDashboardKpis', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockCacheGet.mockResolvedValue(null);
+        mockExecuteTakeFirst.mockResolvedValue({ total: 10, total_rp: 500000 });
+    });
+
+    it('scopes all KPI queries to assigned warehouses for Staff with warehouse', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [1, 2] });
+
+        const result = await getDashboardKpis();
+
+        expect(result.success).toBe(true);
+        expect(mockWhere).toHaveBeenCalledWith('warehouse_id', 'in', [1, 2]);
+        expect(mockWhere).toHaveBeenCalledWith('warehouse_id', 'in', ['1', '2']);
+        expect(mockWhere).toHaveBeenCalledWith('sb.warehouse_id', 'in', [1, 2]);
+        expect(mockWhere).toHaveBeenCalledWith('soh.warehouse_id', 'in', [1, 2]);
+    });
+
+    it('queries global KPI totals without warehouse filter for non-Staff', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: false, warehouseIds: [] });
+
+        const result = await getDashboardKpis();
+
+        expect(result.success).toBe(true);
+        expect(mockWhere).not.toHaveBeenCalledWith('warehouse_id', 'in', expect.anything());
     });
 });
