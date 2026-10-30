@@ -1,6 +1,6 @@
 import 'dotenv/config';
-import { internalTriggerScraping } from '@/app/(DashboardLayout)/reference/out-lensa-ref/_actions/out-lensa-actions';
-import { internalTriggerWOScraping } from '@/app/(DashboardLayout)/reference/wo-lensa-ref/_actions/wo-lensa-actions';
+import { executeOutLensaScraping } from '@/lib/services/lensa-out-service';
+import { executeWOLensaScraping } from '@/lib/services/lensa-wo-service';
 import {
     OTHER_STOCK_SYNC_LOCK_KEY,
     OTHER_STOCK_SYNC_LOCK_TTL_SECONDS,
@@ -82,10 +82,10 @@ const schedules = [
 const runScrapers = async (perpage: number) => {
     try {
         actionLogger.info(`[CRON] Running Lensa scrapers perpage=${perpage}...`);
-        await internalTriggerScraping(perpage, 'system');
+        await executeOutLensaScraping(perpage, 'system');
         actionLogger.info(`[CRON] Lensa scrapers perpage=${perpage} completed.`);
         actionLogger.info('[CRON] Running WO Lensa scrapers...');
-        await internalTriggerWOScraping(undefined, undefined, 'system');
+        await executeWOLensaScraping(undefined, undefined, 'system');
         actionLogger.info('[CRON] WO Lensa scrapers completed.');
     } catch (error) {
         actionLogger.error(
@@ -281,7 +281,7 @@ const handleWorkerJob = async (job: WorkerJob) => {
                     'EX',
                     3600
                 );
-                const result = await internalTriggerScraping(job.perpage, 'manual');
+                const result = await executeOutLensaScraping(job.perpage, 'manual');
                 if (result.success) {
                     await redis.set(
                         `job:${job.id}`,
@@ -307,7 +307,7 @@ const handleWorkerJob = async (job: WorkerJob) => {
                     'EX',
                     3600
                 );
-                const result = await internalTriggerWOScraping(
+                const result = await executeWOLensaScraping(
                     job.perpage,
                     job.fullLoop ?? true,
                     'manual'

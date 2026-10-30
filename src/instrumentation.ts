@@ -18,12 +18,8 @@ export async function register() {
 
     const cron = await import('node-cron');
     const { actionLogger } = await import('@/lib/logger');
-    const { internalTriggerScraping } = await import(
-        './app/(DashboardLayout)/reference/out-lensa-ref/_actions/out-lensa-actions'
-    );
-    const { internalTriggerWOScraping } = await import(
-        './app/(DashboardLayout)/reference/wo-lensa-ref/_actions/wo-lensa-actions'
-    );
+    const { executeOutLensaScraping } = await import('@/lib/services/lensa-out-service');
+    const { executeWOLensaScraping } = await import('@/lib/services/lensa-wo-service');
     const { bulkScrapeStockTeknisi } = await import('@/lib/services/bulk-stock-scraper');
     const { closeBrowser } = await import('@/lib/lensa-scraper/lensa-scraper');
     const { OTHER_STOCK_SYNC_LOCK_KEY, OTHER_STOCK_SYNC_LOCK_TTL_SECONDS, syncOtherStock } =
@@ -57,10 +53,10 @@ export async function register() {
     const runScrapers = async (perpage: number) => {
         try {
             actionLogger.info(`[CRON] Running Lensa scrapers perpage=${perpage}...`);
-            await internalTriggerScraping(perpage, 'system');
+            await executeOutLensaScraping(perpage, 'system');
             actionLogger.info(`[CRON] Lensa scrapers perpage=${perpage} completed.`);
             actionLogger.info('[CRON] Running WO Lensa scrapers...');
-            await internalTriggerWOScraping(undefined, undefined, 'system');
+            await executeWOLensaScraping(undefined, undefined, 'system');
             actionLogger.info('[CRON] WO Lensa scrapers completed.');
         } catch (error) {
             actionLogger.error(
