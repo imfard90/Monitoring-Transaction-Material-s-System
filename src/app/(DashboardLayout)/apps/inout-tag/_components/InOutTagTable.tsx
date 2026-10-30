@@ -1,9 +1,3 @@
-import {
-    createColumnHelper,
-    getCoreRowModel,
-    getPaginationRowModel,
-    useReactTable,
-} from '@/lib/table';
 import { format } from 'date-fns';
 import { Check, ChevronsUpDown, Edit2, Eye, FilterX, Plus } from 'lucide-react';
 import { useCallback, useState } from 'react';
@@ -27,6 +21,12 @@ import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SearchField } from '@/components/ui/search-field';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+    createColumnHelper,
+    getCoreRowModel,
+    getPaginationRowModel,
+    useReactTable,
+} from '@/lib/table';
 import type { InOutTagRow } from '@/lib/types/inventory';
 import { cn } from '@/lib/utils';
 
@@ -96,7 +96,7 @@ export default function InOutTagTable({
             cell: (info) => {
                 const val = info.getValue();
                 return (
-                    <div className="truncate max-w-[150px]" title={val || undefined}>
+                    <div className="truncate max-w-37.5" title={val || undefined}>
                         {val || '-'}
                     </div>
                 );
@@ -247,7 +247,7 @@ export default function InOutTagTable({
                     <DateRangePicker
                         date={dateFilter}
                         setDate={onDateFilterChange}
-                        className="w-full sm:w-[260px] shrink-0"
+                        className="w-full sm:w-65 shrink-0"
                     />
 
                     {/* To WH Combobox Filter */}
@@ -257,7 +257,7 @@ export default function InOutTagTable({
                                 variant="outline"
                                 role="combobox"
                                 aria-expanded={openCombo}
-                                className="w-full sm:w-[180px] justify-between font-normal h-9 px-3 shrink-0"
+                                className="w-full sm:w-45 justify-between font-normal h-9 px-3 shrink-0"
                             >
                                 <span className="truncate">
                                     {toWhFilter === 'all' ? 'Semua Tujuan' : toWhFilter}
@@ -265,7 +265,7 @@ export default function InOutTagTable({
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[220px] p-0" align="start">
+                        <PopoverContent className="w-55 p-0" align="start">
                             <Command>
                                 <CommandInput placeholder="Cari gudang tujuan..." />
                                 <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
@@ -353,7 +353,7 @@ export default function InOutTagTable({
                     table={table}
                     isLoading={isLoading}
                     emptyMessage="Tidak ada data tag."
-                    className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-[600px]"
+                    className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-150"
                 />
             </StaggerItem>
             <StaggerItem className="py-2 px-1 shrink-0 w-full min-w-0 max-w-full">

@@ -179,7 +179,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
             isOpen={isOpen}
             onClose={onClose}
             title="Create New Tag"
-            className="sm:max-w-[900px]"
+            className="sm:max-w-225"
             preventOutsideClose
         >
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
@@ -206,7 +206,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-0" align="start">
+                                <PopoverContent className="w-75 p-0" align="start">
                                     <Command>
                                         <CommandInput placeholder="Cari gudang asal..." />
                                         <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
@@ -268,7 +268,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-0" align="start">
+                                <PopoverContent className="w-75 p-0" align="start">
                                     <Command>
                                         <CommandInput placeholder="Cari gudang tujuan..." />
                                         <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
@@ -490,13 +490,13 @@ function MaterialRowItem({
                                         aria-expanded={open}
                                         className="w-full justify-between font-normal h-8 px-2"
                                     >
-                                        <span className="truncate max-w-[150px]">
+                                        <span className="truncate max-w-37.5">
                                             {selectedMat ? selectedMat.code : 'Pilih Kode...'}
                                         </span>
                                         <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-0" align="start">
+                                <PopoverContent className="w-75 p-0" align="start">
                                     <Command>
                                         <CommandInput placeholder="Cari kode material..." />
                                         <CommandEmpty>Material tidak ditemukan.</CommandEmpty>
@@ -541,7 +541,7 @@ function MaterialRowItem({
                     return (
                         <>
                             <TableCell
-                                className="text-sm text-muted-foreground truncate max-w-[200px]"
+                                className="text-sm text-muted-foreground truncate max-w-50"
                                 title={selectedMat?.description || '-'}
                             >
                                 {selectedMat?.description || '-'}
@@ -573,7 +573,7 @@ function MaterialRowItem({
                                 }}
                             />
                             {fieldState.error && (
-                                <p className="text-[10px] text-destructive mt-0.5">
+                                <p className="text-xs text-destructive mt-0.5">
                                     {fieldState.error.message}
                                 </p>
                             )}

@@ -245,7 +245,7 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
             isOpen={isOpen}
             onClose={onClose}
             title={`Detail Item Tag (ID Trx: ${row?.id_trx})`}
-            className="sm:max-w-[760px]"
+            className="sm:max-w-190"
         >
             <div className="py-2">
                 {/* Visual Timeline / Stepper */}

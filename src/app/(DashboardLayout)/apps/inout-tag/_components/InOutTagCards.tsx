@@ -70,7 +70,7 @@ export default function InOutTagCards({
                         )}
                         onClick={() => onFilterChange(card.id)}
                     >
-                        <CardContent className="p-3.5 sm:p-4 flex items-center justify-between h-full min-h-[84px] sm:min-h-[88px] gap-2">
+                        <CardContent className="p-3.5 sm:p-4 flex items-center justify-between h-full min-h-21 sm:min-h-22 gap-2">
                             <div className="min-w-0 flex-1">
                                 <p
                                     className="text-xs sm:text-sm font-medium text-foreground mb-0.5 sm:mb-1 truncate"

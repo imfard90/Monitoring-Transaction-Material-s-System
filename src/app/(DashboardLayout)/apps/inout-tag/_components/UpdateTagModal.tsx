@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ModalDialog } from '@/components/ui/modal-dialog';
-import { Textarea } from '@/components/ui/textarea';
 import {
     Table,
     TableBody,
@@ -19,6 +18,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
@@ -213,7 +213,7 @@ export default function UpdateTagModal({
                 isOpen={isOpen}
                 onClose={onClose}
                 title={`Perbarui Tag: ${row.id_trx}`}
-                className="sm:max-w-[700px]"
+                className="sm:max-w-175"
                 preventOutsideClose
             >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-4">
@@ -282,7 +282,7 @@ export default function UpdateTagModal({
                                                 {item.code}
                                             </TableCell>
                                             <TableCell
-                                                className="text-sm text-muted-foreground truncate max-w-[200px]"
+                                                className="text-sm text-muted-foreground truncate max-w-50"
                                                 title={item.description}
                                             >
                                                 {item.description}
@@ -389,7 +389,7 @@ export default function UpdateTagModal({
             >
                 <div className="space-y-4 text-sm">
                     <div className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
                             ID Transaksi:
                         </span>
                         <span className="font-mono text-xs font-bold text-destructive">
@@ -399,7 +399,8 @@ export default function UpdateTagModal({
 
                     <div className="space-y-1.5">
                         <Label htmlFor="cancel-notes" className="text-xs font-medium">
-                            Alasan Pembatalan / Catatan Audit <span className="text-destructive">*</span>
+                            Alasan Pembatalan / Catatan Audit{' '}
+                            <span className="text-destructive">*</span>
                         </Label>
                         <Textarea
                             id="cancel-notes"
@@ -409,14 +410,16 @@ export default function UpdateTagModal({
                             rows={3}
                             className="text-sm"
                         />
-                        <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                        <div className="flex justify-between items-center text-xs text-muted-foreground">
                             <span>
                                 {cancelNotes.trim().length < 5 ? (
                                     <span className="text-amber-500 font-medium">
                                         Wajib minimal 5 karakter ({cancelNotes.trim().length}/5)
                                     </span>
                                 ) : (
-                                    <span className="text-emerald-500 font-medium">✓ Memenuhi syarat audit</span>
+                                    <span className="text-emerald-500 font-medium">
+                                        ✓ Memenuhi syarat audit
+                                    </span>
                                 )}
                             </span>
                             <span>{cancelNotes.length} karakter</span>
@@ -424,7 +427,9 @@ export default function UpdateTagModal({
                     </div>
 
                     <p className="text-muted-foreground text-xs leading-relaxed">
-                        Status transaksi akan diubah menjadi <strong className="text-foreground">cancel</strong> dan catatan pembatalan akan disimpan permanen dalam database.
+                        Status transaksi akan diubah menjadi{' '}
+                        <strong className="text-foreground">cancel</strong> dan catatan pembatalan
+                        akan disimpan permanen dalam database.
                     </p>
                 </div>
             </ConfirmDialog>
