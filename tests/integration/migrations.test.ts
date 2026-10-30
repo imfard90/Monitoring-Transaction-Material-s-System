@@ -457,5 +457,28 @@ describeDb('L5 query logging migration tracked (018)', () => {
             `);
             expect(row?.sequencename).toBe('trx_return_seq');
         });
+
+        it('050_add_lensa_ref_composite_indexes.sql recorded and composite indexes exist', async () => {
+            const logRow = await queryOne<{ filename: string }>(`
+                SELECT filename FROM inventory._migration_log WHERE filename LIKE '050_%'
+            `);
+            expect(logRow?.filename).toBe('050_add_lensa_ref_composite_indexes.sql');
+
+            const woIdx = await queryOne<{ indexname: string }>(`
+                SELECT indexname FROM pg_indexes
+                WHERE schemaname = 'inventory'
+                  AND tablename = 'wo_lensa_header'
+                  AND indexname = 'idx_wo_lensa_header_wh_date'
+            `);
+            expect(woIdx?.indexname).toBe('idx_wo_lensa_header_wh_date');
+
+            const outIdx = await queryOne<{ indexname: string }>(`
+                SELECT indexname FROM pg_indexes
+                WHERE schemaname = 'inventory'
+                  AND tablename = 'out_lensa_ref_header'
+                  AND indexname = 'idx_out_lensa_ref_header_wh_date'
+            `);
+            expect(outIdx?.indexname).toBe('idx_out_lensa_ref_header_wh_date');
+        });
     });
 });

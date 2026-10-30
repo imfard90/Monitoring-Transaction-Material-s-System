@@ -35,6 +35,7 @@ vi.mock('next/headers', () => ({
 
 vi.mock('@/lib/redis', () => ({
     redis: {
+        get: vi.fn().mockResolvedValue(null),
         pipeline: vi.fn().mockReturnValue({ set: vi.fn(), exec: vi.fn().mockResolvedValue([]) }),
         set: vi.fn().mockResolvedValue('OK'),
         del: vi.fn().mockResolvedValue(1),
@@ -237,5 +238,27 @@ describe('requireWarehouseAccess', () => {
     it('throws AuthenticationError when session is invalid', async () => {
         mockAuthGetSession.mockResolvedValue(null);
         await expect(requireWarehouseAccess(10)).rejects.toThrow(AuthenticationError);
+    });
+
+    it('returns cached session metadata from Redis without querying database', async () => {
+        const { redis } = await import('@/lib/redis');
+        mockAuthGetSession.mockResolvedValue(makeSession('CACHE01', 'Staff'));
+        vi.mocked(redis.get).mockResolvedValueOnce(
+            JSON.stringify({
+                role: 'Staff',
+                warehouseIds: [10, 20],
+                isStaff: true,
+                branchId: 1,
+                branchName: 'Surabaya',
+            })
+        );
+
+        mockDbQuery.mockClear();
+        const user = await getSessionUser();
+
+        expect(user.nik).toBe('CACHE01');
+        expect(user.role).toBe('Staff');
+        expect(user.warehouseIds).toEqual([10, 20]);
+        expect(mockDbQuery).not.toHaveBeenCalled();
     });
 });

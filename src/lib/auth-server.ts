@@ -63,6 +63,31 @@ export async function getSessionUser(): Promise<SessionUser> {
         // Passively refresh presence for both Staff and Non-Staff on activity
         void touchUserPresence(redis, nik, session?.session?.id);
 
+        const cacheKey = `cache:user:session-meta:${nik}`;
+        let cachedMeta: {
+            role: string | null;
+            branchId: number | null;
+            branchName: string | null;
+            warehouseIds: number[];
+            isStaff: boolean;
+        } | null = null;
+
+        try {
+            const raw = await redis.get(cacheKey);
+            if (raw) {
+                cachedMeta = JSON.parse(raw);
+            }
+        } catch {
+            // Redis unavailable or parse failed: proceed to query DB gracefully
+        }
+
+        if (cachedMeta) {
+            return {
+                nik,
+                ...cachedMeta,
+            };
+        }
+
         // Query role from hr.employees → hr.levels
         const employee = await db
             .selectFrom('hr.employees as e')
@@ -87,13 +112,24 @@ export async function getSessionUser(): Promise<SessionUser> {
             warehouseIds = whs.map((w) => w.id);
         }
 
-        return {
-            nik,
+        const sessionMeta = {
             role,
             warehouseIds,
             isStaff: role === 'Staff',
             branchId,
             branchName,
+        };
+
+        // Cache for 60 seconds to eliminate redundant DB roundtrips across concurrent actions/widgets
+        try {
+            await redis.set(cacheKey, JSON.stringify(sessionMeta), 'EX', 60);
+        } catch {
+            // Non-blocking cache write failure
+        }
+
+        return {
+            nik,
+            ...sessionMeta,
         };
     } catch (e: any) {
         if (e.name === 'AuthenticationError') throw e;

@@ -1,10 +1,6 @@
 import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
-import {
-    scrapeLensaDetails,
-    scrapeLensaHeaders,
-    scrapeReservation,
-} from '@/lib/lensa-scraper/lensa-scraper';
+import { scrapeLensaDetails, scrapeLensaHeaders } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { resolveMaterialAlias } from '@/lib/material-alias-helper';
 import {
@@ -80,9 +76,12 @@ export async function executeOutLensaScraping(
             };
         }
 
+        // Ambil header terkini dengan batas 10.000 untuk mencegah unbounded memory scan di RAM
         const existingHeaders = await db
             .selectFrom('inventory.out_lensa_ref_header')
             .select('reservation_id')
+            .orderBy('created_at', 'desc')
+            .limit(10000)
             .execute();
         const existingHeaderIds = existingHeaders.map((h: any) => h.reservation_id);
 

@@ -1,9 +1,6 @@
 import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
-import {
-    scrapeWOLensaDetails,
-    scrapeWOLensaHeaders,
-} from '@/lib/lensa-scraper/lensa-scraper';
+import { scrapeWOLensaDetails, scrapeWOLensaHeaders } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { resolveMaterialAlias } from '@/lib/material-alias-helper';
 import {
@@ -61,9 +58,12 @@ export async function executeWOLensaScraping(
             if (u.nik) userByNik.set(u.nik, u);
         }
 
+        // Ambil header terkini dengan batas 10.000 untuk mencegah unbounded memory scan di RAM
         const existingHeaders = await db
             .selectFrom('inventory.wo_lensa_header')
             .select(['pemakaian_id'])
+            .orderBy('created_at', 'desc')
+            .limit(10000)
             .execute();
         const existingPemakaianIds = existingHeaders.map((h) => String(h.pemakaian_id));
 
@@ -574,10 +574,7 @@ export async function scrapeSingleWODetailService(
                     qty_pemakaian: m.qty_pemakaian,
                 }));
 
-                await trx
-                    .insertInto('inventory.wo_lensa_list')
-                    .values(materialInserts)
-                    .execute();
+                await trx.insertInto('inventory.wo_lensa_list').values(materialInserts).execute();
             }
         });
 
