@@ -1,57 +1,34 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { queryKeys } from '@/lib/query-keys';
 import { cn } from '@/lib/utils';
 
-interface WarehousePerformance {
-    key: number;
-    name: string;
-    trxOut: number;
-    trxClose: number;
-}
-
 export const ProductPerformance = () => {
-    const [warehouseData, setWarehouseData] = useState<WarehousePerformance[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        let isMounted = true;
-        const loadData = async () => {
-            try {
-                const { getWarehousePerformance } = await import(
-                    '@/app/(DashboardLayout)/_actions/dashboard-actions'
+    const { data: warehouseData = [], isLoading } = useQuery({
+        queryKey: queryKeys.dashboard.leaderboard(),
+        queryFn: async () => {
+            const { getWarehousePerformance } = await import(
+                '@/app/(DashboardLayout)/_actions/dashboard-actions'
+            );
+            const result = await getWarehousePerformance();
+            if (result.success && Array.isArray(result.data)) {
+                return result.data.map(
+                    (d: { key: number; name: string; trxOut: number; trxClose: number }) => ({
+                        key: d.key,
+                        name: d.name,
+                        trxOut: Number(d.trxOut),
+                        trxClose: Number(d.trxClose),
+                    })
                 );
-                const result = await getWarehousePerformance();
-                if (isMounted && result.success && Array.isArray(result.data)) {
-                    setWarehouseData(
-                        result.data.map(
-                            (d: {
-                                key: number;
-                                name: string;
-                                trxOut: number;
-                                trxClose: number;
-                            }) => ({
-                                key: d.key,
-                                name: d.name,
-                                trxOut: Number(d.trxOut),
-                                trxClose: Number(d.trxClose),
-                            })
-                        )
-                    );
-                }
-            } finally {
-                if (isMounted) setIsLoading(false);
             }
-        };
-        loadData();
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
+            return [];
+        },
+        staleTime: 60 * 1000,
+    });
 
     // Calculate percentage and sort by percentage descending
     const performanceData = warehouseData

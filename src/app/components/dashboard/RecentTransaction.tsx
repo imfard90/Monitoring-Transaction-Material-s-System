@@ -1,9 +1,10 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import type { ApexOptions } from 'apexcharts';
 import dynamic from 'next/dynamic';
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import {
     Select,
@@ -13,6 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { queryKeys } from '@/lib/query-keys';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -23,69 +25,49 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
     warehouses,
 }) => {
     const [selectedWh, setSelectedWh] = useState('all');
-    const [chartData, setChartData] = useState<{ categories: string[]; seriesData: number[] }>({
-        categories: [],
-        seriesData: [],
-    });
-    const [isLoading, setIsLoading] = useState(true);
-    const [hasError, setHasError] = useState(false);
 
-    useEffect(() => {
-        let isActive = true;
-        setIsLoading(true);
-        setHasError(false);
-        const loadData = async () => {
-            try {
-                const { getTopOutMaterials } = await import(
-                    '@/app/(DashboardLayout)/_actions/dashboard-actions'
-                );
-                const result = await getTopOutMaterials(7, isStaff ? 'all' : selectedWh);
-                if (!isActive) return;
-                if (!result.success || !result.data) {
-                    setChartData({ categories: [], seriesData: [] });
-                    setHasError(true);
-                    return;
-                }
+    const targetWh = isStaff ? 'all' : selectedWh;
 
-                if (isActive && result.success && result.data) {
-                    const categories = result.data.map(
-                        (d: {
-                            material_code: string | null;
-                            material_name: string | null;
-                            total_qty: number;
-                        }) => {
-                            const name = d.material_name || '';
-                            return d.material_code === 'AC-OF-SM-1-3SL' ? `${name} (x10)` : name;
-                        }
-                    );
-                    const seriesData = result.data.map(
-                        (d: {
-                            material_code: string | null;
-                            material_name: string | null;
-                            total_qty: number;
-                        }) => {
-                            const qty = Number(d.total_qty);
-                            // Scale down AC-OF-SM-1-3SL by 10 for better visual comparison
-                            return d.material_code === 'AC-OF-SM-1-3SL' ? qty / 10 : qty;
-                        }
-                    );
-                    setChartData({ categories, seriesData });
-                }
-            } catch {
-                if (isActive) {
-                    setChartData({ categories: [], seriesData: [] });
-                    setHasError(true);
-                }
-            } finally {
-                if (isActive) setIsLoading(false);
+    const {
+        data: chartData = { categories: [], seriesData: [] },
+        isLoading,
+        isError: hasError,
+    } = useQuery({
+        queryKey: queryKeys.dashboard.recentTransaction(targetWh),
+        queryFn: async () => {
+            const { getTopOutMaterials } = await import(
+                '@/app/(DashboardLayout)/_actions/dashboard-actions'
+            );
+            const result = await getTopOutMaterials(7, isStaff ? 'all' : selectedWh);
+            if (!result.success || !result.data) {
+                return { categories: [], seriesData: [] };
             }
-        };
 
-        void loadData();
-        return () => {
-            isActive = false;
-        };
-    }, [selectedWh, isStaff]);
+            const categories = result.data.map(
+                (d: {
+                    material_code: string | null;
+                    material_name: string | null;
+                    total_qty: number;
+                }) => {
+                    const name = d.material_name || '';
+                    return d.material_code === 'AC-OF-SM-1-3SL' ? `${name} (x10)` : name;
+                }
+            );
+            const seriesData = result.data.map(
+                (d: {
+                    material_code: string | null;
+                    material_name: string | null;
+                    total_qty: number;
+                }) => {
+                    const qty = Number(d.total_qty);
+                    // Scale down AC-OF-SM-1-3SL by 10 for better visual comparison
+                    return d.material_code === 'AC-OF-SM-1-3SL' ? qty / 10 : qty;
+                }
+            );
+            return { categories, seriesData };
+        },
+        staleTime: 60 * 1000,
+    });
     const ChartOptions: ApexOptions = {
         chart: {
             toolbar: { show: false },

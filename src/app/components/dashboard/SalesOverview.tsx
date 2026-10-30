@@ -1,9 +1,10 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import type { ApexOptions } from 'apexcharts';
 import dynamic from 'next/dynamic';
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import {
     Select,
@@ -12,6 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { queryKeys } from '@/lib/query-keys';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -27,41 +29,40 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
 }) => {
     const [selectedWh, setSelectedWh] = useState<string>('all');
     const [selectedMonth, setSelectedMonth] = useState<string>('15days');
-    const [chartData, setChartData] = useState<{
-        dates: string[];
-        outMaterial: number[];
-        hasilRekon: number[];
-    }>({
-        dates: [],
-        outMaterial: [],
-        hasilRekon: [],
-    });
 
-    useEffect(() => {
-        const loadData = async () => {
-            let daysCount = 15;
-            let endDate = new Date();
+    const { daysCount, endDate, endDateKey } = useMemo(() => {
+        let count = 15;
+        let end = new Date();
 
-            if (selectedMonth !== '15days') {
-                const [m, y] = selectedMonth.split('-');
-                const month = parseInt(m, 10);
-                const year = parseInt(y, 10);
-                daysCount = getDaysInMonth(year, month);
-                endDate = new Date(year, month + 1, 0); // last day of that month
-            }
+        if (selectedMonth !== '15days') {
+            const [m, y] = selectedMonth.split('-');
+            const month = parseInt(m, 10);
+            const year = parseInt(y, 10);
+            count = getDaysInMonth(year, month);
+            end = new Date(year, month + 1, 0); // last day of that month
+        }
 
+        return {
+            daysCount: count,
+            endDate: end,
+            endDateKey: end.toISOString().slice(0, 10),
+        };
+    }, [selectedMonth]);
+
+    const { data: chartData = { dates: [], outMaterial: [], hasilRekon: [] } } = useQuery({
+        queryKey: queryKeys.dashboard.salesOverview(selectedWh, daysCount, endDateKey),
+        queryFn: async () => {
             const { getSalesOverviewData } = await import(
                 '@/app/(DashboardLayout)/_actions/dashboard-actions'
             );
             const result = await getSalesOverviewData(selectedWh, daysCount, endDate);
-
             if (result.success && result.data) {
-                setChartData(result.data);
+                return result.data;
             }
-        };
-
-        loadData();
-    }, [selectedWh, selectedMonth]);
+            return { dates: [], outMaterial: [], hasilRekon: [] };
+        },
+        staleTime: 60 * 1000,
+    });
 
     const ChartOptions: ApexOptions = {
         chart: {

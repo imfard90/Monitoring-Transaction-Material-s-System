@@ -1,9 +1,10 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import type { ApexOptions } from 'apexcharts';
 import dynamic from 'next/dynamic';
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import {
     Select,
@@ -13,6 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { queryKeys } from '@/lib/query-keys';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -64,8 +66,9 @@ export const StockValueDonutChart: React.FC<{
     warehouses: WarehouseOption[];
 }> = ({ isStaff, warehouses }) => {
     const [selectedWh, setSelectedWh] = useState<string>('all');
-    const [loading, setLoading] = useState<boolean>(true);
-    const [data, setData] = useState<StockComparisonData>({
+    const targetWh = isStaff ? 'all' : selectedWh;
+
+    const defaultData: StockComparisonData = {
         stockInventoryRp: 0,
         stockIntechRp: 0,
         totalRp: 0,
@@ -73,36 +76,19 @@ export const StockValueDonutChart: React.FC<{
         intechPercentage: 0,
         totalInventoryQty: 0,
         totalIntechQty: 0,
+    };
+
+    const { data = defaultData, isLoading: loading } = useQuery({
+        queryKey: queryKeys.dashboard.stockValue(targetWh),
+        queryFn: async () => {
+            const { getStockValueComparison } = await import(
+                '@/app/(DashboardLayout)/_actions/dashboard-actions'
+            );
+            const res = await getStockValueComparison(targetWh);
+            return res.success && res.data ? res.data : defaultData;
+        },
+        staleTime: 60 * 1000,
     });
-
-    useEffect(() => {
-        let isMounted = true;
-
-        const loadComparisonData = async () => {
-            setLoading(true);
-            try {
-                const { getStockValueComparison } = await import(
-                    '@/app/(DashboardLayout)/_actions/dashboard-actions'
-                );
-                const targetWh = isStaff ? 'all' : selectedWh;
-                const res = await getStockValueComparison(targetWh);
-
-                if (isMounted && res.success && res.data) {
-                    setData(res.data);
-                }
-            } catch {
-                // Keep existing data on error
-            } finally {
-                if (isMounted) setLoading(false);
-            }
-        };
-
-        loadComparisonData();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [isStaff, selectedWh]);
 
     const chartSeries = useMemo(() => {
         if (data.totalRp === 0) {

@@ -1,7 +1,8 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import {
@@ -12,6 +13,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { queryKeys } from '@/lib/query-keys';
 
 interface StockWarning {
     warehouse_name: string | null;
@@ -33,25 +35,22 @@ export const StockWarningTable = ({
     isStaff: boolean;
     warehouses: WarehouseOption[];
 }) => {
-    const [warnings, setWarnings] = useState<StockWarning[]>([]);
     const [selectedWarehouse, setSelectedWarehouse] = useState('all');
-    const visibleWarnings = warnings.filter((warning) => warning.min_qty > 0);
+    const targetWh = isStaff ? 'all' : selectedWarehouse;
 
-    useEffect(() => {
-        let isActive = true;
-        const loadData = async () => {
+    const { data: warnings = [] } = useQuery({
+        queryKey: queryKeys.dashboard.stockWarning(targetWh),
+        queryFn: async () => {
             const { getStockWarnings } = await import(
                 '@/app/(DashboardLayout)/_actions/dashboard-actions'
             );
-            const res = await getStockWarnings(isStaff ? 'all' : selectedWarehouse);
-            if (!isActive) return;
-            if (res.success && res.data) setWarnings(res.data);
-        };
-        void loadData();
-        return () => {
-            isActive = false;
-        };
-    }, [selectedWarehouse, isStaff]);
+            const res = await getStockWarnings(targetWh);
+            return res.success && res.data ? res.data : [];
+        },
+        staleTime: 60 * 1000,
+    });
+
+    const visibleWarnings = warnings.filter((warning) => warning.min_qty > 0);
 
     return (
         <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none relative flex flex-col w-full h-full min-h-0 flex-1 overflow-hidden">

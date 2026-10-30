@@ -1,9 +1,10 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import type { ApexOptions } from 'apexcharts';
 import dynamic from 'next/dynamic';
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import {
     Select,
@@ -12,6 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { queryKeys } from '@/lib/query-keys';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -24,22 +26,15 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
     const [selectedWh, setSelectedWh] = useState<string>('all');
     const [selectedMaterial, setSelectedMaterial] = useState<string>('all');
 
-    const [chartData, setChartData] = useState<{
-        dates: string[];
-        series: { name: string; originalName: string; data: number[] }[];
-        allMatNames: string[];
-    }>({
-        dates: [],
-        series: [],
-        allMatNames: [],
-    });
+    const targetWh = isStaff ? 'all' : selectedWh;
 
-    useEffect(() => {
-        const loadData = async () => {
+    const { data: chartData = { dates: [], series: [], allMatNames: [] } } = useQuery({
+        queryKey: queryKeys.dashboard.outMaterialLine(targetWh),
+        queryFn: async () => {
             const { getOutMaterialLineChartData } = await import(
                 '@/app/(DashboardLayout)/_actions/dashboard-actions'
             );
-            const result = await getOutMaterialLineChartData(isStaff ? 'all' : selectedWh);
+            const result = await getOutMaterialLineChartData(targetWh);
 
             const resData = result.data as {
                 topMats: { material_code: string; material_name: string; total_qty: number }[];
@@ -101,14 +96,12 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                     return { name: displayName, originalName: mat, data };
                 });
 
-                setChartData({ dates, series, allMatNames });
-            } else {
-                setChartData({ dates: [], series: [], allMatNames: [] });
+                return { dates, series, allMatNames };
             }
-        };
-
-        loadData();
-    }, [selectedWh, isStaff]);
+            return { dates: [], series: [], allMatNames: [] };
+        },
+        staleTime: 60 * 1000,
+    });
 
     // Filter series based on selected material
     const filteredSeries = useMemo(() => {
