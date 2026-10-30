@@ -97,10 +97,10 @@ function groupByRowWithTolerance(items: TextItem[], tolerance = 2.5): Map<number
             }
         }
 
-        if (matchedKey !== null) {
-            rows.get(matchedKey)!.push(it);
-        } else {
+        if (matchedKey === null) {
             rows.set(it.y, [it]);
+        } else {
+            rows.get(matchedKey)?.push(it);
         }
     }
 
@@ -112,28 +112,25 @@ function groupByRowWithTolerance(items: TextItem[], tolerance = 2.5): Map<number
 }
 
 /**
- * Extracts numeric quantity from line items.
+ * Extracts numeric quantity from line items in a single row.
+ * In SAP BA SO documents, the Volume SO column is located around x: 400..480.
  * Looks for Indonesian number format: e.g. 1.234,00 or standard integers.
  */
 function extractQuantity(items: TextItem[]): number | null {
-    const numericCandidates = items
-        .filter((it) => {
-            const trimmed = it.text.trim();
-            // Candidate must be in quantity column range and match numeric pattern
-            return it.x >= 370 && it.x <= 530 && /^\d[\d.,]*$/.test(trimmed) && trimmed.length > 0;
-        })
-        .sort((a, b) => b.x - a.x);
+    const qtyItem = items.find(
+        (it) => it.x >= 400 && it.x <= 480 && /^[\d.,]+$/.test(it.text.trim())
+    );
+    if (!qtyItem) return null;
 
-    if (numericCandidates.length === 0) return null;
-
-    const raw = numericCandidates[0].text.replace(/\./g, '').replace(',', '.');
+    const raw = qtyItem.text.trim().replace(/\./g, '').replace(',', '.');
     const parsed = parseFloat(raw);
     return Number.isNaN(parsed) || parsed < 0 ? null : Math.round(parsed);
 }
 
 /**
  * Parses BA Stock Opname PDF document.
- * Dynamically loads pdfjs-dist on client.
+ * Dynamically loads pdfjs-dist on client or server.
+ * Operates page-by-page to prevent cross-page coordinate collision.
  */
 export async function parseStockOpnamePdf(
     fileData: ArrayBuffer,
@@ -153,13 +150,19 @@ export async function parseStockOpnamePdf(
     const numPages = pdf.numPages;
 
     let detectedWarehouse = '';
-    const allItems: TextItem[] = [];
+    const materials: ParsedMaterial[] = [];
+
+    // Temporary storage for row positions to support multiline names within a page
+    interface WorkingMaterial extends ParsedMaterial {
+        _y: number;
+    }
 
     for (let pageNum = 1; pageNum <= numPages; pageNum++) {
         options?.onProgress?.(pageNum, numPages);
 
         const page = await pdf.getPage(pageNum);
         const content = await page.getTextContent();
+        const pageItems: TextItem[] = [];
 
         for (const item of content.items) {
             const t = item as { str: string; transform?: number[] };
@@ -173,31 +176,111 @@ export async function parseStockOpnamePdf(
 
             // Detect warehouse on page 1
             if (pageNum === 1 && !detectedWarehouse) {
-                // Check coordinate anchor (near y=717, x=196)
-                if (Math.abs(y - 717) <= 10 && Math.abs(x - 196) <= 25) {
+                // Check coordinate anchor (near y=717, x=196) or pattern
+                if (Math.abs(y - 717) <= 15 && x >= 180 && x <= 220) {
                     detectedWarehouse = text;
                 } else if (/^(?:WH\s+SO|SO\s+)/i.test(text)) {
                     detectedWarehouse = text;
                 }
             }
 
-            // Collect material table body lines (typically within y=90..650)
-            if (y >= 90 && y <= 660) {
-                allItems.push({ x, y, text });
+            pageItems.push({ x, y, text });
+        }
+
+        // Group rows per page with tolerance
+        const rowsMap = groupByRowWithTolerance(pageItems, 3.0);
+        const sortedYs = [...rowsMap.keys()].sort((a, b) => b - a);
+
+        let lastMaterial: WorkingMaterial | null = null;
+
+        for (const y of sortedYs) {
+            const items = rowsMap.get(y) as TextItem[];
+
+            // Detect and stop at signatures, document header, or table headers
+            if (
+                items.some(
+                    (it) =>
+                        it.text.toLowerCase().includes('penanda tangan') ||
+                        it.text.toLowerCase().includes('berita acara') ||
+                        it.text === 'Nama Gudang' ||
+                        it.text === 'Tanggal Stock Opname' ||
+                        it.text === 'ID Barang' ||
+                        it.text === 'Volume SO'
+                )
+            ) {
+                lastMaterial = null;
+                continue;
+            }
+
+            // Exclude page footer (e.g. cetakan ke... page x of y)
+            if (y < 60) {
+                lastMaterial = null;
+                continue;
+            }
+
+            // Material code: usually around x=65, matches SAP pattern including slashes
+            const codeItem = items.find(
+                (it) =>
+                    it.x >= 55 &&
+                    it.x <= 85 &&
+                    /^[A-Z0-9][\w./-]{2,30}$/.test(it.text) &&
+                    /[A-Z]/.test(it.text)
+            );
+
+            // Row number (No): usually around x=35..55
+            const noItem = items.find((it) => it.x >= 35 && it.x <= 55 && /^\d+$/.test(it.text));
+            // Unit (Satuan): usually around x=505..535 (PC, M, BTG, etc.)
+            const unitItem = items.find((it) => it.x >= 505 && it.x <= 535);
+
+            const qty = extractQuantity(items);
+
+            // A row is a valid material line if it has codeItem and (quantity OR row number OR unit)
+            // If Volume SO cell is blank in SAP PDF, quantity defaults to 0
+            if (codeItem && (qty !== null || noItem !== undefined || unitItem !== undefined)) {
+                // Try to find material description in the row (between code and qty)
+                const nameItems = items.filter((it) => it.x > 85 && it.x < 400);
+                const materialName = nameItems
+                    .map((n) => n.text)
+                    .join(' ')
+                    .trim();
+
+                const itemData: WorkingMaterial = {
+                    warehouse_id: 0, // Assigned after warehouse detection check
+                    warehouse: detectedWarehouse,
+                    material_code: codeItem.text.trim().toUpperCase(),
+                    material_name: materialName,
+                    saldo_sap: qty ?? 0,
+                    _y: y,
+                };
+                materials.push(itemData);
+                lastMaterial = itemData;
+            } else if (lastMaterial && items.length > 0) {
+                // Support multiline description continuation within the same page
+                const isDirectlyBelow = lastMaterial._y - y > 0 && lastMaterial._y - y <= 16;
+                const onlyInNameColumn = items.every((it) => it.x >= 85 && it.x < 400);
+
+                if (isDirectlyBelow && onlyInNameColumn) {
+                    const extraName = items
+                        .map((n) => n.text)
+                        .join(' ')
+                        .trim();
+                    if (extraName) {
+                        lastMaterial.material_name =
+                            `${lastMaterial.material_name} ${extraName}`.trim();
+                    }
+                } else {
+                    lastMaterial = null;
+                }
+            } else {
+                lastMaterial = null;
             }
         }
     }
 
     if (!detectedWarehouse) {
-        // Fallback search through all collected items on top area
-        const headerItem = allItems.find((it) => it.y > 600 && /WH\s+SO/i.test(it.text));
-        if (headerItem) {
-            detectedWarehouse = headerItem.text;
-        } else {
-            throw new Error(
-                'Tidak dapat mendeteksi nama gudang di PDF. Pastikan dokumen adalah format resmi BA SO SAP.'
-            );
-        }
+        throw new Error(
+            'Tidak dapat mendeteksi nama gudang di PDF. Pastikan dokumen adalah format resmi BA SO SAP.'
+        );
     }
 
     const warehouseId = resolveWarehouseId(detectedWarehouse, options?.masterWarehouses);
@@ -207,48 +290,20 @@ export async function parseStockOpnamePdf(
         );
     }
 
-    const rowsMap = groupByRowWithTolerance(allItems, 3);
-    const sortedYs = [...rowsMap.keys()].sort((a, b) => b - a);
-    const materials: ParsedMaterial[] = [];
-
-    for (const y of sortedYs) {
-        const items = rowsMap.get(y) as TextItem[];
-
-        // Material code: usually around x=65, matches SAP pattern
-        const codeItem = items.find(
-            (it) =>
-                it.x >= 55 &&
-                it.x <= 85 &&
-                /^[A-Z0-9][\w.-]{3,24}$/.test(it.text) &&
-                /[A-Z]/.test(it.text)
-        );
-
-        if (!codeItem) continue;
-
-        const qty = extractQuantity(items);
-        if (qty === null) continue;
-
-        // Try to find material description in the row (between code and qty)
-        const nameItems = items.filter((it) => it.x > 85 && it.x < 370);
-        const materialName = nameItems
-            .map((n) => n.text)
-            .join(' ')
-            .trim();
-
-        materials.push({
-            warehouse_id: warehouseId,
-            warehouse: detectedWarehouse,
-            material_code: codeItem.text.trim().toUpperCase(),
-            material_name: materialName,
-            saldo_sap: qty,
-        });
-    }
+    // Set correct warehouse_id and clean up internal fields
+    const sanitizedMaterials: ParsedMaterial[] = materials.map((m) => ({
+        warehouse_id: warehouseId,
+        warehouse: detectedWarehouse,
+        material_code: m.material_code,
+        material_name: m.material_name,
+        saldo_sap: m.saldo_sap,
+    }));
 
     return {
-        materials,
+        materials: sanitizedMaterials,
         warehouse: detectedWarehouse,
         warehouse_id: warehouseId,
         totalPages: numPages,
-        totalRows: materials.length,
+        totalRows: sanitizedMaterials.length,
     };
 }
