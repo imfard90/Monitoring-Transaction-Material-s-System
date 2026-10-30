@@ -3,8 +3,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, MapPin } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { getOtherWarehouseStock } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
-import type { OtherStockItem } from '@/app/(DashboardLayout)/_actions/dashboard-queries';
+import {
+    getOtherWarehouseStock,
+    type OtherStockItem,
+} from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { RegionalCombobox } from '@/app/components/shared/RegionalCombobox';
 import { Badge } from '@/components/ui/badge';
 import { ModalDialog } from '@/components/ui/modal-dialog';

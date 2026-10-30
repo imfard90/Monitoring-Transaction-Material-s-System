@@ -16,18 +16,23 @@ export {
     getWarehousePerformance,
 } from './dashboard-charts-queries';
 export {
-    getDashboardKpis,
-    getDashboardStockIntech,
     getIntechLensaWarehousePerformance,
     getLensaWarehousePerformance,
-    getOtherWarehouseStock,
-    getStockBalances,
-    getStockWarnings,
     getWarehouseLeaderboard,
-    getWarehouses,
     type IntechLensaWarehouseMetric,
-    triggerOtherStockSync,
     type WarehouseChampionResponse,
     type WarehouseLeaderboardEntry,
     type WarehouseMetricBreakdown,
+} from './dashboard-performance-queries';
+export {
+    getDashboardKpis,
+    getStockWarnings,
+    getWarehouses,
 } from './dashboard-queries';
+export {
+    getDashboardStockIntech,
+    getOtherWarehouseStock,
+    getStockBalances,
+    type OtherStockItem,
+    triggerOtherStockSync,
+} from './dashboard-stock-queries';

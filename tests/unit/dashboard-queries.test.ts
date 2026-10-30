@@ -131,7 +131,7 @@ const {
     triggerOtherStockSync,
     getStockWarnings,
     getWarehouses,
-} = await import('@/app/(DashboardLayout)/_actions/dashboard-queries');
+} = await import('@/app/(DashboardLayout)/_actions/dashboard-actions');
 const { getTopOutMaterials, getOutMaterialLineChartData } = await import(
     '@/app/(DashboardLayout)/_actions/dashboard-charts-queries'
 );

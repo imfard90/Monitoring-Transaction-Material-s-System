@@ -8,26 +8,6 @@ import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 import { canAccessWarehouse, warehouseScope } from '@/lib/policies';
 
-// Re-export performance & leaderboard queries and types
-export {
-    getIntechLensaWarehousePerformance,
-    getLensaWarehousePerformance,
-    getWarehouseLeaderboard,
-    type IntechLensaWarehouseMetric,
-    type WarehouseChampionResponse,
-    type WarehouseLeaderboardEntry,
-    type WarehouseMetricBreakdown,
-} from './dashboard-performance-queries';
-
-// Re-export stock balance, intech & external stock sync queries
-export {
-    getDashboardStockIntech,
-    getOtherWarehouseStock,
-    getStockBalances,
-    type OtherStockItem,
-    triggerOtherStockSync,
-} from './dashboard-stock-queries';
-
 export async function getWarehouses() {
     const user = await getSessionUser();
     try {
