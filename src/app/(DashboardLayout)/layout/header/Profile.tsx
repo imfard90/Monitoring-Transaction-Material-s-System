@@ -18,11 +18,19 @@ import { getInitials } from '@/lib/avatar';
 import { useProfileAvatar } from '@/lib/avatar-client';
 import * as profileData from './data';
 
+interface ProfileUser {
+    id?: string;
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+    nik?: string | null;
+    role?: string | null;
+}
+
 const Profile = () => {
     const _router = useRouter();
     const { data: session } = authClient.useSession();
-    // biome-ignore lint/suspicious/noExplicitAny: Better Auth client types might not include custom fields
-    const user = session?.user as any;
+    const user = session?.user as ProfileUser | undefined;
 
     const { src: avatarSrc, onError: handleAvatarError } = useProfileAvatar(user?.nik, user?.image);
     const profileFallback = getInitials(user?.name);

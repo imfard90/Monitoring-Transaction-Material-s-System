@@ -18,6 +18,7 @@
       "*.mjs",
       "*.js",
       "*.json",
+      "!public/**/*.min.*",
       "!**/.agents",
       "!**/.archive",
       "!**/_archive",
@@ -175,11 +176,10 @@
       }
     },
     {
-      "includes": ["**/src/services/api/**"],
+      "includes": ["**/src/services/api/**", "**/src/lib/**", "**/src/app/**/_actions/**"],
       "linter": {
         "rules": {
           "suspicious": {
-            "noExplicitAny": "off",
             "noConsole": "error"
           }
         }
