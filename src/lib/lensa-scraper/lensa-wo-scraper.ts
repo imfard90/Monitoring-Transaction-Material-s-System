@@ -148,12 +148,17 @@ async function scrapeDefaultEndpoint(
     );
 }
 
+export function getWOPrefixes(cutoffDate: Date = CUTOFF_DATE): string[] {
+    const yyMM = format(cutoffDate, 'yyMM');
+    return ['INC', 'SC', `DGPS${yyMM}`, `FMC${yyMM}`, 'PDA'];
+}
+
 async function scrapePrefixEndpoint(
     page: LensaPage,
     performLogin: LensaPerformLogin,
     safeGoto: LensaSafeGoto,
     perpage: number,
-    prefix: 'INC' | 'SC' | 'DGPS' | 'FMC' | 'PDA',
+    prefix: string,
     seenIds: Set<string>,
     results: WOLensaHeader[]
 ): Promise<void> {
@@ -196,9 +201,9 @@ async function scrapePrefixEndpoint(
  *      (stop jika N halaman berturut-turut semua < cutoff, cap 50).
  *   2) Prefix INC: sort by tanggal_update asc, loop sampai last_page atau cap 50.
  *   3) Prefix SC: sama seperti INC.
- *   4) Prefix DGPS: sama seperti INC/SC, tanpa filter tambahan gi_number.
- *   5) Prefix FMC: sama seperti DGPS.
- *   6) Prefix PDA: sama seperti DGPS/FMC.
+ *   4) Prefix DGPSyyMM: pola DGPS diikuti 2 digit tahun dan 2 digit bulan berjalan (misal DGPS2610).
+ *   5) Prefix FMCyyMM: pola FMC diikuti 2 digit tahun dan 2 digit bulan berjalan (misal FMC2610).
+ *   6) Prefix PDA: sama seperti INC/SC.
  */
 export async function scrapeWOLensaHeaders(
     existingPemakaianIds: string[],
@@ -218,51 +223,18 @@ export async function scrapeWOLensaHeaders(
         const seenIds = new Set<string>(existingPemakaianIds);
 
         await scrapeDefaultEndpoint(page, performLogin, safeGoto, perpage, seenIds, newHeaders);
-        await scrapePrefixEndpoint(
-            page,
-            performLogin,
-            safeGoto,
-            perpage,
-            'INC',
-            seenIds,
-            newHeaders
-        );
-        await scrapePrefixEndpoint(
-            page,
-            performLogin,
-            safeGoto,
-            perpage,
-            'SC',
-            seenIds,
-            newHeaders
-        );
-        await scrapePrefixEndpoint(
-            page,
-            performLogin,
-            safeGoto,
-            perpage,
-            'DGPS',
-            seenIds,
-            newHeaders
-        );
-        await scrapePrefixEndpoint(
-            page,
-            performLogin,
-            safeGoto,
-            perpage,
-            'FMC',
-            seenIds,
-            newHeaders
-        );
-        await scrapePrefixEndpoint(
-            page,
-            performLogin,
-            safeGoto,
-            perpage,
-            'PDA',
-            seenIds,
-            newHeaders
-        );
+
+        for (const prefix of getWOPrefixes(CUTOFF_DATE)) {
+            await scrapePrefixEndpoint(
+                page,
+                performLogin,
+                safeGoto,
+                perpage,
+                prefix,
+                seenIds,
+                newHeaders
+            );
+        }
 
         return newHeaders;
     } catch (error) {
