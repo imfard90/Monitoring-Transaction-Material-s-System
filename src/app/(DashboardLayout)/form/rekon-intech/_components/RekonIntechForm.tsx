@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
+import { TechnicianMaterialTable } from '@/components/domain/material/TechnicianMaterialTable';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -90,7 +91,7 @@ export default function RekonIntechForm() {
         }
     }, [materialsData?.data]);
 
-    const handleQtyChange = (itemId: number, value: string) => {
+    const handleQtyChange = (itemId: string | number, value: string) => {
         setRowStates((prev) => ({
             ...prev,
             [itemId]: value,
@@ -276,138 +277,15 @@ export default function RekonIntechForm() {
                         <h3 className="text-base font-semibold">Material Di Tangan Teknisi</h3>
 
                         {selectedNik ? (
-                            isLoadingMaterials ? (
-                                <div
-                                    className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50"
-                                    role="status"
-                                >
-                                    Memuat data material...
-                                </div>
-                            ) : materials.length === 0 ? (
-                                <div
-                                    className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50"
-                                    role="status"
-                                >
-                                    Tidak ada material (Intech) untuk teknisi ini.
-                                </div>
-                            ) : (
-                                <div className="border rounded-md overflow-x-auto">
-                                    <Table className="min-w-[800px]">
-                                        <TableHeader className="bg-muted/50">
-                                            <TableRow>
-                                                <TableHead className="w-[50px] text-center py-1 px-2">
-                                                    No
-                                                </TableHead>
-                                                <TableHead className="min-w-[150px] py-1 px-2">
-                                                    Waktu Permintaan
-                                                </TableHead>
-                                                <TableHead className="min-w-[150px] py-1 px-2">
-                                                    ID Trx (SAP)
-                                                </TableHead>
-                                                <TableHead className="min-w-[120px] py-1 px-2">
-                                                    Nomor SAP
-                                                </TableHead>
-                                                <TableHead className="min-w-[120px] py-1 px-2">
-                                                    Kode Material
-                                                </TableHead>
-                                                <TableHead className="min-w-[200px] py-1 px-2">
-                                                    Nama Material
-                                                </TableHead>
-                                                <TableHead className="text-center w-[100px] py-1 px-2">
-                                                    Jumlah Intech
-                                                </TableHead>
-                                                <TableHead className="w-[120px] py-1 px-2">
-                                                    Jumlah Digunakan
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            <AnimatePresence>
-                                                {materials.map((m: any, index: number) => {
-                                                    const rawQty = rowStates[m.sap_out_item_id];
-                                                    const qtyValue =
-                                                        rawQty === undefined ? '' : rawQty;
-                                                    const availableQty =
-                                                        m.qty_req - (m.qty_used || 0);
-
-                                                    return (
-                                                        <motion.tr
-                                                            key={m.sap_out_item_id}
-                                                            initial={{ opacity: 0, y: 10 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            transition={{
-                                                                duration: 0.2,
-                                                                delay: index * 0.03,
-                                                            }}
-                                                            className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-                                                        >
-                                                            <TableCell className="text-center font-medium py-1 px-2 text-sm">
-                                                                {index + 1}
-                                                            </TableCell>
-                                                            <TableCell className="text-sm py-1 px-2">
-                                                                {m.request_time
-                                                                    ? new Date(
-                                                                          m.request_time
-                                                                      ).toLocaleString('id-ID')
-                                                                    : '-'}
-                                                            </TableCell>
-                                                            <TableCell className="text-sm py-1 px-2">
-                                                                {m.id_trx}
-                                                            </TableCell>
-                                                            <TableCell className="text-sm py-1 px-2">
-                                                                {m.sap_number || '-'}
-                                                            </TableCell>
-                                                            <TableCell className="font-semibold py-1 px-2 text-sm">
-                                                                {m.material_code}
-                                                            </TableCell>
-                                                            <TableCell className="text-sm py-1 px-2">
-                                                                {m.description}
-                                                            </TableCell>
-                                                            <TableCell className="text-center font-bold text-primary py-1 px-2 text-sm">
-                                                                {availableQty}
-                                                            </TableCell>
-                                                            <TableCell className="py-1 px-2">
-                                                                <Input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    max={availableQty}
-                                                                    value={qtyValue}
-                                                                    onChange={(e) => {
-                                                                        let val: string | number =
-                                                                            e.target.value === ''
-                                                                                ? ''
-                                                                                : Number(
-                                                                                      e.target.value
-                                                                                  );
-
-                                                                        if (
-                                                                            typeof val ===
-                                                                                'number' &&
-                                                                            val > availableQty
-                                                                        ) {
-                                                                            val = availableQty;
-                                                                            toast.error(
-                                                                                `Jumlah maksimal adalah ${availableQty}`
-                                                                            );
-                                                                        }
-
-                                                                        handleQtyChange(
-                                                                            m.sap_out_item_id,
-                                                                            String(val)
-                                                                        );
-                                                                    }}
-                                                                    className="h-8 text-center text-sm"
-                                                                    placeholder="0"
-                                                                />
-                                                            </TableCell>
-                                                        </motion.tr>
-                                                    );
-                                                })}
-                                            </AnimatePresence>
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            )
+                            <TechnicianMaterialTable
+                                materials={materials}
+                                loading={isLoadingMaterials}
+                                emptyMessage="Tidak ada material (Intech) untuk teknisi ini."
+                                mode="input"
+                                quantities={rowStates}
+                                onQuantityChange={handleQtyChange}
+                                showTransactionId={true}
+                            />
                         ) : (
                             <div
                                 className="text-center p-8 border border-dashed rounded-md text-muted-foreground bg-muted/50"

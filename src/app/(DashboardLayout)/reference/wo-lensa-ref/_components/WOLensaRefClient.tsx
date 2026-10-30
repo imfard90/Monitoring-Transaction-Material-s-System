@@ -1,7 +1,7 @@
 'use client';
 
 import { format } from 'date-fns';
-import { Clock, Eye, FileSearch, Play } from 'lucide-react';
+import { Eye, FileSearch, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
+import { LensaScraperStatusBanner } from '@/components/domain/reference/LensaScraperStatusBanner';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,7 @@ import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useUrlFilterState } from '@/hooks/use-url-filter-state';
 import { createColumnHelper, getCoreRowModel, getSortedRowModel, useReactTable } from '@/lib/table';
 import { toCanonicalWarehouseName } from '@/lib/warehouse-helper';
 import {
@@ -110,45 +112,24 @@ export default function WOLensaRefClient({
     const [isScrapingLiveDetail, setIsScrapingLiveDetail] = useState(false);
     const [liveDetailResult, setLiveDetailResult] = useState<ScrapedWODetailResult | null>(null);
     const [loadingOptions, setLoadingOptions] = useState(false);
-
-    const [searchQuery, setSearchQuery] = useState(currentSearch);
-    const [selectedGudang, setSelectedGudang] = useState<string>(
-        toCanonicalWarehouseName(currentWarehouse)
-    );
     const router = useRouter();
+
+    const {
+        searchQuery,
+        setSearchQuery,
+        selectedWarehouse: selectedGudang,
+        handleWarehouseChange,
+        handleResetAll,
+    } = useUrlFilterState({
+        basePath: '/reference/wo-lensa-ref',
+        currentSearch,
+        currentWarehouse,
+        currentPage: pagination?.page ?? 1,
+    });
 
     useEffect(() => {
         setCurrentLastUpdate(lastUpdate ?? null);
     }, [lastUpdate]);
-
-    useEffect(() => {
-        setSearchQuery(currentSearch);
-    }, [currentSearch]);
-
-    useEffect(() => {
-        setSelectedGudang(toCanonicalWarehouseName(currentWarehouse));
-    }, [currentWarehouse]);
-
-    // Debounce search update to URL query
-    useEffect(() => {
-        if (searchQuery === currentSearch) return;
-
-        const timer = setTimeout(() => {
-            const params = new URLSearchParams(window.location.search);
-            if (searchQuery.trim()) {
-                params.set('search', searchQuery.trim());
-            } else {
-                params.delete('search');
-            }
-            if (pagination && pagination.page > 1) {
-                params.set('page', '1');
-            }
-            const query = params.toString();
-            router.push(`/reference/wo-lensa-ref${query ? `?${query}` : ''}`);
-        }, 350);
-
-        return () => clearTimeout(timer);
-    }, [searchQuery, currentSearch, pagination, router]);
 
     const uniqueGudang = useMemo(() => {
         if (warehouseOptions && warehouseOptions.length > 0) {
@@ -167,34 +148,6 @@ export default function WOLensaRefClient({
             toast.error(error);
         }
     }, [error]);
-
-    const handleWarehouseChange = (value: string) => {
-        setSelectedGudang(value);
-        const params = new URLSearchParams(window.location.search);
-        if (value === 'all') {
-            params.delete('warehouse');
-        } else {
-            params.set('warehouse', value);
-        }
-        if (pagination && pagination.page > 1) {
-            params.set('page', '1');
-        }
-        const query = params.toString();
-        router.push(`/reference/wo-lensa-ref${query ? `?${query}` : ''}`);
-    };
-
-    const handleResetAll = useCallback(() => {
-        setSearchQuery('');
-        setSelectedGudang('all');
-        const params = new URLSearchParams(window.location.search);
-        params.delete('search');
-        params.delete('warehouse');
-        if (pagination && pagination.page > 1) {
-            params.set('page', '1');
-        }
-        const query = params.toString();
-        router.push(`/reference/wo-lensa-ref${query ? `?${query}` : ''}`);
-    }, [pagination, router]);
 
     const hasActiveFilters = Boolean(
         searchQuery.trim() || (!isStaff && selectedGudang && selectedGudang !== 'all')
@@ -582,43 +535,7 @@ export default function WOLensaRefClient({
                     </CardHeader>
                     <CardContent className="flex flex-col gap-3.5 w-full min-w-0 max-w-full">
                         <div className="flex flex-col gap-1.5 w-full min-w-0 max-w-full">
-                            <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                    <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
-                                    {currentLastUpdate ? (
-                                        <>
-                                            <span>
-                                                Update Terakhir:{' '}
-                                                <strong className="font-semibold text-foreground">
-                                                    {format(
-                                                        new Date(currentLastUpdate.timestamp),
-                                                        'dd MMM yyyy, HH:mm'
-                                                    )}{' '}
-                                                    WIB
-                                                </strong>
-                                            </span>
-                                            <span className="text-muted-foreground/50">•</span>
-                                            <span
-                                                className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium border ${
-                                                    currentLastUpdate.action === 'system'
-                                                        ? 'bg-muted/60 text-foreground border-border'
-                                                        : 'bg-primary/10 text-primary border-primary/20'
-                                                }`}
-                                            >
-                                                {currentLastUpdate.action === 'system'
-                                                    ? 'System (Cron)'
-                                                    : 'Manual'}
-                                            </span>
-                                            <span className="text-muted-foreground/50">•</span>
-                                            <span className="text-foreground/80">
-                                                {currentLastUpdate.resume_result}
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <span>Belum ada riwayat update scraper.</span>
-                                    )}
-                                </div>
-                            </div>
+                            <LensaScraperStatusBanner lastUpdate={currentLastUpdate} />
                             <DataTable
                                 table={table}
                                 emptyMessage="Tidak ada data."

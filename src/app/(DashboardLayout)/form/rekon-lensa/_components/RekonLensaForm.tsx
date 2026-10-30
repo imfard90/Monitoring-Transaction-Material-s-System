@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
+import { TechnicianMaterialTable } from '@/components/domain/material/TechnicianMaterialTable';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -369,82 +370,14 @@ export default function RekonLensaForm() {
                                     Material di Tangan Teknisi (FIFO)
                                 </h3>
                             </div>
-                            <div className="rounded-md border flex-1 overflow-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Nomor SAP</TableHead>
-                                            <TableHead>Material</TableHead>
-                                            <TableHead className="text-right">Sisa Stok</TableHead>
-                                            <TableHead className="text-right">
-                                                Alokasi Terpakai
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {materialsLoading ? (
-                                            <TableRow>
-                                                <TableCell colSpan={4} className="text-center py-8">
-                                                    Memuat data, mohon tunggu...
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : materialsData?.length === 0 ? (
-                                            <TableRow>
-                                                <TableCell
-                                                    colSpan={4}
-                                                    className="text-center py-8 text-muted-foreground"
-                                                >
-                                                    Tidak ada material di tangan teknisi
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : (
-                                            materialsData?.map((mat: any) => {
-                                                const available = mat.qty_req - (mat.qty_used || 0);
-                                                const allocated =
-                                                    allocatedQty[mat.sap_out_item_id] || 0;
-                                                return (
-                                                    <TableRow
-                                                        key={mat.sap_out_item_id}
-                                                        className={
-                                                            allocated > 0 ? 'bg-success/10' : ''
-                                                        }
-                                                    >
-                                                        <TableCell className="font-medium text-xs">
-                                                            {mat.sap_number}
-                                                            <div className="text-muted-foreground">
-                                                                {new Date(
-                                                                    mat.request_time
-                                                                ).toLocaleDateString('id-ID')}
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <div className="font-medium">
-                                                                {mat.material_code}
-                                                            </div>
-                                                            <div
-                                                                className="text-xs text-muted-foreground line-clamp-1"
-                                                                title={mat.description}
-                                                            >
-                                                                {mat.description}
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="text-right font-medium">
-                                                            {available}
-                                                        </TableCell>
-                                                        <TableCell className="text-right">
-                                                            <span
-                                                                className={`font-bold ${allocated > 0 ? 'text-success' : 'text-muted-foreground'}`}
-                                                            >
-                                                                {allocated}
-                                                            </span>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                );
-                                            })
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                            <TechnicianMaterialTable
+                                materials={materialsData || []}
+                                loading={materialsLoading}
+                                emptyMessage="Tidak ada material di tangan teknisi"
+                                mode="allocation"
+                                quantities={allocatedQty}
+                                className="flex-1"
+                            />
                         </Card>
                     </motion.div>
                 )}
