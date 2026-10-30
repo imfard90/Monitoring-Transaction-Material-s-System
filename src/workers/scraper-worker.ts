@@ -1,6 +1,5 @@
 import 'dotenv/config';
-import { executeOutLensaScraping } from '@/lib/services/lensa-out-service';
-import { executeWOLensaScraping } from '@/lib/services/lensa-wo-service';
+import cron from 'node-cron';
 import {
     OTHER_STOCK_SYNC_LOCK_KEY,
     OTHER_STOCK_SYNC_LOCK_TTL_SECONDS,
@@ -9,15 +8,17 @@ import {
 import { closeBrowser } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
+import { acquireLock } from '@/lib/redis-lock';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
 import { bulkScrapeStockTeknisi } from '@/lib/services/bulk-stock-scraper';
+import { executeOutLensaScraping } from '@/lib/services/lensa-out-service';
+import { executeWOLensaScraping } from '@/lib/services/lensa-wo-service';
 import {
     WORKER_HEARTBEAT_KEY,
     WORKER_HEARTBEAT_TTL_SECONDS,
     WORKER_QUEUE_KEY,
     type WorkerJob,
 } from '@/lib/workers/worker-client';
-import cron from 'node-cron';
 
 actionLogger.info('====================================================');
 actionLogger.info('[MTMS-WORKER] Dedicated Background Worker Initializing');
@@ -117,21 +118,19 @@ const runBulkStockScraper = async (label: string, action: 'system' | 'manual' = 
     const LOCK_KEY = 'lock:bulk_stock_scrape';
     const LOCK_TTL = 1800; // 30 minutes
 
-    try {
-        const acquired = await redis.set(LOCK_KEY, '1', 'EX', LOCK_TTL, 'NX');
-        if (!acquired) {
-            actionLogger.warn(
-                `[CRON] Bulk stock scraping (${label}) skipped; another scraping job is running.`
-            );
-            return;
-        }
+    const lock = await acquireLock(LOCK_KEY, LOCK_TTL);
+    if (!lock) {
+        actionLogger.warn(
+            `[CRON] Bulk stock scraping (${label}) skipped; another scraping job is running.`
+        );
+        return;
+    }
 
+    try {
         actionLogger.info(`[CRON] Starting bulk technician stock scraping (${label})...`);
         const result = await bulkScrapeStockTeknisi();
         const resume = `${result.success} sukses, ${result.failed} gagal dari ${result.total} teknisi (${label})`;
-        actionLogger.info(
-            `[CRON] Bulk technician stock scraping (${label}) completed: ${resume}`
-        );
+        actionLogger.info(`[CRON] Bulk technician stock scraping (${label}) completed: ${resume}`);
         await scraperLogRepository
             .insertLog({
                 scraper_type: 'stock_teknisi',
@@ -156,21 +155,14 @@ const runBulkStockScraper = async (label: string, action: 'system' | 'manual' = 
                 actionLogger.warn('[CRON] Gagal mencatat log scraper_cronjob_log:', err);
             });
     } finally {
-        await redis.del(LOCK_KEY);
+        await lock.release();
         await closeBrowser().catch(() => {});
     }
 };
 
 const runLockedStockSync = async (context: string): Promise<boolean> => {
-    const lockToken = globalThis.crypto.randomUUID();
-    const acquired = await redis.set(
-        OTHER_STOCK_SYNC_LOCK_KEY,
-        lockToken,
-        'EX',
-        OTHER_STOCK_SYNC_LOCK_TTL_SECONDS,
-        'NX'
-    );
-    if (!acquired) {
+    const lock = await acquireLock(OTHER_STOCK_SYNC_LOCK_KEY, OTHER_STOCK_SYNC_LOCK_TTL_SECONDS);
+    if (!lock) {
         actionLogger.warn(`[${context}] Sheets stock sync skipped; another sync is running.`);
         return false;
     }
@@ -179,12 +171,7 @@ const runLockedStockSync = async (context: string): Promise<boolean> => {
         await syncOtherStock();
         return true;
     } finally {
-        await redis.eval(
-            "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
-            1,
-            OTHER_STOCK_SYNC_LOCK_KEY,
-            lockToken
-        );
+        await lock.release();
     }
 };
 

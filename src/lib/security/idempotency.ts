@@ -10,6 +10,7 @@
  * server components/actions to avoid bundling node modules in client.
  */
 
+import { ConflictError } from '@/lib/errors';
 import { securityLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
 
@@ -61,6 +62,10 @@ export async function checkIdempotency<T = unknown>(
         if (existing) {
             securityLogger.debug('[Idempotency] Hit', { key: `${redisKey.slice(0, 20)}...` });
 
+            if (existing === 'PENDING') {
+                return { isDuplicate: true, cachedResult: null };
+            }
+
             try {
                 return {
                     isDuplicate: true,
@@ -104,8 +109,8 @@ export async function storeIdempotencyResult<T = unknown>(
 }
 
 /**
- * Check dan store dalam satu operasi
- * Convenience function untuk operasi yang sering digunakan
+ * Check dan store dalam satu operasi atomik
+ * Mencegah race condition (TOCTOU) dengan reservasi atomik SET NX EX
  */
 export async function checkAndStoreIdempotency<TInput, TResult>(
     key: string,
@@ -114,37 +119,63 @@ export async function checkAndStoreIdempotency<TInput, TResult>(
     config: IdempotencyConfig = IDEMPOTENCY_CONFIGS.inventoryTx
 ): Promise<{ result: TResult; isDuplicate: boolean }> {
     const redisKey = `${config.prefix}:${key}`;
+    let isReserved = false;
 
-    // Try to reserve the key to prevent race conditions (TOCTOU)
-    const reserved = await redis.set(redisKey, 'PENDING', 'EX', config.ttl, 'NX');
+    try {
+        // Atomic reservation to prevent double-submit race condition
+        const reserved = await redis.set(redisKey, 'PENDING', 'EX', config.ttl, 'NX');
 
-    if (!reserved) {
-        // Key already exists, it's a duplicate
-        const existing = await redis.get(redisKey);
-        if (existing && existing !== 'PENDING') {
-            try {
-                return {
-                    result: JSON.parse(existing) as TResult,
-                    isDuplicate: true,
-                };
-            } catch {
-                // Ignore parse error and fall through to throw
+        if (!reserved) {
+            // Key already exists, check if completed result is cached
+            const existing = await redis.get(redisKey);
+            if (existing && existing !== 'PENDING') {
+                try {
+                    return {
+                        result: JSON.parse(existing) as TResult,
+                        isDuplicate: true,
+                    };
+                } catch {
+                    // Ignore JSON parse error and throw ConflictError below
+                }
             }
+            throw new ConflictError('Transaksi serupa sedang diproses atau telah selesai.');
         }
-        throw new Error('Concurrent request in progress or invalid cached result');
+        isReserved = true;
+    } catch (error) {
+        if (error instanceof ConflictError) throw error;
+        securityLogger.warn(
+            '[Idempotency] Redis unavailable during reservation, proceeding gracefully without lock',
+            { error: String(error) }
+        );
     }
 
     try {
         // Execute operation
         const result = await operation(input);
 
-        // Store result
-        await redis.set(redisKey, JSON.stringify(result), 'EX', config.ttl);
+        // Store result atomically if reserved
+        if (isReserved) {
+            try {
+                await redis.set(redisKey, JSON.stringify(result), 'EX', config.ttl);
+            } catch (err) {
+                securityLogger.warn('[Idempotency] Failed to store result in Redis', {
+                    error: String(err),
+                });
+            }
+        }
 
         return { result, isDuplicate: false };
     } catch (error) {
-        // If operation fails, delete the pending key so it can be retried
-        await redis.del(redisKey);
+        // If operation fails, clean up the pending reservation so the user can retry
+        if (isReserved) {
+            try {
+                await redis.del(redisKey);
+            } catch (err) {
+                securityLogger.warn('[Idempotency] Failed to clean up pending key on error', {
+                    error: String(err),
+                });
+            }
+        }
         throw error;
     }
 }

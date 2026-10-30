@@ -16,6 +16,17 @@ ON inventory.scraper_cronjob_log (scraper_type, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_scraper_cronjob_log_ts 
 ON inventory.scraper_cronjob_log (timestamp DESC);
 
+-- Enable RLS (defense-in-depth L4 compliance)
+ALTER TABLE inventory.scraper_cronjob_log ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS scraper_cronjob_log_select_policy ON inventory.scraper_cronjob_log;
+CREATE POLICY scraper_cronjob_log_select_policy ON inventory.scraper_cronjob_log
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS scraper_cronjob_log_insert_policy ON inventory.scraper_cronjob_log;
+CREATE POLICY scraper_cronjob_log_insert_policy ON inventory.scraper_cronjob_log
+    FOR INSERT WITH CHECK (true);
+
 COMMENT ON TABLE inventory.scraper_cronjob_log IS 'Riwayat eksekusi cronjob dan manual scraping MTMS';
 COMMENT ON COLUMN inventory.scraper_cronjob_log.scraper_type IS 'Kategori scraper: out_lensa, wo_lensa, stock_teknisi, other_stock';
 COMMENT ON COLUMN inventory.scraper_cronjob_log.action IS 'Tipe pemicu: system (cron) atau manual (user button)';
