@@ -12,10 +12,10 @@ export const metadata: Metadata = {
 const BCrumb = [
     {
         to: '/',
-        title: 'Beranda',
+        title: 'Home',
     },
     {
-        title: 'Stok Intech',
+        title: 'Stock Intech',
     },
 ];
 

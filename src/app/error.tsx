@@ -99,3 +99,4 @@ export default function GlobalError({ error, reset }: ErrorProps) {
         </div>
     );
 }
+

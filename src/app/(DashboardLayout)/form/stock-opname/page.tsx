@@ -28,7 +28,7 @@ export default async function StockOpnamePage() {
         <div className="flex flex-col gap-4">
             <BreadcrumbComp
                 title="Stock Opname"
-                items={[{ to: '/', title: 'Beranda' }, { title: 'Stock Opname' }]}
+                items={[{ to: '/', title: 'Home' }, { title: 'Form' }, { title: 'Stock Opname' }]}
             />
             <StockOpnameClient
                 user={{

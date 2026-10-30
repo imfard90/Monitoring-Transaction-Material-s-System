@@ -5,7 +5,7 @@ function createReportOnlyCsp(nonce: string): string {
     return [
         "default-src 'self'",
         `script-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com${isDevelopment ? " 'unsafe-eval'" : ''}`,
-        `style-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com`,
+        "style-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
         "img-src 'self' data: blob: https:",
         "font-src 'self' data:",
         "connect-src 'self' https://challenges.cloudflare.com",

@@ -14,6 +14,14 @@ interface BreadCrumbType {
     items?: BreadcrumbItem[];
 }
 
+const NON_NAVIGABLE_PATHS = new Set(['/reference', '/apps', '/form', '/management', '#', '']);
+
+function isNavigable(to?: string): boolean {
+    if (!to) return false;
+    const cleanPath = to.split('?')[0].trim();
+    return !NON_NAVIGABLE_PATHS.has(cleanPath);
+}
+
 const BreadcrumbComp = ({ items = [], title }: BreadCrumbType) => {
     return (
         <Card className="mb-6 px-4 py-4 bg-lightsecondary overflow-hidden rounded-md border-none shadow-none relative w-full min-w-0 max-w-full motion-reduce:transition-none">
@@ -24,10 +32,11 @@ const BreadcrumbComp = ({ items = [], title }: BreadCrumbType) => {
                     <ol className="flex items-center whitespace-nowrap overflow-x-auto" aria-label="Breadcrumb">
                         {items.map((item, index) => {
                             const isLast = index === items.length - 1;
+                            const canNavigate = Boolean(item.to && !isLast && isNavigable(item.to));
 
                             return (
                                 <li key={item.title || index} className="flex items-center">
-                                    {item.to && !isLast ? (
+                                    {canNavigate && item.to ? (
                                         <Link
                                             href={item.to}
                                             className="text-sm text-muted-foreground opacity-80 leading-none hover:underline"

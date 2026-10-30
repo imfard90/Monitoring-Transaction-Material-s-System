@@ -15,7 +15,6 @@ const BCrumb = [
         title: 'Home',
     },
     {
-        to: '/reference',
         title: 'Reference',
     },
     {

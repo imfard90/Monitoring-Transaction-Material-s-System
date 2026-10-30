@@ -38,7 +38,7 @@ const kpiConfig = [
         icon: 'solar:box-minimalistic-bold-duotone',
         bgcolor: 'bg-primary/10 dark:bg-primary/10',
         iconColor: 'text-primary',
-        url: '/apps/stock-gudang',
+        url: '/stock-inventory',
     },
     {
         key: 'stockIntechRp',
@@ -46,7 +46,7 @@ const kpiConfig = [
         icon: 'solar:hand-money-bold-duotone',
         bgcolor: 'bg-warning/10 dark:bg-warning/10',
         iconColor: 'text-warning',
-        url: '/form/out-sap',
+        url: '/stock-intech',
     },
     {
         key: 'requestTag',

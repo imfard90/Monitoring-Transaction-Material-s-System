@@ -16,7 +16,6 @@ const BCrumb = [
         title: 'Home',
     },
     {
-        to: '/apps',
         title: 'Apps',
     },
     {

@@ -11,7 +11,7 @@ export const metadata = {
     description: 'Monitoring transaksi InOut Tag',
 };
 
-const BCrumb = [{ to: '/', title: 'Home' }, { to: '/apps', title: 'Apps' }, { title: 'InOut Tag' }];
+const BCrumb = [{ to: '/', title: 'Home' }, { title: 'Apps' }, { title: 'InOut Tag' }];
 
 interface SearchParams {
     page?: string;

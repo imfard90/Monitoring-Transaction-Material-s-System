@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
-import { getSessionUser } from '@/lib/auth-server';
+import { getPageSessionUser } from '@/lib/auth-server';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
 import { getBranches, getMitras, getTechnicians, getWarehouses } from './actions';
 import TechnicianTable from './technician-table';
@@ -17,19 +17,18 @@ export const metadata: Metadata = {
 const BCrumb = [
     {
         to: '/',
-        title: 'Beranda',
+        title: 'Home',
     },
     {
-        to: '#',
-        title: 'Manajemen',
+        title: 'Management',
     },
     {
-        title: 'Teknisi',
+        title: 'Technicians',
     },
 ];
 
 export default async function TechnicianManagementPage() {
-    const session = await getSessionUser();
+    const session = await getPageSessionUser();
 
     // Prevent Teknisi from accessing page
     if (session.role === 'Teknisi') {

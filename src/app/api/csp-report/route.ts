@@ -2,7 +2,7 @@ import { securityLogger } from '@/lib/logger';
 import { rateLimit } from '@/lib/rate-limit';
 
 const MAX_REPORT_BYTES = 16_384;
-const MAX_REPORTS_PER_MINUTE = 30;
+const MAX_REPORTS_PER_MINUTE = 120;
 
 export async function POST(request: Request): Promise<Response> {
     const contentType = request.headers.get('content-type')?.split(';')[0].trim();
@@ -22,7 +22,8 @@ export async function POST(request: Request): Promise<Response> {
     const clientKey = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
     const rate = await rateLimit(`csp-report:${clientKey}`, MAX_REPORTS_PER_MINUTE, 60);
     if (!rate.success) {
-        return new Response(null, { status: 429 });
+        // Drop excessive background violation reports silently with 204 to prevent console 429 flood
+        return new Response(null, { status: 204 });
     }
 
     const body = await request.text();

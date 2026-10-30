@@ -18,14 +18,13 @@ export const metadata: Metadata = {
 const BCrumb = [
     {
         to: '/',
-        title: 'Beranda',
+        title: 'Home',
     },
     {
-        to: '#',
-        title: 'Manajemen',
+        title: 'Management',
     },
     {
-        title: 'Pengguna',
+        title: 'Users',
     },
 ];
 
