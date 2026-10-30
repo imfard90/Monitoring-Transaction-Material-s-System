@@ -184,10 +184,10 @@ export const StockValueDonutChart: React.FC<{
     );
 
     return (
-        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none h-full w-full relative overflow-hidden flex flex-col justify-between">
+        <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none h-full w-full relative overflow-hidden flex flex-col justify-between">
             {/* Ambient decorative gradient */}
             <div
-                className="absolute top-0 left-0 w-full h-28 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"
+                className="absolute top-0 left-0 w-full h-28 bg-linear-to-b from-primary/5 to-transparent pointer-events-none"
                 aria-hidden="true"
             />
 
@@ -256,8 +256,7 @@ export const StockValueDonutChart: React.FC<{
                     <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2 min-w-0">
                             <span
-                                className="w-2.5 h-2.5 rounded-full shrink-0"
-                                style={{ backgroundColor: '#0085db' }}
+                                className="w-2.5 h-2.5 rounded-full shrink-0 bg-primary"
                                 aria-hidden="true"
                             />
                             <span className="font-medium text-foreground truncate">
@@ -281,8 +280,7 @@ export const StockValueDonutChart: React.FC<{
                     <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2 min-w-0">
                             <span
-                                className="w-2.5 h-2.5 rounded-full shrink-0"
-                                style={{ backgroundColor: '#fb977d' }}
+                                className="w-2.5 h-2.5 rounded-full shrink-0 bg-secondary"
                                 aria-hidden="true"
                             />
                             <span className="font-medium text-foreground truncate">

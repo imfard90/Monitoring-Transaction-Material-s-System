@@ -16,7 +16,7 @@ interface BreadCrumbType {
 
 const BreadcrumbComp = ({ items = [], title }: BreadCrumbType) => {
     return (
-        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none mb-6 py-4 bg-lightsecondary overflow-hidden rounded-md border-none shadow-none relative w-full min-w-0 max-w-full">
+        <Card className="mb-6 px-4 py-4 bg-lightsecondary overflow-hidden rounded-md border-none shadow-none relative w-full min-w-0 max-w-full motion-reduce:transition-none">
             <div className="grid grid-cols-12 gap-6 items-center w-full min-w-0">
                 <div className="col-span-10 min-w-0">
                     <h4 className="font-semibold text-xl mb-3 truncate">{title}</h4>

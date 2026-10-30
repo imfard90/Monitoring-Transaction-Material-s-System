@@ -276,10 +276,10 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
                                                     nextStep.status === 'completed'
                                                     ? 'bg-primary'
                                                     : nextStep.status === 'cancelled'
-                                                      ? 'bg-gradient-to-r from-primary to-destructive/70'
+                                                      ? 'bg-linear-to-r from-primary to-destructive/70'
                                                       : step.status === 'completed' &&
                                                           nextStep.status === 'active'
-                                                        ? 'bg-gradient-to-r from-primary to-primary/30'
+                                                        ? 'bg-linear-to-r from-primary to-primary/30'
                                                         : 'bg-border'
                                             )}
                                         />

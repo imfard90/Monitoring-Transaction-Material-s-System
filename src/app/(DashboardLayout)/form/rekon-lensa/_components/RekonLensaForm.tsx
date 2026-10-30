@@ -281,7 +281,7 @@ export default function RekonLensaForm() {
                         className="grid grid-cols-1 lg:grid-cols-5 gap-6"
                     >
                         {/* WO Lensa Table */}
-                        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none p-6 flex flex-col h-full lg:col-span-3">
+                        <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6 flex flex-col h-full lg:col-span-3">
                             <div className="flex items-center gap-2 mb-4">
                                 <FileText className="h-5 w-5 text-primary" />
                                 <h3 className="text-lg font-semibold">Work Order Lensa</h3>
@@ -362,7 +362,7 @@ export default function RekonLensaForm() {
                         </Card>
 
                         {/* Material di Tangan Teknisi Table */}
-                        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none p-6 flex flex-col h-full lg:col-span-2">
+                        <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6 flex flex-col h-full lg:col-span-2">
                             <div className="flex items-center gap-2 mb-4">
                                 <FileText className="h-5 w-5 text-primary" />
                                 <h3 className="text-lg font-semibold">

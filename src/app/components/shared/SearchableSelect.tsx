@@ -74,10 +74,7 @@ export function SearchableSelect({
             >
                 <Command>
                     <CommandInput placeholder="Cari..." />
-                    <CommandList
-                        className="max-h-[260px]! overflow-y-auto!"
-                        style={{ maxHeight: '260px', overflowY: 'auto' }}
-                    >
+                    <CommandList className="max-h-[260px] overflow-y-auto">
                         <CommandEmpty>{emptyText}</CommandEmpty>
                         <CommandGroup>
                             {options.map((option) => (

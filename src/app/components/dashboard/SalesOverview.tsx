@@ -137,9 +137,9 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
     }, []);
 
     return (
-        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none pb-0 h-full w-full relative overflow-hidden">
+        <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none pb-0 h-full w-full relative overflow-hidden">
             <div
-                className="absolute top-0 left-0 w-full h-28 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"
+                className="absolute top-0 left-0 w-full h-28 bg-linear-to-b from-primary/5 to-transparent pointer-events-none"
                 aria-hidden="true"
             />
 

@@ -203,7 +203,7 @@ export function ProfileApiKeyCard({ profileData }: ProfileApiKeyCardProps) {
                 <div className="hidden sm:flex flex-col items-center justify-center relative h-full min-h-24">
                     <div className="relative">
                         <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg animate-pulse" />
-                        <div className="relative w-14 h-14 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 flex items-center justify-center rotate-3 hover:rotate-0 transition-transform duration-500">
+                        <div className="relative w-14 h-14 rounded-xl bg-linear-to-br from-primary/10 to-primary/5 border border-primary/20 flex items-center justify-center rotate-3 hover:rotate-0 transition-transform duration-500">
                             <Icon icon="lucide:server" width="28" className="text-primary/80" />
                         </div>
                     </div>

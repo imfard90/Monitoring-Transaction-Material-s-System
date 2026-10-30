@@ -129,7 +129,7 @@ const SidebarSection = ({
     return (
         // biome-ignore lint/a11y/noStaticElementInteractions: accordion hover preview interaction
         <div
-            className="relative mb-2.5 pb-2.5 after:absolute after:inset-x-2 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-border/80 after:to-transparent last:after:hidden last:mb-0 last:pb-0"
+            className="relative mb-2.5 pb-2.5 after:absolute after:inset-x-2 after:bottom-0 after:h-px after:bg-linear-to-r after:from-transparent after:via-border/80 after:to-transparent last:after:hidden last:mb-0 last:pb-0"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >

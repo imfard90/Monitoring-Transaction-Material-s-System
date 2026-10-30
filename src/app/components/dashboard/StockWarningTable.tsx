@@ -54,8 +54,8 @@ export const StockWarningTable = ({
     }, [selectedWarehouse, isStaff]);
 
     return (
-        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none relative flex flex-col w-full h-full min-h-0 flex-1 overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-warning/5 to-transparent pointer-events-none" />
+        <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none relative flex flex-col w-full h-full min-h-0 flex-1 overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-bl from-warning/5 to-transparent pointer-events-none" />
 
             <div className="relative z-10 mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
                 <div>

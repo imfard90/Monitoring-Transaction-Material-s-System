@@ -12,7 +12,7 @@ export function SupportMenu() {
 
     return (
         <div className="w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl">
-            <header className="border-b border-border bg-gradient-to-br from-primary/10 via-background to-background px-5 pb-4 pt-5">
+            <header className="border-b border-border bg-linear-to-br from-primary/10 via-background to-background px-5 pb-4 pt-5">
                 <div className="flex items-center gap-3">
                     <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20">
                         <MessageCircle aria-hidden="true" className="size-5" />

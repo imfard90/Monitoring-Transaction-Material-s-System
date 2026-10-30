@@ -63,8 +63,7 @@ function SortableHeader({
         <button
             type="button"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="flex items-center gap-1 uppercase hover:text-primary transition-colors"
-            style={{ userSelect: 'none' }}
+            className="flex items-center gap-1 uppercase hover:text-primary transition-colors select-none"
         >
             <span>{title}</span>
             {isSorted ? (

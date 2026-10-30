@@ -318,7 +318,7 @@ export default function StockBalanceOverview() {
     return (
         <StaggerContainer className="flex flex-col flex-1 min-h-0">
             <StaggerItem className="flex flex-col flex-1 min-h-0">
-                <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none flex flex-col flex-1 min-h-0 p-6">
+                <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none flex flex-col flex-1 min-h-0 p-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-4">
                         <div>
                             <h2 className="text-lg font-bold text-foreground">

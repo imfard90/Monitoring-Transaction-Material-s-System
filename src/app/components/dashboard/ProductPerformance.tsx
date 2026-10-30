@@ -83,9 +83,9 @@ export const ProductPerformance = () => {
         .sort((a, b) => b.percentage - a.percentage || b.trxOut - a.trxOut);
 
     return (
-        <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none w-full relative overflow-hidden flex flex-col">
+        <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none w-full relative overflow-hidden flex flex-col">
             <div
-                className="pointer-events-none absolute right-0 top-0 h-28 w-28 bg-gradient-to-bl from-primary/5 to-transparent"
+                className="pointer-events-none absolute right-0 top-0 h-28 w-28 bg-linear-to-bl from-primary/5 to-transparent"
                 aria-hidden="true"
             />
 

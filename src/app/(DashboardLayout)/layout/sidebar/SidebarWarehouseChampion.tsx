@@ -95,14 +95,14 @@ export const SidebarWarehouseChampion = () => {
         return (
             <div
                 className={cn(
-                    'relative flex items-center justify-center rounded-xl bg-gradient-to-br from-amber-400/25 via-yellow-500/15 to-amber-600/10 border border-amber-400/40 shadow-xs shrink-0 select-none',
+                    'relative flex items-center justify-center rounded-xl bg-linear-to-br from-amber-400/25 via-yellow-500/15 to-amber-600/10 border border-amber-400/40 shadow-xs shrink-0 select-none',
                     sizeClass
                 )}
             >
                 {/* 1. Breathing Glow Radial Aura */}
                 <motion.div
                     aria-hidden="true"
-                    className="absolute inset-0 rounded-xl bg-gradient-to-tr from-amber-400/40 to-yellow-300/30 blur-xs pointer-events-none"
+                    className="absolute inset-0 rounded-xl bg-linear-to-tr from-amber-400/40 to-yellow-300/30 blur-xs pointer-events-none"
                     animate={
                         shouldReduceMotion
                             ? { opacity: 0.5 }
@@ -122,7 +122,7 @@ export const SidebarWarehouseChampion = () => {
                 <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
                     <motion.div
                         aria-hidden="true"
-                        className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/35 to-transparent skew-x-[-25deg]"
+                        className="w-1/2 h-full bg-linear-to-r from-transparent via-white/35 to-transparent skew-x-[-25deg]"
                         animate={
                             shouldReduceMotion
                                 ? {}
@@ -218,7 +218,7 @@ export const SidebarWarehouseChampion = () => {
                             transition={{ duration: 0.18 }}
                             whileHover={shouldReduceMotion ? {} : { scale: 1.01 }}
                             whileTap={shouldReduceMotion ? {} : { scale: 0.99 }}
-                            className="group flex w-full items-center justify-between gap-2 rounded-xl border border-amber-500/30 dark:border-amber-400/25 bg-gradient-to-r from-amber-500/10 via-card to-card p-2 text-left shadow-2xs backdrop-blur-xs hover:border-amber-500/50 hover:bg-card transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500"
+                            className="group flex w-full items-center justify-between gap-2 rounded-xl border border-amber-500/30 dark:border-amber-400/25 bg-linear-to-r from-amber-500/10 via-card to-card p-2 text-left shadow-2xs backdrop-blur-xs hover:border-amber-500/50 hover:bg-card transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500"
                         >
                             <div className="flex items-center gap-2 overflow-hidden min-w-0">
                                 <GoldenTrophyHalo isMini />
@@ -255,7 +255,7 @@ export const SidebarWarehouseChampion = () => {
                             animate={{ opacity: 1, y: 0 }}
                             exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
                             transition={{ duration: 0.2 }}
-                            className="relative overflow-hidden rounded-xl border border-amber-500/35 dark:border-amber-400/30 bg-gradient-to-b from-amber-500/10 via-card/95 to-card p-3 shadow-2xs backdrop-blur-xs hover:border-amber-500/50 transition-colors"
+                            className="relative overflow-hidden rounded-xl border border-amber-500/35 dark:border-amber-400/30 bg-linear-to-b from-amber-500/10 via-card/95 to-card p-3 shadow-2xs backdrop-blur-xs hover:border-amber-500/50 transition-colors"
                         >
                             {/* Header row with Title, Podium Button, and Minimize button */}
                             <div className="flex items-center justify-between gap-1 pb-1.5 border-b border-border/50">
@@ -345,7 +345,7 @@ export const SidebarWarehouseChampion = () => {
                                     {/* Progress Bar of Composite Score (using CSS progress() with Baseline 2026 support) */}
                                     <div className="h-1.5 w-full bg-muted/70 rounded-full overflow-hidden">
                                         <div
-                                            className="champion-score-meter h-full rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 transition-all duration-500 ease-out"
+                                            className="champion-score-meter h-full rounded-full bg-linear-to-r from-amber-400 via-amber-500 to-yellow-400 transition-all duration-500 ease-out"
                                             style={
                                                 {
                                                     '--score-val': Math.min(
@@ -462,7 +462,7 @@ export const SidebarWarehouseChampion = () => {
 
                                 {/* Champion #1 (Gold) */}
                                 {leaderboard[0] && (
-                                    <div className="flex flex-col items-center text-center p-2.5 rounded-lg bg-gradient-to-b from-amber-500/15 via-card to-card border-2 border-amber-500/50 shadow-md -translate-y-1">
+                                    <div className="flex flex-col items-center text-center p-2.5 rounded-lg bg-linear-to-b from-amber-500/15 via-card to-card border-2 border-amber-500/50 shadow-md -translate-y-1">
                                         <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-500 mb-1 animate-pulse">
                                             <Icon
                                                 icon="solar:cup-star-bold"

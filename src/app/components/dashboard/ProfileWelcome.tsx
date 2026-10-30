@@ -32,7 +32,7 @@ export default async function ProfileWelcome() {
     const branch = sessionUser.branchName ?? '';
 
     return (
-        <div className="relative flex items-center justify-between bg-gradient-to-br from-primary/10 via-background to-background border border-primary/10 shadow-sm rounded-2xl p-6 overflow-hidden">
+        <div className="relative flex items-center justify-between bg-linear-to-br from-primary/10 via-background to-background border border-primary/10 shadow-sm rounded-2xl p-6 overflow-hidden">
             <div className="flex items-center gap-5 z-10">
                 <Avatar className="h-16 w-16 border-2 border-background shadow-md ring-2 ring-primary/20">
                     {image ? (

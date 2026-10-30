@@ -136,12 +136,12 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
 
     return (
         <Card
-            className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none h-full w-full relative overflow-hidden motion-reduce:transition-none"
+            className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none h-full w-full relative overflow-hidden"
             role="img"
             aria-label="Grafik bar Total Out Material 30 hari terakhir"
         >
             <div
-                className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary/5 to-transparent pointer-events-none"
+                className="absolute top-0 right-0 w-32 h-32 bg-linear-to-bl from-primary/5 to-transparent pointer-events-none"
                 aria-hidden="true"
             />
 

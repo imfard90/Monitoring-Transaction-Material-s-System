@@ -18,16 +18,10 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, formPosition = 'right
     }, []);
 
     const illustrationPanel = (
-        <div className="hidden lg:flex lg:w-[65%] relative items-center justify-center bg-gradient-to-br from-primary/10 via-primary/5 to-background dark:from-primary/20 dark:via-primary/10 dark:to-background overflow-hidden">
+        <div className="hidden lg:flex lg:w-[65%] relative items-center justify-center bg-linear-to-br from-primary/10 via-primary/5 to-background dark:from-primary/20 dark:via-primary/10 dark:to-background overflow-hidden">
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-30">
-                <div
-                    className="absolute inset-0"
-                    style={{
-                        backgroundImage: `radial-gradient(circle at 1px 1px, rgb(148, 163, 184) 1px, transparent 0)`,
-                        backgroundSize: '32px 32px',
-                    }}
-                />
+                <div className="absolute inset-0 [background-image:radial-gradient(circle_at_1px_1px,rgb(148,163,184)_1px,transparent_0)] [background-size:32px_32px]" />
             </div>
 
             {/* Background illustration */}
@@ -42,7 +36,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, formPosition = 'right
             </div>
 
             {/* Overlay gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-br from-primary/20 via-transparent to-transparent" />
 
             {/* Brand */}
             <div className="absolute top-8 left-8">

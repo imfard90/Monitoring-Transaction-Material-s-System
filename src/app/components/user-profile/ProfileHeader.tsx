@@ -18,8 +18,8 @@ export function ProfileHeader({ profileData }: ProfileHeaderProps) {
 
     return (
         <StaggerItem>
-            <Card className="card border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none overflow-hidden p-0 border-none">
-                <div className="relative w-full h-36 sm:h-52 bg-gradient-to-r from-primary/80 to-primary/40">
+            <Card className="bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none overflow-hidden p-0 border-none">
+                <div className="relative w-full h-36 sm:h-52 bg-linear-to-r from-primary/80 to-primary/40">
                     {/* Banner Background */}
                     <div className="absolute inset-0 bg-[url('/images/backgrounds/profile-bg.jpg')] bg-cover bg-center opacity-20 mix-blend-overlay" />
                 </div>
@@ -28,10 +28,10 @@ export function ProfileHeader({ profileData }: ProfileHeaderProps) {
                         {/* Avatar Squircle Premium Frame */}
                         <div className="relative group shrink-0">
                             {/* Ambient Glow Aura */}
-                            <div className="absolute -inset-1.5 rounded-[2.2rem] bg-gradient-to-tr from-primary/70 via-emerald-400/40 to-primary/80 blur-md opacity-60 group-hover:opacity-95 transition-opacity duration-500 motion-reduce:transition-none" />
+                            <div className="absolute -inset-1.5 rounded-[2.2rem] bg-linear-to-tr from-primary/70 via-emerald-400/40 to-primary/80 blur-md opacity-60 group-hover:opacity-95 transition-opacity duration-500 motion-reduce:transition-none" />
 
                             {/* Outer Gradient Squircle Ring */}
-                            <div className="relative p-[3.5px] rounded-[2.2rem] bg-gradient-to-tr from-primary via-emerald-400 to-primary/70 shadow-xl shadow-primary/25">
+                            <div className="relative p-[3.5px] rounded-[2.2rem] bg-linear-to-tr from-primary via-emerald-400 to-primary/70 shadow-xl shadow-primary/25">
                                 {/* Inner Contrast Separation Ring */}
                                 <div className="p-[3px] rounded-[2rem] bg-background shadow-inner">
                                     <Avatar className="w-[130px] h-[155px] sm:w-[145px] sm:h-[175px] rounded-[1.85rem] overflow-hidden border border-border/40 shadow-inner bg-muted/40">
@@ -43,7 +43,7 @@ export function ProfileHeader({ profileData }: ProfileHeaderProps) {
                                                 className="object-cover object-top h-full w-full transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none"
                                             />
                                         ) : null}
-                                        <AvatarFallback className="rounded-[1.85rem] bg-gradient-to-br from-primary/20 via-primary/10 to-background text-primary text-3xl font-bold tracking-wider">
+                                        <AvatarFallback className="rounded-[1.85rem] bg-linear-to-br from-primary/20 via-primary/10 to-background text-primary text-3xl font-bold tracking-wider">
                                             {profileInitials}
                                         </AvatarFallback>
                                     </Avatar>

@@ -33,7 +33,7 @@ export default function ExportLoadingOverlay({
                         className="relative w-full max-w-sm rounded-2xl border border-border/80 bg-card p-6 text-card-foreground shadow-2xl overflow-hidden"
                     >
                         {/* Shimmering Top Accent Line */}
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-primary to-emerald-400 animate-pulse" />
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-emerald-500 via-primary to-emerald-400 animate-pulse" />
 
                         <div className="flex flex-col items-center text-center space-y-4">
                             {/* Animated Glowing Icon Badge */}
@@ -50,7 +50,7 @@ export default function ExportLoadingOverlay({
                                     }}
                                     className="absolute -inset-2 rounded-full bg-emerald-500/20 blur-md pointer-events-none"
                                 />
-                                <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/15 to-emerald-600/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-sm">
+                                <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-emerald-500/15 to-emerald-600/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-sm">
                                     <FileSpreadsheet className="h-8 w-8" />
                                 </div>
                             </div>
@@ -80,7 +80,7 @@ export default function ExportLoadingOverlay({
                                             duration: 1.4,
                                             ease: 'easeInOut',
                                         }}
-                                        className="h-full w-1/2 rounded-full bg-gradient-to-r from-emerald-500 to-primary"
+                                        className="h-full w-1/2 rounded-full bg-linear-to-r from-emerald-500 to-primary"
                                     />
                                 </div>
                                 <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
