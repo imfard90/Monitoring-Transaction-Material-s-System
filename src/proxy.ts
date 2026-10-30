@@ -19,6 +19,21 @@ function createReportOnlyCsp(nonce: string): string {
     ].join('; ');
 }
 
+/**
+ * Bangun redirect URL yang kompatibel dengan reverse proxy (Nginx).
+ * Mencegah redirect keliru mengarah ke loopback internal (http://127.0.0.1:8000).
+ */
+function getRedirectUrl(targetPath: string, request: NextRequest): URL {
+    const forwardedHost =
+        request.headers.get('x-forwarded-host') ||
+        request.headers.get('host') ||
+        request.nextUrl.host;
+    const forwardedProto =
+        request.headers.get('x-forwarded-proto') ||
+        (request.nextUrl.protocol ? request.nextUrl.protocol.replace(':', '') : 'https');
+    return new URL(targetPath, `${forwardedProto}://${forwardedHost}`);
+}
+
 export async function proxy(request: NextRequest) {
     const isAuthRoute = request.nextUrl.pathname.startsWith('/auth');
     const isApiRoute = request.nextUrl.pathname.startsWith('/api');
@@ -43,11 +58,11 @@ export async function proxy(request: NextRequest) {
         return response;
     };
 
-    // Periksa keberadaan cookie sesi (mengabaikan SSL/fetch loopback error)
-    // Nama cookie dari Better Auth biasanya 'better-auth.session_token' atau versi Secure-nya
-    const hasSessionCookie =
-        request.cookies.has('better-auth.session_token') ||
-        request.cookies.has('__Secure-better-auth.session_token');
+    // Periksa keberadaan cookie sesi: pastikan cookie ada dan memiliki token tidak kosong
+    const sessionToken =
+        request.cookies.get('__Secure-better-auth.session_token')?.value ||
+        request.cookies.get('better-auth.session_token')?.value;
+    const hasSessionCookie = Boolean(sessionToken && sessionToken.trim().length > 0);
 
     // Halaman publik tanpa login (live stock) tetap bisa diakses tanpa sesi
     if (isPublicRoute && !hasSessionCookie) {
@@ -57,7 +72,7 @@ export async function proxy(request: NextRequest) {
     // Jika belum login dan mencoba mengakses route selain auth (misal '/')
     if (!hasSessionCookie) {
         if (!isAuthRoute) {
-            const response = NextResponse.redirect(new URL('/auth/login', request.url));
+            const response = NextResponse.redirect(getRedirectUrl('/auth/login', request));
             response.headers.set('Content-Security-Policy-Report-Only', csp);
             response.headers.set('Cache-Control', 'private, no-store');
             return response;
@@ -67,7 +82,7 @@ export async function proxy(request: NextRequest) {
 
     // Jika sudah login tapi mencoba mengakses route auth (misal '/auth/login')
     if (isAuthRoute) {
-        const response = NextResponse.redirect(new URL('/', request.url));
+        const response = NextResponse.redirect(getRedirectUrl('/', request));
         response.headers.set('Content-Security-Policy-Report-Only', csp);
         response.headers.set('Cache-Control', 'private, no-store');
         return response;

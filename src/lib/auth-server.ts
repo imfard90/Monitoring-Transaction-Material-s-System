@@ -1,4 +1,5 @@
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db/db';
 
@@ -98,6 +99,22 @@ export async function getSessionUser(): Promise<SessionUser> {
         if (e.name === 'AuthenticationError') throw e;
         authLogger.error('getSessionUser Error', e);
         throw errors.auth();
+    }
+}
+
+/**
+ * Helper untuk Server Component (Page / Layout).
+ * Mengambil data sesi; jika tidak terautentikasi atau sesi kadaluwarsa,
+ * otomatis me-redirect browser ke /auth/login tanpa melempar uncaught exception.
+ */
+export async function getPageSessionUser(): Promise<SessionUser> {
+    try {
+        return await getSessionUser();
+    } catch (e: any) {
+        if (e?.name === 'AuthenticationError' || e?.statusCode === 401) {
+            redirect('/auth/login');
+        }
+        throw e;
     }
 }
 

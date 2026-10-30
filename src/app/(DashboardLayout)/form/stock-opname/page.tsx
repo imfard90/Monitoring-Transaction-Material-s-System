@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
-import { getSessionUser } from '@/lib/auth-server';
+import { getPageSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { StockOpnameClient } from './_components/StockOpnameClient';
 
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function StockOpnamePage() {
-    const user = await getSessionUser();
+    const user = await getPageSessionUser();
     if (!user?.role) {
         redirect('/auth/login');
     }

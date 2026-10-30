@@ -5,15 +5,13 @@ import { headers } from 'next/headers';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { auth } from '@/lib/auth';
-import { getSessionUser } from '@/lib/auth-server';
+import { getPageSessionUser } from '@/lib/auth-server';
 
 import { getInitials } from '@/lib/avatar';
 
 export default async function ProfileWelcome() {
-    const [session, sessionUser] = await Promise.all([
-        auth.api.getSession({ headers: await headers() }),
-        getSessionUser(),
-    ]);
+    const sessionUser = await getPageSessionUser();
+    const session = await auth.api.getSession({ headers: await headers() });
 
     const name = session?.user?.name ?? 'User';
 

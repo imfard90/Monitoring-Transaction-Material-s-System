@@ -4,7 +4,7 @@ import { LensaPerformance } from '@/components/dashboard/LensaPerformance';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getSessionUser } from '@/lib/auth-server';
+import { getPageSessionUser } from '@/lib/auth-server';
 import { Footer } from '../components/dashboard/Footer';
 import OutMaterialLineChart from '../components/dashboard/OutMaterialLineChart';
 import { ProductPerformance } from '../components/dashboard/ProductPerformance';
@@ -47,10 +47,11 @@ function KpiSkeleton() {
 }
 
 export default async function Page() {
-    const [{ isStaff }, warehouseResult] = await Promise.all([
-        getSessionUser(),
-        import('./_actions/dashboard-actions').then(({ getWarehouses }) => getWarehouses()),
-    ]);
+    const user = await getPageSessionUser();
+    const warehouseResult = await import('./_actions/dashboard-actions').then(({ getWarehouses }) =>
+        getWarehouses()
+    );
+    const isStaff = user.isStaff;
     const warehouses =
         warehouseResult.success && warehouseResult.data
             ? warehouseResult.data.map(({ id, name }) => ({ id, name }))

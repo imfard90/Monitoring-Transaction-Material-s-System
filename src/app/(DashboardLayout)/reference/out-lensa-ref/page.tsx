@@ -1,5 +1,5 @@
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
-import { getSessionUser } from '@/lib/auth-server';
+import { getPageSessionUser } from '@/lib/auth-server';
 import { getOutLensaRefList } from './_actions/out-lensa-queries';
 import OutLensaRefClient from './_components/OutLensaRefClient';
 
@@ -35,7 +35,7 @@ export default async function OutLensaRefPage({
 }: {
     searchParams: Promise<SearchParams>;
 }) {
-    const { isStaff } = await getSessionUser();
+    const { isStaff } = await getPageSessionUser();
 
     const params = await searchParams;
     const page = Math.max(1, parseInt(params.page ?? '1', 10));

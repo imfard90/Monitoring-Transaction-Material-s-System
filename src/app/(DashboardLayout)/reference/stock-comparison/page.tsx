@@ -1,5 +1,5 @@
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
-import { getSessionUser } from '@/lib/auth-server';
+import { getPageSessionUser } from '@/lib/auth-server';
 import { getTeknisiStockList } from '../_actions/stock-comparison-actions';
 import StockComparisonTableView from './_components/StockComparisonTableView';
 
@@ -25,7 +25,7 @@ const BCrumb = [
 ];
 
 export default async function StockComparisonPage() {
-    const user = await getSessionUser();
+    const user = await getPageSessionUser();
     const result = await getTeknisiStockList();
 
     return (

@@ -18,6 +18,11 @@ const nextConfig = {
                 destination: '/management/user-profile',
                 permanent: true,
             },
+            {
+                source: '/favicon.ico',
+                destination: '/favicon.svg',
+                permanent: false,
+            },
         ];
     },
     async headers() {
