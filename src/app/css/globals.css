@@ -44,6 +44,20 @@
     outline: none;
     box-shadow: none;
     border: none;
+    background-color: transparent;
+}
+
+[data-floating-input]:-webkit-autofill,
+[data-floating-input]:-webkit-autofill:hover,
+[data-floating-input]:-webkit-autofill:focus,
+[data-floating-input]:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px transparent inset;
+    -webkit-text-fill-color: var(--color-foreground, currentColor);
+    caret-color: var(--color-foreground, currentColor);
+    transition:
+        background-color 50000s ease-in-out 0s,
+        color 50000s ease-in-out 0s;
+    background-color: transparent;
 }
 
 html,

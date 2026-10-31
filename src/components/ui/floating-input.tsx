@@ -75,11 +75,13 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
                 {/* Single outer continuous border container: wraps both icon and field text */}
                 <div
                     className={cn(
-                        'group relative flex items-center w-full h-12 rounded-xl border bg-background/60 dark:bg-card/40 transition-all duration-200',
-                        'hover:border-primary/50 hover:bg-background',
-                        'focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 focus-within:bg-background',
+                        'group relative flex items-center w-full h-12 rounded-xl border transition-all duration-200',
+                        'bg-background/60 dark:bg-card/40',
+                        'hover:border-primary/50 hover:bg-background/90 dark:hover:bg-card/60',
+                        'focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20',
+                        'focus-within:bg-primary/[0.04] dark:focus-within:bg-primary/[0.08]',
                         error
-                            ? 'border-destructive focus-within:border-destructive focus-within:ring-destructive/20'
+                            ? 'border-destructive focus-within:border-destructive focus-within:ring-destructive/20 focus-within:bg-destructive/[0.03]'
                             : 'border-input/80',
                         (disabled || readOnly) &&
                             'opacity-80 bg-muted/50 hover:border-input/80 cursor-not-allowed'
