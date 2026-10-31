@@ -21,7 +21,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, formPosition = 'right
         <div className="hidden lg:flex lg:w-[65%] relative items-center justify-center bg-linear-to-br from-primary/10 via-primary/5 to-background dark:from-primary/20 dark:via-primary/10 dark:to-background overflow-hidden">
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-30">
-                <div className="absolute inset-0 [background-image:radial-gradient(circle_at_1px_1px,rgb(148,163,184)_1px,transparent_0)] [background-size:32px_32px]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgb(148,163,184)_1px,transparent_0)] bg-[size:32px_32px]" />
             </div>
 
             {/* Background illustration */}
@@ -69,7 +69,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, formPosition = 'right
     );
 
     const formPanel = (
-        <div className="w-full lg:w-[35%] flex flex-col justify-between p-6 sm:p-8 lg:p-12 min-h-screen overflow-y-auto bg-background dark:bg-background">
+        <div className="w-full lg:w-[35%] flex flex-col justify-between p-6 sm:p-8 lg:p-12 min-h-screen overflow-y-auto bg-background">
             <main className="flex-1 flex items-center justify-center w-full">
                 <div className="w-full max-w-md">
                     {/* Mobile Brand */}

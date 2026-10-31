@@ -280,7 +280,7 @@ export default function TurnstileWidget({
                     <div className="absolute -right-2 -top-2 size-8 bg-primary/20 rounded-full blur-md group-hover/waf:scale-125 transition-transform" />
 
                     <div className="relative flex items-center justify-center shrink-0">
-                        <ShieldCheck className="size-5 text-primary drop-shadow-xs" />
+                        <ShieldCheck className="size-5 text-primary drop-shadow-sm" />
                         <span className="absolute -top-0.5 -right-0.5 flex size-2">
                             <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75 motion-reduce:animate-none" />
                             <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
