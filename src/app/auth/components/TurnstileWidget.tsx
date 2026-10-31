@@ -261,26 +261,26 @@ export default function TurnstileWidget({
                 </div>
             ) : null}
 
-            <div className="flex items-center justify-between gap-2 mt-1">
-                {/* Cloudflare Turnstile Captcha Box - Diperkecil lagi & Compact */}
-                <div className="w-[204px] sm:w-[208px] h-[45px] overflow-hidden shrink-0 flex items-center rounded-lg border border-border/40 bg-background/50 dark:bg-card/50">
+            <div className="flex items-center justify-between gap-2.5 mt-1">
+                {/* Cloudflare Turnstile Captcha Box - Diperkecil & Compact */}
+                <div className="w-[230px] sm:w-[240px] h-[52px] overflow-hidden shrink-0 flex items-center rounded-lg border border-border/40 bg-background/50 dark:bg-card/50">
                     <div
                         id={containerId}
                         ref={containerRef}
-                        className="cf-turnstile origin-left scale-[0.67] sm:scale-[0.68] shrink-0"
+                        className="cf-turnstile origin-left scale-[0.77] sm:scale-[0.80] shrink-0"
                         data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
                     />
                 </div>
 
                 {/* Iconic Shield WAF Badge (Sejajar dengan Turnstile) */}
                 <div
-                    className="flex-1 min-w-[105px] h-[45px] px-2.5 rounded-lg border border-primary/25 bg-linear-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/15 dark:to-transparent flex items-center justify-center gap-2 shadow-xs select-none relative overflow-hidden group/waf"
+                    className="flex-1 min-w-[100px] h-[52px] px-2.5 py-1 rounded-xl border border-primary/20 bg-linear-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/15 dark:to-transparent flex items-center justify-center gap-2 shadow-xs select-none relative overflow-hidden group/waf"
                     title="Cloudflare WAF: Perlindungan firewall aplikasi web aktif melawan ancaman bot & DDoS"
                 >
-                    <div className="absolute -right-2 -top-2 size-7 bg-primary/20 rounded-full blur-md group-hover/waf:scale-125 transition-transform" />
+                    <div className="absolute -right-2 -top-2 size-8 bg-primary/20 rounded-full blur-md group-hover/waf:scale-125 transition-transform" />
 
                     <div className="relative flex items-center justify-center shrink-0">
-                        <ShieldCheck className="size-4.5 text-primary drop-shadow-xs" />
+                        <ShieldCheck className="size-5 text-primary drop-shadow-xs" />
                         <span className="absolute -top-0.5 -right-0.5 flex size-2">
                             <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75 motion-reduce:animate-none" />
                             <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
