@@ -26,6 +26,7 @@ export interface ScrapedWODetailResult {
     pemakaian_id: string;
     wo_number: string | null;
     nama_gudang: string | null;
+    nik_pemakai?: string | null;
     type: string | null;
     materials: ScrapedWODetailMaterial[];
 }
@@ -760,25 +761,43 @@ export async function scrapeSingleWODetailService(
             }
 
             if (savedHeaderId && headerMetadata) {
-                // Jika header sudah ada (atau ditemukan lewat resolvedPemakaianId), lengkapi field yang sebelumnya bernilai null
+                // Jika header sudah ada (atau ditemukan lewat resolvedPemakaianId), lengkapi field yang sebelumnya bernilai null atau perbarui dengan metadata Lensa terkini
                 const updatePayload: Record<string, any> = {};
-                if (headerMetadata.wo_number && !header?.wo_number) {
+                if (headerMetadata.wo_number && headerMetadata.wo_number !== header?.wo_number) {
                     updatePayload.wo_number = headerMetadata.wo_number;
                 }
-                if (headerMetadata.nama_gudang && !header?.nama_gudang) {
+                if (
+                    headerMetadata.nama_gudang &&
+                    headerMetadata.nama_gudang !== header?.nama_gudang
+                ) {
                     updatePayload.nama_gudang = headerMetadata.nama_gudang;
                 }
-                if (headerMetadata.gi_number && !header?.gi_number) {
+                if (
+                    headerMetadata.nik_pemakai &&
+                    headerMetadata.nik_pemakai !== header?.nik_pemakai
+                ) {
+                    updatePayload.nik_pemakai = headerMetadata.nik_pemakai;
+                }
+                if (headerMetadata.gi_number && headerMetadata.gi_number !== header?.gi_number) {
                     updatePayload.gi_number = headerMetadata.gi_number;
                 }
-                if (headerMetadata.formatted_date && !header?.formatted_date) {
+                if (
+                    headerMetadata.formatted_date &&
+                    headerMetadata.formatted_date !== header?.formatted_date
+                ) {
                     updatePayload.formatted_date = headerMetadata.formatted_date;
                 }
-                if (headerMetadata.tanggal_update && !header?.tanggal_update) {
+                if (
+                    headerMetadata.tanggal_update &&
+                    headerMetadata.tanggal_update !== header?.tanggal_update
+                ) {
                     updatePayload.tanggal_update = headerMetadata.tanggal_update;
                 }
-                if (headerMetadata.type && !header?.type) {
+                if (headerMetadata.type && headerMetadata.type !== header?.type) {
                     updatePayload.type = headerMetadata.type;
+                }
+                if (headerMetadata.wbs && headerMetadata.wbs !== header?.wbs) {
+                    updatePayload.wbs = headerMetadata.wbs;
                 }
                 if (Object.keys(updatePayload).length > 0) {
                     await trx
@@ -834,6 +853,7 @@ export async function scrapeSingleWODetailService(
                 pemakaian_id: resolvedPemakaianId,
                 wo_number: headerMetadata?.wo_number ?? header?.wo_number ?? null,
                 nama_gudang: headerMetadata?.nama_gudang ?? header?.nama_gudang ?? null,
+                nik_pemakai: headerMetadata?.nik_pemakai ?? header?.nik_pemakai ?? null,
                 type: headerMetadata?.type ?? (header as { type?: string | null })?.type ?? null,
                 materials: mappedMaterials,
             },

@@ -429,6 +429,7 @@ describe('scrapeSingleWODetail Unit Tests', () => {
             expect(res.data?.pemakaian_id).toBe('100257706');
             expect(res.data?.wo_number).toBe('1-95602227495');
             expect(res.data?.nama_gudang).toBe('WH SUB TUBAN');
+            expect(res.data?.nik_pemakai).toBe('19001234');
             expect(res.data?.materials).toHaveLength(1);
         } finally {
             process.env.LENSA_USERNAME = originalUser;
