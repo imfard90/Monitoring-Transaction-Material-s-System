@@ -263,7 +263,7 @@ export default function TurnstileWidget({
 
             <div className="flex items-center justify-between gap-2.5 mt-1">
                 {/* Cloudflare Turnstile Captcha Box - Diperkecil & Compact */}
-                <div className="w-[230px] sm:w-[240px] h-[52px] overflow-hidden shrink-0 flex items-center rounded-lg border border-border/40 bg-background/50 dark:bg-card/50">
+                <div className="w-[230px] sm:w-[240px] h-[52px] overflow-hidden shrink-0 flex items-center rounded-xl border border-border/40 bg-background/50 dark:bg-card/50">
                     <div
                         id={containerId}
                         ref={containerRef}
