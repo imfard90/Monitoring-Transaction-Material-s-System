@@ -263,7 +263,7 @@ export default function TurnstileWidget({
 
             <div className="flex items-center justify-between gap-2.5 mt-1">
                 {/* Cloudflare Turnstile Captcha Box - Diperkecil & Compact */}
-                <div className="w-[230px] sm:w-[240px] h-[52px] overflow-hidden shrink-0 flex items-center rounded-xl border border-border/40 bg-background/50 dark:bg-card/50">
+                <div className="w-57.5 sm:w-60 h-13 overflow-hidden shrink-0 flex items-center rounded-xl border border-border/40 bg-background/50 dark:bg-card/50">
                     <div
                         id={containerId}
                         ref={containerRef}
@@ -274,7 +274,7 @@ export default function TurnstileWidget({
 
                 {/* Iconic Shield WAF Badge (Sejajar dengan Turnstile) */}
                 <div
-                    className="flex-1 min-w-25 h-[52px] px-2.5 py-1 rounded-xl border border-primary/20 bg-linear-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/15 dark:to-transparent flex items-center justify-center gap-2 shadow-xs select-none relative overflow-hidden group/waf"
+                    className="flex-1 min-w-25 h-13 px-2.5 py-1 rounded-xl border border-primary/20 bg-linear-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/15 dark:to-transparent flex items-center justify-center gap-2 shadow-xs select-none relative overflow-hidden group/waf"
                     title="Cloudflare WAF: Perlindungan firewall aplikasi web aktif melawan ancaman bot & DDoS"
                 >
                     <div className="absolute -right-2 -top-2 size-8 bg-primary/20 rounded-full blur-md group-hover/waf:scale-125 transition-transform" />
