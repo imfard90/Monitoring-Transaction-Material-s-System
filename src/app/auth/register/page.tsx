@@ -1,7 +1,17 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
+import {
+    ArrowRight,
+    CheckCircle2,
+    Eye,
+    EyeOff,
+    IdCard,
+    Loader2,
+    Lock,
+    Mail,
+    User,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
@@ -13,8 +23,7 @@ import AuthCard from '@/app/auth/components/AuthCard';
 import AuthLayout from '@/app/auth/components/AuthLayout';
 import TurnstileWidget from '@/app/auth/components/TurnstileWidget';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { FloatingInput } from '@/components/ui/floating-input';
 import { authClient } from '@/lib/auth-client';
 
 const NikSchema = z.object({
@@ -148,7 +157,9 @@ export default function RegisterPage() {
                 {/* 2-Step Registration Progress Indicator with CSS progress() */}
                 <div className="mb-5 space-y-1.5">
                     <div className="flex justify-between items-center text-xs text-muted-foreground font-medium">
-                        <span>Langkah {step} dari 2: {step === 1 ? 'Verifikasi NIK' : 'Lengkapi Akun'}</span>
+                        <span>
+                            Langkah {step} dari 2: {step === 1 ? 'Verifikasi NIK' : 'Lengkapi Akun'}
+                        </span>
                         <span className="font-semibold text-primary tabular-nums">
                             {step === 1 ? '50%' : '100%'}
                         </span>
@@ -168,24 +179,22 @@ export default function RegisterPage() {
                 </div>
 
                 {step === 1 && (
-                    <form onSubmit={nikForm.handleSubmit(onNikSubmit)} noValidate>
-                        <div className="mb-6">
-                            <Label htmlFor="nik" className="font-medium">
-                                Nomor Induk Karyawan (NIK)
-                            </Label>
-                            <Input
+                    <form
+                        onSubmit={nikForm.handleSubmit(onNikSubmit)}
+                        noValidate
+                        className="space-y-4"
+                    >
+                        <div>
+                            <FloatingInput
                                 id="nik"
                                 type="text"
-                                placeholder="Masukkan NIK Anda"
+                                label="Nomor Induk Karyawan (NIK)"
                                 {...nikForm.register('nik')}
                                 disabled={nikForm.formState.isSubmitting}
-                                className="mt-1"
+                                error={nikForm.formState.errors.nik?.message}
+                                startIcon={<IdCard className="size-4" />}
+                                autoComplete="username"
                             />
-                            {nikForm.formState.errors.nik && (
-                                <p className="text-sm text-destructive mt-1">
-                                    {nikForm.formState.errors.nik.message}
-                                </p>
-                            )}
                         </div>
 
                         <TurnstileWidget
@@ -193,7 +202,7 @@ export default function RegisterPage() {
                             onExpire={handleTurnstileExpire}
                             onError={handleTurnstileError}
                             action="register-nik"
-                            className="mb-4"
+                            className="my-3"
                         />
                         {turnstileError ? (
                             <p role="alert" className="text-sm text-destructive mb-3">
@@ -202,7 +211,7 @@ export default function RegisterPage() {
                         ) : null}
                         <Button
                             type="submit"
-                            className="w-full"
+                            className="w-full h-12 text-sm sm:text-base font-semibold tracking-wide rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.99]"
                             disabled={
                                 nikForm.formState.isSubmitting ||
                                 !turnstileToken ||
@@ -212,11 +221,11 @@ export default function RegisterPage() {
                             {nikForm.formState.isSubmitting ? (
                                 <>
                                     <Loader2 className="size-4 animate-spin mr-2" />
-                                    Memverifikasi...
+                                    Memverifikasi NIK...
                                 </>
                             ) : (
                                 <>
-                                    Selanjutnya <ArrowRight className="size-4 ml-2" />
+                                    Verifikasi NIK <ArrowRight className="size-4 ml-2" />
                                 </>
                             )}
                         </Button>
@@ -224,137 +233,127 @@ export default function RegisterPage() {
                 )}
 
                 {step === 2 && (
-                    <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} noValidate>
+                    <form
+                        onSubmit={registerForm.handleSubmit(onRegisterSubmit)}
+                        noValidate
+                        className="space-y-4"
+                    >
                         <TurnstileWidget
                             onToken={handleTurnstileToken}
                             onExpire={handleTurnstileExpire}
                             onError={handleTurnstileError}
                             action="register"
-                            className="mb-4"
+                            className="my-2"
                         />
                         {turnstileError ? (
                             <p role="alert" className="text-sm text-destructive mb-3">
                                 {turnstileError}
                             </p>
                         ) : null}
-                        <div className="mb-4">
-                            <Label htmlFor="reg-nik" className="font-medium text-muted-foreground">
-                                NIK (Terverifikasi)
-                            </Label>
-                            <Input
-                                id="reg-nik"
-                                type="text"
-                                {...registerForm.register('nik')}
-                                readOnly
-                                className="mt-1 bg-muted"
-                            />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <FloatingInput
+                                    id="reg-nik"
+                                    type="text"
+                                    label="NIK (Terverifikasi)"
+                                    {...registerForm.register('nik')}
+                                    readOnly
+                                    startIcon={<CheckCircle2 className="size-4 text-emerald-500" />}
+                                />
+                            </div>
+
+                            <div>
+                                <FloatingInput
+                                    id="name"
+                                    type="text"
+                                    label="Nama Lengkap"
+                                    {...registerForm.register('name')}
+                                    readOnly
+                                    startIcon={<User className="size-4 text-muted-foreground" />}
+                                    error={registerForm.formState.errors.name?.message}
+                                />
+                            </div>
                         </div>
 
-                        <div className="mb-4">
-                            <Label htmlFor="name" className="font-medium">
-                                Nama Lengkap
-                            </Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                {...registerForm.register('name')}
-                                disabled={registerForm.formState.isSubmitting}
-                                readOnly
-                                className="mt-1 bg-muted"
-                            />
-                            {registerForm.formState.errors.name && (
-                                <p className="text-sm text-destructive mt-1">
-                                    {registerForm.formState.errors.name.message}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="mb-4">
-                            <Label htmlFor="reg-email" className="font-medium">
-                                Email
-                            </Label>
-                            <Input
+                        <div>
+                            <FloatingInput
                                 id="reg-email"
                                 type="email"
-                                placeholder="nama@email.com"
+                                label="Alamat Email"
                                 {...registerForm.register('email')}
                                 disabled={registerForm.formState.isSubmitting}
-                                className="mt-1"
+                                error={registerForm.formState.errors.email?.message}
+                                startIcon={<Mail className="size-4" />}
+                                autoComplete="email"
                             />
-                            {registerForm.formState.errors.email && (
-                                <p className="text-sm text-destructive mt-1">
-                                    {registerForm.formState.errors.email.message}
-                                </p>
-                            )}
                         </div>
 
-                        <div className="mb-4">
-                            <Label htmlFor="reg-password" className="font-medium">
-                                Password
-                            </Label>
-                            <div className="relative mt-1">
-                                <Input
-                                    id="reg-password"
-                                    type={showPassword ? 'text' : 'password'}
-                                    placeholder="Min. 8 karakter, huruf besar, angka & simbol"
-                                    {...registerForm.register('password')}
-                                    disabled={registerForm.formState.isSubmitting}
-                                    className="pr-10"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                >
-                                    {showPassword ? (
-                                        <EyeOff className="size-4" />
-                                    ) : (
-                                        <Eye className="size-4" />
-                                    )}
-                                </button>
-                            </div>
-                            {registerForm.formState.errors.password && (
-                                <p className="text-sm text-destructive mt-1">
-                                    {registerForm.formState.errors.password.message}
-                                </p>
-                            )}
+                        <div>
+                            <FloatingInput
+                                id="reg-password"
+                                type={showPassword ? 'text' : 'password'}
+                                label="Kata Sandi"
+                                {...registerForm.register('password')}
+                                disabled={registerForm.formState.isSubmitting}
+                                error={registerForm.formState.errors.password?.message}
+                                startIcon={<Lock className="size-4" />}
+                                autoComplete="new-password"
+                                endIcon={
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        aria-label={
+                                            showPassword
+                                                ? 'Sembunyikan password'
+                                                : 'Tampilkan password'
+                                        }
+                                        className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="size-4" />
+                                        ) : (
+                                            <Eye className="size-4" />
+                                        )}
+                                    </button>
+                                }
+                            />
                         </div>
 
-                        <div className="mb-6">
-                            <Label htmlFor="confirmPassword" className="font-medium">
-                                Konfirmasi Password
-                            </Label>
-                            <div className="relative mt-1">
-                                <Input
-                                    id="confirmPassword"
-                                    type={showConfirm ? 'text' : 'password'}
-                                    placeholder="Ulangi password"
-                                    {...registerForm.register('confirmPassword')}
-                                    disabled={registerForm.formState.isSubmitting}
-                                    className="pr-10"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirm(!showConfirm)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                >
-                                    {showConfirm ? (
-                                        <EyeOff className="size-4" />
-                                    ) : (
-                                        <Eye className="size-4" />
-                                    )}
-                                </button>
-                            </div>
-                            {registerForm.formState.errors.confirmPassword && (
-                                <p className="text-sm text-destructive mt-1">
-                                    {registerForm.formState.errors.confirmPassword.message}
-                                </p>
-                            )}
+                        <div>
+                            <FloatingInput
+                                id="confirmPassword"
+                                type={showConfirm ? 'text' : 'password'}
+                                label="Konfirmasi Kata Sandi"
+                                {...registerForm.register('confirmPassword')}
+                                disabled={registerForm.formState.isSubmitting}
+                                error={registerForm.formState.errors.confirmPassword?.message}
+                                startIcon={<Lock className="size-4" />}
+                                autoComplete="new-password"
+                                endIcon={
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirm(!showConfirm)}
+                                        aria-label={
+                                            showConfirm
+                                                ? 'Sembunyikan konfirmasi password'
+                                                : 'Tampilkan konfirmasi password'
+                                        }
+                                        className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                                    >
+                                        {showConfirm ? (
+                                            <EyeOff className="size-4" />
+                                        ) : (
+                                            <Eye className="size-4" />
+                                        )}
+                                    </button>
+                                }
+                            />
                         </div>
 
                         <Button
                             type="submit"
-                            className="w-full"
+                            className="w-full h-12 text-sm sm:text-base font-semibold tracking-wide rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.99]"
                             disabled={
                                 registerForm.formState.isSubmitting ||
                                 !turnstileToken ||
@@ -364,7 +363,7 @@ export default function RegisterPage() {
                             {registerForm.formState.isSubmitting ? (
                                 <>
                                     <Loader2 className="size-4 animate-spin mr-2" />
-                                    Mendaftar...
+                                    Mendaftarkan Akun...
                                 </>
                             ) : (
                                 'Daftar Sekarang'

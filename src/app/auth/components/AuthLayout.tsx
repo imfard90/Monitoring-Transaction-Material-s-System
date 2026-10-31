@@ -39,12 +39,31 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, formPosition = 'right
             <div className="absolute inset-0 bg-linear-to-br from-primary/20 via-transparent to-transparent" />
 
             {/* Brand */}
-            <div className="absolute top-8 left-8">
-                <Link href="/" className="flex items-center gap-2">
-                    <span className="text-3xl font-bold text-foreground tracking-widest drop-shadow-lg">
+            <div className="absolute top-8 left-8 flex flex-col gap-1 z-10">
+                <Link href="/" className="flex items-center gap-2.5">
+                    <span className="text-3xl font-black text-foreground tracking-widest drop-shadow-sm">
                         MTMS
                     </span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                        Enterprise
+                    </span>
                 </Link>
+                <p className="text-xs text-muted-foreground font-medium">
+                    Monitoring Transaction Material's System
+                </p>
+            </div>
+
+            {/* Feature Value Props Pills */}
+            <div className="absolute bottom-8 left-8 right-8 flex flex-wrap gap-2.5 z-10">
+                <div className="px-3 py-1.5 rounded-lg bg-background/75 backdrop-blur-md border border-border/60 text-xs font-medium text-foreground shadow-xs">
+                    🛡️ Proteksi Cloudflare WAF
+                </div>
+                <div className="px-3 py-1.5 rounded-lg bg-background/75 backdrop-blur-md border border-border/60 text-xs font-medium text-foreground shadow-xs">
+                    ⚡ Rekonsiliasi Otomatis
+                </div>
+                <div className="px-3 py-1.5 rounded-lg bg-background/75 backdrop-blur-md border border-border/60 text-xs font-medium text-foreground shadow-xs">
+                    🔒 Akses Terotentikasi & Tervalidasi
+                </div>
             </div>
         </div>
     );
@@ -55,9 +74,17 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, formPosition = 'right
                 <div className="w-full max-w-md">
                     {/* Mobile Brand */}
                     <div className="lg:hidden mb-8 text-center">
-                        <Link href="/" className="inline-flex items-center gap-2">
-                            <span className="text-2xl font-bold text-foreground tracking-widest">
-                                MTMS
+                        <Link href="/" className="inline-flex flex-col items-center gap-1">
+                            <div className="flex items-center gap-2">
+                                <span className="text-2xl font-black text-foreground tracking-widest">
+                                    MTMS
+                                </span>
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+                                    Enterprise
+                                </span>
+                            </div>
+                            <span className="text-xs text-muted-foreground font-medium">
+                                Monitoring Transaction Material's System
                             </span>
                         </Link>
                     </div>

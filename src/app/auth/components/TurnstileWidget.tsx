@@ -261,12 +261,38 @@ export default function TurnstileWidget({
                 </div>
             ) : null}
 
-            <div
-                id={containerId}
-                ref={containerRef}
-                className="cf-turnstile mt-1"
-                data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-            />
+            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 mt-1">
+                {/* Cloudflare Turnstile Captcha Box */}
+                <div
+                    id={containerId}
+                    ref={containerRef}
+                    className="cf-turnstile min-h-[65px] min-w-[300px] shrink-0"
+                    data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                />
+
+                {/* Iconic Shield WAF Badge (Sejajar dengan Turnstile) */}
+                <div
+                    className="flex-1 min-w-[96px] h-[65px] px-2.5 py-1.5 rounded-xl border border-primary/20 bg-linear-to-b from-primary/10 via-primary/5 to-transparent dark:from-primary/15 dark:to-transparent flex flex-col justify-center items-center text-center shadow-xs select-none relative overflow-hidden group/waf"
+                    title="Cloudflare WAF: Perlindungan firewall aplikasi web aktif melawan ancaman bot & DDoS"
+                >
+                    <div className="absolute -right-3 -top-3 size-10 bg-primary/20 rounded-full blur-md group-hover/waf:scale-125 transition-transform" />
+
+                    <div className="relative flex items-center justify-center">
+                        <ShieldCheck className="size-5 text-primary drop-shadow-xs" />
+                        <span className="absolute -top-0.5 -right-0.5 flex size-2">
+                            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75 motion-reduce:animate-none" />
+                            <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                        </span>
+                    </div>
+
+                    <span className="text-[11px] font-bold tracking-tight text-foreground leading-tight mt-1">
+                        Shield WAF
+                    </span>
+                    <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 leading-none">
+                        Active Guard
+                    </span>
+                </div>
+            </div>
         </div>
     );
 }

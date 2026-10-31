@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
@@ -13,7 +13,7 @@ import AuthLayout from '@/app/auth/components/AuthLayout';
 import TurnstileWidget from '@/app/auth/components/TurnstileWidget';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import { FloatingInput } from '@/components/ui/floating-input';
 import { Label } from '@/components/ui/label';
 import { ModalDialog } from '@/components/ui/modal-dialog';
 
@@ -220,57 +220,50 @@ const LoginForm = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit(onSubmit)} noValidate>
-                    <div className="mb-4">
-                        <Label htmlFor="email" className="font-medium">
-                            Email
-                        </Label>
-                        <Input
+                <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+                    <div>
+                        <FloatingInput
                             id="email"
                             type="email"
-                            placeholder="nama@email.com"
+                            label="Alamat Email"
                             {...register('email')}
                             disabled={isSubmitting}
-                            className="mt-1"
+                            error={errors.email?.message}
+                            startIcon={<Mail className="size-4" />}
+                            autoComplete="email"
                         />
-                        {errors.email && (
-                            <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
-                        )}
                     </div>
 
-                    <div className="mb-4">
-                        <Label htmlFor="password" className="font-medium">
-                            Password
-                        </Label>
-                        <div className="relative mt-1">
-                            <Input
-                                id="password"
-                                type={showPassword ? 'text' : 'password'}
-                                placeholder="Masukkan password"
-                                {...register('password')}
-                                disabled={isSubmitting}
-                                className="pr-10"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            >
-                                {showPassword ? (
-                                    <EyeOff className="size-4" />
-                                ) : (
-                                    <Eye className="size-4" />
-                                )}
-                            </button>
-                        </div>
-                        {errors.password && (
-                            <p className="text-sm text-destructive mt-1">
-                                {errors.password.message}
-                            </p>
-                        )}
+                    <div>
+                        <FloatingInput
+                            id="password"
+                            type={showPassword ? 'text' : 'password'}
+                            label="Kata Sandi"
+                            {...register('password')}
+                            disabled={isSubmitting}
+                            error={errors.password?.message}
+                            startIcon={<Lock className="size-4" />}
+                            autoComplete="current-password"
+                            endIcon={
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    aria-label={
+                                        showPassword ? 'Sembunyikan password' : 'Tampilkan password'
+                                    }
+                                    className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="size-4" />
+                                    ) : (
+                                        <Eye className="size-4" />
+                                    )}
+                                </button>
+                            }
+                        />
                     </div>
 
-                    <div className="flex flex-wrap gap-6 items-center justify-between mb-6">
+                    <div className="flex flex-wrap gap-4 items-center justify-between pt-1 pb-1">
                         <div className="flex items-center gap-2">
                             <Checkbox
                                 id="remember"
@@ -280,13 +273,16 @@ const LoginForm = () => {
                                     setValue('remember', checked as boolean)
                                 }
                             />
-                            <Label className="font-normal text-sm" htmlFor="remember">
+                            <Label
+                                className="font-normal text-sm cursor-pointer select-none"
+                                htmlFor="remember"
+                            >
                                 Ingat perangkat ini
                             </Label>
                         </div>
                         <Link
                             href="/auth/forgot-password"
-                            className="text-sm font-medium text-primary hover:underline"
+                            className="text-sm font-semibold text-primary hover:underline hover:text-primary/90 transition-colors"
                         >
                             Lupa Password?
                         </Link>
@@ -297,21 +293,21 @@ const LoginForm = () => {
                         onExpire={handleTurnstileExpire}
                         onError={handleTurnstileError}
                         action="login"
-                        className="mb-4"
+                        className="my-3"
                     />
 
                     <Button
                         type="submit"
-                        className="w-full"
+                        className="w-full h-12 text-sm sm:text-base font-semibold tracking-wide rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.99]"
                         disabled={isSubmitting || !turnstileToken || !!turnstileError}
                     >
                         {isSubmitting ? (
                             <>
                                 <Loader2 className="size-4 animate-spin mr-2" />
-                                Masuk...
+                                Memverifikasi & Masuk...
                             </>
                         ) : (
-                            'Masuk'
+                            'Masuk ke Sistem MTMS'
                         )}
                     </Button>
                 </form>
