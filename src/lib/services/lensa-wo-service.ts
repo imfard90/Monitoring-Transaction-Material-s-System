@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
 import {
@@ -414,6 +415,22 @@ export async function executeWOLensaScraping(
  * Mendukung input Pemakaian ID maupun Nomor WO dengan mekanisme fallback otomatis
  * ke endpoint pencarian header WO Lensa jika diperlukan.
  */
+function toISODateString(val: unknown): string | null {
+    if (!val) return null;
+    if (val instanceof Date) {
+        return format(val, 'yyyy-MM-dd');
+    }
+    const str = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        return str;
+    }
+    const parsed = new Date(str);
+    if (!Number.isNaN(parsed.getTime())) {
+        return format(parsed, 'yyyy-MM-dd');
+    }
+    return null;
+}
+
 export async function scrapeSingleWODetailService(
     idOrWoInput: string,
     sessionNik?: string
@@ -542,7 +559,7 @@ export async function scrapeSingleWODetailService(
                   nama_gudang: header.nama_gudang,
                   nik_pemakai: header.nik_pemakai,
                   tanggal_update: header.tanggal_update,
-                  formatted_date: header.formatted_date ? String(header.formatted_date) : null,
+                  formatted_date: toISODateString(header.formatted_date),
                   type: (header as { type?: string | null })?.type,
                   wbs: header.wbs,
                   gi_number: header.gi_number,
@@ -648,17 +665,27 @@ export async function scrapeSingleWODetailService(
             };
         }
 
-        // Jika detail berhasil tapi headerMetadata belum lengkap (misal input numeric dan belum ada di DB),
+        // Jika detail berhasil tapi headerMetadata belum lengkap (misal wo_number atau nik_pemakai belum ada),
         // ambil metadata header lengkap dari Lensa agar database terisi informasi yang utuh
-        if (resolvedPemakaianId && !headerMetadata?.wo_number) {
+        if (resolvedPemakaianId && (!headerMetadata?.wo_number || !headerMetadata?.nik_pemakai)) {
             try {
-                const extraHeader = await searchSingleWOLensaHeader(
+                let extraHeader = await searchSingleWOLensaHeader(
                     resolvedPemakaianId,
                     customUsername,
                     customPassword
                 );
+                if (!extraHeader && cleanInput !== resolvedPemakaianId) {
+                    extraHeader = await searchSingleWOLensaHeader(
+                        cleanInput,
+                        customUsername,
+                        customPassword
+                    );
+                }
                 if (extraHeader) {
-                    headerMetadata = extraHeader;
+                    headerMetadata = {
+                        ...headerMetadata,
+                        ...extraHeader,
+                    };
                 }
             } catch {
                 // Abaikan jika pencarian header metadata tambahan gagal, tetap simpan detail
@@ -781,11 +808,10 @@ export async function scrapeSingleWODetailService(
                 if (headerMetadata.gi_number && headerMetadata.gi_number !== header?.gi_number) {
                     updatePayload.gi_number = headerMetadata.gi_number;
                 }
-                if (
-                    headerMetadata.formatted_date &&
-                    headerMetadata.formatted_date !== header?.formatted_date
-                ) {
-                    updatePayload.formatted_date = headerMetadata.formatted_date;
+                const targetFormattedDate = toISODateString(headerMetadata.formatted_date);
+                const existingFormattedDate = toISODateString(header?.formatted_date);
+                if (targetFormattedDate && targetFormattedDate !== existingFormattedDate) {
+                    updatePayload.formatted_date = targetFormattedDate;
                 }
                 if (
                     headerMetadata.tanggal_update &&
