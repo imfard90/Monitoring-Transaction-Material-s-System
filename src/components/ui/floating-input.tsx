@@ -117,7 +117,6 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
                             'peer block w-full h-full bg-transparent text-sm sm:text-base text-foreground font-medium',
                             'border-none outline-none ring-0 shadow-none',
                             'focus:outline-none focus:ring-0 focus:border-none focus-visible:outline-none focus-visible:ring-0 focus-visible:border-none',
-                            '[outline:none!important] [box-shadow:none!important] [border:none!important]',
                             'disabled:cursor-not-allowed read-only:cursor-default',
                             startIcon ? 'pl-2' : 'pl-3.5',
                             endIcon ? 'pr-2' : 'pr-3.5',
@@ -147,7 +146,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
                                   ),
                             // CSS peer fallbacks for instant browser autofill
                             'peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:left-3 peer-focus:text-xs peer-focus:font-semibold peer-focus:text-primary peer-focus:px-1.5 peer-focus:bg-card',
-                            'peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:left-3 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:px-1.5 peer-[:not(:placeholder-shown)]:bg-card',
+                            'peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:-translate-y-1/2 peer-not-placeholder-shown:left-3 peer-not-placeholder-shown:text-xs peer-not-placeholder-shown:px-1.5 peer-not-placeholder-shown:bg-card',
                             labelBg !== 'bg-card' && isFloating && labelBg
                         )}
                     >

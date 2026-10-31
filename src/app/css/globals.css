@@ -23,7 +23,14 @@
 }
 
 /* Premium UI/UX: visible keyboard focus indicator across interactive elements (SKILL §2.3). */
-:where(a, button, input:not([cmdk-input]):not([data-floating-input]), select, textarea, [tabindex]):focus-visible {
+:where(
+    a,
+    button,
+    input:not([cmdk-input]):not([data-floating-input]),
+    select,
+    textarea,
+    [tabindex]
+):focus-visible {
     outline: 2px solid var(--color-primary, currentcolor);
     outline-offset: 2px;
 }
@@ -34,9 +41,9 @@
 [data-floating-input],
 [data-floating-input]:focus,
 [data-floating-input]:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
-    border: none !important;
+    outline: none;
+    box-shadow: none;
+    border: none;
 }
 
 html,
@@ -45,7 +52,7 @@ main {
 }
 
 /* Baseline 2026: Scroll Anchoring for data tables and dynamic live feeds (Zero-CLS) */
-[data-scroll-anchor='true'],
+[data-scroll-anchor="true"],
 .data-table-container {
     overflow-anchor: auto;
 }
@@ -405,8 +412,8 @@ input[type="time"] {
 /* Baseline 2026: light-dark() with <image> values for theme-adaptive background watermark */
 .bg-watermark-branch {
     background-image: light-dark(
-        url('/images/backgrounds/branch_lamongan.png'),
-        url('/images/backgrounds/branch_lamongan.png')
+        url("/images/backgrounds/branch_lamongan.png"),
+        url("/images/backgrounds/branch_lamongan.png")
     );
     background-position: center;
     background-repeat: no-repeat;
