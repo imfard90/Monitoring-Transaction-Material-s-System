@@ -222,7 +222,7 @@ export default function TechnicianTable({
                     />
 
                     {/* Filter by WH */}
-                    <div className="w-full sm:w-[200px]">
+                    <div className="w-full sm:w-50">
                         <Select value={whFilter} onValueChange={setWhFilter}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Filter Area Layanan" />

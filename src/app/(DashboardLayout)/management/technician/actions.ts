@@ -174,13 +174,13 @@ export async function upsertTechnician(data: {
     }
 }
 
-export const excludeItemSchema = z.object({
+const excludeItemSchema = z.object({
     id_material: z.string().trim().min(1, 'Kode material wajib diisi'),
     nama_material: z.string().trim().min(1, 'Nama material wajib diisi'),
     qty: z.coerce.number().int().positive('Jumlah harus lebih dari 0'),
 });
 
-export const updateTechnicianExcludeSchema = z.object({
+const updateTechnicianExcludeSchema = z.object({
     id: z.union([z.string(), z.number()]),
     items: z.array(excludeItemSchema),
 });

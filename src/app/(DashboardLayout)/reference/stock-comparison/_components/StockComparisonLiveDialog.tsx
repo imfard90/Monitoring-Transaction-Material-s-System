@@ -66,7 +66,7 @@ export function StockComparisonLiveDialog({
             detailColumnHelper.accessor('nama_material', {
                 header: () => <div className="pl-3">Nama Material</div>,
                 cell: (info) => (
-                    <div className="pl-3 whitespace-normal break-words text-xs font-medium text-foreground leading-snug">
+                    <div className="pl-3 whitespace-normal wrap-break-words text-xs font-medium text-foreground leading-snug">
                         {info.getValue()}
                     </div>
                 ),

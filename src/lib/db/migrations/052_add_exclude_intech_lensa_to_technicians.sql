@@ -5,3 +5,4 @@ ALTER TABLE hr.technicians
 ADD COLUMN IF NOT EXISTS exclude_intech_lensa JSONB DEFAULT NULL;
 
 COMMENT ON COLUMN hr.technicians.exclude_intech_lensa IS 'List of excluded materials for Intech Lensa comparison. Format: [{ id_material: string, nama_material: string, qty: number }]';
+
