@@ -274,7 +274,7 @@ export default function TurnstileWidget({
 
                 {/* Iconic Shield WAF Badge (Sejajar dengan Turnstile) */}
                 <div
-                    className="flex-1 min-w-[100px] h-[52px] px-2.5 py-1 rounded-xl border border-primary/20 bg-linear-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/15 dark:to-transparent flex items-center justify-center gap-2 shadow-xs select-none relative overflow-hidden group/waf"
+                    className="flex-1 min-w-25 h-[52px] px-2.5 py-1 rounded-xl border border-primary/20 bg-linear-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/15 dark:to-transparent flex items-center justify-center gap-2 shadow-xs select-none relative overflow-hidden group/waf"
                     title="Cloudflare WAF: Perlindungan firewall aplikasi web aktif melawan ancaman bot & DDoS"
                 >
                     <div className="absolute -right-2 -top-2 size-8 bg-primary/20 rounded-full blur-md group-hover/waf:scale-125 transition-transform" />
