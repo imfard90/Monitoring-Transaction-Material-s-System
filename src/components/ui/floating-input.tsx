@@ -75,7 +75,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
                 {/* Single outer continuous border container: wraps both icon and field text */}
                 <div
                     className={cn(
-                        'group relative flex items-center w-full h-[52px] rounded-xl border bg-background/60 dark:bg-card/40 transition-all duration-200',
+                        'group relative flex items-center w-full h-12 rounded-xl border bg-background/60 dark:bg-card/40 transition-all duration-200',
                         'hover:border-primary/50 hover:bg-background',
                         'focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 focus-within:bg-background',
                         error
@@ -97,64 +97,62 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
                         </div>
                     ) : null}
 
-                    {/* Text field area: input + floating title inside the same border */}
-                    <div className="relative flex-1 min-w-0 h-full flex items-center">
-                        <input
-                            {...props}
-                            ref={ref}
-                            id={inputId}
-                            type={type}
-                            value={value}
-                            defaultValue={defaultValue}
-                            disabled={disabled}
-                            readOnly={readOnly}
-                            data-floating-input="true"
-                            placeholder=" "
-                            onFocus={handleFocus}
-                            onBlur={handleBlur}
-                            onChange={handleChange}
-                            aria-invalid={Boolean(error)}
-                            aria-describedby={error ? errorId : undefined}
-                            className={cn(
-                                'peer block w-full h-full bg-transparent text-sm sm:text-base text-foreground font-medium',
-                                'border-none outline-none ring-0 shadow-none',
-                                'focus:outline-none focus:ring-0 focus:border-none focus-visible:outline-none focus-visible:ring-0 focus-visible:border-none',
-                                '[outline:none!important] [box-shadow:none!important] [border:none!important]',
-                                'disabled:cursor-not-allowed read-only:cursor-default',
-                                'pt-4 pb-0.5',
-                                startIcon ? 'pl-1' : 'pl-3.5',
-                                endIcon ? 'pr-1' : 'pr-3.5',
-                                className
-                            )}
-                        />
+                    <input
+                        {...props}
+                        ref={ref}
+                        id={inputId}
+                        type={type}
+                        value={value}
+                        defaultValue={defaultValue}
+                        disabled={disabled}
+                        readOnly={readOnly}
+                        data-floating-input="true"
+                        placeholder=" "
+                        onFocus={handleFocus}
+                        onBlur={handleBlur}
+                        onChange={handleChange}
+                        aria-invalid={Boolean(error)}
+                        aria-describedby={error ? errorId : undefined}
+                        className={cn(
+                            'peer block w-full h-full bg-transparent text-sm sm:text-base text-foreground font-medium',
+                            'border-none outline-none ring-0 shadow-none',
+                            'focus:outline-none focus:ring-0 focus:border-none focus-visible:outline-none focus-visible:ring-0 focus-visible:border-none',
+                            '[outline:none!important] [box-shadow:none!important] [border:none!important]',
+                            'disabled:cursor-not-allowed read-only:cursor-default',
+                            startIcon ? 'pl-2' : 'pl-3.5',
+                            endIcon ? 'pr-2' : 'pr-3.5',
+                            className
+                        )}
+                    />
 
-                        {/* Floating Label: moves smoothly upward inside the field, preserving the single continuous outer border */}
-                        <label
-                            htmlFor={inputId}
-                            className={cn(
-                                'absolute pointer-events-none select-none transition-all duration-200 ease-out origin-left',
-                                'motion-reduce:transition-none',
-                                startIcon ? 'left-1' : 'left-3.5',
-                                isFloating
-                                    ? 'top-1 text-[11px] font-semibold'
-                                    : 'top-1/2 -translate-y-1/2 text-sm font-normal text-muted-foreground',
-                                error
-                                    ? isFloating
-                                        ? 'text-destructive'
-                                        : 'text-muted-foreground'
-                                    : isFocused
-                                      ? 'text-primary'
-                                      : isFloating
-                                        ? 'text-muted-foreground/80'
-                                        : 'text-muted-foreground',
-                                // CSS peer fallbacks for instant browser autofill
-                                'peer-focus:top-1 peer-focus:translate-y-0 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-primary',
-                                'peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px]'
-                            )}
-                        >
-                            {label}
-                        </label>
-                    </div>
+                    {/* Floating Label: bergerak memotong garis border atas saat fokus/terisi */}
+                    <label
+                        htmlFor={inputId}
+                        className={cn(
+                            'absolute pointer-events-none select-none transition-all duration-200 ease-out origin-left z-10',
+                            'motion-reduce:transition-none',
+                            isFloating
+                                ? cn(
+                                      'top-0 -translate-y-1/2 left-3 text-xs font-semibold px-1.5 rounded-xs',
+                                      labelBg,
+                                      error
+                                          ? 'text-destructive'
+                                          : isFocused
+                                            ? 'text-primary'
+                                            : 'text-muted-foreground'
+                                  )
+                                : cn(
+                                      'top-1/2 -translate-y-1/2 text-sm font-normal text-muted-foreground',
+                                      startIcon ? 'left-10' : 'left-3.5'
+                                  ),
+                            // CSS peer fallbacks for instant browser autofill
+                            'peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:left-3 peer-focus:text-xs peer-focus:font-semibold peer-focus:text-primary peer-focus:px-1.5 peer-focus:bg-card',
+                            'peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:left-3 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:px-1.5 peer-[:not(:placeholder-shown)]:bg-card',
+                            labelBg !== 'bg-card' && isFloating && labelBg
+                        )}
+                    >
+                        {label}
+                    </label>
 
                     {endIcon ? (
                         <div className="pr-3 pl-1 flex items-center justify-center shrink-0">
