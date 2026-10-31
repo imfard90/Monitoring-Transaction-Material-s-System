@@ -75,7 +75,6 @@ const LoginForm = () => {
         // `code` is intentionally not surfaced to end-users to avoid leaking
         // internal Cloudflare error families.
         if (process.env.NODE_ENV !== 'production') {
-            // biome-ignore lint/suspicious/noConsole: dev-only diagnostic
             console.warn('[Turnstile] widget error', code);
         }
     }, []);
@@ -307,7 +306,7 @@ const LoginForm = () => {
                                 Memverifikasi & Masuk...
                             </>
                         ) : (
-                            'Masuk ke Sistem MTMS'
+                            'Masuk MTMS'
                         )}
                     </Button>
                 </form>
