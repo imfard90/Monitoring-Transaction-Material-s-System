@@ -12,7 +12,10 @@ import { acquireLock } from '@/lib/redis-lock';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
 import { bulkScrapeStockTeknisi } from '@/lib/services/bulk-stock-scraper';
 import { executeOutLensaScraping } from '@/lib/services/lensa-out-service';
-import { executeWOLensaScraping } from '@/lib/services/lensa-wo-service';
+import {
+    executeNightlyWOLensaScrapingByNik,
+    executeWOLensaScraping,
+} from '@/lib/services/lensa-wo-service';
 import {
     WORKER_HEARTBEAT_KEY,
     WORKER_HEARTBEAT_TTL_SECONDS,
@@ -223,9 +226,42 @@ const runWithRetry = async (
         });
 };
 
+const runNightlyWOLensaNikScraper = async (action: 'system' | 'manual' = 'system') => {
+    const LOCK_KEY = 'lock:wo_lensa_nightly_scrape';
+    const LOCK_TTL = 3600; // 1 jam TTL
+
+    const lock = await acquireLock(LOCK_KEY, LOCK_TTL);
+    if (!lock) {
+        actionLogger.warn(
+            '[CRON] Nightly WO Lensa scraping skipped; another scraping job is running.'
+        );
+        return;
+    }
+
+    try {
+        actionLogger.info(
+            '[CRON] Starting nightly WO Lensa deep sweep by technician NIK (02:00 WIB)...'
+        );
+        const outcome = await executeNightlyWOLensaScrapingByNik(action);
+        actionLogger.info(`[CRON] Nightly WO Lensa deep sweep completed: ${outcome.message}`);
+    } catch (error) {
+        actionLogger.error(
+            '[CRON] Error during nightly WO Lensa scraping:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+    } finally {
+        await lock.release();
+        await closeBrowser().catch(() => {});
+    }
+};
+
 // ----------------------------------------------------
 // 3. Register Scheduled Crons
 // ----------------------------------------------------
+// Nightly Deep Sweep WO Lensa by technician NIK at 02:00 WIB
+cron.schedule('0 2 * * *', () => void runNightlyWOLensaNikScraper(), {
+    timezone: 'Asia/Jakarta',
+});
 for (const schedule of schedules) {
     cron.schedule(schedule.time, () => void runScrapers(schedule.perpage), {
         timezone: 'Asia/Jakarta',

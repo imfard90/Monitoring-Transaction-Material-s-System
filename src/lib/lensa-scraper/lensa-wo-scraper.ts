@@ -249,6 +249,97 @@ export async function scrapeWOLensaHeaders(
 }
 
 /**
+ * Scrape WO Lensa headers by looping technician NIKs (Nightly Deep Sweep at 02:00 AM).
+ * - Queries: ${LENSA_URL}/teknisi/wo-data?page=1&perpage=${perpage}&search=${encodeURIComponent(nik)}&orderBy=tanggal_update&orderDirection=desc
+ * - Retry up to 3 times on network/server error per NIK
+ * - Honors cutoff date, deduplication, and multi-page pagination
+ */
+export async function scrapeWOLensaHeadersByNik(
+    niks: string[],
+    existingPemakaianIds: string[],
+    customUsername?: string,
+    customPassword?: string,
+    perpage: number = 100,
+    retryLimit: number = 3
+): Promise<WOLensaHeader[]> {
+    const username = customUsername || process.env.LENSA_USERNAME;
+    const password = customPassword || process.env.LENSA_PASSWORD;
+    if (!username || !password) throw new Error('LENSA_USERNAME or LENSA_PASSWORD is not set');
+
+    const cleanNiks = niks.map((n) => n.trim()).filter(Boolean);
+    if (cleanNiks.length === 0) return [];
+
+    const { context, page, safeGoto, performLogin } = await setupContext(username, password);
+
+    try {
+        const newHeaders: WOLensaHeader[] = [];
+        const seenIds = new Set<string>(existingPemakaianIds);
+
+        for (let i = 0; i < cleanNiks.length; i++) {
+            const nik = cleanNiks[i];
+            let attempt = 0;
+            let success = false;
+
+            while (attempt < retryLimit && !success) {
+                attempt++;
+                try {
+                    const url1 = `${LENSA_URL}/teknisi/wo-data?page=1&perpage=${perpage}&search=${encodeURIComponent(
+                        nik
+                    )}&orderBy=tanggal_update&orderDirection=desc`;
+
+                    const resp1 = await fetchPageJSON(page, url1, performLogin, safeGoto);
+                    const items1 = resp1?.data || [];
+                    const lastPage = resp1?.pagination?.last_page ?? 1;
+
+                    processItems(items1, seenIds, newHeaders);
+
+                    // Ambil halaman berikutnya jika ada (cap 5 halaman per teknisi)
+                    // Hentikan jika semua item di halaman pertama sudah sebelum batas cutoff
+                    if (!allBeforeCutoff(items1)) {
+                        const maxPages = Math.min(lastPage, 5);
+                        for (let p = 2; p <= maxPages; p++) {
+                            const urlP = `${LENSA_URL}/teknisi/wo-data?page=${p}&perpage=${perpage}&search=${encodeURIComponent(
+                                nik
+                            )}&orderBy=tanggal_update&orderDirection=desc`;
+                            const respP = await fetchPageJSON(page, urlP, performLogin, safeGoto);
+                            const itemsP = respP?.data || [];
+                            if (itemsP.length === 0) break;
+                            processItems(itemsP, seenIds, newHeaders);
+                            if (allBeforeCutoff(itemsP)) break;
+                        }
+                    }
+
+                    success = true;
+                } catch (err) {
+                    actionLogger.warn(
+                        `[WO-NIK][Attempt ${attempt}/${retryLimit}] Gagal scrape NIK ${nik}: ${
+                            err instanceof Error ? err.message : String(err)
+                        }`
+                    );
+                    if (attempt < retryLimit) {
+                        await new Promise((resolve) => setTimeout(resolve, 1500));
+                    }
+                }
+            }
+
+            if (!success) {
+                actionLogger.error(`[WO-NIK] Semua ${retryLimit} percobaan gagal untuk NIK ${nik}`);
+            }
+        }
+
+        return newHeaders;
+    } catch (error) {
+        actionLogger.error(
+            'WO Header NIK sweep error:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        throw error;
+    } finally {
+        await context.close().catch(() => {});
+    }
+}
+
+/**
  * Search single WO Lensa header on Lensa API by search keyword (No WO or Pemakaian ID).
  * Used as fallback / direct search when pulling WO details.
  */

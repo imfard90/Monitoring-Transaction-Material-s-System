@@ -19,7 +19,9 @@ export async function register() {
     const cron = await import('node-cron');
     const { actionLogger } = await import('@/lib/logger');
     const { executeOutLensaScraping } = await import('@/lib/services/lensa-out-service');
-    const { executeWOLensaScraping } = await import('@/lib/services/lensa-wo-service');
+    const { executeNightlyWOLensaScrapingByNik, executeWOLensaScraping } = await import(
+        '@/lib/services/lensa-wo-service'
+    );
     const { bulkScrapeStockTeknisi } = await import('@/lib/services/bulk-stock-scraper');
     const { closeBrowser } = await import('@/lib/lensa-scraper/lensa-scraper');
     const { OTHER_STOCK_SYNC_LOCK_KEY, OTHER_STOCK_SYNC_LOCK_TTL_SECONDS, syncOtherStock } =
@@ -141,10 +143,44 @@ export async function register() {
         }
     };
 
+    const runNightlyWOLensaNikScraper = async (action: 'system' | 'manual' = 'system') => {
+        const LOCK_KEY = 'lock:wo_lensa_nightly_scrape';
+        const LOCK_TTL = 3600; // 1 jam TTL
+
+        try {
+            const acquired = await redis.set(LOCK_KEY, '1', 'EX', LOCK_TTL, 'NX');
+            if (!acquired) {
+                actionLogger.warn(
+                    '[CRON] Nightly WO Lensa scraping skipped; another scraping job is running.'
+                );
+                return;
+            }
+
+            actionLogger.info(
+                '[CRON] Starting nightly WO Lensa deep sweep by technician NIK (02:00 WIB)...'
+            );
+            const outcome = await executeNightlyWOLensaScrapingByNik(action);
+            actionLogger.info(`[CRON] Nightly WO Lensa deep sweep completed: ${outcome.message}`);
+        } catch (error) {
+            actionLogger.error(
+                '[CRON] Error during nightly WO Lensa scraping:',
+                error instanceof Error ? error : new Error(String(error))
+            );
+        } finally {
+            await redis.del(LOCK_KEY);
+            await closeBrowser().catch(() => {});
+        }
+    };
+
     // Prevent multiple cron registrations in development (hot reload)
-    const globalAny = global as any;
-    if (!globalAny.__cronRegistered) {
-        globalAny.__cronRegistered = true;
+    const globalObj = global as typeof globalThis & { __cronRegistered?: boolean };
+    if (!globalObj.__cronRegistered) {
+        globalObj.__cronRegistered = true;
+
+        // Nightly Deep Sweep WO Lensa by technician NIK at 02:00 WIB
+        cron.schedule('0 2 * * *', () => void runNightlyWOLensaNikScraper(), {
+            timezone: 'Asia/Jakarta',
+        });
 
         for (const schedule of schedules) {
             cron.schedule(schedule.time, () => runScrapers(schedule.perpage), {
@@ -248,6 +284,9 @@ export async function register() {
         }
 
         actionLogger.info('[CRON] Scheduled Lensa scrapers registered for Asia/Jakarta timezone.');
+        actionLogger.info(
+            '[CRON] Scheduled nightly WO Lensa deep sweep by technician NIK at 02:00 WIB (Asia/Jakarta).'
+        );
         actionLogger.info(
             '[CRON] Scheduled Sheets other-stock sync at 05:00, 10:00, 13:00, 17:00, 20:00 WIB (Asia/Jakarta).'
         );
