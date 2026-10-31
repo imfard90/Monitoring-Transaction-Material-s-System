@@ -88,6 +88,11 @@ describe('scrapeSingleWODetail Unit Tests', () => {
                 insertInto: vi.fn(() => ({
                     values: vi.fn(() => ({
                         execute: vi.fn().mockResolvedValue({}),
+                        onConflict: vi.fn(() => ({
+                            returning: vi.fn(() => ({
+                                executeTakeFirst: vi.fn().mockResolvedValue({ id: '99' }),
+                            })),
+                        })),
                         returning: vi.fn(() => ({
                             executeTakeFirst: vi.fn().mockResolvedValue({ id: '99' }),
                         })),
@@ -95,6 +100,7 @@ describe('scrapeSingleWODetail Unit Tests', () => {
                 })),
                 selectFrom: vi.fn(() => ({
                     select: vi.fn().mockReturnThis(),
+                    selectAll: vi.fn().mockReturnThis(),
                     where: vi.fn().mockReturnThis(),
                     limit: vi.fn().mockReturnThis(),
                     executeTakeFirst: vi.fn().mockResolvedValue(null),
@@ -350,6 +356,79 @@ describe('scrapeSingleWODetail Unit Tests', () => {
             expect(res.data?.pemakaian_id).toBe('554433');
             expect(res.data?.wo_number).toBe('SC13610307');
             expect(res.data?.type).toBe('provisioning');
+            expect(res.data?.materials).toHaveLength(1);
+        } finally {
+            process.env.LENSA_USERNAME = originalUser;
+            process.env.LENSA_PASSWORD = originalPass;
+        }
+    });
+
+    it('enriches existing header when scraping by WO Number and resolved pemakaian_id already exists in DB', async () => {
+        const originalUser = process.env.LENSA_USERNAME;
+        const originalPass = process.env.LENSA_PASSWORD;
+        process.env.LENSA_USERNAME = 'test_user';
+        process.env.LENSA_PASSWORD = 'test_password';
+
+        try {
+            mockGetSessionUser.mockResolvedValue({
+                id: '1',
+                nik: 'ADM01',
+                user: { id: '1', email: 'admin@mtms.local' },
+                role: 'Admin',
+                isStaff: false,
+            });
+
+            // Initial lookup with WO number returns null (wo_number not yet recorded in DB)
+            // But second lookup by resolvedPemakaianId returns existing header record (e.g. id: '2687')
+            mockExecuteTakeFirst
+                .mockResolvedValueOnce(null) // 1. Initial db lookup by '1-95602227495' -> null
+                .mockResolvedValueOnce({
+                    id: '2687',
+                    pemakaian_id: '100257706',
+                    wo_number: null,
+                    nama_gudang: null,
+                }); // 2. Second db lookup by resolvedPemakaianId '100257706' -> existing row!
+
+            // Lensa search returns header metadata for '1-95602227495'
+            mockSearchSingleWOLensaHeader.mockResolvedValueOnce({
+                pemakaian_id: '100257706',
+                wo_number: '1-95602227495',
+                nama_gudang: 'WH SUB TUBAN',
+                nik_pemakai: '19001234',
+                tanggal_update: '2026-10-31 09:00:00',
+                formatted_date: '2026-10-31',
+                type: 'assurance',
+                wbs: null,
+                gi_number: null,
+            });
+
+            // Detail scraping with resolvedPemakaianId returns materials
+            mockScrapeWOLensaDetails.mockResolvedValueOnce([
+                {
+                    id: 0,
+                    pemakaian_id: '100257706',
+                    materials: [
+                        {
+                            'ID MATERIAL': 'S-CLAMP',
+                            'NAMA MATERIAL': 'S-Clamp-Springer',
+                            SATUAN: 'Pcs',
+                            'QTY PEMAKAIAN': 2,
+                        },
+                    ],
+                },
+            ]);
+
+            const res = await scrapeSingleWODetail('1-95602227495');
+
+            expect(mockSearchSingleWOLensaHeader).toHaveBeenCalledWith(
+                '1-95602227495',
+                'test_user',
+                'test_password'
+            );
+            expect(res.success).toBe(true);
+            expect(res.data?.pemakaian_id).toBe('100257706');
+            expect(res.data?.wo_number).toBe('1-95602227495');
+            expect(res.data?.nama_gudang).toBe('WH SUB TUBAN');
             expect(res.data?.materials).toHaveLength(1);
         } finally {
             process.env.LENSA_USERNAME = originalUser;

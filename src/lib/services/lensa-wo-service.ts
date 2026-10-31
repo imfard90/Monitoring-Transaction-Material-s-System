@@ -431,7 +431,7 @@ export async function scrapeSingleWODetailService(
         }
 
         // 1. Cek database lokal MTMS (berdasarkan pemakaian_id atau wo_number)
-        const header = await db
+        let header = await db
             .selectFrom('inventory.wo_lensa_header')
             .selectAll()
             .where((eb) =>
@@ -674,7 +674,36 @@ export async function scrapeSingleWODetailService(
 
         let savedHeaderId: string | null = header?.id ? String(header.id) : null;
 
+        // Jika pencarian awal dengan cleanInput belum menemukan header di DB (misal cleanInput berupa No WO tapi di DB wo_number masih null),
+        // cek kembali DB menggunakan resolvedPemakaianId yang sudah terkonfirmasi numerik
+        if (!savedHeaderId && resolvedPemakaianId) {
+            const existingHeader = await db
+                .selectFrom('inventory.wo_lensa_header')
+                .selectAll()
+                .where(sql<boolean>`CAST(pemakaian_id AS VARCHAR) = ${String(resolvedPemakaianId)}`)
+                .executeTakeFirst();
+            if (existingHeader) {
+                header = existingHeader;
+                savedHeaderId = String(existingHeader.id);
+            }
+        }
+
         await db.transaction().execute(async (trx) => {
+            // Re-check di dalam transaksi untuk keamanan konkurensi
+            if (!savedHeaderId && resolvedPemakaianId) {
+                const existingInTrx = await trx
+                    .selectFrom('inventory.wo_lensa_header')
+                    .selectAll()
+                    .where(
+                        sql<boolean>`CAST(pemakaian_id AS VARCHAR) = ${String(resolvedPemakaianId)}`
+                    )
+                    .executeTakeFirst();
+                if (existingInTrx) {
+                    header = existingInTrx;
+                    savedHeaderId = String(existingInTrx.id);
+                }
+            }
+
             // 1. Simpan Header ke inventory.wo_lensa_header jika belum ada di DB
             if (!savedHeaderId) {
                 const pId = resolvedPemakaianId as string;
@@ -711,12 +740,27 @@ export async function scrapeSingleWODetailService(
                         wo_number: headerMetadata?.wo_number ?? null,
                         rekon_check: isRekonCheck,
                     } as any)
+                    .onConflict((oc) =>
+                        oc.column('pemakaian_id').doUpdateSet({
+                            wo_number: sql`COALESCE(EXCLUDED.wo_number, inventory.wo_lensa_header.wo_number)`,
+                            nama_gudang: sql`COALESCE(EXCLUDED.nama_gudang, inventory.wo_lensa_header.nama_gudang)`,
+                            nik_pemakai: sql`COALESCE(EXCLUDED.nik_pemakai, inventory.wo_lensa_header.nik_pemakai)`,
+                            gi_number: sql`COALESCE(EXCLUDED.gi_number, inventory.wo_lensa_header.gi_number)`,
+                            tanggal_update: sql`COALESCE(EXCLUDED.tanggal_update, inventory.wo_lensa_header.tanggal_update)`,
+                            formatted_date: sql`COALESCE(EXCLUDED.formatted_date, inventory.wo_lensa_header.formatted_date)`,
+                            type: sql`COALESCE(EXCLUDED.type, inventory.wo_lensa_header.type)`,
+                            wbs: sql`COALESCE(EXCLUDED.wbs, inventory.wo_lensa_header.wbs)`,
+                            rekon_check: sql`COALESCE(EXCLUDED.rekon_check, inventory.wo_lensa_header.rekon_check)`,
+                        } as any)
+                    )
                     .returning('id')
                     .executeTakeFirst();
 
                 savedHeaderId = (inserted as any)?.id ? String((inserted as any).id) : null;
-            } else if (headerMetadata) {
-                // Jika header sudah ada, lengkapi field yang sebelumnya bernilai null
+            }
+
+            if (savedHeaderId && headerMetadata) {
+                // Jika header sudah ada (atau ditemukan lewat resolvedPemakaianId), lengkapi field yang sebelumnya bernilai null
                 const updatePayload: Record<string, any> = {};
                 if (headerMetadata.wo_number && !header?.wo_number) {
                     updatePayload.wo_number = headerMetadata.wo_number;
