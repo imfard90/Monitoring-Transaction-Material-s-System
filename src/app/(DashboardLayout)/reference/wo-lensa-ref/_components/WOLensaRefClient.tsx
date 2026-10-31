@@ -230,7 +230,7 @@ export default function WOLensaRefClient({
 
     const handleRunLiveDetail = useCallback(async () => {
         if (!selectedPemakaianId.trim()) {
-            toast.error('Pilih atau masukkan ID Pemakaian terlebih dahulu.');
+            toast.error('Pilih atau masukkan ID Pemakaian atau Nomor WO terlebih dahulu.');
             return;
         }
 
@@ -242,15 +242,16 @@ export default function WOLensaRefClient({
                 setLiveDetailOptions((prev) =>
                     prev.filter((opt) => opt.value !== selectedPemakaianId.trim())
                 );
+                const woTag = res.data.wo_number ? ` (WO: ${res.data.wo_number})` : '';
                 toast.success(
                     res.data.materials.length > 0
-                        ? `Berhasil menarik ${res.data.materials.length} material untuk ID ${res.data.pemakaian_id}.`
-                        : `Selesai menarik WO ID ${res.data.pemakaian_id}, namun tidak ada item material.`
+                        ? `Berhasil menarik ${res.data.materials.length} material untuk ID ${res.data.pemakaian_id}${woTag}.`
+                        : `Selesai menarik WO ID ${res.data.pemakaian_id}${woTag}, namun tidak ada item material.`
                 );
                 setCurrentLastUpdate({
                     timestamp: new Date().toISOString(),
                     action: 'manual',
-                    resume_result: `Detail Manual: Sukses menarik ${res.data.materials.length} material untuk ID ${res.data.pemakaian_id}`,
+                    resume_result: `Detail Manual: Sukses menarik ${res.data.materials.length} material untuk ID ${res.data.pemakaian_id}${woTag}`,
                 });
                 router.refresh();
             } else {

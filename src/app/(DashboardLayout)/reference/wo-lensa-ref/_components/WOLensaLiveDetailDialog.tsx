@@ -6,10 +6,7 @@ import {
     type LensaLiveDetailMaterialItem,
     type LensaLiveDetailMetadataItem,
 } from '@/components/domain/reference/LensaLiveDetailDialog';
-import type {
-    ScrapedWODetailResult,
-    WOPemakaianOption,
-} from '../_actions/wo-lensa-actions';
+import type { ScrapedWODetailResult, WOPemakaianOption } from '../_actions/wo-lensa-actions';
 
 interface WOLensaLiveDetailDialogProps {
     open: boolean;
@@ -57,9 +54,9 @@ export function WOLensaLiveDetailDialog({
             open={open}
             onOpenChange={onOpenChange}
             title="Tarik Detail WO Lensa Langsung"
-            description="Pilih nomor pemakaian atau ketik langsung untuk mengambil rincian material dari sistem Lensa jika data belum tertarik otomatis."
+            description="Pilih nomor pemakaian atau ketik nomor pemakaian / nomor WO langsung untuk mengambil rincian material dari sistem Lensa."
             idLabel="Pemakaian ID / No WO"
-            idPlaceholder="Contoh: 12345678"
+            idPlaceholder="Contoh: 12345678 atau INC12345678"
             options={options}
             selectedId={selectedId}
             onSelectId={onSelectId}

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetSessionUser = vi.fn();
 const mockScrapeWOLensaDetails = vi.fn();
+const mockSearchSingleWOLensaHeader = vi.fn();
 const mockInsertLog = vi.fn();
 const mockExecuteTakeFirst = vi.fn();
 const mockExecute = vi.fn();
@@ -21,6 +22,7 @@ vi.mock('@/lib/auth-server', () => ({
 vi.mock('@/lib/lensa-scraper/lensa-scraper', () => ({
     scrapeWOLensaDetails: (...args: unknown[]) => mockScrapeWOLensaDetails(...args),
     scrapeWOLensaHeaders: vi.fn(),
+    searchSingleWOLensaHeader: (...args: unknown[]) => mockSearchSingleWOLensaHeader(...args),
 }));
 
 vi.mock('@/lib/repositories/scraper-log.repository', () => ({
@@ -86,7 +88,21 @@ describe('scrapeSingleWODetail Unit Tests', () => {
                 insertInto: vi.fn(() => ({
                     values: vi.fn(() => ({
                         execute: vi.fn().mockResolvedValue({}),
+                        returning: vi.fn(() => ({
+                            executeTakeFirst: vi.fn().mockResolvedValue({ id: '99' }),
+                        })),
                     })),
+                })),
+                selectFrom: vi.fn(() => ({
+                    select: vi.fn().mockReturnThis(),
+                    where: vi.fn().mockReturnThis(),
+                    limit: vi.fn().mockReturnThis(),
+                    executeTakeFirst: vi.fn().mockResolvedValue(null),
+                })),
+                updateTable: vi.fn(() => ({
+                    set: vi.fn().mockReturnThis(),
+                    where: vi.fn().mockReturnThis(),
+                    execute: vi.fn().mockResolvedValue({}),
                 })),
             };
             return callback(mockTrx);
@@ -184,6 +200,157 @@ describe('scrapeSingleWODetail Unit Tests', () => {
                     action: 'manual',
                 })
             );
+        } finally {
+            process.env.LENSA_USERNAME = originalUser;
+            process.env.LENSA_PASSWORD = originalPass;
+        }
+    });
+
+    it('falls back to searchSingleWOLensaHeader when input is a WO Number and saves both header and detail', async () => {
+        const originalUser = process.env.LENSA_USERNAME;
+        const originalPass = process.env.LENSA_PASSWORD;
+        process.env.LENSA_USERNAME = 'test_user';
+        process.env.LENSA_PASSWORD = 'test_password';
+
+        try {
+            mockGetSessionUser.mockResolvedValue({
+                id: '1',
+                nik: 'ADM01',
+                user: { id: '1', email: 'admin@mtms.local' },
+                role: 'Admin',
+                isStaff: false,
+            });
+
+            // DB does not have the header yet
+            mockExecuteTakeFirst.mockResolvedValueOnce(null);
+
+            // Lensa header search finds the WO header
+            mockSearchSingleWOLensaHeader.mockResolvedValueOnce({
+                pemakaian_id: '998877',
+                wo_number: 'INC13579070',
+                nama_gudang: 'WH SUB KARANGPILANG',
+                nik_pemakai: '18930453',
+                tanggal_update: '2026-10-30 10:00:00',
+                formatted_date: '2026-10-30',
+                type: 'assurance',
+                wbs: 'WBS-01',
+                gi_number: 'GI-12345',
+            });
+
+            // Detail scraping with resolvedPemakaianId returns materials
+            mockScrapeWOLensaDetails.mockResolvedValueOnce([
+                {
+                    id: 0,
+                    pemakaian_id: '998877',
+                    materials: [
+                        {
+                            'ID MATERIAL': '101234',
+                            'NAMA MATERIAL': 'Patchcord SC-UPC',
+                            SATUAN: 'PCS',
+                            'QTY PEMAKAIAN': 2,
+                        },
+                    ],
+                },
+            ]);
+
+            const res = await scrapeSingleWODetail('INC13579070');
+
+            expect(mockSearchSingleWOLensaHeader).toHaveBeenCalledWith(
+                'INC13579070',
+                'test_user',
+                'test_password'
+            );
+            expect(mockScrapeWOLensaDetails).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        pemakaian_id: '998877',
+                        type: 'assurance',
+                    }),
+                ]),
+                'test_user',
+                'test_password'
+            );
+            expect(res.success).toBe(true);
+            expect(res.data?.pemakaian_id).toBe('998877');
+            expect(res.data?.wo_number).toBe('INC13579070');
+            expect(res.data?.nama_gudang).toBe('WH SUB KARANGPILANG');
+            expect(res.data?.materials).toHaveLength(1);
+            expect(res.data?.materials[0].material_id).toBe('101234');
+            expect(mockTransactionExecute).toHaveBeenCalled();
+        } finally {
+            process.env.LENSA_USERNAME = originalUser;
+            process.env.LENSA_PASSWORD = originalPass;
+        }
+    });
+
+    it('falls back to searchSingleWOLensaHeader when numeric ID direct detail returns 0 materials', async () => {
+        const originalUser = process.env.LENSA_USERNAME;
+        const originalPass = process.env.LENSA_PASSWORD;
+        process.env.LENSA_USERNAME = 'test_user';
+        process.env.LENSA_PASSWORD = 'test_password';
+
+        try {
+            mockGetSessionUser.mockResolvedValue({
+                id: '1',
+                nik: 'ADM01',
+                user: { id: '1', email: 'admin@mtms.local' },
+                role: 'Admin',
+                isStaff: false,
+            });
+
+            // Header not in DB
+            mockExecuteTakeFirst.mockResolvedValueOnce(null);
+
+            // First direct detail scrape returns empty materials
+            mockScrapeWOLensaDetails.mockResolvedValueOnce([
+                {
+                    id: 0,
+                    pemakaian_id: '554433',
+                    materials: [],
+                },
+            ]);
+
+            // Fallback search finds the correct record
+            mockSearchSingleWOLensaHeader.mockResolvedValueOnce({
+                pemakaian_id: '554433',
+                wo_number: 'SC13610307',
+                nama_gudang: 'WH SUB TUBAN',
+                nik_pemakai: '19001234',
+                tanggal_update: '2026-10-31 09:00:00',
+                formatted_date: '2026-10-31',
+                type: 'provisioning',
+                wbs: null,
+                gi_number: null,
+            });
+
+            // Second detail scrape with fallback returns materials
+            mockScrapeWOLensaDetails.mockResolvedValueOnce([
+                {
+                    id: 0,
+                    pemakaian_id: '554433',
+                    materials: [
+                        {
+                            'ID MATERIAL': '201999',
+                            'NAMA MATERIAL': 'Roset Optik 1 Core',
+                            SATUAN: 'PCS',
+                            'QTY PEMAKAIAN': 1,
+                        },
+                    ],
+                },
+            ]);
+
+            const res = await scrapeSingleWODetail('554433');
+
+            expect(mockSearchSingleWOLensaHeader).toHaveBeenCalledWith(
+                '554433',
+                'test_user',
+                'test_password'
+            );
+            expect(res.success).toBe(true);
+            expect(res.data?.pemakaian_id).toBe('554433');
+            expect(res.data?.wo_number).toBe('SC13610307');
+            expect(res.data?.type).toBe('provisioning');
+            expect(res.data?.materials).toHaveLength(1);
         } finally {
             process.env.LENSA_USERNAME = originalUser;
             process.env.LENSA_PASSWORD = originalPass;

@@ -1,6 +1,11 @@
 import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
-import { scrapeWOLensaDetails, scrapeWOLensaHeaders } from '@/lib/lensa-scraper/lensa-scraper';
+import {
+    scrapeWOLensaDetails,
+    scrapeWOLensaHeaders,
+    searchSingleWOLensaHeader,
+    type WOLensaHeader,
+} from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { resolveMaterialAlias } from '@/lib/material-alias-helper';
 import {
@@ -404,10 +409,12 @@ export async function executeWOLensaScraping(
 }
 
 /**
- * Service untuk scraping single detail pemakaian WO Lensa
+ * Service untuk scraping single detail pemakaian WO Lensa.
+ * Mendukung input Pemakaian ID maupun Nomor WO dengan mekanisme fallback otomatis
+ * ke endpoint pencarian header WO Lensa jika diperlukan.
  */
 export async function scrapeSingleWODetailService(
-    pemakaianIdInput: string,
+    idOrWoInput: string,
     sessionNik?: string
 ): Promise<{
     success: boolean;
@@ -415,10 +422,24 @@ export async function scrapeSingleWODetailService(
     error?: string;
 }> {
     try {
+        const cleanInput = idOrWoInput.trim();
+        if (!cleanInput) {
+            return {
+                success: false,
+                error: 'Pemakaian ID atau Nomor WO wajib diisi',
+            };
+        }
+
+        // 1. Cek database lokal MTMS (berdasarkan pemakaian_id atau wo_number)
         const header = await db
             .selectFrom('inventory.wo_lensa_header')
             .selectAll()
-            .where(sql`CAST(pemakaian_id AS VARCHAR)`, '=', pemakaianIdInput)
+            .where((eb) =>
+                eb.or([
+                    sql<boolean>`CAST(pemakaian_id AS VARCHAR) = ${cleanInput}`,
+                    sql<boolean>`UPPER(wo_number) = UPPER(${cleanInput})`,
+                ])
+            )
             .executeTakeFirst();
 
         let customUsername = '';
@@ -508,27 +529,142 @@ export async function scrapeSingleWODetailService(
             };
         }
 
-        const details = await scrapeWOLensaDetails(
-            [
-                {
-                    id: header?.id ? Number(header.id) : 0,
-                    pemakaian_id: pemakaianIdInput,
-                    type: (header as { type?: string | null })?.type || 'assurance',
-                },
-            ],
-            customUsername,
-            customPassword
-        );
+        const isNumeric = /^\d+$/.test(cleanInput);
+        let resolvedPemakaianId: string | null = header?.pemakaian_id
+            ? String(header.pemakaian_id)
+            : null;
 
-        const detail = details[0];
-        if (!detail) {
+        let headerMetadata: Partial<WOLensaHeader> | null = header
+            ? {
+                  pemakaian_id: String(header.pemakaian_id),
+                  wo_number: header.wo_number,
+                  nama_gudang: header.nama_gudang,
+                  nik_pemakai: header.nik_pemakai,
+                  tanggal_update: header.tanggal_update,
+                  formatted_date: header.formatted_date ? String(header.formatted_date) : null,
+                  type: (header as { type?: string | null })?.type,
+                  wbs: header.wbs,
+                  gi_number: header.gi_number,
+              }
+            : null;
+
+        // Jika belum ada resolvedPemakaianId dan input bukan angka murni (misal: "INC123456", "SC..."),
+        // langsung cari header ke endpoint pencarian Lensa untuk menghemat waktu (fast path).
+        if (!resolvedPemakaianId && !isNumeric) {
+            const searchedHeader = await searchSingleWOLensaHeader(
+                cleanInput,
+                customUsername,
+                customPassword
+            );
+            if (searchedHeader) {
+                headerMetadata = searchedHeader;
+                resolvedPemakaianId = searchedHeader.pemakaian_id;
+            }
+        } else if (!resolvedPemakaianId && isNumeric) {
+            // Jika angka murni dan belum ada di DB, gunakan input sebagai kandidat pemakaian_id awal
+            resolvedPemakaianId = cleanInput;
+        }
+
+        let detail:
+            | {
+                  header_id: number;
+                  pemakaian_id: string;
+                  materials: Record<string, string>[];
+              }
+            | undefined;
+
+        // Coba scraping detail langsung jika sudah memiliki resolvedPemakaianId
+        if (resolvedPemakaianId) {
+            try {
+                const details = await scrapeWOLensaDetails(
+                    [
+                        {
+                            id: header?.id ? Number(header.id) : 0,
+                            pemakaian_id: resolvedPemakaianId,
+                            type: headerMetadata?.type || 'assurance',
+                        },
+                    ],
+                    customUsername,
+                    customPassword
+                );
+                if (details[0] && details[0].materials.length > 0) {
+                    detail = details[0];
+                }
+            } catch (detailErr) {
+                actionLogger.warn(
+                    `[scrapeSingleWODetailService] Direct detail scrape failed for ${resolvedPemakaianId}:`,
+                    { error: detailErr instanceof Error ? detailErr.message : String(detailErr) }
+                );
+            }
+        }
+
+        // PROSES FALLBACK:
+        // Jika detail belum didapatkan atau material kosong, fallback ke endpoint header search Lensa
+        if (!detail || detail.materials.length === 0) {
+            actionLogger.info(
+                `[scrapeSingleWODetailService] Running fallback search header on Lensa for '${cleanInput}'...`
+            );
+            const fallbackHeader = await searchSingleWOLensaHeader(
+                cleanInput,
+                customUsername,
+                customPassword
+            );
+
+            if (fallbackHeader?.pemakaian_id) {
+                headerMetadata = fallbackHeader;
+                resolvedPemakaianId = fallbackHeader.pemakaian_id;
+
+                try {
+                    const fallbackDetails = await scrapeWOLensaDetails(
+                        [
+                            {
+                                id: header?.id ? Number(header.id) : 0,
+                                pemakaian_id: resolvedPemakaianId,
+                                type: fallbackHeader.type || 'assurance',
+                            },
+                        ],
+                        customUsername,
+                        customPassword
+                    );
+                    if (fallbackDetails[0]) {
+                        detail = fallbackDetails[0];
+                    }
+                } catch (fallbackDetailErr) {
+                    actionLogger.error(
+                        `[scrapeSingleWODetailService] Fallback detail scrape failed for ${resolvedPemakaianId}:`,
+                        fallbackDetailErr instanceof Error
+                            ? fallbackDetailErr
+                            : new Error(String(fallbackDetailErr))
+                    );
+                }
+            }
+        }
+
+        if (!resolvedPemakaianId) {
             return {
                 success: false,
-                error: 'Tidak ada material ditemukan dari sistem Lensa untuk ID pemakaian ini.',
+                error: `Data WO tidak ditemukan di sistem Lensa baik melalui Pemakaian ID maupun Nomor WO '${cleanInput}'.`,
             };
         }
 
-        const rawMaterials: any[] = detail.materials || [];
+        // Jika detail berhasil tapi headerMetadata belum lengkap (misal input numeric dan belum ada di DB),
+        // ambil metadata header lengkap dari Lensa agar database terisi informasi yang utuh
+        if (resolvedPemakaianId && !headerMetadata?.wo_number) {
+            try {
+                const extraHeader = await searchSingleWOLensaHeader(
+                    resolvedPemakaianId,
+                    customUsername,
+                    customPassword
+                );
+                if (extraHeader) {
+                    headerMetadata = extraHeader;
+                }
+            } catch {
+                // Abaikan jika pencarian header metadata tambahan gagal, tetap simpan detail
+            }
+        }
+
+        const rawMaterials: any[] = detail?.materials || [];
         const mappedMaterials: ScrapedWODetailMaterial[] = rawMaterials.map((m: any) => ({
             material_id: m['ID MATERIAL'] || null,
             material_desc: m['NAMA MATERIAL'] || m.DESCRIPTION || null,
@@ -536,52 +672,107 @@ export async function scrapeSingleWODetailService(
             qty_pemakaian: Number(m['QTY PEMAKAIAN']) || null,
         }));
 
-        let savedHeaderId: string | null = header?.id ?? null;
+        let savedHeaderId: string | null = header?.id ? String(header.id) : null;
 
         await db.transaction().execute(async (trx) => {
-            if (savedHeaderId) {
-                await trx
-                    .deleteFrom('inventory.wo_lensa_list')
-                    .where('header_id', '=', savedHeaderId)
-                    .execute();
-            } else {
+            // 1. Simpan Header ke inventory.wo_lensa_header jika belum ada di DB
+            if (!savedHeaderId) {
+                const pId = resolvedPemakaianId as string;
+                const wo = headerMetadata?.wo_number ? String(headerMetadata.wo_number).trim() : '';
+
+                // Cek status rekon_check terhadap inventory.rekon_used_header
+                let isRekonCheck = false;
+                if (pId || wo) {
+                    const rekonMatch = await trx
+                        .selectFrom('inventory.rekon_used_header')
+                        .select(['id'])
+                        .where((eb) => {
+                            const conditions = [];
+                            if (pId) conditions.push(eb('id_pemakaian', '=', pId));
+                            if (wo) conditions.push(eb('wo_number', '=', wo));
+                            return eb.or(conditions);
+                        })
+                        .limit(1)
+                        .executeTakeFirst();
+                    isRekonCheck = Boolean(rekonMatch);
+                }
+
                 const inserted = await trx
                     .insertInto('inventory.wo_lensa_header')
                     .values({
-                        pemakaian_id: pemakaianIdInput,
-                        gi_number: null,
-                        nama_gudang: null,
-                        nik_pemakai: null,
-                        tanggal_update: null,
-                        formatted_date: null,
-                        type: 'assurance',
-                        wbs: null,
-                        wo_number: null,
-                        rekon_check: false,
+                        pemakaian_id: Number(pId) || sql`CAST(${pId} AS BIGINT)`,
+                        gi_number: headerMetadata?.gi_number ?? null,
+                        nama_gudang: headerMetadata?.nama_gudang ?? null,
+                        nik_pemakai: headerMetadata?.nik_pemakai ?? null,
+                        tanggal_update: headerMetadata?.tanggal_update ?? null,
+                        formatted_date: headerMetadata?.formatted_date ?? null,
+                        type: headerMetadata?.type ?? 'assurance',
+                        wbs: headerMetadata?.wbs ?? null,
+                        wo_number: headerMetadata?.wo_number ?? null,
+                        rekon_check: isRekonCheck,
                     } as any)
                     .returning('id')
                     .executeTakeFirst();
 
                 savedHeaderId = (inserted as any)?.id ? String((inserted as any).id) : null;
+            } else if (headerMetadata) {
+                // Jika header sudah ada, lengkapi field yang sebelumnya bernilai null
+                const updatePayload: Record<string, any> = {};
+                if (headerMetadata.wo_number && !header?.wo_number) {
+                    updatePayload.wo_number = headerMetadata.wo_number;
+                }
+                if (headerMetadata.nama_gudang && !header?.nama_gudang) {
+                    updatePayload.nama_gudang = headerMetadata.nama_gudang;
+                }
+                if (headerMetadata.gi_number && !header?.gi_number) {
+                    updatePayload.gi_number = headerMetadata.gi_number;
+                }
+                if (headerMetadata.formatted_date && !header?.formatted_date) {
+                    updatePayload.formatted_date = headerMetadata.formatted_date;
+                }
+                if (headerMetadata.tanggal_update && !header?.tanggal_update) {
+                    updatePayload.tanggal_update = headerMetadata.tanggal_update;
+                }
+                if (headerMetadata.type && !header?.type) {
+                    updatePayload.type = headerMetadata.type;
+                }
+                if (Object.keys(updatePayload).length > 0) {
+                    await trx
+                        .updateTable('inventory.wo_lensa_header')
+                        .set(updatePayload)
+                        .where('id', '=', savedHeaderId)
+                        .execute();
+                }
             }
 
-            if (savedHeaderId && mappedMaterials.length > 0) {
-                const materialInserts = mappedMaterials.map((m) => ({
-                    header_id: savedHeaderId as string,
-                    material_id: m.material_id,
-                    material_desc: m.material_desc,
-                    uom: m.uom,
-                    qty_pemakaian: m.qty_pemakaian,
-                }));
+            // 2. Simpan Detail Material ke inventory.wo_lensa_list
+            if (savedHeaderId) {
+                await trx
+                    .deleteFrom('inventory.wo_lensa_list')
+                    .where('header_id', '=', savedHeaderId)
+                    .execute();
 
-                await trx.insertInto('inventory.wo_lensa_list').values(materialInserts).execute();
+                if (mappedMaterials.length > 0) {
+                    const materialInserts = mappedMaterials.map((m) => ({
+                        header_id: savedHeaderId as string,
+                        material_id: m.material_id,
+                        material_desc: m.material_desc,
+                        uom: m.uom,
+                        qty_pemakaian: m.qty_pemakaian,
+                    }));
+
+                    await trx
+                        .insertInto('inventory.wo_lensa_list')
+                        .values(materialInserts)
+                        .execute();
+                }
             }
         });
 
         const resume =
             mappedMaterials.length > 0
-                ? `Sukses menarik ${mappedMaterials.length} material untuk ID ${pemakaianIdInput}`
-                : `Selesai: Tidak ada material ditemukan untuk ID ${pemakaianIdInput}`;
+                ? `Sukses menarik ${mappedMaterials.length} material untuk ID ${resolvedPemakaianId}`
+                : `Selesai: Tidak ada material ditemukan untuk ID ${resolvedPemakaianId}`;
 
         await scraperLogRepository
             .insertLog({
@@ -596,10 +787,10 @@ export async function scrapeSingleWODetailService(
         return {
             success: true,
             data: {
-                pemakaian_id: pemakaianIdInput,
-                wo_number: header?.wo_number ?? null,
-                nama_gudang: header?.nama_gudang ?? null,
-                type: (header as { type?: string | null })?.type ?? null,
+                pemakaian_id: resolvedPemakaianId,
+                wo_number: headerMetadata?.wo_number ?? header?.wo_number ?? null,
+                nama_gudang: headerMetadata?.nama_gudang ?? header?.nama_gudang ?? null,
+                type: headerMetadata?.type ?? (header as { type?: string | null })?.type ?? null,
                 materials: mappedMaterials,
             },
         };

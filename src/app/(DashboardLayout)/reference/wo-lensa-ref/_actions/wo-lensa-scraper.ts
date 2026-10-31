@@ -115,7 +115,7 @@ export async function checkWOScrapingStatus(jobId: string) {
 /**
  * Scrape single WO detail on demand
  */
-export async function scrapeSingleWODetail(pemakaianIdInput: string): Promise<{
+export async function scrapeSingleWODetail(idOrWoInput: string): Promise<{
     success: boolean;
     data?: ScrapedWODetailResult;
     error?: string;
@@ -124,8 +124,8 @@ export async function scrapeSingleWODetail(pemakaianIdInput: string): Promise<{
         const parsed = z
             .string()
             .trim()
-            .min(1, 'Pemakaian ID wajib diisi')
-            .safeParse(pemakaianIdInput);
+            .min(1, 'Pemakaian ID atau Nomor WO wajib diisi')
+            .safeParse(idOrWoInput);
         if (!parsed.success) {
             return {
                 success: false,
@@ -133,7 +133,7 @@ export async function scrapeSingleWODetail(pemakaianIdInput: string): Promise<{
             };
         }
 
-        const pemakaianId = parsed.data;
+        const input = parsed.data;
 
         // Otorisasi server action (AGENTS.md §1.1)
         const sessionUser = await getSessionUser();
@@ -150,7 +150,7 @@ export async function scrapeSingleWODetail(pemakaianIdInput: string): Promise<{
             };
         }
 
-        return scrapeSingleWODetailService(pemakaianId, sessionUser.nik);
+        return scrapeSingleWODetailService(input, sessionUser.nik);
     } catch (error: unknown) {
         return {
             success: false,

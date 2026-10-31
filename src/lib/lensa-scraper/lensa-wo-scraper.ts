@@ -249,6 +249,79 @@ export async function scrapeWOLensaHeaders(
 }
 
 /**
+ * Search single WO Lensa header on Lensa API by search keyword (No WO or Pemakaian ID).
+ * Used as fallback / direct search when pulling WO details.
+ */
+export async function searchSingleWOLensaHeader(
+    query: string,
+    customUsername?: string,
+    customPassword?: string
+): Promise<WOLensaHeader | null> {
+    const username = customUsername || process.env.LENSA_USERNAME;
+    const password = customPassword || process.env.LENSA_PASSWORD;
+    if (!username || !password) {
+        throw new Error('Akun Lensa tidak ditemukan. Pastikan ada akun Lensa yang terhubung.');
+    }
+
+    const cleanQuery = query.trim();
+    if (!cleanQuery) return null;
+
+    const { context, page, safeGoto, performLogin } = await setupContext(username, password);
+
+    try {
+        const url = `${LENSA_URL}/teknisi/wo-data?page=1&perpage=10&search=${encodeURIComponent(cleanQuery)}&orderBy=tanggal_update&orderDirection=desc`;
+        actionLogger.info(
+            `[searchSingleWOLensaHeader] Searching Lensa header for: '${cleanQuery}'`
+        );
+        const resp = await fetchPageJSON(page, url, performLogin, safeGoto);
+        const items = (resp?.data || []) as Array<Record<string, unknown>>;
+        if (items.length === 0) {
+            actionLogger.info(`[searchSingleWOLensaHeader] No items returned for '${cleanQuery}'`);
+            return null;
+        }
+
+        const normalizedQuery = cleanQuery.toUpperCase();
+        // Cari exact match terhadap wo_number atau pemakaian_id terlebih dahulu
+        const exactMatch = items.find((item) => {
+            const pId = String(item.pemakaian_id ?? '')
+                .trim()
+                .toUpperCase();
+            const woNo = String(item.wo_number ?? '')
+                .trim()
+                .toUpperCase();
+            return pId === normalizedQuery || woNo === normalizedQuery;
+        });
+
+        const target = exactMatch || items[0];
+        const pemakaianId = String(target.pemakaian_id ?? '').trim();
+        if (!pemakaianId || pemakaianId === 'undefined') return null;
+
+        const rawDate = target.tanggal_update?.toString() || null;
+        const parsedDate = parseLensaDate(rawDate);
+
+        return {
+            pemakaian_id: pemakaianId,
+            gi_number: target.gi_number?.toString() || null,
+            nama_gudang: target.nama_gudang?.toString() || null,
+            nik_pemakai: target.nik_pemakai?.toString() || null,
+            tanggal_update: rawDate,
+            formatted_date: parsedDate ? format(parsedDate, 'yyyy-MM-dd') : null,
+            type: target.type?.toString() || 'assurance',
+            wbs: target.wbs?.toString() || null,
+            wo_number: target.wo_number?.toString() || null,
+        };
+    } catch (error) {
+        actionLogger.error(
+            `[searchSingleWOLensaHeader] Error searching header for '${cleanQuery}':`,
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return null;
+    } finally {
+        await context.close().catch(() => {});
+    }
+}
+
+/**
  * Scrape detail material WO Lensa Ref per gudang (Phase 2):
  * - Menggunakan micro-pool 2 tab concurrent di dalam BrowserContext gudang.
  * - Tab di-reuse/dibuat ringan per item tanpa overhead login ulang.
