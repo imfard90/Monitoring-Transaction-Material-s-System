@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Pencil, Plus } from 'lucide-react';
+import { PackageMinus, Pencil, Plus } from 'lucide-react';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
@@ -25,6 +25,7 @@ import {
 } from '@/lib/table';
 import { toggleTechnicianStatus } from './actions';
 import { TechnicianDialog } from './technician-dialog';
+import { TechnicianExcludeDialog } from './technician-exclude-dialog';
 
 export interface TechnicianItem {
     id: string | number;
@@ -37,6 +38,11 @@ export interface TechnicianItem {
     is_active: boolean;
     branch_id?: number | null;
     mitra_id?: number | null;
+    exclude_intech_lensa?: Array<{
+        id_material: string;
+        nama_material: string;
+        qty: number;
+    }> | null;
 }
 
 interface TechnicianTableProps {
@@ -44,6 +50,8 @@ interface TechnicianTableProps {
     branches: { id: number; service_area: string; branch: string }[];
     mitras: { id: number; mitra_name: string | null }[];
     warehouses: { id: number; name: string }[];
+    materials?: Array<{ code: string; description: string; unit: string }>;
+    isStaff?: boolean;
 }
 
 const columnHelper = createColumnHelper<TechnicianItem>();
@@ -53,12 +61,17 @@ export default function TechnicianTable({
     branches,
     mitras,
     warehouses,
+    materials = [],
+    isStaff = false,
 }: TechnicianTableProps) {
     const [isPending, startTransition] = useTransition();
     const [nikFilter, setNikFilter] = useState('');
     const [whFilter, setWhFilter] = useState<string>('all');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [selectedTechnician, setSelectedTechnician] = useState<TechnicianItem | null>(null);
+    const [isExcludeDialogOpen, setIsExcludeDialogOpen] = useState(false);
+    const [selectedExcludeTechnician, setSelectedExcludeTechnician] =
+        useState<TechnicianItem | null>(null);
 
     const hasActiveFilters = Boolean(nikFilter.trim() || whFilter !== 'all');
 
@@ -147,7 +160,7 @@ export default function TechnicianTable({
             header: () => <div className="text-center">Aksi</div>,
             cell: (info) => {
                 return (
-                    <div className="flex justify-center items-center gap-2">
+                    <div className="flex justify-center items-center gap-1.5">
                         <Button
                             variant="ghost"
                             size="icon"
@@ -160,6 +173,20 @@ export default function TechnicianTable({
                         >
                             <Pencil size={16} />
                         </Button>
+                        {!isStaff && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                                title="Kelola Exclude Lensa"
+                                onClick={() => {
+                                    setSelectedExcludeTechnician(info.row.original);
+                                    setIsExcludeDialogOpen(true);
+                                }}
+                            >
+                                <PackageMinus size={16} />
+                            </Button>
+                        )}
                     </div>
                 );
             },
@@ -238,6 +265,13 @@ export default function TechnicianTable({
                 branches={branches}
                 mitras={mitras}
                 warehouses={warehouses}
+            />
+
+            <TechnicianExcludeDialog
+                open={isExcludeDialogOpen}
+                onOpenChange={setIsExcludeDialogOpen}
+                technician={selectedExcludeTechnician}
+                materials={materials}
             />
         </motion.div>
     );

@@ -29,6 +29,7 @@ export const hrRepository = {
                 't.branch_id',
                 't.mitra_id',
                 't.wh_id',
+                't.exclude_intech_lensa',
                 'w.name as warehouse_name',
                 'b.service_area',
                 'm.mitra_name',

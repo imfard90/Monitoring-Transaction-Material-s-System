@@ -15,6 +15,8 @@ export interface StockComparisonItem {
     nama_material: string;
     satuan: string | null;
     stock_lensa: number;
+    raw_stock_lensa?: number;
+    exclude_qty?: number;
     stock_mtms: number;
     selisih: number;
     match_status: 'match' | 'selisih';
@@ -47,6 +49,7 @@ export interface TeknisiRow {
     name: string;
     wh_id: number | null;
     ref_intech_lensa: unknown;
+    exclude_intech_lensa: unknown;
     branch: string | null;
     service_area: string | null;
     warehouse_name: string | null;

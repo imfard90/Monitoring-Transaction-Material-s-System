@@ -43,15 +43,15 @@ vi.mock('@/lib/db/db', () => ({
         })),
         selectFrom: vi.fn(() => ({
             select: vi.fn().mockReturnThis(),
+            where: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
             execute: mockSelectExecute,
         })),
     },
 }));
 
-const { upsertTechnician, getWarehouses } = await import(
-    '@/app/(DashboardLayout)/management/technician/actions'
-);
+const { upsertTechnician, getWarehouses, updateTechnicianExclude, getMaterialsForSelect } =
+    await import('@/app/(DashboardLayout)/management/technician/actions');
 
 describe('technician-actions Unit Tests', () => {
     beforeEach(() => {
@@ -163,5 +163,83 @@ describe('technician-actions Unit Tests', () => {
         const warehouses = await getWarehouses();
         expect(warehouses).toHaveLength(2);
         expect(warehouses[0].name).toBe('Gudang A');
+    });
+
+    describe('updateTechnicianExclude', () => {
+        it('successfully updates exclude items for non-staff user', async () => {
+            mockRequireTechnicianManagementAccess.mockResolvedValueOnce({
+                id: '1',
+                role: 'Admin',
+                isStaff: false,
+            });
+
+            const res = await updateTechnicianExclude({
+                id: 15,
+                items: [
+                    {
+                        id_material: 'MAT-01',
+                        nama_material: 'Fiber Cable',
+                        qty: 5,
+                    },
+                ],
+            });
+
+            expect(res.success).toBe(true);
+            expect(res.message).toContain('Berhasil memperbarui 1 material exclude');
+            expect(mockSet).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    exclude_intech_lensa: expect.anything(),
+                })
+            );
+            expect(mockRevalidatePath).toHaveBeenCalledWith('/management/technician');
+            expect(mockRevalidatePath).toHaveBeenCalledWith('/reference/stock-comparison');
+        });
+
+        it('rejects staff user with access denied error', async () => {
+            mockRequireTechnicianManagementAccess.mockResolvedValueOnce({
+                id: '2',
+                role: 'Staff',
+                isStaff: true,
+            });
+
+            await expect(
+                updateTechnicianExclude({
+                    id: 15,
+                    items: [],
+                })
+            ).rejects.toThrow('Hanya non-staff');
+        });
+
+        it('validates invalid item data (negative qty)', async () => {
+            mockRequireTechnicianManagementAccess.mockResolvedValueOnce({
+                id: '1',
+                role: 'Admin',
+                isStaff: false,
+            });
+
+            await expect(
+                updateTechnicianExclude({
+                    id: 15,
+                    items: [
+                        {
+                            id_material: 'MAT-01',
+                            nama_material: 'Fiber Cable',
+                            qty: -2,
+                        },
+                    ],
+                })
+            ).rejects.toThrow('Jumlah harus lebih dari 0');
+        });
+    });
+
+    describe('getMaterialsForSelect', () => {
+        it('retrieves and maps materials correctly', async () => {
+            mockSelectExecute.mockResolvedValueOnce([
+                { code: 'C-01', description: 'Patchcord', unit: 'EA' },
+            ]);
+
+            const materials = await getMaterialsForSelect();
+            expect(materials).toEqual([{ code: 'C-01', description: 'Patchcord', unit: 'EA' }]);
+        });
     });
 });

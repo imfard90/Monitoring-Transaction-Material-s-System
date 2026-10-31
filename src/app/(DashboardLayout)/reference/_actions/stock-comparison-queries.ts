@@ -38,6 +38,7 @@ export async function getTeknisiStockList(): Promise<{
                 't.name',
                 't.wh_id',
                 't.ref_intech_lensa',
+                't.exclude_intech_lensa',
                 'b.branch',
                 'b.service_area',
                 'wh.name as warehouse_name',
@@ -88,16 +89,32 @@ export async function getTeknisiStockList(): Promise<{
                 for (const material of cached.materials) {
                     if (!material.id_material) continue;
                     const code = material.id_material.trim().toUpperCase();
-                    lensMap.set(
-                        code,
-                        Number.parseInt(material.stock_teknisi, 10) || 0
-                    );
+                    lensMap.set(code, Number.parseInt(material.stock_teknisi, 10) || 0);
+                }
+
+                // Parse exclude items
+                const rawExcludes = row.exclude_intech_lensa as Array<{
+                    id_material: string;
+                    qty: number;
+                }> | null;
+                const excludeMap = new Map<string, number>();
+                if (Array.isArray(rawExcludes)) {
+                    for (const ex of rawExcludes) {
+                        if (ex.id_material) {
+                            excludeMap.set(
+                                ex.id_material.trim().toUpperCase(),
+                                Number(ex.qty) || 0
+                            );
+                        }
+                    }
                 }
 
                 const allCodes = new Set([...lensMap.keys(), ...techMtmsMap.keys()]);
                 let diffCount = 0;
                 for (const code of allCodes) {
-                    const lQty = lensMap.get(code) ?? 0;
+                    const rawLQty = lensMap.get(code) ?? 0;
+                    const exQty = excludeMap.get(code) ?? 0;
+                    const lQty = Math.max(0, rawLQty - exQty);
                     const mQty = techMtmsMap.get(code) ?? 0;
                     if (lQty !== mQty) {
                         diffCount++;
@@ -164,6 +181,7 @@ export async function getStockComparison(nik: string): Promise<{
                 't.name',
                 't.wh_id',
                 't.ref_intech_lensa',
+                't.exclude_intech_lensa',
                 'b.branch',
                 'b.service_area',
                 'wh.name as warehouse_name',
@@ -211,7 +229,10 @@ export async function getStockComparison(nik: string): Promise<{
             });
         }
 
-        const lensMap = new Map<string, { code: string; name: string; qty: number; satuan: string | null }>();
+        const lensMap = new Map<
+            string,
+            { code: string; name: string; qty: number; satuan: string | null }
+        >();
         for (const material of cached.materials) {
             if (!material.id_material) continue;
             const codeKey = material.id_material.trim().toUpperCase();
@@ -223,20 +244,37 @@ export async function getStockComparison(nik: string): Promise<{
             });
         }
 
+        const rawExcludes = teknisi.exclude_intech_lensa as Array<{
+            id_material: string;
+            qty: number;
+        }> | null;
+        const excludeMap = new Map<string, number>();
+        if (Array.isArray(rawExcludes)) {
+            for (const ex of rawExcludes) {
+                if (ex.id_material) {
+                    excludeMap.set(ex.id_material.trim().toUpperCase(), Number(ex.qty) || 0);
+                }
+            }
+        }
+
         const materialCodes = Array.from(new Set([...lensMap.keys(), ...mtmsMap.keys()])).sort();
 
         const items: StockComparisonItem[] = materialCodes.map((codeKey) => {
             const lens = lensMap.get(codeKey);
             const mtms = mtmsMap.get(codeKey);
-            const lensQty = lens?.qty ?? 0;
+            const rawLensQty = lens?.qty ?? 0;
+            const excludeQty = excludeMap.get(codeKey) ?? 0;
+            const adjustedLensQty = Math.max(0, rawLensQty - excludeQty);
             const mtmsQty = mtms?.qty ?? 0;
-            const selisih = lensQty - mtmsQty;
+            const selisih = adjustedLensQty - mtmsQty;
 
             return {
                 id_material: lens?.code ?? mtms?.code ?? codeKey,
                 nama_material: lens?.name ?? mtms?.name ?? '',
                 satuan: lens?.satuan ?? null,
-                stock_lensa: lensQty,
+                stock_lensa: adjustedLensQty,
+                raw_stock_lensa: rawLensQty,
+                exclude_qty: excludeQty > 0 ? excludeQty : undefined,
                 stock_mtms: mtmsQty,
                 selisih,
                 match_status: selisih === 0 ? 'match' : 'selisih',

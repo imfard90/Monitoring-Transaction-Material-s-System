@@ -1,9 +1,12 @@
 'use server';
 
+import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireTechnicianManagementAccess } from '@/lib/auth-server';
+import type { HrTechnicians } from '@/lib/db/database.types';
 import { db } from '@/lib/db/db';
+import { errors } from '@/lib/errors';
 import { actionLogger } from '@/lib/logger';
 import { hrRepository } from '@/lib/repositories/hr.repository';
 
@@ -168,5 +171,90 @@ export async function upsertTechnician(data: {
             throw new Error('NIK tersebut sudah terdaftar pada teknisi lain.');
         }
         throw new Error(error instanceof Error ? error.message : 'Failed to save technician');
+    }
+}
+
+export const excludeItemSchema = z.object({
+    id_material: z.string().trim().min(1, 'Kode material wajib diisi'),
+    nama_material: z.string().trim().min(1, 'Nama material wajib diisi'),
+    qty: z.coerce.number().int().positive('Jumlah harus lebih dari 0'),
+});
+
+export const updateTechnicianExcludeSchema = z.object({
+    id: z.union([z.string(), z.number()]),
+    items: z.array(excludeItemSchema),
+});
+
+export async function getMaterialsForSelect(): Promise<
+    Array<{ code: string; description: string; unit: string }>
+> {
+    try {
+        await requireTechnicianManagementAccess();
+        const rows = await db
+            .selectFrom('inventory.materials')
+            .select(['code', 'description', 'unit'])
+            .where('code', 'is not', null)
+            .orderBy('description', 'asc')
+            .execute();
+        return rows.map((r) => ({
+            code: r.code ?? '',
+            description: r.description ?? '',
+            unit: r.unit ?? '',
+        }));
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch materials for select:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return [];
+    }
+}
+
+export async function updateTechnicianExclude(data: {
+    id: string | number;
+    items: Array<{ id_material: string; nama_material: string; qty: number }>;
+}): Promise<{ success: boolean; message?: string }> {
+    const parsed = updateTechnicianExcludeSchema.safeParse(data);
+    if (!parsed.success) {
+        throw new Error(parsed.error.issues[0]?.message ?? 'Data exclude tidak valid');
+    }
+    const { id, items } = parsed.data;
+
+    try {
+        const session = await requireTechnicianManagementAccess();
+        if (session.isStaff) {
+            throw errors.accessDenied(
+                'Hanya non-staff yang berhak mengelola exclude material teknisi'
+            );
+        }
+
+        const jsonVal = items.length > 0 ? JSON.stringify(items) : null;
+
+        await db
+            .updateTable('hr.technicians')
+            .set({
+                exclude_intech_lensa: jsonVal
+                    ? sql<HrTechnicians['exclude_intech_lensa']>`CAST(${jsonVal} AS JSONB)`
+                    : null,
+            })
+            .where('id', '=', String(id))
+            .execute();
+
+        revalidatePath('/management/technician');
+        revalidatePath('/reference/stock-comparison');
+
+        return {
+            success: true,
+            message:
+                items.length > 0
+                    ? `Berhasil memperbarui ${items.length} material exclude.`
+                    : 'Berhasil menghapus seluruh material exclude.',
+        };
+    } catch (error: unknown) {
+        actionLogger.error(
+            `Failed to update exclude for technician ${data.id}:`,
+            error instanceof Error ? error : new Error(String(error))
+        );
+        throw new Error(error instanceof Error ? error.message : 'Gagal memperbarui exclude');
     }
 }

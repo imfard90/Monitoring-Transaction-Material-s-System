@@ -4,7 +4,13 @@ import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { getPageSessionUser } from '@/lib/auth-server';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
-import { getBranches, getMitras, getTechnicians, getWarehouses } from './actions';
+import {
+    getBranches,
+    getMaterialsForSelect,
+    getMitras,
+    getTechnicians,
+    getWarehouses,
+} from './actions';
 import TechnicianTable from './technician-table';
 
 export const dynamic = 'force-dynamic';
@@ -35,11 +41,12 @@ export default async function TechnicianManagementPage() {
         redirect('/');
     }
 
-    const [technicians, branches, mitras, warehouses] = await Promise.all([
+    const [technicians, branches, mitras, warehouses, materials] = await Promise.all([
         getTechnicians(),
         getBranches(),
         getMitras(),
         getWarehouses(),
+        session.isStaff ? Promise.resolve([]) : getMaterialsForSelect(),
     ]);
 
     return (
@@ -54,6 +61,8 @@ export default async function TechnicianManagementPage() {
                     branches={branches}
                     mitras={mitras}
                     warehouses={warehouses}
+                    materials={materials}
+                    isStaff={session.isStaff}
                 />
             </StaggerItem>
         </StaggerContainer>

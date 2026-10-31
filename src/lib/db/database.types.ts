@@ -542,6 +542,11 @@ export interface HrTechnicians {
             stock_teknisi: string;
         }>;
     } | null;
+    exclude_intech_lensa: Array<{
+        id_material: string;
+        nama_material: string;
+        qty: number;
+    }> | null;
 }
 
 export interface HrWitel {

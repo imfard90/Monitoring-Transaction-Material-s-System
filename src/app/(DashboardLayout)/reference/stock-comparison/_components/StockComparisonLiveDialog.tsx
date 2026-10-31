@@ -1,6 +1,5 @@
 'use client';
 
-import { createColumnHelper, getCoreRowModel, useReactTable } from '@/lib/table';
 import { format } from 'date-fns';
 import { LoaderCircle } from 'lucide-react';
 import { useMemo } from 'react';
@@ -10,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { createColumnHelper, getCoreRowModel, useReactTable } from '@/lib/table';
 import type {
     StockComparisonItem,
     StockComparisonResult,
@@ -81,12 +82,39 @@ export function StockComparisonLiveDialog({
             }),
             detailColumnHelper.accessor('stock_lensa', {
                 header: () => <div className="text-center">Lensa</div>,
-                size: 60,
-                cell: (info) => (
-                    <div className="text-center font-mono text-xs font-medium text-foreground">
-                        {info.getValue()}
-                    </div>
-                ),
+                size: 65,
+                cell: (info) => {
+                    const excludeQty = info.row.original.exclude_qty;
+                    const val = info.getValue();
+
+                    if (excludeQty && excludeQty > 0) {
+                        return (
+                            <div className="flex justify-center">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="text-center font-mono text-xs font-bold text-amber-800 bg-amber-100 dark:text-amber-300 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-800 cursor-help">
+                                            {val}
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="font-medium">exclude {excludeQty}</p>
+                                        {info.row.original.raw_stock_lensa !== undefined && (
+                                            <p className="text-[10px] text-muted-foreground">
+                                                (Lensa asli: {info.row.original.raw_stock_lensa})
+                                            </p>
+                                        )}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <div className="text-center font-mono text-xs font-medium text-foreground">
+                            {val}
+                        </div>
+                    );
+                },
             }),
             detailColumnHelper.accessor('stock_mtms', {
                 header: () => <div className="text-center">MTMS</div>,

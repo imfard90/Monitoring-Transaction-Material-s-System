@@ -179,6 +179,56 @@ describe('stock-comparison-actions unit tests', () => {
             expect(tech4.nik).toBe('TECH04');
             expect(tech4.status).toBe('not_scraped');
         });
+
+        it('applies exclude_intech_lensa when calculating status and total_selisih', async () => {
+            mockGetSessionUser.mockResolvedValueOnce({
+                nik: 'ADM01',
+                isStaff: false,
+            });
+            mockWarehouseScope.mockReturnValueOnce(null);
+
+            mockExecute.mockResolvedValueOnce([
+                {
+                    nik: 'TECH_EXCLUDE',
+                    name: 'Budi Exclude',
+                    wh_id: 1,
+                    branch: 'SBY',
+                    service_area: 'SA1',
+                    warehouse_name: 'WH1',
+                    ref_intech_lensa: {
+                        status: 'success',
+                        scraped_at: '2026-10-25T10:00:00Z',
+                        materials: [
+                            {
+                                id_material: 'MAT-A',
+                                nama_material: 'Drop Core',
+                                stock_teknisi: '10',
+                            },
+                        ],
+                    },
+                    exclude_intech_lensa: [
+                        {
+                            id_material: 'MAT-A',
+                            nama_material: 'Drop Core',
+                            qty: 5,
+                        },
+                    ],
+                },
+            ]);
+
+            mockGetBatchTechnicianIntechStock.mockResolvedValueOnce([
+                {
+                    nik_teknisi: 'TECH_EXCLUDE',
+                    material_code: 'MAT-A',
+                    qty_intech: 5,
+                },
+            ]);
+
+            const result = await getTeknisiStockList();
+            expect(result.success).toBe(true);
+            expect(result.data?.[0].status).toBe('match');
+            expect(result.data?.[0].total_selisih).toBe(0);
+        });
     });
 
     describe('getStockComparison', () => {
@@ -206,6 +256,60 @@ describe('stock-comparison-actions unit tests', () => {
             const result = await getStockComparison('TECH99');
             expect(result.success).toBe(false);
             expect(result.error).toMatch(/Akses ditolak/i);
+        });
+
+        it('adjusts stock_lensa and sets exclude_qty and match_status in getStockComparison', async () => {
+            mockGetSessionUser.mockResolvedValueOnce({
+                nik: 'ADM01',
+                isStaff: false,
+            });
+            mockWarehouseScope.mockReturnValueOnce(null);
+
+            mockExecuteTakeFirst.mockResolvedValueOnce({
+                nik: 'TECH_EX',
+                name: 'Budi Ex',
+                wh_id: 1,
+                branch: 'SBY',
+                service_area: 'SA1',
+                warehouse_name: 'WH1',
+                ref_intech_lensa: {
+                    status: 'success',
+                    scraped_at: '2026-10-25T10:00:00Z',
+                    materials: [
+                        {
+                            id_material: 'MAT-A',
+                            nama_material: 'Drop Core',
+                            stock_teknisi: '8',
+                            satuan: 'M',
+                        },
+                    ],
+                },
+                exclude_intech_lensa: [
+                    {
+                        id_material: 'MAT-A',
+                        nama_material: 'Drop Core',
+                        qty: 3,
+                    },
+                ],
+            });
+
+            mockGetTechnicianIntechStock.mockResolvedValueOnce([
+                {
+                    material_code: 'MAT-A',
+                    material_name: 'Drop Core',
+                    qty_intech: 5,
+                },
+            ]);
+
+            const result = await getStockComparison('TECH_EX');
+            expect(result.success).toBe(true);
+            const item = result.data?.items[0];
+            expect(item?.raw_stock_lensa).toBe(8);
+            expect(item?.exclude_qty).toBe(3);
+            expect(item?.stock_lensa).toBe(5); // 8 - 3
+            expect(item?.stock_mtms).toBe(5);
+            expect(item?.selisih).toBe(0);
+            expect(item?.match_status).toBe('match');
         });
     });
 
