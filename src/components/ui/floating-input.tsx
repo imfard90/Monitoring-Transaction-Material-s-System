@@ -9,6 +9,7 @@ export interface FloatingInputProps extends React.InputHTMLAttributes<HTMLInputE
     startIcon?: React.ReactNode;
     endIcon?: React.ReactNode;
     containerClassName?: string;
+    labelBg?: string;
 }
 
 const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
@@ -21,6 +22,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
             error,
             startIcon,
             endIcon,
+            labelBg = 'bg-card',
             id: explicitId,
             value,
             defaultValue,
@@ -72,7 +74,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
             <div className={cn('relative w-full', containerClassName)}>
                 <div
                     className={cn(
-                        'group relative flex items-center w-full rounded-xl border bg-background/60 dark:bg-card/40 transition-all duration-200',
+                        'group relative flex items-center w-full h-12 rounded-xl border bg-background/60 dark:bg-card/40 transition-all duration-200',
                         'hover:border-primary/50 hover:bg-background',
                         'focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 focus-within:bg-background',
                         error
@@ -85,7 +87,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
                     {startIcon ? (
                         <div
                             className={cn(
-                                'pl-3.5 pr-1 flex items-center justify-center transition-colors pointer-events-none select-none',
+                                'pl-3.5 pr-1 flex items-center justify-center transition-colors pointer-events-none select-none shrink-0',
                                 isFocused ? 'text-primary' : 'text-muted-foreground'
                             )}
                             aria-hidden="true"
@@ -94,58 +96,59 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
                         </div>
                     ) : null}
 
-                    <div className="relative flex-1 min-w-0">
-                        <input
-                            {...props}
-                            ref={ref}
-                            id={inputId}
-                            type={type}
-                            value={value}
-                            defaultValue={defaultValue}
-                            disabled={disabled}
-                            readOnly={readOnly}
-                            placeholder=" "
-                            onFocus={handleFocus}
-                            onBlur={handleBlur}
-                            onChange={handleChange}
-                            aria-invalid={Boolean(error)}
-                            aria-describedby={error ? errorId : undefined}
-                            className={cn(
-                                'peer block w-full bg-transparent px-3.5 pt-5 pb-1.5 text-sm sm:text-base text-foreground font-medium',
-                                'outline-none border-none placeholder-transparent focus:outline-none focus:ring-0',
-                                'disabled:cursor-not-allowed read-only:cursor-default',
-                                startIcon ? 'pl-1' : 'pl-3.5',
-                                endIcon ? 'pr-2' : 'pr-3.5',
-                                className
-                            )}
-                        />
+                    <input
+                        {...props}
+                        ref={ref}
+                        id={inputId}
+                        type={type}
+                        value={value}
+                        defaultValue={defaultValue}
+                        disabled={disabled}
+                        readOnly={readOnly}
+                        placeholder=" "
+                        onFocus={handleFocus}
+                        onBlur={handleBlur}
+                        onChange={handleChange}
+                        aria-invalid={Boolean(error)}
+                        aria-describedby={error ? errorId : undefined}
+                        className={cn(
+                            'peer block w-full h-full bg-transparent text-sm sm:text-base text-foreground font-medium',
+                            'outline-none border-none placeholder-transparent focus:outline-none focus:ring-0',
+                            'disabled:cursor-not-allowed read-only:cursor-default',
+                            startIcon ? 'pl-2' : 'pl-3.5',
+                            endIcon ? 'pr-2' : 'pr-3.5',
+                            className
+                        )}
+                    />
 
-                        <label
-                            htmlFor={inputId}
-                            className={cn(
-                                'absolute pointer-events-none select-none transition-all duration-200 ease-out origin-left',
-                                'motion-reduce:transition-none',
-                                startIcon ? 'left-1' : 'left-3.5',
-                                isFloating
-                                    ? 'top-1.5 text-xs font-semibold'
-                                    : 'top-1/2 -translate-y-1/2 text-sm font-normal text-muted-foreground',
-                                error
-                                    ? isFloating
-                                        ? 'text-destructive'
-                                        : 'text-muted-foreground'
-                                    : isFocused
-                                      ? 'text-primary'
-                                      : isFloating
-                                        ? 'text-muted-foreground/80'
-                                        : 'text-muted-foreground',
-                                // CSS peer fallbacks for instant browser autofill
-                                'peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:font-semibold peer-focus:text-primary',
-                                'peer-[:not(:placeholder-shown)]:top-1.5 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-xs'
-                            )}
-                        >
-                            {label}
-                        </label>
-                    </div>
+                    {/* Floating Label positioned on top border line when active */}
+                    <label
+                        htmlFor={inputId}
+                        className={cn(
+                            'absolute pointer-events-none select-none transition-all duration-200 ease-out origin-left z-10',
+                            'motion-reduce:transition-none',
+                            isFloating
+                                ? cn(
+                                      'top-0 -translate-y-1/2 left-3 text-xs font-semibold px-1.5 rounded-xs',
+                                      labelBg,
+                                      error
+                                          ? 'text-destructive'
+                                          : isFocused
+                                            ? 'text-primary'
+                                            : 'text-muted-foreground'
+                                  )
+                                : cn(
+                                      'top-1/2 -translate-y-1/2 text-sm font-normal text-muted-foreground',
+                                      startIcon ? 'left-10' : 'left-3.5'
+                                  ),
+                            // CSS peer fallbacks for instant browser autofill
+                            'peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:left-3 peer-focus:text-xs peer-focus:font-semibold peer-focus:text-primary peer-focus:px-1.5 peer-focus:bg-card',
+                            'peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:left-3 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:px-1.5 peer-[:not(:placeholder-shown)]:bg-card',
+                            labelBg !== 'bg-card' && isFloating && labelBg
+                        )}
+                    >
+                        {label}
+                    </label>
 
                     {endIcon ? (
                         <div className="pr-3 pl-1 flex items-center justify-center shrink-0">
