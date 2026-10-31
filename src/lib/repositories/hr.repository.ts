@@ -43,14 +43,17 @@ export const hrRepository = {
 
     /**
      * Get technician by NIK (single record).
+     * Automatically sanitizes input NIK (strips standard whitespace and Unicode NBSP).
      */
-    getTechnicianByNik: (nik: string) =>
-        db
+    getTechnicianByNik: (nik: string) => {
+        const cleanNik = nik.replace(/[\s\u00A0]+/g, '');
+        return db
             .selectFrom('hr.technicians as t')
             .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
             .select(['t.nik', 't.name', 'b.service_area as sa'])
-            .where('t.nik', '=', nik)
-            .executeTakeFirst(),
+            .where('t.nik', '=', cleanNik)
+            .executeTakeFirst();
+    },
 
     /**
      * Get all branches, optionally scoped to a specific branch name.

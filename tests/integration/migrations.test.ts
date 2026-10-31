@@ -74,7 +74,7 @@ describeDb('sequences (D2 - 011)', () => {
             expect(row, `sequence inventory.${seq} missing`).toBeDefined();
             expect(row?.cycle).toBe(false);
             expect(row?.max_value).toBeDefined();
-            expect(BigInt(row!.max_value)).toBe(9999n);
+            expect(BigInt(row?.max_value ?? 0)).toBe(9999n);
         });
     }
 
@@ -479,6 +479,24 @@ describeDb('L5 query logging migration tracked (018)', () => {
                   AND indexname = 'idx_out_lensa_ref_header_wh_date'
             `);
             expect(outIdx?.indexname).toBe('idx_out_lensa_ref_header_wh_date');
+        });
+
+        it('051_clean_and_sanitize_technicians_and_employees.sql recorded and triggers active', async () => {
+            const logRow = await queryOne<{ filename: string }>(`
+                SELECT filename FROM inventory._migration_log WHERE filename LIKE '051_%'
+            `);
+            expect(logRow?.filename).toBe('051_clean_and_sanitize_technicians_and_employees.sql');
+
+            const techTrigger = await queryOne<{ tgname: string }>(`
+                SELECT tgname FROM pg_trigger
+                WHERE tgname = 'trg_sanitize_technician_identity'
+            `);
+            expect(techTrigger?.tgname).toBe('trg_sanitize_technician_identity');
+
+            const dirtyNikCount = await queryOne<{ count: string }>(`
+                SELECT COUNT(*)::text as count FROM hr.technicians WHERE nik ~ '[\\s\\u00a0]'
+            `);
+            expect(dirtyNikCount?.count).toBe('0');
         });
     });
 });

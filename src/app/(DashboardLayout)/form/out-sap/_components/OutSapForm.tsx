@@ -97,7 +97,7 @@ export default function OutSapForm() {
                 const resIdSap = (scrapedListData.reservation_id_sap as string) || '';
                 const giNumber = (scrapedListData.gi_number as string) || '';
                 const headerInfo = scrapedDetail.headerInfo as Record<string, string> | undefined;
-                const nik = (headerInfo?.nikPemakai || '').trim();
+                const nik = (headerInfo?.nikPemakai || '').replace(/[\s\u00A0]+/g, '');
                 const namaGudang = (scrapedListData.nama_gudang as string) || '';
 
                 let name_sa = formData.name_sa;

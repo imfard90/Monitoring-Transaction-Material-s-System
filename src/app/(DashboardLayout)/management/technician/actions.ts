@@ -92,8 +92,19 @@ export async function toggleTechnicianStatus(id: string | number, isActive: bool
 
 const upsertTechnicianSchema = z.object({
     id: z.union([z.string(), z.number()]).optional(),
-    nik: z.string().trim().min(1, 'NIK wajib diisi'),
-    name: z.string().trim().min(1, 'Nama teknisi wajib diisi'),
+    nik: z
+        .string()
+        .transform((v) => v.replace(/[\s\u00A0]+/g, ''))
+        .pipe(z.string().min(1, 'NIK wajib diisi')),
+    name: z
+        .string()
+        .transform((v) =>
+            v
+                .replace(/[\u00A0]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+        )
+        .pipe(z.string().min(1, 'Nama teknisi wajib diisi')),
     branch_id: z.number().int().positive().nullable(),
     mitra_id: z.number().int().positive().nullable(),
     wh_id: z.number().int().positive('Gudang wajib dipilih'),
