@@ -1,6 +1,8 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface LoadingOverlayProps {
     isVisible: boolean;
@@ -8,7 +10,17 @@ interface LoadingOverlayProps {
 }
 
 export function LoadingOverlay({ isVisible, text = 'Memuat Data...' }: LoadingOverlayProps) {
-    return (
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted || typeof document === 'undefined') {
+        return null;
+    }
+
+    return createPortal(
         <AnimatePresence>
             {isVisible && (
                 <motion.div
@@ -72,6 +84,7 @@ export function LoadingOverlay({ isVisible, text = 'Memuat Data...' }: LoadingOv
                     </div>
                 </motion.div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }
