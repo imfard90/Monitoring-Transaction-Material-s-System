@@ -24,7 +24,7 @@ export function ProfileHeader({ profileData }: ProfileHeaderProps) {
                     <div className="absolute inset-0 bg-[url('/images/backgrounds/profile-bg.jpg')] bg-cover bg-center opacity-20 mix-blend-overlay" />
                 </div>
                 <div className="px-6 pb-5 relative">
-                    <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-20 sm:-mt-28 relative z-10 w-full break-words">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-20 sm:-mt-28 relative z-10 w-full wrap-break-words">
                         {/* Avatar Squircle Premium Frame */}
                         <div className="relative group shrink-0">
                             {/* Ambient Glow Aura */}

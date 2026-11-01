@@ -23,7 +23,7 @@ export default function ExportLoadingOverlay({
                     transition={{ duration: 0.25 }}
                     role="status"
                     aria-live="polite"
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 dark:bg-dark/80 backdrop-blur-md p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md p-4"
                 >
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0, y: 10 }}

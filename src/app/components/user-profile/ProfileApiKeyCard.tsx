@@ -79,7 +79,7 @@ export function ProfileApiKeyCard({ profileData }: ProfileApiKeyCardProps) {
     };
 
     return (
-        <StaggerItem className="space-y-3 rounded-xl border border-border bg-card md:px-6 md:py-4 px-4 py-3 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
+        <StaggerItem className="space-y-3 rounded-xl border border-border bg-card md:px-6 md:py-4 px-4 py-3 relative w-full wrap-break-words shadow-sm hover:shadow-md transition-shadow duration-300">
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 flex-1">
                     <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 shrink-0">

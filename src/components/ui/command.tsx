@@ -14,7 +14,7 @@ const Command = React.forwardRef<
     <CommandPrimitive
         ref={ref}
         className={cn(
-            'flex h-full w-full flex-col overflow-hidden rounded-md bg-background dark:bg-dark text-ld',
+            'flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground',
             className
         )}
         {...props}
@@ -88,7 +88,7 @@ const CommandGroup = React.forwardRef<
     <CommandPrimitive.Group
         ref={ref}
         className={cn(
-            'overflow-hidden p-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-ld',
+            'overflow-hidden p-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground',
             className
         )}
         {...props}
@@ -103,7 +103,7 @@ const CommandSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <CommandPrimitive.Separator
         ref={ref}
-        className={cn('-mx-1 h-px bg-border dark:bg-border', className)}
+        className={cn('-mx-1 h-px bg-border', className)}
         {...props}
     />
 ));
@@ -126,7 +126,7 @@ const CommandItem = React.forwardRef<
 CommandItem.displayName = CommandPrimitive.Item.displayName;
 
 const CommandShortcut = ({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) => {
-    return <span className={cn('ml-auto text-xs tracking-widest text-ld', className)} {...props} />;
+    return <span className={cn('ml-auto text-xs tracking-widest text-muted-foreground', className)} {...props} />;
 };
 CommandShortcut.displayName = 'CommandShortcut';
 

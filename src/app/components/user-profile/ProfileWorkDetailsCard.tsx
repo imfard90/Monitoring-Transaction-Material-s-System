@@ -10,7 +10,7 @@ interface ProfileWorkDetailsCardProps {
 
 export function ProfileWorkDetailsCard({ profileData }: ProfileWorkDetailsCardProps) {
     return (
-        <StaggerItem className="space-y-4 rounded-xl border border-border bg-card md:px-6 md:py-4 px-4 py-3 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
+        <StaggerItem className="space-y-4 rounded-xl border border-border bg-card md:px-6 md:py-4 px-4 py-3 relative w-full wrap-break-words shadow-sm hover:shadow-md transition-shadow duration-300">
             <h5 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <Icon icon="lucide:briefcase" className="text-primary" width="20" /> Work Details
             </h5>

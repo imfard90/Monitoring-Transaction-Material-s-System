@@ -254,7 +254,7 @@ export function TechnicianExcludeDialog({
                                                 <td className="py-2 px-3 font-mono text-muted-foreground whitespace-nowrap">
                                                     {it.id_material}
                                                 </td>
-                                                <td className="py-2 px-3 text-foreground font-medium break-words">
+                                                <td className="py-2 px-3 text-foreground font-medium wrap-break-words">
                                                     {it.nama_material}
                                                 </td>
                                                 <td className="py-2 px-3 text-center font-mono font-semibold text-amber-600 dark:text-amber-400">

@@ -8,15 +8,15 @@ const inputVariants = cva(
         variants: {
             variant: {
                 default:
-                    'border-ld bg-transparent text-ld shadow-sm placeholder:text-muted-foreground dark:placeholder:text-white/30 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10',
-                gray: 'border-border bg-muted text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary dark:border-border dark:bg-muted dark:text-foreground dark:placeholder:text-muted-foreground dark:focus:border-primary dark:focus:ring-primary focus-visible:ring',
-                info: 'border-info bg-info/10 text-info placeholder-info/50 focus:border-info focus:ring-info dark:border-info dark:bg-info/10 dark:focus:border-info dark:focus:ring-border-info focus-visible:ring',
+                    'border-input bg-transparent text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10',
+                gray: 'border-border bg-muted text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary focus-visible:ring',
+                info: 'border-info bg-info/10 text-info placeholder-info/50 focus:border-info focus:ring-info focus-visible:ring',
                 failure:
-                    'border-error bg-error/10 text-error placeholder-error/50 focus:border-error focus:ring-error dark:border-error dark:bg-error/10 dark:focus:border-error dark:focus:ring-error focus-visible:ring',
+                    'border-error bg-error/10 text-error placeholder-error/50 focus:border-error focus:ring-error focus-visible:ring',
                 warning:
-                    'border-warning bg-warning/10 text-warning placeholder-warning/50 focus:border-warning focus:ring-warning dark:border-warning dark:bg-warning/10 dark:focus:border-warning dark:focus:ring-warning focus-visible:ring',
+                    'border-warning bg-warning/10 text-warning placeholder-warning/50 focus:border-warning focus:ring-warning focus-visible:ring',
                 success:
-                    'border-success bg-success/10 text-success placeholder-success/50 focus:border-success focus:ring-success dark:border-success dark:bg-success/10 dark:focus:border-green-500 dark:focus:ring-green-500 focus-visible:ring',
+                    'border-success bg-success/10 text-success placeholder-success/50 focus:border-success focus:ring-success focus-visible:ring',
             },
         },
         defaultVariants: {

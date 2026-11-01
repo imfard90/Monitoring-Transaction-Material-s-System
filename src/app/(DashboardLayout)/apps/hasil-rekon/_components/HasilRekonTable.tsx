@@ -128,7 +128,7 @@ export default function HasilRekonTable({
             header: 'WO Number',
             size: 220,
             cell: (info) => (
-                <div className="whitespace-normal break-words text-sm font-medium">
+                <div className="whitespace-normal wrap-break-words text-sm font-medium">
                     {info.getValue() || '-'}
                 </div>
             ),

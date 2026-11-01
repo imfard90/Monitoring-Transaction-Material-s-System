@@ -76,20 +76,6 @@ main {
     --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     --shadow-md: 0 1px 4px rgba(133, 146, 173, 0.2);
     --shadow-btn-shadow: 0 9px 17.5px rgba(0, 0, 0, 0.05);
-
-    --radius-sm: 4px;
-    --radius-md: 7px;
-    --radius-lg: 7px;
-    --radius-tw: 12px;
-
-    --leading-21: 21px;
-
-    --gap-30: 30px;
-
-    --padding-15: 15px;
-    --padding-30: 30px;
-
-    --margin-30: 30px;
 }
 
 @theme inline {
@@ -281,17 +267,36 @@ main {
         @apply border-border outline-ring/50;
     }
     body {
-        @apply bg-background text-foreground;
+        @apply bg-background text-foreground text-sm;
+        /* clip, bukan hidden: `overflow-x: hidden` membuat body jadi scroll
+           container sehingga position: sticky pada header tidak menempel. */
+        overflow-x: clip;
     }
-}
 
-@layer base {
-    *,
-    ::after,
-    ::before,
-    ::backdrop,
-    ::file-selector-button {
-        border-color: var(--color-gray-200, currentcolor);
+    /* Browser lama tanpa `clip`: kembali ke hidden (sticky header tidak menempel,
+       tapi lebih baik daripada scroll horizontal). */
+    @supports not (overflow-x: clip) {
+        body {
+            overflow-x: hidden;
+        }
+    }
+
+    /* heading text color */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply text-foreground font-semibold;
+    }
+
+    input::placeholder {
+        @apply text-muted-foreground;
+    }
+
+    button {
+        @apply !cursor-pointer;
     }
 }
 
@@ -321,61 +326,20 @@ main {
     @apply text-lg font-semibold text-foreground;
 }
 
-@utility border-ld {
-    @apply border-border;
-}
-
 @utility bg-hover {
     @apply hover:bg-lightprimary;
 }
 
-@layer utilities {
-    .left-part {
-        @apply p-6 border-e border-border;
-    }
+@utility left-part {
+    @apply p-6 border-e border-border;
 }
 
-@layer components {
-    body {
-        /* clip, bukan hidden: `overflow-x: hidden` membuat body jadi scroll
-           container sehingga position: sticky pada header tidak menempel. */
-        @apply text-sm;
-        overflow-x: clip;
-    }
+#fileUpload input {
+    @apply flex items-center gap-4 p-3;
+}
 
-    /* Browser lama tanpa `clip`: kembali ke hidden (sticky header tidak menempel,
-       tapi lebih baik daripada scroll horizontal). */
-    @supports not (overflow-x: clip) {
-        body {
-            overflow-x: hidden;
-        }
-    }
-
-    /*heading text color*/
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
-        @apply text-foreground font-semibold;
-    }
-
-    input::placeholder {
-        @apply text-muted-foreground;
-    }
-
-    button {
-        @apply !cursor-pointer;
-    }
-
-    #fileUpload input {
-        @apply flex items-center gap-4 p-3;
-    }
-
-    .sales-overview select {
-        @apply pr-9!;
-    }
+.sales-overview select {
+    @apply pr-9!;
 }
 
 input[type="time"]::-webkit-calendar-picker-indicator {

@@ -37,7 +37,7 @@ export function ProfilePersonalInfoCard({ profileData }: ProfilePersonalInfoCard
     };
 
     return (
-        <StaggerItem className="space-y-4 rounded-xl border border-border bg-card md:px-6 md:py-4 px-4 py-3 relative w-full break-words shadow-sm hover:shadow-md transition-shadow duration-300">
+        <StaggerItem className="space-y-4 rounded-xl border border-border bg-card md:px-6 md:py-4 px-4 py-3 relative w-full wrap-break-words shadow-sm hover:shadow-md transition-shadow duration-300">
             <h5 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <Icon icon="lucide:user" className="text-primary" width="20" /> Personal Information
             </h5>
