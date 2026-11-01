@@ -409,16 +409,16 @@ export default function RekonLensaForm() {
                                 <Table>
                                     <TableHeader className="sticky top-0 z-10 bg-muted/90 backdrop-blur-xs shadow-2xs">
                                         <TableRow className="bg-muted/50 hover:bg-muted/50 border-b border-border/80">
-                                            <TableHead className="w-[45px] text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                            <TableHead className="w-[40px] text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                                 Pilih
                                             </TableHead>
-                                            <TableHead className="w-[105px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                            <TableHead className="w-[95px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                                                 Tgl Update
                                             </TableHead>
-                                            <TableHead className="w-[100px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-normal leading-tight">
+                                            <TableHead className="w-[140px] min-w-[130px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                                 No WO
                                             </TableHead>
-                                            <TableHead className="w-[75px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                            <TableHead className="w-[90px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                                 Tipe
                                             </TableHead>
                                             <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -471,17 +471,21 @@ export default function RekonLensaForm() {
                                                                 )}
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell className="text-xs py-2.5 px-2.5 font-mono text-muted-foreground whitespace-nowrap">
+                                                        <TableCell className="text-xs py-2.5 px-2 font-mono text-muted-foreground whitespace-nowrap">
                                                             {wo.tanggal_update || '-'}
                                                         </TableCell>
-                                                        <TableCell className="py-2.5 px-2.5 font-mono font-bold text-xs text-foreground whitespace-normal wrap-break-words leading-tight max-w-[110px]">
-                                                            {wo.wo_number}
+                                                        <TableCell className="py-2.5 px-2.5 align-middle">
+                                                            <div className="w-[130px] font-mono font-bold text-xs text-foreground break-all whitespace-normal leading-snug">
+                                                                {wo.wo_number}
+                                                            </div>
                                                         </TableCell>
-                                                        <TableCell className="text-xs py-2.5 px-2.5 uppercase font-medium text-muted-foreground">
-                                                            {wo.wo_type}
+                                                        <TableCell className="text-xs py-2.5 px-2 font-medium text-muted-foreground whitespace-nowrap">
+                                                            <span className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-semibold tracking-wide uppercase inline-block">
+                                                                {wo.wo_type}
+                                                            </span>
                                                         </TableCell>
                                                         <TableCell className="py-2.5 px-2.5">
-                                                            <div className="flex flex-wrap gap-1.5">
+                                                            <div className="flex flex-col gap-1.5">
                                                                 {wo.items.map(
                                                                     (item: any, idx: number) => {
                                                                         const available =
@@ -494,7 +498,7 @@ export default function RekonLensaForm() {
                                                                         return (
                                                                             <span
                                                                                 key={idx}
-                                                                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-medium border ${
+                                                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium border w-fit shadow-2xs ${
                                                                                     isOk
                                                                                         ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
                                                                                         : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
