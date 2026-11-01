@@ -112,7 +112,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
             plotOptions: {
                 pie: {
                     donut: {
-                        size: '58%',
+                        size: '60%',
                         labels: {
                             show: true,
                             name: {
@@ -288,7 +288,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                     {!isStaff && (
                         <Select value={selectedWh} onValueChange={setSelectedWh}>
-                            <SelectTrigger className="w-[125px] sm:w-[140px] h-7.5 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors">
+                            <SelectTrigger className="w-31.25 sm:w-35 h-7.5 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors">
                                 <SelectValue placeholder="Pilih Gudang" />
                             </SelectTrigger>
                             <SelectContent>
@@ -409,7 +409,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                     </div>
 
                     {isLoading ? (
-                        <div className="flex items-center justify-center h-[230px]">
+                        <div className="flex items-center justify-center h-57.5">
                             <Skeleton className="h-36 w-36 rounded-full" />
                         </div>
                     ) : (
@@ -500,7 +500,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                             <Skeleton className="h-8 w-full" />
                         </div>
                     ) : barSeriesData.categories.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center flex-1 h-[220px] text-center text-xs text-muted-foreground">
+                        <div className="flex flex-col items-center justify-center flex-1 h-55 text-center text-xs text-muted-foreground">
                             <Icon
                                 icon="solar:inbox-line-linear"
                                 width={32}

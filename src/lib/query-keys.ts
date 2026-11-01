@@ -53,6 +53,10 @@ export const queryKeys = {
             ] as const,
         intechAging: (warehouseId?: string) =>
             [...queryKeys.dashboard.all, 'intech-aging', warehouseId ?? 'all'] as const,
+        stockRunout: (warehouseId?: string) =>
+            [...queryKeys.dashboard.all, 'stock-runout', warehouseId ?? 'all'] as const,
+        rekonSla: (warehouseId?: string) =>
+            [...queryKeys.dashboard.all, 'rekon-sla', warehouseId ?? 'all'] as const,
         productPerformance: () => [...queryKeys.dashboard.all, 'product-performance'] as const,
     },
 } as const;

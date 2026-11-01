@@ -236,7 +236,7 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
                         <Select value={selectedWh} onValueChange={setSelectedWh}>
                             <SelectTrigger
                                 aria-label="Filter gudang top out material"
-                                className="w-[115px] sm:w-[125px] h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
+                                className="w-28.75 sm:w-31.25 h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
                             >
                                 <SelectValue placeholder="Pilih Gudang" />
                             </SelectTrigger>
@@ -257,19 +257,19 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
             <div className="relative z-10 -mx-2 flex-1" aria-busy={isLoading}>
                 {isLoading ? (
                     <Skeleton
-                        className="h-[300px] w-full"
+                        className="h-75 w-full"
                         aria-label="Memuat grafik top out material"
                     />
                 ) : hasError ? (
                     <p
-                        className="flex h-[300px] items-center justify-center text-sm text-destructive"
+                        className="flex h-75 items-center justify-center text-sm text-destructive"
                         role="alert"
                     >
                         Grafik gagal dimuat.
                     </p>
                 ) : chartData.categories.length === 0 ? (
                     <p
-                        className="flex h-[300px] items-center justify-center text-sm text-muted-foreground"
+                        className="flex h-75 items-center justify-center text-sm text-muted-foreground"
                         role="status"
                     >
                         Belum ada data transaksi material.

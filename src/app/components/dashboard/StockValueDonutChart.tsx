@@ -124,7 +124,7 @@ export const StockValueDonutChart: React.FC<{
             plotOptions: {
                 pie: {
                     donut: {
-                        size: '58%',
+                        size: '60%',
                         background: 'transparent',
                         labels: {
                             show: true,

@@ -11,7 +11,9 @@ import OutMaterialLineChart from '../components/dashboard/OutMaterialLineChart';
 import { ProductPerformance } from '../components/dashboard/ProductPerformance';
 import ProfileWelcome from '../components/dashboard/ProfileWelcome';
 import { RecentTransaction } from '../components/dashboard/RecentTransaction';
+import { RekonSlaVelocity } from '../components/dashboard/RekonSlaVelocity';
 import SalesOverview from '../components/dashboard/SalesOverview';
+import { StockRunoutForecast } from '../components/dashboard/StockRunoutForecast';
 import StockValueDonutChart from '../components/dashboard/StockValueDonutChart';
 import { StockWarningTable } from '../components/dashboard/StockWarningTable';
 import { TopCards } from '../components/dashboard/TopCards';
@@ -88,7 +90,19 @@ export default async function Page() {
                     <IntechAgingPanel isStaff={isStaff} warehouses={warehouses} />
                 </StaggerItem>
 
-                {/* Baris 3: Stock Value Donut & Out Material Line Chart */}
+                {/* Baris 3: Ketahanan Stok (Days of Supply) & SLA Kecepatan Rekon */}
+                <StaggerItem className="col-span-12">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+                        <div className="lg:col-span-8 min-w-0 flex">
+                            <StockRunoutForecast isStaff={isStaff} warehouses={warehouses} />
+                        </div>
+                        <div className="lg:col-span-4 min-w-0 flex">
+                            <RekonSlaVelocity isStaff={isStaff} warehouses={warehouses} />
+                        </div>
+                    </div>
+                </StaggerItem>
+
+                {/* Baris 4: Stock Value Donut & Out Material Line Chart */}
                 <StaggerItem className="col-span-12">
                     <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 items-stretch">
                         <div className="lg:col-span-3 min-w-0 flex">
@@ -102,7 +116,7 @@ export default async function Page() {
 
                 {/* Baris 4: Stock Warning Table & Warehouse Performance */}
                 <StaggerItem className="col-span-12 lg:col-span-8 min-w-0 relative">
-                    <div className="flex flex-col h-[520px] lg:h-full lg:absolute lg:inset-0">
+                    <div className="flex flex-col h-130 lg:h-full lg:absolute lg:inset-0">
                         <StockWarningTable isStaff={isStaff} warehouses={warehouses} />
                     </div>
                 </StaggerItem>

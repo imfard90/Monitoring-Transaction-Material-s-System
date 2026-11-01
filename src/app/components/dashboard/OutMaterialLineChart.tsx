@@ -492,7 +492,7 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                             <span className="text-border hidden sm:inline">|</span>
                             <div className="flex items-center gap-1.5">
                                 <span className="text-[11px] text-muted-foreground">Terbanyak:</span>
-                                <span className="font-semibold text-foreground font-mono truncate max-w-[200px]">
+                                <span className="font-semibold text-foreground font-mono truncate max-w-50">
                                     {activeMaterialStats.top1Name}
                                 </span>
                                 <span className="text-muted-foreground text-[11px]">

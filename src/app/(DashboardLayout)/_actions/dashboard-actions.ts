@@ -11,7 +11,9 @@
 export {
     getIntechAgingData,
     getOutMaterialLineChartData,
+    getRekonSlaVelocity,
     getSalesOverviewData,
+    getStockRunoutForecast,
     getStockValueComparison,
     getTopOutMaterials,
     getWarehousePerformance,
@@ -19,6 +21,9 @@ export {
     type IntechAgingTier,
     type IntechTopMaterial,
     type IntechTopTechnician,
+    type RekonSlaData,
+    type RekonSlaTier,
+    type StockRunoutItem,
 } from './dashboard-charts-queries';
 export {
     getIntechLensaWarehousePerformance,

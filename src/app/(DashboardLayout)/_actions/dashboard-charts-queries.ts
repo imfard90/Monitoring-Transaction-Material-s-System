@@ -32,6 +32,43 @@ const getIntechAgingDataSchema = z.object({
     wh_id: z.union([z.literal('all'), z.string().regex(/^\d+$/)]).default('all'),
 });
 
+const getStockRunoutForecastSchema = z.object({
+    wh_id: z.union([z.literal('all'), z.string().regex(/^\d+$/)]).default('all'),
+    limit: z.number().int().positive().max(50).default(8),
+});
+
+export interface StockRunoutItem {
+    material_code: string;
+    material_name: string;
+    material_unit: string;
+    warehouse_name: string;
+    qty_stock: number;
+    weekly_demand: number;
+    daily_demand: number;
+    days_of_supply: number;
+    status: 'critical' | 'warning' | 'safe';
+}
+
+const getRekonSlaVelocitySchema = z.object({
+    wh_id: z.union([z.literal('all'), z.string().regex(/^\d+$/)]).default('all'),
+});
+
+export interface RekonSlaTier {
+    key: 'on_time' | 'warning' | 'breached';
+    label: string;
+    description: string;
+    count: number;
+    percentage: number;
+    color: string;
+}
+
+export interface RekonSlaData {
+    totalOpen: number;
+    avgDays: number;
+    slaRate: number;
+    tiers: RekonSlaTier[];
+}
+
 export interface IntechAgingTier {
     key: 'under_7d' | 'd7_to_14d' | 'over_14d';
     label: string;
@@ -687,5 +724,217 @@ export async function getIntechAgingData(wh_id: string = 'all') {
             error instanceof Error ? error : new Error(String(error))
         );
         return { success: false, error: 'Gagal memuat data aging stok intech' };
+    }
+}
+
+export async function getStockRunoutForecast(wh_id: string = 'all', limit: number = 8) {
+    const user = await getSessionUser();
+    const parsed = getStockRunoutForecastSchema.safeParse({ wh_id, limit });
+    if (!parsed.success) {
+        actionLogger.warn('Invalid params for getStockRunoutForecast', {
+            issues: parsed.error.issues,
+        });
+        return { success: false, error: 'Parameter tidak valid' };
+    }
+
+    try {
+        const scopedWarehouseIds = warehouseScope(user, 'always');
+        if (
+            scopedWarehouseIds &&
+            (scopedWarehouseIds.length === 0 ||
+                (wh_id !== 'all' && !canAccessWarehouse(user, Number(wh_id))))
+        ) {
+            return { success: false, error: 'Akses gudang ditolak' };
+        }
+
+        const cacheKey = `stock_runout_${wh_id}_${limit}_${scopedWarehouseIds ? scopedWarehouseIds.join('_') : 'all'}`;
+        const cached = await encryptedCache.getGeneral<StockRunoutItem[]>('dashboard', cacheKey);
+        if (cached) {
+            return { success: true, data: cached };
+        }
+
+        let query = db
+            .selectFrom('inventory.stock_balance as sb')
+            .innerJoin('inventory.mas_wh as w', 'w.id', 'sb.warehouse_id')
+            .innerJoin('inventory.materials as m', 'm.id', 'sb.designator_id')
+            .leftJoin(
+                (eb) =>
+                    eb
+                        .selectFrom('inventory.stock_movement')
+                        .select([
+                            'warehouse_id',
+                            'designator_id',
+                            sql<number>`SUM(ABS(qty_delta)) / 12.0`.as('average_demand_weekly'),
+                        ])
+                        .where('movement_type', '=', 'sap_out')
+                        .where(sql<boolean>`created_at >= CURRENT_DATE - INTERVAL '84 days'`)
+                        .groupBy(['warehouse_id', 'designator_id'])
+                        .as('sm_agg'),
+                (join) =>
+                    join
+                        .onRef('sm_agg.warehouse_id', '=', 'sb.warehouse_id')
+                        .onRef('sm_agg.designator_id', '=', 'sb.designator_id')
+            )
+            .select([
+                'm.code as material_code',
+                'm.description as material_name',
+                'm.unit as material_unit',
+                'w.name as warehouse_name',
+                'sb.qty_stock',
+                sql<number>`ROUND(COALESCE(sm_agg.average_demand_weekly, 0)::numeric, 1)`.as('weekly_demand'),
+                sql<number>`ROUND((COALESCE(sm_agg.average_demand_weekly, 0) / 7.0)::numeric, 2)`.as('daily_demand'),
+                sql<number>`
+                  CASE 
+                    WHEN COALESCE(sm_agg.average_demand_weekly, 0) <= 0 THEN 999
+                    ELSE ROUND((sb.qty_stock / (sm_agg.average_demand_weekly / 7.0))::numeric, 1)
+                  END
+                `.as('days_of_supply'),
+            ])
+            .where('sb.qty_stock', '>', 0)
+            .where(sql`COALESCE(sm_agg.average_demand_weekly, 0)`, '>', 0);
+
+        if (wh_id !== 'all') {
+            query = query.where('sb.warehouse_id', '=', Number(wh_id));
+        } else if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+            query = query.where('sb.warehouse_id', 'in', scopedWarehouseIds);
+        }
+
+        const rows = await query
+            .orderBy(sql`sb.qty_stock / (sm_agg.average_demand_weekly / 7.0)`, 'asc')
+            .limit(parsed.data.limit)
+            .execute();
+
+        const data: StockRunoutItem[] = rows.map((r) => {
+            const days = Number(r.days_of_supply || 0);
+            let status: 'critical' | 'warning' | 'safe' = 'safe';
+            if (days < 7) {
+                status = 'critical';
+            } else if (days <= 14) {
+                status = 'warning';
+            }
+            return {
+                material_code: r.material_code || '-',
+                material_name: r.material_name || r.material_code || '-',
+                material_unit: r.material_unit || 'PC',
+                warehouse_name: r.warehouse_name || '-',
+                qty_stock: Number(r.qty_stock || 0),
+                weekly_demand: Number(r.weekly_demand || 0),
+                daily_demand: Number(r.daily_demand || 0),
+                days_of_supply: days,
+                status,
+            };
+        });
+
+        await encryptedCache.setGeneral('dashboard', data, cacheKey, 30);
+        return { success: true, data };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch stock runout forecast:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return { success: false, error: 'Gagal memuat estimasi ketahanan stok' };
+    }
+}
+
+export async function getRekonSlaVelocity(wh_id: string = 'all') {
+    const user = await getSessionUser();
+    const parsed = getRekonSlaVelocitySchema.safeParse({ wh_id });
+    if (!parsed.success) {
+        actionLogger.warn('Invalid params for getRekonSlaVelocity', {
+            issues: parsed.error.issues,
+        });
+        return { success: false, error: 'Parameter tidak valid' };
+    }
+
+    try {
+        const scopedWarehouseIds = warehouseScope(user, 'always');
+        if (
+            scopedWarehouseIds &&
+            (scopedWarehouseIds.length === 0 ||
+                (wh_id !== 'all' && !canAccessWarehouse(user, Number(wh_id))))
+        ) {
+            return { success: false, error: 'Akses gudang ditolak' };
+        }
+
+        const cacheKey = `rekon_sla_${wh_id}_${scopedWarehouseIds ? scopedWarehouseIds.join('_') : 'all'}`;
+        const cached = await encryptedCache.getGeneral<RekonSlaData>('dashboard', cacheKey);
+        if (cached) {
+            return { success: true, data: cached };
+        }
+
+        let query = db
+            .selectFrom('inventory.sap_out_header as soh')
+            .select([
+                sql<number>`COUNT(*)::int`.as('total_open'),
+                sql<number>`ROUND(AVG(CURRENT_DATE - soh.request_time::date), 1)`.as('avg_days_open'),
+                sql<number>`COUNT(CASE WHEN CURRENT_DATE - soh.request_time::date <= 3 THEN 1 END)::int`.as('on_time_count'),
+                sql<number>`COUNT(CASE WHEN CURRENT_DATE - soh.request_time::date > 3 AND CURRENT_DATE - soh.request_time::date <= 7 THEN 1 END)::int`.as('warning_count'),
+                sql<number>`COUNT(CASE WHEN CURRENT_DATE - soh.request_time::date > 7 THEN 1 END)::int`.as('breached_count'),
+            ])
+            .where('soh.end_status', '=', 'intech');
+
+        if (wh_id !== 'all') {
+            query = query.where('soh.warehouse_id', '=', Number(wh_id));
+        } else if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+            query = query.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        }
+
+        const res = await query.executeTakeFirst();
+        const totalOpen = Number(res?.total_open || 0);
+        const avgDays = Number(res?.avg_days_open || 0);
+        const onTimeCount = Number(res?.on_time_count || 0);
+        const warningCount = Number(res?.warning_count || 0);
+        const breachedCount = Number(res?.breached_count || 0);
+
+        const onTimePct =
+            totalOpen > 0 ? Math.round((onTimeCount / totalOpen) * 1000) / 10 : 0;
+        const warningPct =
+            totalOpen > 0 ? Math.round((warningCount / totalOpen) * 1000) / 10 : 0;
+        const breachedPct =
+            totalOpen > 0 ? Math.round((breachedCount / totalOpen) * 1000) / 10 : 0;
+        const slaRate = Math.round(onTimePct);
+
+        const tiers: RekonSlaTier[] = [
+            {
+                key: 'on_time',
+                label: '≤ 3 Hari (Sesuai SLA)',
+                description: 'Tepat waktu dan patuh standar',
+                count: onTimeCount,
+                percentage: onTimePct,
+                color: '#10B981',
+            },
+            {
+                key: 'warning',
+                label: '4–7 Hari (Waspada)',
+                description: 'Mendekati batas toleransi',
+                count: warningCount,
+                percentage: warningPct,
+                color: '#F59E0B',
+            },
+            {
+                key: 'breached',
+                label: '> 7 Hari (Melewati SLA)',
+                description: 'Kritis, perlu intervensi',
+                count: breachedCount,
+                percentage: breachedPct,
+                color: '#EF4444',
+            },
+        ];
+
+        const data: RekonSlaData = {
+            totalOpen,
+            avgDays,
+            slaRate,
+            tiers,
+        };
+
+        await encryptedCache.setGeneral('dashboard', data, cacheKey, 20);
+        return { success: true, data };
+    } catch (error: unknown) {
+        actionLogger.error(
+            'Failed to fetch rekon SLA velocity:',
+            error instanceof Error ? error : new Error(String(error))
+        );
+        return { success: false, error: 'Gagal memuat kepatuhan SLA rekon' };
     }
 }
