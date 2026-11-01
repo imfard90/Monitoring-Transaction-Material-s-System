@@ -90,3 +90,4 @@ describe('SalesOverview calculation & series algorithm', () => {
         expect(areaSeries[1].data).toEqual([80, 150]); // Upright smooth curve above 0
     });
 });
+
