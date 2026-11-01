@@ -20,7 +20,7 @@ const NikParamSchema = z.string().trim().min(1, 'NIK teknisi wajib diisi');
  * Get list teknisi with cached Intech Lensa scraping status.
  * Staff scoped by warehouse assignment; non-staff sees all.
  */
-export async function getTeknisiStockList(): Promise<{
+export async function getTeknisiStockList(options?: { includeInactive?: boolean }): Promise<{
     success: boolean;
     data?: TeknisiStockListItem[];
     error?: string;
@@ -37,6 +37,7 @@ export async function getTeknisiStockList(): Promise<{
                 't.nik',
                 't.name',
                 't.wh_id',
+                't.is_active',
                 't.ref_intech_lensa',
                 't.exclude_intech_lensa',
                 'b.branch',
@@ -44,6 +45,10 @@ export async function getTeknisiStockList(): Promise<{
                 'wh.name as warehouse_name',
             ])
             .orderBy('t.name', 'asc');
+
+        if (!options?.includeInactive) {
+            query = query.where('t.is_active', '=', true);
+        }
 
         if (user.isStaff) {
             if (!scopedWarehouseIds || scopedWarehouseIds.length === 0) {
@@ -140,6 +145,7 @@ export async function getTeknisiStockList(): Promise<{
                 scraped_at: cached?.scraped_at ?? null,
                 total_materials: totalMaterials,
                 total_selisih: totalSelisih,
+                is_active: row.is_active,
             };
         });
 
@@ -333,7 +339,8 @@ export async function getTeknisiList(): Promise<{
         let query = db
             .selectFrom('hr.technicians')
             .select(['nik', 'name'])
-            .where('wh_id', 'is not', null);
+            .where('wh_id', 'is not', null)
+            .where('is_active', '=', true);
 
         // Staff: hanya teknisi yang berada di gudang yang di-assign ke user
         if (user.isStaff) {

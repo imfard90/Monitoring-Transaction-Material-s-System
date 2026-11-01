@@ -96,7 +96,10 @@ export async function getTechnicianByNik(nik: string) {
 
 export async function getTechnicians(sa?: string) {
     try {
-        const technicians = await hrRepository.getTechnicians(sa ? { serviceArea: sa } : undefined);
+        const technicians = await hrRepository.getTechnicians({
+            ...(sa ? { serviceArea: sa } : {}),
+            isActive: true,
+        });
         return { success: true, data: technicians };
     } catch (error: unknown) {
         actionLogger.error(
@@ -186,6 +189,15 @@ export async function createOutSap(payload: {
 
     try {
         await requireWarehouseAccess(parsed.data.warehouse_id);
+
+        const tech = await hrRepository.getTechnicianByNik(parsed.data.nik_teknisi);
+        if (!tech || tech.is_active === false) {
+            return {
+                success: false,
+                error: 'Teknisi tidak ditemukan atau berstatus nonaktif. Pengeluaran material baru tidak diizinkan.',
+            };
+        }
+
         const { isDuplicate, result } = await checkAndStoreIdempotency(
             payload.idemKey,
             payload,

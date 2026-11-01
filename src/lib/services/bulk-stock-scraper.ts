@@ -367,6 +367,7 @@ export async function bulkScrapeStockTeknisi(
             .selectFrom('hr.technicians as t')
             .select(['t.nik', 't.name'])
             .where('t.wh_id', '=', wh.id)
+            .where('t.is_active', '=', true)
             .orderBy(sql`t.ref_intech_lensa->>'scraped_at' ASC NULLS FIRST`)
             .orderBy('t.nik', 'asc')
             .execute();

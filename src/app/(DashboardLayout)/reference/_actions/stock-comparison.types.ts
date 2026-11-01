@@ -8,6 +8,7 @@ export interface TeknisiStockListItem {
     scraped_at: string | null;
     total_materials: number;
     total_selisih: number | null;
+    is_active?: boolean;
 }
 
 export interface StockComparisonItem {
@@ -54,4 +55,5 @@ export interface TeknisiRow {
     branch: string | null;
     service_area: string | null;
     warehouse_name: string | null;
+    is_active?: boolean;
 }

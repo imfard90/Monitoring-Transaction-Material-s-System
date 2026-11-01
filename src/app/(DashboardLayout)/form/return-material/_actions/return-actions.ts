@@ -27,7 +27,9 @@ export async function getAvailableSapOuts() {
                 'h.request_id',
                 'h.sap_number',
                 'h.nik_teknisi',
-                't.name as nama_teknisi',
+                sql<string>`CASE WHEN t.is_active = false THEN CONCAT(t.name, ' [NONAKTIF]') ELSE t.name END`.as(
+                    'nama_teknisi'
+                ),
                 'h.warehouse_id',
             ])
             .where('h.end_status', '=', 'intech')

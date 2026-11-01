@@ -17,6 +17,7 @@ import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
@@ -55,6 +56,7 @@ export default function StockComparisonTableView({
     const [rows, setRows] = useState<TeknisiStockListItem[]>(initialData);
     const [warehouse, setWarehouse] = useState<string>('all');
     const [globalFilter, setGlobalFilter] = useState<string>('');
+    const [showInactive, setShowInactive] = useState<boolean>(false);
     const [sorting, setSorting] = useState<SortingState>([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
 
@@ -66,8 +68,20 @@ export default function StockComparisonTableView({
     const [isScrapingStarting, setIsScrapingStarting] = useState(false);
     const [busy, startTransition] = useTransition();
 
+    const handleToggleInactive = useCallback((checked: boolean) => {
+        setShowInactive(checked);
+        startTransition(async () => {
+            const res = await getTeknisiStockList({ includeInactive: checked });
+            if (res.success && res.data) {
+                setRows(res.data);
+            } else {
+                toast.error(res.error || 'Gagal memuat teknisi');
+            }
+        });
+    }, []);
+
     const hasActiveFilters = Boolean(
-        globalFilter.trim() || (!isStaff && warehouse && warehouse !== 'all')
+        globalFilter.trim() || (!isStaff && warehouse && warehouse !== 'all') || showInactive
     );
 
     const handleResetFilters = useCallback(() => {
@@ -75,7 +89,10 @@ export default function StockComparisonTableView({
         if (!isStaff) {
             setWarehouse('all');
         }
-    }, [isStaff]);
+        if (showInactive) {
+            handleToggleInactive(false);
+        }
+    }, [isStaff, showInactive, handleToggleInactive]);
 
     usePageFilterEsc({
         isActive: hasActiveFilters,
@@ -183,14 +200,18 @@ export default function StockComparisonTableView({
                             const status = await checkBulkScrapingStatus(res.jobId);
                             if (status.status === 'running') {
                                 // Refresh berkala agar baris tabel yang baru selesai langsung terupdate di layar
-                                const refreshed = await getTeknisiStockList();
+                                const refreshed = await getTeknisiStockList({
+                                    includeInactive: showInactive,
+                                });
                                 if (refreshed.success && refreshed.data) {
                                     setRows(refreshed.data);
                                 }
                             } else if (status.status === 'success') {
                                 clearInterval(interval);
                                 // Refresh final setelah seluruh teknisi selesai
-                                const refreshed = await getTeknisiStockList();
+                                const refreshed = await getTeknisiStockList({
+                                    includeInactive: showInactive,
+                                });
                                 if (refreshed.success && refreshed.data) {
                                     setRows(refreshed.data);
                                 }
@@ -306,12 +327,29 @@ export default function StockComparisonTableView({
                         </div>
                     </CardHeader>
 
-                    <CardContent className="flex flex-col md:min-h-0 md:overflow-hidden gap-4 flex-1">
+                    <CardContent className="flex flex-col md:min-h-0 md:overflow-hidden gap-2.5 flex-1">
                         {initialError && (
                             <p role="alert" className="text-sm text-destructive shrink-0">
                                 {initialError}
                             </p>
                         )}
+
+                        <div className="flex items-center justify-end shrink-0 px-0.5">
+                            <label
+                                htmlFor="toggle-inactive"
+                                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none transition-colors"
+                            >
+                                <Checkbox
+                                    id="toggle-inactive"
+                                    checked={showInactive}
+                                    onCheckedChange={(checked) =>
+                                        handleToggleInactive(Boolean(checked))
+                                    }
+                                    className="size-3.5 rounded"
+                                />
+                                <span>Tampilkan teknisi nonaktif</span>
+                            </label>
+                        </div>
 
                         <DataTable
                             table={table}

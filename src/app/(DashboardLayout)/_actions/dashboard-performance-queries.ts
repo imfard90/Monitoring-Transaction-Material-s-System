@@ -120,7 +120,8 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
             .selectFrom('hr.technicians as t')
             .innerJoin('inventory.mas_wh as wh', 'wh.id', 't.wh_id')
             .select(['t.nik', 't.wh_id', 'wh.name as warehouse_name', 't.ref_intech_lensa'])
-            .where('t.wh_id', 'is not', null);
+            .where('t.wh_id', 'is not', null)
+            .where('t.is_active', '=', true);
 
         const techRows = (await techQuery.execute()) as Array<{
             nik: string | null;

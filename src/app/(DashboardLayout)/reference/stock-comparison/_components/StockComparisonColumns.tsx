@@ -35,11 +35,24 @@ export function createStockComparisonColumns(onShowCached: (nik: string) => void
         columnHelper.accessor('nama', {
             header: 'Nama Teknisi',
             size: 240,
-            cell: (info) => (
-                <span className="font-medium text-foreground min-w-[200px] inline-block">
-                    {info.getValue()}
-                </span>
-            ),
+            cell: (info) => {
+                const row = info.row.original;
+                return (
+                    <div className="flex items-center gap-1.5 min-w-[200px]">
+                        <span className="font-medium text-foreground">
+                            {info.getValue()}
+                        </span>
+                        {row.is_active === false && (
+                            <Badge
+                                variant="outline"
+                                className="text-[10px] text-muted-foreground border-dashed px-1 py-0 h-4"
+                            >
+                                Nonaktif
+                            </Badge>
+                        )}
+                    </div>
+                );
+            },
         }),
         columnHelper.accessor('status', {
             header: () => <div className="text-center">Status</div>,

@@ -12,10 +12,10 @@ import { db } from '@/lib/db/db';
 
 export const hrRepository = {
     /**
-     * Get all technicians with optional service-area filter.
+     * Get all technicians with optional service-area and active-status filters.
      * Joins branches and mitras for display columns.
      */
-    getTechnicians: (options?: { serviceArea?: string }) => {
+    getTechnicians: (options?: { serviceArea?: string; isActive?: boolean }) => {
         let query = db
             .selectFrom('hr.technicians as t')
             .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
@@ -39,6 +39,10 @@ export const hrRepository = {
             query = query.where('b.service_area', '=', options.serviceArea);
         }
 
+        if (options?.isActive !== undefined) {
+            query = query.where('t.is_active', '=', options.isActive);
+        }
+
         return query.orderBy('t.name', 'asc').execute();
     },
 
@@ -51,7 +55,7 @@ export const hrRepository = {
         return db
             .selectFrom('hr.technicians as t')
             .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
-            .select(['t.nik', 't.name', 'b.service_area as sa'])
+            .select(['t.nik', 't.name', 't.is_active', 'b.service_area as sa'])
             .where('t.nik', '=', cleanNik)
             .executeTakeFirst();
     },

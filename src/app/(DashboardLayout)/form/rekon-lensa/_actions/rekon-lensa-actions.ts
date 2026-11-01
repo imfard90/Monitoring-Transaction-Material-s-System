@@ -17,10 +17,16 @@ export async function getTechniciansWithIntechSaps() {
             .selectFrom('inventory.sap_out_header as soh')
             .innerJoin('hr.technicians as t', 't.nik', 'soh.nik_teknisi')
             .innerJoin('inventory.sap_out_items as soi', 'soi.header_id', 'soh.id')
-            .select(['t.nik', 't.name as nama_teknisi'])
+            .select([
+                't.nik',
+                sql<string>`CASE WHEN t.is_active = false THEN CONCAT(t.name, ' [NONAKTIF]') ELSE t.name END`.as(
+                    'nama_teknisi'
+                ),
+                't.is_active',
+            ])
             .where('soh.end_status', '=', 'intech')
             .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0)
-            .groupBy(['t.nik', 't.name'])
+            .groupBy(['t.nik', 't.name', 't.is_active'])
             .orderBy('t.name', 'asc');
 
         if (isStaff) {

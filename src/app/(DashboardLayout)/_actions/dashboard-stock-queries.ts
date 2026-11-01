@@ -90,7 +90,9 @@ export async function getDashboardStockIntech() {
             .select([
                 'wh.branch as branch',
                 'wh.name as wh_name',
-                't.name as teknisi',
+                sql<string>`CASE WHEN t.is_active = false THEN CONCAT(t.name, ' [NONAKTIF]') ELSE t.name END`.as(
+                    'teknisi'
+                ),
                 'soh.nik_teknisi as nik',
                 'soh.request_time as request_time',
                 'm.code as material_code',

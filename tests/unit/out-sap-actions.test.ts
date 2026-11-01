@@ -32,9 +32,12 @@ vi.mock('@/lib/repositories/inventory.repository', () => ({
     },
 }));
 
+const mockGetTechnicianByNik = vi.fn();
+
 vi.mock('@/lib/repositories/hr.repository', () => ({
     hrRepository: {
         getTechnicians: vi.fn(),
+        getTechnicianByNik: (nik: string) => mockGetTechnicianByNik(nik),
     },
 }));
 
@@ -67,6 +70,7 @@ describe('out-sap-actions Unit Tests', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockGetSessionNik.mockResolvedValue('STAFF_TEST_NIK');
+        mockGetTechnicianByNik.mockResolvedValue({ nik: 'TKN001', name: 'Budi', is_active: true });
         mockRequireWarehouseAccess.mockResolvedValue({
             nik: 'STAFF_TEST_NIK',
             role: 'Staff',
@@ -108,6 +112,19 @@ describe('out-sap-actions Unit Tests', () => {
 
             expect(res.success).toBe(false);
             expect(res.error).toContain('Invalid input data');
+        });
+
+        it('rejects when technician is inactive', async () => {
+            mockGetTechnicianByNik.mockResolvedValueOnce({
+                nik: 'TKN001',
+                name: 'Budi',
+                is_active: false,
+            });
+
+            const res = await createOutSap(validPayload);
+
+            expect(res.success).toBe(false);
+            expect(res.error).toContain('nonaktif');
         });
 
         it('delegates to inventoryRepository.createOutSap and returns result', async () => {
