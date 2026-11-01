@@ -2,16 +2,21 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FileText } from 'lucide-react';
+import {
+    AlertCircle,
+    CheckCircle2,
+    FileText,
+    Info,
+    PackageCheck,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { TechnicianMaterialTable } from '@/components/domain/material/TechnicianMaterialTable';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
@@ -42,7 +47,7 @@ export default function RekonLensaForm() {
     const [allocatedQty, setAllocatedQty] = useState<Record<string, number>>({});
     const [showConfirm, setShowConfirm] = useState(false);
 
-    const { data: techData, isLoading: techLoading } = useQuery({
+    const { data: techData } = useQuery({
         queryKey: ['technicians-intech'],
         queryFn: async () => {
             const res = await getTechniciansWithIntechSaps();
@@ -110,6 +115,7 @@ export default function RekonLensaForm() {
         setAllocatedQty(newAllocated);
     }, [selectedWos, materialsData, wosData]);
 
+    // Single WO selection toggle
     const handleWoToggle = (woId: number) => {
         const newSet = new Set<number>();
         if (!selectedWos.has(woId)) {
@@ -117,6 +123,53 @@ export default function RekonLensaForm() {
         }
         setSelectedWos(newSet);
     };
+
+    // Hitung total stok per kode material yang tersedia di tangan teknisi
+    const availableStockByCode = useMemo(() => {
+        const map: Record<string, number> = {};
+        materialsData?.forEach((m: any) => {
+            const code = m.material_code;
+            if (code) {
+                const avail = m.qty_req - (m.qty_used || 0);
+                map[code] = (map[code] || 0) + avail;
+            }
+        });
+        return map;
+    }, [materialsData]);
+
+    // Ambil objek WO yang sedang dipilih (jika ada)
+    const selectedWo = useMemo(() => {
+        if (selectedWos.size === 0 || !wosData) return null;
+        const woId = Array.from(selectedWos)[0];
+        return wosData.find((w: any) => w.id === woId) || null;
+    }, [selectedWos, wosData]);
+
+    // Evaluasi kecukupan stok material untuk WO yang dipilih
+    const woSufficiency = useMemo(() => {
+        if (!selectedWo || !selectedWo.items) {
+            return { isReady: false, items: [], totalAllocated: 0 };
+        }
+        let allOk = true;
+        let totalQty = 0;
+        const items = selectedWo.items.map((item: any) => {
+            const available = availableStockByCode[item.material_id] || 0;
+            const isOk = available >= item.qty_pemakaian;
+            if (!isOk) allOk = false;
+            totalQty += item.qty_pemakaian;
+            return {
+                code: item.material_id,
+                required: item.qty_pemakaian,
+                available,
+                uom: item.uom,
+                isOk,
+            };
+        });
+        return {
+            isReady: allOk && items.length > 0,
+            items,
+            totalAllocated: totalQty,
+        };
+    }, [selectedWo, availableStockByCode]);
 
     const handleSubmit = async () => {
         if (!selectedNik || selectedWos.size === 0) {
@@ -245,10 +298,13 @@ export default function RekonLensaForm() {
     return (
         <StaggerContainer className="space-y-6">
             <StaggerItem>
-                <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                        <div className="flex-1 space-y-2 max-w-md">
-                            <Label>Pilih Teknisi</Label>
+                <Card className="border border-border bg-card text-card-foreground shadow-xs rounded-xl p-5">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        {/* Selector Teknisi */}
+                        <div className="w-full lg:w-80 space-y-1.5">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Pilih Teknisi
+                            </Label>
                             <SearchableSelect
                                 options={techOptions}
                                 value={selectedNik}
@@ -260,126 +316,269 @@ export default function RekonLensaForm() {
                                 placeholder="Cari NIK atau Nama Teknisi..."
                             />
                         </div>
+
+                        {/* Ringkasan & Tombol Aksi */}
                         {selectedNik && (
-                            <Button
-                                size="lg"
-                                onClick={handleSubmit}
-                                disabled={loading || selectedWos.size === 0}
-                            >
-                                Ajukan Rekon Lensa
-                            </Button>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 bg-muted/40 p-3 rounded-xl border border-border/70 flex-1 justify-between">
+                                <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                                    {selectedWo ? (
+                                        <>
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background border border-border/80 shadow-2xs">
+                                                <span className="text-muted-foreground font-medium">
+                                                    WO:
+                                                </span>
+                                                <span className="font-mono font-bold text-foreground">
+                                                    {selectedWo.wo_number}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background border border-border/80 shadow-2xs">
+                                                <span className="text-muted-foreground font-medium">
+                                                    Alokasi:
+                                                </span>
+                                                <span className="font-mono font-bold text-primary">
+                                                    {woSufficiency.totalAllocated} item
+                                                </span>
+                                            </div>
+                                            {woSufficiency.isReady ? (
+                                                <div className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-medium">
+                                                    <CheckCircle2 className="size-3.5" />
+                                                    <span>Stok Siap Direkon</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-destructive/10 text-destructive border border-destructive/20 font-medium">
+                                                    <AlertCircle className="size-3.5" />
+                                                    <span>Stok Teknisi Kurang</span>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="flex items-center gap-1.5 text-muted-foreground py-0.5">
+                                            <Info className="size-4 shrink-0 text-muted-foreground" />
+                                            <span>
+                                                Pilih 1 Work Order Lensa di bawah untuk rekonsiliasi.
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <Button
+                                    size="default"
+                                    onClick={handleSubmit}
+                                    disabled={loading || !selectedWo || !woSufficiency.isReady}
+                                    className="shadow-xs shrink-0 font-semibold"
+                                >
+                                    Ajukan Rekon Lensa
+                                </Button>
+                            </div>
                         )}
                     </div>
                 </Card>
             </StaggerItem>
 
             <AnimatePresence mode="wait">
-                {selectedNik && (
+                {selectedNik ? (
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="grid grid-cols-1 lg:grid-cols-5 gap-6"
+                        exit={{ opacity: 0, y: -15 }}
+                        transition={{ duration: 0.2 }}
+                        className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch"
                     >
-                        {/* WO Lensa Table */}
-                        <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6 flex flex-col h-full lg:col-span-3">
-                            <div className="flex items-center gap-2 mb-4">
-                                <FileText className="h-5 w-5 text-primary" />
-                                <h3 className="text-lg font-semibold">Work Order Lensa</h3>
+                        {/* Panel Kiri: Work Order Lensa (50%) */}
+                        <Card className="border border-border bg-card text-card-foreground shadow-xs rounded-xl p-5 flex flex-col h-[620px]">
+                            <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-border/80 shrink-0">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                                        <FileText className="size-4" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-foreground">
+                                            Work Order Lensa
+                                        </h3>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Pilih 1 WO yang akan direkonsiliasi
+                                        </p>
+                                    </div>
+                                </div>
+                                <span className="px-2.5 py-0.5 rounded-full bg-muted text-[11px] font-mono font-semibold text-muted-foreground">
+                                    {wosData?.length ?? 0} WO Tersedia
+                                </span>
                             </div>
-                            <div className="rounded-md border flex-1 overflow-auto">
+
+                            <div className="rounded-lg border overflow-y-auto flex-1 min-h-0">
                                 <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-[50px]"></TableHead>
-                                            <TableHead>Tanggal Update</TableHead>
-                                            <TableHead className="w-[150px]">Nomor WO</TableHead>
-                                            <TableHead>Tipe</TableHead>
-                                            <TableHead>Material Dibutuhkan</TableHead>
+                                    <TableHeader className="sticky top-0 z-10 bg-muted/90 backdrop-blur-xs shadow-2xs">
+                                        <TableRow className="bg-muted/50 hover:bg-muted/50 border-b border-border/80">
+                                            <TableHead className="w-[45px] text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                                Pilih
+                                            </TableHead>
+                                            <TableHead className="w-[105px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                                Tgl Update
+                                            </TableHead>
+                                            <TableHead className="w-[130px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                                Nomor WO
+                                            </TableHead>
+                                            <TableHead className="w-[75px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                                Tipe
+                                            </TableHead>
+                                            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                                Material Dibutuhkan
+                                            </TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {wosLoading ? (
                                             <TableRow>
-                                                <TableCell colSpan={5} className="text-center py-8">
-                                                    Memuat data, mohon tunggu...
+                                                <TableCell
+                                                    colSpan={5}
+                                                    className="text-center py-12 text-xs text-muted-foreground"
+                                                >
+                                                    Memuat data WO Lensa...
                                                 </TableCell>
                                             </TableRow>
                                         ) : wosData?.length === 0 ? (
                                             <TableRow>
                                                 <TableCell
                                                     colSpan={5}
-                                                    className="text-center py-8 text-muted-foreground"
+                                                    className="text-center py-12 text-xs text-muted-foreground"
                                                 >
-                                                    Tidak ada WO Lensa yang belum direkon
+                                                    Tidak ada WO Lensa yang belum direkon untuk teknisi ini
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
-                                            wosData?.map((wo: any) => (
-                                                <TableRow
-                                                    key={wo.id}
-                                                    className={`cursor-pointer hover:bg-muted/50 ${
-                                                        selectedWos.has(wo.id) ? 'bg-primary/5' : ''
-                                                    }`}
-                                                    onClick={() => handleWoToggle(wo.id)}
-                                                >
-                                                    <TableCell>
-                                                        <Checkbox
-                                                            checked={selectedWos.has(wo.id)}
-                                                            onCheckedChange={() =>
-                                                                handleWoToggle(wo.id)
-                                                            }
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {wo.tanggal_update || '-'}
-                                                    </TableCell>
-                                                    <TableCell className="font-medium w-[150px] whitespace-normal break-words">
-                                                        {wo.wo_number}
-                                                    </TableCell>
-                                                    <TableCell className="uppercase">
-                                                        {wo.wo_type}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="space-y-1 text-sm">
-                                                            {wo.items.map(
-                                                                (item: any, idx: number) => (
-                                                                    <div key={idx}>
-                                                                        {item.material_id} :{' '}
-                                                                        {item.qty_pemakaian}{' '}
-                                                                        {item.uom}
-                                                                    </div>
-                                                                )
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
+                                            wosData?.map((wo: any) => {
+                                                const isSelected = selectedWos.has(wo.id);
+                                                return (
+                                                    <TableRow
+                                                        key={wo.id}
+                                                        className={`cursor-pointer transition-colors border-b hover:bg-muted/50 ${
+                                                            isSelected
+                                                                ? 'bg-primary/5 border-l-4 border-l-primary font-medium'
+                                                                : ''
+                                                        }`}
+                                                        onClick={() => handleWoToggle(wo.id)}
+                                                    >
+                                                        <TableCell className="text-center py-2.5 px-2">
+                                                            <div
+                                                                className={`mx-auto size-4 rounded-full border-2 flex items-center justify-center transition-all ${
+                                                                    isSelected
+                                                                        ? 'border-primary bg-primary'
+                                                                        : 'border-muted-foreground/30 hover:border-primary/60'
+                                                                }`}
+                                                            >
+                                                                {isSelected && (
+                                                                    <div className="size-1.5 rounded-full bg-primary-foreground" />
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-xs py-2.5 px-2.5 font-mono text-muted-foreground whitespace-nowrap">
+                                                            {wo.tanggal_update || '-'}
+                                                        </TableCell>
+                                                        <TableCell className="py-2.5 px-2.5 font-mono font-bold text-xs text-foreground whitespace-nowrap">
+                                                            {wo.wo_number}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs py-2.5 px-2.5 uppercase font-medium text-muted-foreground">
+                                                            {wo.wo_type}
+                                                        </TableCell>
+                                                        <TableCell className="py-2.5 px-2.5">
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {wo.items.map(
+                                                                    (item: any, idx: number) => {
+                                                                        const available =
+                                                                            availableStockByCode[
+                                                                                item.material_id
+                                                                            ] || 0;
+                                                                        const isOk =
+                                                                            available >=
+                                                                            item.qty_pemakaian;
+                                                                        return (
+                                                                            <span
+                                                                                key={idx}
+                                                                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-medium border ${
+                                                                                    isOk
+                                                                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                                                                                        : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                                                                                }`}
+                                                                                title={`Dibutuhkan: ${item.qty_pemakaian} ${item.uom} | Stok tersedia: ${available} ${item.uom}`}
+                                                                            >
+                                                                                <span className="font-bold">
+                                                                                    {item.material_id}
+                                                                                </span>
+                                                                                <span className="text-muted-foreground">
+                                                                                    :
+                                                                                </span>
+                                                                                <span className="font-bold">
+                                                                                    {item.qty_pemakaian}
+                                                                                </span>
+                                                                                <span className="text-[10px] text-muted-foreground">
+                                                                                    {item.uom}
+                                                                                </span>
+                                                                            </span>
+                                                                        );
+                                                                    }
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
                                         )}
                                     </TableBody>
                                 </Table>
                             </div>
                         </Card>
 
-                        {/* Material di Tangan Teknisi Table */}
-                        <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6 flex flex-col h-full lg:col-span-2">
-                            <div className="flex items-center gap-2 mb-4">
-                                <FileText className="h-5 w-5 text-primary" />
-                                <h3 className="text-lg font-semibold">
-                                    Material di Tangan Teknisi (FIFO)
-                                </h3>
+                        {/* Panel Kanan: Material di Tangan Teknisi (FIFO) (50%) */}
+                        <Card className="border border-border bg-card text-card-foreground shadow-xs rounded-xl p-5 flex flex-col h-[620px]">
+                            <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-border/80 shrink-0">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                                        <PackageCheck className="size-4" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-foreground">
+                                            Material di Tangan Teknisi (FIFO)
+                                        </h3>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Alokasi otomatis dari pengeluaran SAP
+                                        </p>
+                                    </div>
+                                </div>
+                                <span className="px-2.5 py-0.5 rounded-full bg-muted text-[11px] font-mono font-semibold text-muted-foreground">
+                                    {materialsData?.length ?? 0} Item SAP
+                                </span>
                             </div>
-                            <TechnicianMaterialTable
-                                materials={materialsData || []}
-                                loading={materialsLoading}
-                                emptyMessage="Tidak ada material di tangan teknisi"
-                                mode="allocation"
-                                quantities={allocatedQty}
-                                className="flex-1"
-                            />
+
+                            <div className="rounded-lg border overflow-y-auto flex-1 min-h-0">
+                                <TechnicianMaterialTable
+                                    materials={materialsData || []}
+                                    loading={materialsLoading}
+                                    emptyMessage="Tidak ada material di tangan teknisi"
+                                    mode="allocation"
+                                    quantities={allocatedQty}
+                                    hideNoColumn={true}
+                                    hideDescriptionColumn={true}
+                                    wrapAllocationHeader={true}
+                                    className="border-0 rounded-none h-full"
+                                />
+                            </div>
                         </Card>
                     </motion.div>
+                ) : (
+                    <Card className="border border-dashed border-border/80 bg-muted/20 p-12 text-center rounded-xl">
+                        <div className="max-w-xs mx-auto space-y-2">
+                            <div className="size-10 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
+                                <FileText className="size-5" />
+                            </div>
+                            <h4 className="text-sm font-semibold text-foreground">
+                                Teknisi Belum Dipilih
+                            </h4>
+                            <p className="text-xs text-muted-foreground">
+                                Silakan pilih teknisi pada kolom di atas untuk menampilkan daftar
+                                Work Order Lensa dan stok material FIFO.
+                            </p>
+                        </div>
+                    </Card>
                 )}
             </AnimatePresence>
 
@@ -405,10 +604,10 @@ export default function RekonLensaForm() {
                         </div>
                         <div>
                             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
-                                Total Work Order:
+                                Work Order:
                             </span>
                             <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-background border border-border/70 text-foreground inline-block">
-                                {selectedWos.size} WO Dipilih
+                                {selectedWo?.wo_number || `${selectedWos.size} WO Dipilih`}
                             </span>
                         </div>
                     </div>

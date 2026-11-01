@@ -34,6 +34,9 @@ export interface TechnicianMaterialTableProps {
     onQuantityChange?: (itemId: number | string, val: string) => void;
     showTransactionId?: boolean;
     className?: string;
+    hideNoColumn?: boolean;
+    hideDescriptionColumn?: boolean;
+    wrapAllocationHeader?: boolean;
 }
 
 export function TechnicianMaterialTable({
@@ -45,6 +48,9 @@ export function TechnicianMaterialTable({
     onQuantityChange,
     showTransactionId = false,
     className = '',
+    hideNoColumn = false,
+    hideDescriptionColumn = false,
+    wrapAllocationHeader = false,
 }: TechnicianMaterialTableProps) {
     if (loading) {
         return (
@@ -72,32 +78,62 @@ export function TechnicianMaterialTable({
         return sum + (Number.isNaN(num) ? 0 : num);
     }, 0);
 
+    const colSpanBeforeTotal =
+        (hideNoColumn ? 0 : 1) +
+        1 +
+        (showTransactionId ? 1 : 0) +
+        1 +
+        1 +
+        (hideDescriptionColumn ? 0 : 1);
+
     return (
         <div className={`rounded-md border overflow-x-auto ${className}`}>
             <Table>
-                <TableHeader>
-                    <TableRow className="bg-muted/50">
-                        <TableHead className="w-[50px] text-center text-xs font-semibold">
-                            No
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold min-w-[130px]">
+                <TableHeader className="sticky top-0 z-10 bg-muted/90 backdrop-blur-xs shadow-2xs">
+                    <TableRow className="bg-muted/50 hover:bg-muted/50 border-b border-border/80">
+                        {!hideNoColumn && (
+                            <TableHead className="w-[45px] text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                No
+                            </TableHead>
+                        )}
+                        <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground min-w-[120px]">
                             Tanggal
                         </TableHead>
                         {showTransactionId && (
-                            <TableHead className="text-xs font-semibold">ID Trx</TableHead>
+                            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                ID Trx
+                            </TableHead>
                         )}
-                        <TableHead className="text-xs font-semibold">Nomor SAP</TableHead>
-                        <TableHead className="text-xs font-semibold min-w-[120px]">
+                        <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Nomor SAP
+                        </TableHead>
+                        <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground min-w-[110px]">
                             Kode Material
                         </TableHead>
-                        <TableHead className="text-xs font-semibold min-w-[200px]">
-                            Deskripsi Material
-                        </TableHead>
-                        <TableHead className="text-center text-xs font-semibold w-[90px]">
+                        {!hideDescriptionColumn && (
+                            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground min-w-[180px]">
+                                Deskripsi Material
+                            </TableHead>
+                        )}
+                        <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-[80px]">
                             Sisa Stok
                         </TableHead>
-                        <TableHead className="text-center text-xs font-semibold w-[120px]">
-                            {mode === 'input' ? 'Qty Pakai' : 'Alokasi Terpakai'}
+                        <TableHead
+                            className={`text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground ${
+                                wrapAllocationHeader ? 'w-[85px] px-1' : 'w-[120px]'
+                            }`}
+                        >
+                            {mode === 'input' ? (
+                                'Qty Pakai'
+                            ) : wrapAllocationHeader ? (
+                                <span className="block text-center leading-snug">
+                                    Alokasi
+                                    <br />
+                                    Terpakai
+                                </span>
+                            ) : (
+                                'Alokasi Terpakai'
+                            )}
                         </TableHead>
                     </TableRow>
                 </TableHeader>
@@ -116,13 +152,17 @@ export function TechnicianMaterialTable({
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.15, delay: index * 0.02 }}
                                     className={`border-b transition-colors hover:bg-muted/50 ${
-                                        isAllocated && mode === 'allocation' ? 'bg-success/10' : ''
+                                        isAllocated && mode === 'allocation'
+                                            ? 'bg-emerald-500/10 dark:bg-emerald-500/15'
+                                            : ''
                                     }`}
                                 >
-                                    <TableCell className="text-center font-medium py-1.5 px-2 text-xs text-muted-foreground">
-                                        {index + 1}
-                                    </TableCell>
-                                    <TableCell className="text-xs py-1.5 px-2 whitespace-nowrap">
+                                    {!hideNoColumn && (
+                                        <TableCell className="text-center font-medium py-2 px-2 text-xs text-muted-foreground">
+                                            {index + 1}
+                                        </TableCell>
+                                    )}
+                                    <TableCell className="text-xs py-2 px-2.5 font-mono whitespace-nowrap text-muted-foreground">
                                         {m.request_time
                                             ? new Date(m.request_time).toLocaleDateString('id-ID', {
                                                   day: '2-digit',
@@ -134,22 +174,27 @@ export function TechnicianMaterialTable({
                                             : '-'}
                                     </TableCell>
                                     {showTransactionId && (
-                                        <TableCell className="text-xs py-1.5 px-2 font-mono">
+                                        <TableCell className="text-xs py-2 px-2 font-mono">
                                             {m.id_trx || '-'}
                                         </TableCell>
                                     )}
-                                    <TableCell className="text-xs py-1.5 px-2 font-medium">
+                                    <TableCell className="text-xs py-2 px-2.5 font-mono font-medium text-foreground">
                                         {m.sap_number || '-'}
                                     </TableCell>
-                                    <TableCell className="font-semibold py-1.5 px-2 text-xs font-mono text-primary">
+                                    <TableCell className="font-bold py-2 px-2.5 text-xs font-mono text-primary">
                                         {m.material_code}
                                     </TableCell>
-                                    <TableCell className="text-xs py-1.5 px-2">
-                                        <span className="line-clamp-2" title={m.description || ''}>
-                                            {m.description || '-'}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="text-center font-bold py-1.5 px-2 text-xs text-foreground">
+                                    {!hideDescriptionColumn && (
+                                        <TableCell className="text-xs py-2 px-2">
+                                            <span
+                                                className="line-clamp-2"
+                                                title={m.description || ''}
+                                            >
+                                                {m.description || '-'}
+                                            </span>
+                                        </TableCell>
+                                    )}
+                                    <TableCell className="text-center font-bold py-2 px-2 text-xs font-mono tabular-nums text-foreground">
                                         {availableQty}
                                     </TableCell>
                                     <TableCell className="py-1 px-2 text-center">
@@ -172,17 +217,20 @@ export function TechnicianMaterialTable({
                                                             `Jumlah maksimal untuk ${m.material_code} adalah ${availableQty}`
                                                         );
                                                     }
-                                                    onQuantityChange?.(m.sap_out_item_id, String(num));
+                                                    onQuantityChange?.(
+                                                        m.sap_out_item_id,
+                                                        String(num)
+                                                    );
                                                 }}
-                                                className="h-8 text-center text-xs font-medium"
+                                                className="h-8 text-center text-xs font-mono font-medium"
                                                 placeholder="0"
                                             />
                                         ) : (
                                             <span
-                                                className={`text-xs font-bold ${
+                                                className={`text-xs font-mono font-bold tabular-nums ${
                                                     isAllocated
-                                                        ? 'text-success'
-                                                        : 'text-muted-foreground/60'
+                                                        ? 'text-emerald-600 dark:text-emerald-400 font-extrabold'
+                                                        : 'text-muted-foreground/50'
                                                 }`}
                                             >
                                                 {currentQty || '0'}
@@ -194,18 +242,18 @@ export function TechnicianMaterialTable({
                         })}
                     </AnimatePresence>
                 </TableBody>
-                <TableFooter className="bg-muted/40 font-semibold text-xs border-t">
+                <TableFooter className="bg-muted/40 font-semibold text-xs border-t sticky bottom-0 z-10 backdrop-blur-xs">
                     <TableRow>
                         <TableCell
-                            colSpan={showTransactionId ? 6 : 5}
-                            className="text-right py-2 text-muted-foreground"
+                            colSpan={colSpanBeforeTotal}
+                            className="text-right py-2 px-2.5 text-muted-foreground"
                         >
                             Total:
                         </TableCell>
-                        <TableCell className="text-center py-2 text-foreground font-bold">
+                        <TableCell className="text-center py-2 px-2 text-foreground font-mono font-bold tabular-nums">
                             {totalAvailable}
                         </TableCell>
-                        <TableCell className="text-center py-2 text-primary font-bold">
+                        <TableCell className="text-center py-2 px-2 text-primary font-mono font-bold tabular-nums">
                             {totalQty}
                         </TableCell>
                     </TableRow>
