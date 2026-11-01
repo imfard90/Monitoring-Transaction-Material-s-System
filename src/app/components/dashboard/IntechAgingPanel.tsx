@@ -112,7 +112,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
             plotOptions: {
                 pie: {
                     donut: {
-                        size: '72%',
+                        size: '58%',
                         labels: {
                             show: true,
                             name: {

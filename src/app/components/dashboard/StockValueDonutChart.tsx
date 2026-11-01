@@ -124,7 +124,7 @@ export const StockValueDonutChart: React.FC<{
             plotOptions: {
                 pie: {
                     donut: {
-                        size: '72%',
+                        size: '58%',
                         background: 'transparent',
                         labels: {
                             show: true,
@@ -194,7 +194,7 @@ export const StockValueDonutChart: React.FC<{
 
                     {!isStaff && (
                         <Select value={selectedWh} onValueChange={setSelectedWh}>
-                            <SelectTrigger className="w-[120px] h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors">
+                            <SelectTrigger className="w-39 h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors">
                                 <SelectValue placeholder="Pilih Gudang" />
                             </SelectTrigger>
                             <SelectContent>
@@ -210,7 +210,7 @@ export const StockValueDonutChart: React.FC<{
                 </div>
 
                 {/* Donut Chart Content */}
-                <div className="relative z-10 flex-1 flex flex-col items-center justify-center min-h-[190px]">
+                <div className="relative z-10 flex-1 flex flex-col items-center justify-center min-h-47.5">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center gap-3 w-full py-6">
                             <Skeleton className="h-36 w-36 rounded-full" />
