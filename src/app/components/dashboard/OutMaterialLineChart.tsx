@@ -19,6 +19,25 @@ const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 type WarehouseOption = { id: number; name: string };
 
+type MaterialOption = {
+    code: string;
+    name: string;
+    label: string;
+};
+
+type SeriesItem = {
+    name: string;
+    code: string;
+    originalName: string;
+    data: number[];
+};
+
+type ChartDataResult = {
+    dates: string[];
+    series: SeriesItem[];
+    materials: MaterialOption[];
+};
+
 const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] }> = ({
     isStaff,
     warehouses,
@@ -28,7 +47,7 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
 
     const targetWh = isStaff ? 'all' : selectedWh;
 
-    const { data: chartData = { dates: [], series: [], allMatNames: [] } } = useQuery({
+    const { data: chartData = { dates: [], series: [], materials: [] } } = useQuery<ChartDataResult>({
         queryKey: queryKeys.dashboard.outMaterialLine(targetWh),
         queryFn: async () => {
             const { getOutMaterialLineChartData } = await import(
@@ -48,21 +67,29 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
             };
 
             if (result.success && resData?.topMats) {
-                const dates = [];
+                const dates: string[] = [];
                 const d = new Date(resData.startDate);
                 for (let i = 0; i < 30; i++) {
                     dates.push(`${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`);
                     d.setDate(d.getDate() + 1);
                 }
 
-                const allMatNames = resData.topMats.map(
-                    (t: { material_code: string; material_name: string; total_qty: number }) =>
-                        t.material_name
-                );
-                const allMatCodes = resData.topMats.map(
-                    (t: { material_code: string; material_name: string; total_qty: number }) =>
-                        t.material_code
-                );
+                // Hitung frekuensi nama material untuk mendeteksi duplikasi deskripsi (misal: Subduct HB & non-HB)
+                const nameCounts = new Map<string, number>();
+                for (const t of resData.topMats) {
+                    nameCounts.set(t.material_name, (nameCounts.get(t.material_name) ?? 0) + 1);
+                }
+
+                const materials: MaterialOption[] = resData.topMats.map((t) => {
+                    const isDuplicate = (nameCounts.get(t.material_name) ?? 0) > 1;
+                    return {
+                        code: t.material_code,
+                        name: t.material_name,
+                        label: isDuplicate
+                            ? `${t.material_name} (${t.material_code})`
+                            : t.material_name,
+                    };
+                });
 
                 const dailyQtyByMaterialAndDate = new Map<string, number>();
                 for (const record of resData.dailyData) {
@@ -72,9 +99,9 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                     );
                 }
 
-                const series = allMatNames.map((mat: string, idx: number) => {
-                    const matCode = allMatCodes[idx];
-                    const data = [];
+                const series: SeriesItem[] = materials.map((mat) => {
+                    const matCode = mat.code;
+                    const data: number[] = [];
                     const startDateObj = new Date(resData.startDate);
                     for (let i = 0; i < 30; i++) {
                         const yyyy = startDateObj.getFullYear();
@@ -92,24 +119,24 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                         data.push(val);
                         startDateObj.setDate(startDateObj.getDate() + 1);
                     }
-                    const displayName = matCode === 'AC-OF-SM-1-3SL' ? `${mat} (x10)` : mat;
-                    return { name: displayName, originalName: mat, data };
+                    const displayName = matCode === 'AC-OF-SM-1-3SL' ? `${mat.label} (x10)` : mat.label;
+                    return { name: displayName, code: matCode, originalName: mat.name, data };
                 });
 
-                return { dates, series, allMatNames };
+                return { dates, series, materials };
             }
-            return { dates: [], series: [], allMatNames: [] };
+            return { dates: [], series: [], materials: [] };
         },
         staleTime: 60 * 1000,
     });
 
-    // Filter series based on selected material
+    // Filter series based on selected material code
     const filteredSeries = useMemo(() => {
         if (selectedMaterial === 'all') {
             // Default: show only Top 10 materials
             return chartData.series.slice(0, 10);
         }
-        return chartData.series.filter((s) => s.originalName === selectedMaterial);
+        return chartData.series.filter((s) => s.code === selectedMaterial);
     }, [selectedMaterial, chartData]);
 
     const ChartOptions: ApexOptions = {
@@ -209,9 +236,9 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">10 Material Teratas</SelectItem>
-                            {chartData.allMatNames.map((mat) => (
-                                <SelectItem key={mat} value={mat}>
-                                    {mat}
+                            {chartData.materials.map((mat) => (
+                                <SelectItem key={mat.code} value={mat.code}>
+                                    {mat.label}
                                 </SelectItem>
                             ))}
                         </SelectContent>
