@@ -28,8 +28,9 @@ const LoginSchema = z.object({
 type LoginFormValues = z.infer<typeof LoginSchema>;
 
 const LoginForm = () => {
-    const _router = useRouter();
+    const router = useRouter();
     const searchParams = useSearchParams();
+    const { data: session, isPending: isSessionPending } = authClient.useSession();
     const [showPassword, setShowPassword] = useState(false);
     const [errorMsg, setErrorMsg] = useState<{ type: 'error' | 'warning'; text: string } | null>(
         null
@@ -53,10 +54,20 @@ const LoginForm = () => {
     const remember = watch('remember');
 
     useEffect(() => {
-        if (searchParams.get('reason') === 'idle') {
+        const reason = searchParams.get('reason');
+        if (reason === 'idle') {
             toast.info('Anda telah logout otomatis setelah 1 jam tanpa aktivitas.');
+        } else if (reason === 'expired') {
+            toast.info('Sesi Anda telah berakhir. Silakan masuk kembali.');
         }
     }, [searchParams]);
+
+    // Jika user sudah memiliki sesi valid aktif di database/server, alihkan ke dashboard utama
+    useEffect(() => {
+        if (!isSessionPending && session?.user) {
+            router.replace('/');
+        }
+    }, [isSessionPending, session, router]);
 
     const handleTurnstileToken = useCallback((token: string) => {
         setTurnstileToken(token);

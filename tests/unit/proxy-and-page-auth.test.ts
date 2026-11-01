@@ -115,7 +115,7 @@ describe('proxy authentication and reverse proxy redirect handling', () => {
         expect(res.status).toBe(200);
     });
 
-    it('redirects logged in user away from /auth/login to /', async () => {
+    it('allows access to /auth/login even when cookie exists (preventing redirect loop)', async () => {
         const req = new NextRequest('http://127.0.0.1:8000/auth/login', {
             headers: {
                 host: '127.0.0.1:8000',
@@ -126,8 +126,33 @@ describe('proxy authentication and reverse proxy redirect handling', () => {
         });
 
         const res = await proxy(req);
-        expect(res.status).toBe(307);
-        expect(res.headers.get('location')).toBe('https://mtms-app.credea.biz.id/');
+        expect(res.status).toBe(200);
+        expect(res.headers.get('location')).toBeNull();
+    });
+
+    it('deletes stale session cookies when accessing auth route with reason=expired', async () => {
+        const req = new NextRequest('http://127.0.0.1:8000/auth/login?reason=expired', {
+            headers: {
+                host: '127.0.0.1:8000',
+                'x-forwarded-host': 'mtms-app.credea.biz.id',
+                'x-forwarded-proto': 'https',
+                cookie: '__Secure-better-auth.session_token=stale-token; better-auth.session_token=stale-token',
+            },
+        });
+
+        const res = await proxy(req);
+        expect(res.status).toBe(200);
+        expect(res.headers.get('location')).toBeNull();
+        // Check that Set-Cookie headers expire/delete the session cookies
+        const setCookieHeaders = res.headers.getSetCookie();
+        expect(
+            setCookieHeaders.some((header) => header.includes('better-auth.session_token=;'))
+        ).toBe(true);
+        expect(
+            setCookieHeaders.some((header) =>
+                header.includes('__Secure-better-auth.session_token=;')
+            )
+        ).toBe(true);
     });
 });
 
@@ -136,11 +161,13 @@ describe('getPageSessionUser helper', () => {
         vi.clearAllMocks();
     });
 
-    it('redirects to /auth/login when user has no session (AuthenticationError)', async () => {
+    it('redirects to /auth/login?reason=expired when user has no session (AuthenticationError)', async () => {
         mockAuthGetSession.mockResolvedValue(null);
 
-        await expect(getPageSessionUser()).rejects.toThrow('NEXT_REDIRECT: /auth/login');
-        expect(mockRedirect).toHaveBeenCalledWith('/auth/login');
+        await expect(getPageSessionUser()).rejects.toThrow(
+            'NEXT_REDIRECT: /auth/login?reason=expired'
+        );
+        expect(mockRedirect).toHaveBeenCalledWith('/auth/login?reason=expired');
     });
 
     it('resolves session user when authenticated', async () => {

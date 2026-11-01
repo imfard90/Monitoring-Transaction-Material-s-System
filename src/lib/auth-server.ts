@@ -148,7 +148,7 @@ export async function getPageSessionUser(): Promise<SessionUser> {
         return await getSessionUser();
     } catch (e: any) {
         if (e?.name === 'AuthenticationError' || e?.statusCode === 401) {
-            redirect('/auth/login');
+            redirect('/auth/login?reason=expired');
         }
         throw e;
     }

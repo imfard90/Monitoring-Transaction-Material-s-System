@@ -69,20 +69,23 @@ export async function proxy(request: NextRequest) {
         return nextResponse();
     }
 
-    // Jika belum login dan mencoba mengakses route selain auth (misal '/')
-    if (!hasSessionCookie) {
-        if (!isAuthRoute) {
-            const response = NextResponse.redirect(getRedirectUrl('/auth/login', request));
-            response.headers.set('Content-Security-Policy-Report-Only', csp);
-            response.headers.set('Cache-Control', 'private, no-store');
-            return response;
+    // Jangan redirect route auth (/auth/login, /auth/register, dsb) ke '/' hanya karena ada cookie string.
+    // Keberadaan cookie tidak menjamin keabsahan sesi (bisa saja expired atau di-revoke).
+    // Me-redirect ke '/' di sini memicu infinite redirect loop (ERR_TOO_MANY_REDIRECTS)
+    // saat getPageSessionUser() melempar AuthenticationError dan me-redirect ke /auth/login.
+    if (isAuthRoute) {
+        const response = nextResponse();
+        // Jika diarahkan karena sesi expired/invalid, bersihkan cookie basi dari browser
+        if (request.nextUrl.searchParams.get('reason') === 'expired') {
+            response.cookies.delete('better-auth.session_token');
+            response.cookies.delete('__Secure-better-auth.session_token');
         }
-        return nextResponse();
+        return response;
     }
 
-    // Jika sudah login tapi mencoba mengakses route auth (misal '/auth/login')
-    if (isAuthRoute) {
-        const response = NextResponse.redirect(getRedirectUrl('/', request));
+    // Jika belum login dan mencoba mengakses route terproteksi selain auth (misal '/')
+    if (!hasSessionCookie) {
+        const response = NextResponse.redirect(getRedirectUrl('/auth/login', request));
         response.headers.set('Content-Security-Policy-Report-Only', csp);
         response.headers.set('Cache-Control', 'private, no-store');
         return response;
