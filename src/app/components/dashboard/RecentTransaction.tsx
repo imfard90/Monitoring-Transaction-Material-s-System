@@ -74,20 +74,23 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
             type: 'bar',
             fontFamily: 'inherit',
             foreColor: 'var(--color-muted-foreground, #7C8FAC)',
-            height: 310,
+            height: 300,
         },
         colors: ['var(--color-primary)'],
         plotOptions: {
             bar: {
                 horizontal: true,
                 borderRadius: 4,
-                barHeight: '50%',
+                barHeight: '46%',
             },
         },
         dataLabels: {
             enabled: true,
             style: {
                 colors: ['#fff'],
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                fontWeight: 600,
             },
         },
         legend: { show: false },
@@ -97,6 +100,9 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
             axisBorder: { show: false },
             axisTicks: { show: false },
             title: { text: 'Jumlah (AC-OF-SM-1-3SL ditampilkan skala visual 1:10)' },
+            labels: {
+                style: { fontSize: '10px', fontFamily: 'monospace' },
+            },
         },
         tooltip: {
             theme: 'dark',
@@ -118,7 +124,7 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
 
     return (
         <Card
-            className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none h-full w-full relative overflow-hidden"
+            className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-sm p-3.5 sm:p-4 pb-1 motion-reduce:transition-none h-full w-full relative overflow-hidden flex flex-col justify-between"
             role="img"
             aria-label="Grafik bar Total Out Material 30 hari terakhir"
         >
@@ -127,9 +133,9 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
                 aria-hidden="true"
             />
 
-            <div className="relative z-10 mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="relative z-10 mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                    <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                    <h2 className="text-base font-semibold tracking-tight text-foreground">
                         Top Out Material
                     </h2>
                     <p className="text-xs text-muted-foreground font-normal mt-0.5">
@@ -140,7 +146,7 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
                     <Select value={selectedWh} onValueChange={setSelectedWh}>
                         <SelectTrigger
                             aria-label="Filter gudang top out material"
-                            className="w-[130px] sm:w-[150px] h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors"
+                            className="w-[125px] sm:w-[135px] h-7.5 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
                         >
                             <SelectValue placeholder="Pilih Gudang" />
                         </SelectTrigger>
@@ -155,22 +161,22 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
                     </Select>
                 )}
             </div>
-            <div className="relative z-10 -mx-2" aria-busy={isLoading}>
+            <div className="relative z-10 -mx-2 flex-1" aria-busy={isLoading}>
                 {isLoading ? (
                     <Skeleton
-                        className="h-[316px] w-full"
+                        className="h-[300px] w-full"
                         aria-label="Memuat grafik top out material"
                     />
                 ) : hasError ? (
                     <p
-                        className="flex h-[316px] items-center justify-center text-sm text-destructive"
+                        className="flex h-[300px] items-center justify-center text-sm text-destructive"
                         role="alert"
                     >
                         Grafik gagal dimuat.
                     </p>
                 ) : chartData.categories.length === 0 ? (
                     <p
-                        className="flex h-[316px] items-center justify-center text-sm text-muted-foreground"
+                        className="flex h-[300px] items-center justify-center text-sm text-muted-foreground"
                         role="status"
                     >
                         Belum ada data transaksi material.
@@ -181,7 +187,7 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
                             options={ChartOptions}
                             series={series}
                             type="bar"
-                            height={316}
+                            height={300}
                             width="100%"
                         />
                     </div>
@@ -191,6 +197,4 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
     );
 };
 
-// Also default export not needed if named exported but original exported `export const RecentTransaction = () => {`
-// Let's keep it named export so it works with page.tsx
 export { RecentTransaction };

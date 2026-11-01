@@ -51,6 +51,8 @@ export const queryKeys = {
                 warehouseId ?? 'all',
                 days ?? 7,
             ] as const,
+        intechAging: (warehouseId?: string) =>
+            [...queryKeys.dashboard.all, 'intech-aging', warehouseId ?? 'all'] as const,
         productPerformance: () => [...queryKeys.dashboard.all, 'product-performance'] as const,
     },
 } as const;

@@ -9,11 +9,16 @@
  */
 
 export {
+    getIntechAgingData,
     getOutMaterialLineChartData,
     getSalesOverviewData,
     getStockValueComparison,
     getTopOutMaterials,
     getWarehousePerformance,
+    type IntechAgingData,
+    type IntechAgingTier,
+    type IntechTopMaterial,
+    type IntechTopTechnician,
 } from './dashboard-charts-queries';
 export {
     getIntechLensaWarehousePerformance,

@@ -6,6 +6,7 @@ import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getPageSessionUser } from '@/lib/auth-server';
 import { Footer } from '../components/dashboard/Footer';
+import { IntechAgingPanel } from '../components/dashboard/IntechAgingPanel';
 import OutMaterialLineChart from '../components/dashboard/OutMaterialLineChart';
 import { ProductPerformance } from '../components/dashboard/ProductPerformance';
 import ProfileWelcome from '../components/dashboard/ProfileWelcome';
@@ -26,11 +27,11 @@ export const dynamic = 'force-dynamic';
 
 function ProfileSkeleton() {
     return (
-        <div className="flex items-center gap-4 rounded-xl border bg-card p-6">
-            <Skeleton className="h-12 w-12 rounded-full" />
-            <div className="space-y-2">
-                <Skeleton className="h-5 w-48" />
-                <Skeleton className="h-4 w-32" />
+        <div className="flex items-center gap-3 rounded-xl border border-border/80 bg-card p-2.5 sm:px-4 sm:py-2.5">
+            <Skeleton className="h-9 w-9 rounded-full" />
+            <div className="space-y-1.5">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-28" />
             </div>
         </div>
     );
@@ -58,9 +59,9 @@ export default async function Page() {
             : [];
 
     return (
-        <div className="flex flex-col flex-1 h-full gap-6">
+        <div className="flex flex-col flex-1 h-full gap-4">
             <h1 className="sr-only">Dashboard Utama</h1>
-            <StaggerContainer className="grid grid-cols-12 gap-6 lg:items-stretch">
+            <StaggerContainer className="grid grid-cols-12 gap-4 lg:items-stretch">
                 <StaggerItem className="col-span-12">
                     <Suspense fallback={<ProfileSkeleton />}>
                         <ProfileWelcome />
@@ -73,6 +74,7 @@ export default async function Page() {
                     </Suspense>
                 </StaggerItem>
 
+                {/* Baris 1: SalesOverview & Top Out Material */}
                 <StaggerItem className="col-span-12 lg:col-span-8">
                     <SalesOverview isStaff={isStaff} warehouses={warehouses} />
                 </StaggerItem>
@@ -81,8 +83,14 @@ export default async function Page() {
                     <RecentTransaction isStaff={isStaff} warehouses={warehouses} />
                 </StaggerItem>
 
+                {/* Baris 2: Dedicated Panel Aging Stok Intech (2 Charts: Donut Tiers + Top Material Intech) */}
                 <StaggerItem className="col-span-12">
-                    <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-stretch">
+                    <IntechAgingPanel isStaff={isStaff} warehouses={warehouses} />
+                </StaggerItem>
+
+                {/* Baris 3: Stock Value Donut & Out Material Line Chart */}
+                <StaggerItem className="col-span-12">
+                    <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 items-stretch">
                         <div className="lg:col-span-3 min-w-0 flex">
                             <StockValueDonutChart isStaff={isStaff} warehouses={warehouses} />
                         </div>
@@ -92,6 +100,7 @@ export default async function Page() {
                     </div>
                 </StaggerItem>
 
+                {/* Baris 4: Stock Warning Table & Warehouse Performance */}
                 <StaggerItem className="col-span-12 lg:col-span-8 min-w-0 relative">
                     <div className="flex flex-col h-[520px] lg:h-full lg:absolute lg:inset-0">
                         <StockWarningTable isStaff={isStaff} warehouses={warehouses} />

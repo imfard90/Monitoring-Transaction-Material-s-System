@@ -2,11 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Icon } from '@iconify/react';
 import { headers } from 'next/headers';
-import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { auth } from '@/lib/auth';
 import { getPageSessionUser } from '@/lib/auth-server';
-
 import { getInitials } from '@/lib/avatar';
 
 export default async function ProfileWelcome() {
@@ -26,13 +24,20 @@ export default async function ProfileWelcome() {
             ? `/images/profile/${sessionUser.nik}.png`
             : null;
 
-    const role = sessionUser.role ?? '';
+    const role = sessionUser.role ?? 'User';
     const branch = sessionUser.branchName ?? '';
 
+    const todayStr = new Intl.DateTimeFormat('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+    }).format(new Date());
+
     return (
-        <div className="relative flex items-center justify-between bg-linear-to-br from-primary/10 via-background to-background border border-primary/10 shadow-sm rounded-2xl p-6 overflow-hidden">
-            <div className="flex items-center gap-5 z-10">
-                <Avatar className="h-16 w-16 border-2 border-background shadow-md ring-2 ring-primary/20">
+        <div className="relative flex items-center justify-between rounded-xl border border-border/80 bg-card/80 backdrop-blur-xs shadow-xs px-3.5 py-2.5 sm:px-4 sm:py-2.5 overflow-hidden transition-all duration-200">
+            <div className="flex items-center gap-3 z-10 min-w-0">
+                <Avatar className="h-9 w-9 border border-border/70 shadow-xs ring-1 ring-primary/20 shrink-0">
                     {image ? (
                         <AvatarImage
                             src={image}
@@ -40,41 +45,53 @@ export default async function ProfileWelcome() {
                             className="object-cover object-top h-full w-full"
                         />
                     ) : null}
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
                         {getInitials(name)}
                     </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col gap-1">
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                        Selamat datang, {name}{' '}
-                        <span className="inline-block origin-[70%_70%] animate-[wave_2s_ease-in-out_infinite]">
+                <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs sm:text-sm font-semibold tracking-tight text-foreground truncate">
+                            Selamat datang, {name}
+                        </span>
+                        <span className="inline-block origin-[70%_70%] animate-[wave_2s_ease-in-out_infinite] text-xs">
                             👋
                         </span>
-                    </h2>
-                    <p className="text-muted-foreground text-sm font-medium flex items-center gap-2">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary">
-                            <Icon icon="solar:shield-user-bold-duotone" width={14} />
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-medium text-[10px] tracking-wide">
+                            {role}
                         </span>
-                        {role}
-                        {branch ? <span className="text-primary/40">•</span> : ''}
-                        {branch ? branch : ''}
-                    </p>
+                        {branch ? (
+                            <>
+                                <span className="text-muted-foreground/40">•</span>
+                                <span className="truncate">{branch}</span>
+                            </>
+                        ) : null}
+                        {sessionUser.nik ? (
+                            <>
+                                <span className="text-muted-foreground/40 hidden xs:inline">•</span>
+                                <span className="font-mono text-[10px] text-muted-foreground/80 hidden xs:inline">
+                                    {sessionUser.nik}
+                                </span>
+                            </>
+                        ) : null}
+                    </div>
                 </div>
             </div>
 
-            {/* Decorative background elements */}
-            <div className="absolute -right-10 -top-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
-            <div className="absolute right-20 -bottom-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
-
-            <div className="hidden sm:block absolute right-7 bottom-0 z-10 drop-shadow-xl transition-transform hover:scale-105 duration-500">
-                <Image
-                    src="/images/dashboard/customer-support-img.png"
-                    alt=""
-                    width={145}
-                    height={95}
-                    sizes="145px"
-                    className="h-auto w-[145px] object-contain"
-                />
+            <div className="hidden sm:flex items-center gap-3 shrink-0 text-xs text-muted-foreground z-10">
+                <div className="flex items-center gap-1.5 font-medium text-foreground/80">
+                    <Icon icon="solar:calendar-linear" width={14} className="text-primary/80" />
+                    <span className="capitalize">{todayStr}</span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium">
+                    <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                    </span>
+                    <span>Sistem Aktif</span>
+                </div>
             </div>
         </div>
     );
