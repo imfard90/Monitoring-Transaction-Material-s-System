@@ -309,7 +309,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                         asChild
                     >
                         <Link href="/stock-intech">
-                            <span>Detail Tabel</span>
+                            <span>Detail Table</span>
                             <Icon icon="solar:arrow-right-linear" width={14} />
                         </Link>
                     </Button>

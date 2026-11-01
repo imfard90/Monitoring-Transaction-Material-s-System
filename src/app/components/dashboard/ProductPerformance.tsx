@@ -1,5 +1,6 @@
 'use client';
 
+import { Icon } from '@iconify/react';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
@@ -60,33 +61,40 @@ export const ProductPerformance = () => {
         .sort((a, b) => b.percentage - a.percentage || b.trxOut - a.trxOut);
 
     return (
-        <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none w-full relative overflow-hidden flex flex-col">
+        <Card className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-sm p-3.5 sm:p-4 motion-reduce:transition-none w-full relative overflow-hidden flex flex-col">
             <div
-                className="pointer-events-none absolute right-0 top-0 h-28 w-28 bg-linear-to-bl from-primary/5 to-transparent"
+                className="pointer-events-none absolute right-0 top-0 h-24 w-24 bg-linear-to-bl from-primary/5 to-transparent"
                 aria-hidden="true"
             />
 
             {/* Header */}
-            <div id="product" className="relative z-10 mb-3">
-                <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                    Performa Pengeluaran Gudang
-                </h2>
+            <div id="product" className="relative z-10 mb-2.5">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-base font-semibold tracking-tight text-foreground">
+                        Performa Pengeluaran Gudang
+                    </h2>
+                    <Icon
+                        icon="solar:cup-star-bold-duotone"
+                        width={18}
+                        className="text-amber-500"
+                    />
+                </div>
                 <p className="text-xs text-muted-foreground font-normal mt-0.5">
-                    Ringkasan persentase penyelesaian transaksi out material per gudang
+                    Tingkat penyelesaian transaksi out material per gudang
                 </p>
             </div>
 
             {/* Column Label / Legend */}
-            <div className="relative z-10 flex items-center justify-between text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pb-2 border-b border-border/60">
+            <div className="relative z-10 flex items-center justify-between text-[10px] font-semibold text-muted-foreground uppercase tracking-wider pb-1.5 border-b border-border/60">
                 <span>Nama Gudang</span>
                 <span>Selesai / Out (Persentase)</span>
             </div>
 
             {/* Content List */}
-            <div className="relative z-10 mt-3 space-y-3.5 max-h-80 overflow-y-auto pr-1">
+            <div className="relative z-10 mt-2 space-y-2.5 max-h-80 overflow-y-auto pr-1">
                 {isLoading ? (
                     <div
-                        className="space-y-3 py-1"
+                        className="space-y-2.5 py-1"
                         role="status"
                         aria-label="Memuat performa gudang"
                     >
@@ -97,7 +105,7 @@ export const ProductPerformance = () => {
                                         <Skeleton className="h-4 w-32" />
                                         <Skeleton className="h-4 w-16" />
                                     </div>
-                                    <Skeleton className="h-2 w-full rounded-full" />
+                                    <Skeleton className="h-1.5 w-full rounded-full" />
                                 </div>
                             )
                         )}
@@ -109,24 +117,31 @@ export const ProductPerformance = () => {
                 ) : (
                     <AnimatePresence>
                         {performanceData.map((item, index) => {
-                            const isTop3 = index < 3;
+                            const isGold = index === 0;
+                            const isSilver = index === 1;
+                            const isBronze = index === 2;
+
                             return (
                                 <motion.div
                                     key={item.key}
                                     initial={{ opacity: 0, y: 6 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.2, delay: index * 0.02 }}
-                                    className="group space-y-1.5 rounded-lg p-1.5 -mx-1.5 transition-colors hover:bg-muted/40"
+                                    className="group space-y-1 rounded-lg p-1.5 -mx-1 transition-colors hover:bg-muted/40"
                                 >
                                     {/* Top Row: Rank, Warehouse Name, Count & Badge */}
                                     <div className="flex items-center justify-between gap-2 text-xs">
                                         <div className="flex items-center gap-2 min-w-0">
                                             <span
                                                 className={cn(
-                                                    'inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold shrink-0',
-                                                    isTop3
-                                                        ? 'bg-primary/10 text-primary'
-                                                        : 'bg-muted text-muted-foreground'
+                                                    'inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold shrink-0 border',
+                                                    isGold
+                                                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                                        : isSilver
+                                                          ? 'bg-slate-400/15 text-slate-600 dark:text-slate-300 border-slate-400/30'
+                                                          : isBronze
+                                                            ? 'bg-amber-700/15 text-amber-700 dark:text-amber-500 border-amber-700/30'
+                                                            : 'bg-muted/60 text-muted-foreground border-border/50'
                                                 )}
                                                 aria-hidden="true"
                                             >
@@ -141,12 +156,12 @@ export const ProductPerformance = () => {
                                         </div>
 
                                         <div className="flex items-center gap-2 shrink-0">
-                                            <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
+                                            <span className="text-[10px] font-mono font-medium text-muted-foreground tabular-nums">
                                                 {item.trxClose}/{item.trxOut}
                                             </span>
                                             <span
                                                 className={cn(
-                                                    'inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-bold border tabular-nums',
+                                                    'inline-flex items-center justify-center px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold border tabular-nums',
                                                     item.badgeClass
                                                 )}
                                             >
@@ -155,19 +170,15 @@ export const ProductPerformance = () => {
                                         </div>
                                     </div>
 
-                                    {/* Modern Linear Progress Bar (CSS progress() Baseline 2026) */}
+                                    {/* Modern Linear Progress Bar */}
                                     <div className="h-1.5 w-full bg-muted/60 rounded-full overflow-hidden">
                                         <div
                                             className={cn(
-                                                'css-progress-meter h-full rounded-full transition-all duration-500 ease-out',
+                                                'h-full rounded-full transition-all duration-500 ease-out',
                                                 item.barColor
                                             )}
                                             style={
                                                 {
-                                                    '--score-val': Math.min(
-                                                        100,
-                                                        Math.max(0, item.percentage)
-                                                    ),
                                                     width: `${Math.min(100, Math.max(0, item.percentage))}%`,
                                                 } as React.CSSProperties
                                             }

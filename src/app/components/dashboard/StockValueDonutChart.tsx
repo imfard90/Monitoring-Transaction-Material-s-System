@@ -106,13 +106,13 @@ export const StockValueDonutChart: React.FC<{
                 toolbar: { show: false },
                 animations: {
                     enabled: true,
-                    speed: 600,
+                    speed: 550,
                 },
             },
-            labels: ['Stock Inventory', 'Stock Intech'],
-            colors: ['#0085db', '#fb977d'],
+            labels: ['Gudang (Inventory)', 'Teknisi (Intech)'],
+            colors: ['#2563EB', '#F59E0B'],
             stroke: {
-                width: 3,
+                width: 2,
                 colors: ['var(--card)'],
             },
             dataLabels: {
@@ -124,19 +124,21 @@ export const StockValueDonutChart: React.FC<{
             plotOptions: {
                 pie: {
                     donut: {
-                        size: '60%',
+                        size: '72%',
                         background: 'transparent',
                         labels: {
                             show: true,
                             name: {
                                 show: true,
                                 fontSize: '11px',
-                                offsetY: -4,
+                                fontFamily: 'inherit',
+                                offsetY: -3,
                                 color: 'var(--muted-foreground)',
                             },
                             value: {
                                 show: true,
-                                fontSize: '15px',
+                                fontSize: '16px',
+                                fontFamily: 'monospace',
                                 fontWeight: 700,
                                 offsetY: 4,
                                 color: 'var(--foreground)',
@@ -144,8 +146,9 @@ export const StockValueDonutChart: React.FC<{
                             },
                             total: {
                                 show: true,
-                                label: 'Total Nilai',
+                                label: 'Total Aset',
                                 fontSize: '11px',
+                                fontFamily: 'inherit',
                                 fontWeight: 600,
                                 color: 'var(--muted-foreground)',
                                 formatter: () => formatCompactRp(data.totalRp),
@@ -170,28 +173,28 @@ export const StockValueDonutChart: React.FC<{
     );
 
     return (
-        <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none h-full w-full relative overflow-hidden flex flex-col justify-between">
+        <Card className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-sm p-3.5 sm:p-4 motion-reduce:transition-none h-full w-full relative overflow-hidden flex flex-col justify-between">
             {/* Ambient decorative gradient */}
             <div
-                className="absolute top-0 left-0 w-full h-28 bg-linear-to-b from-primary/5 to-transparent pointer-events-none"
+                className="absolute top-0 left-0 w-full h-20 bg-linear-to-b from-primary/5 to-transparent pointer-events-none"
                 aria-hidden="true"
             />
 
-            <div className="relative z-10 flex flex-col h-full">
+            <div className="relative z-10 flex flex-col h-full justify-between">
                 {/* Header & Filter */}
-                <div className="flex items-start justify-between gap-2 mb-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
-                        <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                            Perbandingan Nilai Stok
+                        <h2 className="text-base font-semibold tracking-tight text-foreground">
+                            Nilai Stok Material
                         </h2>
                         <p className="text-xs text-muted-foreground font-normal mt-0.5">
-                            Inventory vs Intech (Rupiah)
+                            Gudang vs Teknisi (Rupiah)
                         </p>
                     </div>
 
                     {!isStaff && (
                         <Select value={selectedWh} onValueChange={setSelectedWh}>
-                            <SelectTrigger className="w-[125px] h-8 text-xs bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
+                            <SelectTrigger className="w-[120px] h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors">
                                 <SelectValue placeholder="Pilih Gudang" />
                             </SelectTrigger>
                             <SelectContent>
@@ -207,19 +210,19 @@ export const StockValueDonutChart: React.FC<{
                 </div>
 
                 {/* Donut Chart Content */}
-                <div className="relative z-10 flex-1 flex flex-col items-center justify-center min-h-[220px]">
+                <div className="relative z-10 flex-1 flex flex-col items-center justify-center min-h-[190px]">
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center gap-3 w-full py-8">
-                            <Skeleton className="h-40 w-40 rounded-full" />
-                            <Skeleton className="h-4 w-32" />
+                        <div className="flex flex-col items-center justify-center gap-3 w-full py-6">
+                            <Skeleton className="h-36 w-36 rounded-full" />
+                            <Skeleton className="h-4 w-28" />
                         </div>
                     ) : data.totalRp === 0 ? (
-                        <div className="flex flex-col items-center justify-center text-center p-6 my-auto text-muted-foreground">
-                            <div className="p-3 rounded-full bg-muted/40 mb-2">
-                                <div className="w-8 h-8 rounded-full border-2 border-dashed border-muted-foreground/40" />
+                        <div className="flex flex-col items-center justify-center text-center p-4 my-auto text-muted-foreground">
+                            <div className="p-2.5 rounded-full bg-muted/40 mb-1.5">
+                                <div className="w-6 h-6 rounded-full border-2 border-dashed border-muted-foreground/40" />
                             </div>
                             <p className="text-xs font-semibold">Tidak Ada Data Stok</p>
-                            <p className="text-[11px] text-muted-foreground/80 mt-0.5">
+                            <p className="text-[10px] text-muted-foreground/80 mt-0.5">
                                 Belum ada saldo stok atau transaksi intech untuk gudang ini.
                             </p>
                         </div>
@@ -229,71 +232,71 @@ export const StockValueDonutChart: React.FC<{
                                 options={chartOptions}
                                 series={chartSeries}
                                 type="donut"
-                                height={230}
+                                height={200}
                                 width="100%"
                             />
                         </div>
                     )}
                 </div>
 
-                {/* Metrics Breakdown */}
-                <div className="mt-3 pt-3 border-t border-border/60 space-y-2">
+                {/* Metrics Breakdown (Dual Health Cards) */}
+                <div className="mt-2 pt-2.5 border-t border-border/60 space-y-2">
                     {/* Stock Inventory */}
-                    <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <span
-                                className="w-2.5 h-2.5 rounded-full shrink-0 bg-primary"
-                                aria-hidden="true"
-                            />
-                            <span className="font-medium text-foreground truncate">
-                                Stock Inventory
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-[#2563EB]/5 border border-[#2563EB]/20 text-xs">
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-[11px] font-semibold text-[#2563EB] dark:text-blue-400 flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-[#2563EB]" />
+                                Stok Gudang (Inventory)
+                            </span>
+                            <span className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                                {data.totalInventoryQty.toLocaleString('id-ID')} unit barang
                             </span>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-col items-end shrink-0">
                             <span
                                 title={formatRupiahFull(data.stockInventoryRp)}
-                                className="font-bold text-foreground cursor-help"
+                                className="font-bold text-foreground font-mono tabular-nums"
                             >
                                 {formatCompactRp(data.stockInventoryRp)}
                             </span>
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                            <span className="text-[10px] font-semibold text-[#2563EB] dark:text-blue-400 font-mono">
                                 {data.inventoryPercentage.toFixed(1)}%
                             </span>
                         </div>
                     </div>
 
                     {/* Stock Intech */}
-                    <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <span
-                                className="w-2.5 h-2.5 rounded-full shrink-0 bg-secondary"
-                                aria-hidden="true"
-                            />
-                            <span className="font-medium text-foreground truncate">
-                                Stock Intech
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-[#F59E0B]/5 border border-[#F59E0B]/20 text-xs">
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-[11px] font-semibold text-[#F59E0B] dark:text-amber-400 flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-[#F59E0B]" />
+                                Stok Lapangan (Intech)
+                            </span>
+                            <span className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                                {data.totalIntechQty.toLocaleString('id-ID')} unit barang
                             </span>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-col items-end shrink-0">
                             <span
                                 title={formatRupiahFull(data.stockIntechRp)}
-                                className="font-bold text-foreground cursor-help"
+                                className="font-bold text-foreground font-mono tabular-nums"
                             >
                                 {formatCompactRp(data.stockIntechRp)}
                             </span>
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                            <span className="text-[10px] font-semibold text-[#F59E0B] dark:text-amber-400 font-mono">
                                 {data.intechPercentage.toFixed(1)}%
                             </span>
                         </div>
                     </div>
 
                     {/* Total Material Asset */}
-                    <div className="pt-2 border-t border-dashed border-border/60 flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground font-medium">
-                            Total Nilai Material
+                    <div className="pt-1.5 flex items-center justify-between text-xs px-1">
+                        <span className="text-muted-foreground font-medium text-[11px]">
+                            Total Nilai Aset:
                         </span>
                         <span
                             title={formatRupiahFull(data.totalRp)}
-                            className="font-extrabold text-foreground cursor-help"
+                            className="font-extrabold text-foreground font-mono tabular-nums text-xs"
                         >
                             {formatRupiahFull(data.totalRp)}
                         </span>

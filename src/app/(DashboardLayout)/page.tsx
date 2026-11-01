@@ -27,11 +27,11 @@ export const dynamic = 'force-dynamic';
 
 function ProfileSkeleton() {
     return (
-        <div className="flex items-center gap-3 rounded-xl border border-border/80 bg-card p-2.5 sm:px-4 sm:py-2.5">
-            <Skeleton className="h-9 w-9 rounded-full" />
+        <div className="flex items-center gap-3.5 rounded-xl border border-border/80 bg-card p-3 sm:px-5 sm:py-3.5">
+            <Skeleton className="h-11 w-11 sm:h-12 sm:w-12 rounded-full" />
             <div className="space-y-1.5">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-3 w-28" />
+                <Skeleton className="h-4.5 w-44" />
+                <Skeleton className="h-3.5 w-32" />
             </div>
         </div>
     );

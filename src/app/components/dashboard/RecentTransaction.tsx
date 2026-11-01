@@ -19,17 +19,26 @@ import { queryKeys } from '@/lib/query-keys';
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 type WarehouseOption = { id: number; name: string };
+type CategoryFilter = 'all' | 'cable' | 'accessories';
+
+interface RawOutMaterialItem {
+    material_code: string | null;
+    material_name: string | null;
+    material_unit?: string | null;
+    total_qty: number;
+}
 
 const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] }> = ({
     isStaff,
     warehouses,
 }) => {
     const [selectedWh, setSelectedWh] = useState('all');
+    const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
 
     const targetWh = isStaff ? 'all' : selectedWh;
 
     const {
-        data: chartData = { categories: [], seriesData: [] },
+        data: rawData = [],
         isLoading,
         isError: hasError,
     } = useQuery({
@@ -40,82 +49,123 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
             );
             const result = await getTopOutMaterials(7, isStaff ? 'all' : selectedWh);
             if (!result.success || !result.data) {
-                return { categories: [], seriesData: [] };
+                return [];
             }
-
-            const categories = result.data.map(
-                (d: {
-                    material_code: string | null;
-                    material_name: string | null;
-                    total_qty: number;
-                }) => {
-                    const name = d.material_name || '';
-                    return d.material_code === 'AC-OF-SM-1-3SL' ? `${name} (x10)` : name;
-                }
-            );
-            const seriesData = result.data.map(
-                (d: {
-                    material_code: string | null;
-                    material_name: string | null;
-                    total_qty: number;
-                }) => {
-                    const qty = Number(d.total_qty);
-                    // Scale down AC-OF-SM-1-3SL by 10 for better visual comparison
-                    return d.material_code === 'AC-OF-SM-1-3SL' ? qty / 10 : qty;
-                }
-            );
-            return { categories, seriesData };
+            return result.data as RawOutMaterialItem[];
         },
         staleTime: 60 * 1000,
     });
-    const ChartOptions: ApexOptions = {
-        chart: {
-            toolbar: { show: false },
-            type: 'bar',
-            fontFamily: 'inherit',
-            foreColor: 'var(--color-muted-foreground, #7C8FAC)',
-            height: 300,
-        },
-        colors: ['var(--color-primary)'],
-        plotOptions: {
-            bar: {
-                horizontal: true,
-                borderRadius: 4,
-                barHeight: '46%',
+
+    // Client-side filtering by category
+    const filteredData = useMemo(() => {
+        if (categoryFilter === 'cable') {
+            return rawData.filter((item) => {
+                const code = (item.material_code || '').toUpperCase();
+                const unit = (item.material_unit || '').toUpperCase();
+                return unit === 'M' || code.includes('OF') || code.includes('KU');
+            });
+        }
+        if (categoryFilter === 'accessories') {
+            return rawData.filter((item) => {
+                const code = (item.material_code || '').toUpperCase();
+                const unit = (item.material_unit || '').toUpperCase();
+                return unit !== 'M' && !code.includes('OF') && !code.includes('KU');
+            });
+        }
+        return rawData;
+    }, [rawData, categoryFilter]);
+
+    const chartData = useMemo(() => {
+        const categories = filteredData.map((d) => {
+            const name = d.material_name || d.material_code || '';
+            const truncated = name.length > 25 ? `${name.slice(0, 23)}...` : name;
+            return d.material_code === 'AC-OF-SM-1-3SL' ? `${truncated} (x10)` : truncated;
+        });
+
+        const fullNames = filteredData.map((d) => d.material_name || d.material_code || '');
+        const codes = filteredData.map((d) => d.material_code || '');
+        const units = filteredData.map((d) => d.material_unit || 'Unit');
+        const realQtys = filteredData.map((d) => Number(d.total_qty || 0));
+
+        const seriesData = filteredData.map((d) => {
+            const qty = Number(d.total_qty || 0);
+            return d.material_code === 'AC-OF-SM-1-3SL' ? qty / 10 : qty;
+        });
+
+        return { categories, fullNames, codes, units, realQtys, seriesData };
+    }, [filteredData]);
+
+    const ChartOptions: ApexOptions = useMemo(
+        () => ({
+            chart: {
+                toolbar: { show: false },
+                type: 'bar',
+                fontFamily: 'inherit',
+                foreColor: 'var(--color-muted-foreground, #7C8FAC)',
+                height: 300,
+                animations: { enabled: true, speed: 450 },
             },
-        },
-        dataLabels: {
-            enabled: true,
-            style: {
-                colors: ['#fff'],
-                fontSize: '11px',
-                fontFamily: 'monospace',
-                fontWeight: 600,
-            },
-        },
-        legend: { show: false },
-        grid: { borderColor: 'rgba(0,0,0,0.1)', strokeDashArray: 3 },
-        xaxis: {
-            categories: chartData.categories,
-            axisBorder: { show: false },
-            axisTicks: { show: false },
-            title: { text: 'Jumlah (AC-OF-SM-1-3SL ditampilkan skala visual 1:10)' },
-            labels: {
-                style: { fontSize: '10px', fontFamily: 'monospace' },
-            },
-        },
-        tooltip: {
-            theme: 'dark',
-            y: {
-                formatter: (value, opts) => {
-                    const scaled =
-                        chartData.categories[opts?.dataPointIndex ?? -1]?.endsWith(' (x10)');
-                    const numVal = value ?? 0;
-                    return `${(scaled ? numVal * 10 : numVal).toLocaleString()} unit${scaled ? ' (nilai asli)' : ''}`;
+            colors: ['#0EA5E9'],
+            plotOptions: {
+                bar: {
+                    horizontal: true,
+                    borderRadius: 4,
+                    barHeight: '48%',
+                    dataLabels: {
+                        position: 'top',
+                    },
                 },
             },
-        },
-    };
+            dataLabels: {
+                enabled: true,
+                offsetX: 14,
+                style: {
+                    colors: ['var(--foreground)'],
+                    fontSize: '10px',
+                    fontFamily: 'monospace',
+                    fontWeight: 600,
+                },
+                formatter: (_val, opts) => {
+                    const idx = opts?.dataPointIndex ?? -1;
+                    if (idx < 0) return '';
+                    const realQty = chartData.realQtys[idx] ?? 0;
+                    const unit = chartData.units[idx] ?? '';
+                    return `${realQty.toLocaleString('id-ID')} ${unit}`;
+                },
+            },
+            legend: { show: false },
+            grid: { borderColor: 'var(--color-border, rgba(0,0,0,0.08))', strokeDashArray: 3 },
+            xaxis: {
+                categories: chartData.categories,
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                title: { text: 'Volume Pengeluaran (Drop Cable skala visual 1:10)' },
+                labels: {
+                    style: { fontSize: '10px', fontFamily: 'monospace' },
+                    formatter: (val) => `${Number(val).toLocaleString('id-ID')}`,
+                },
+            },
+            yaxis: {
+                labels: {
+                    style: { fontSize: '11px', fontFamily: 'inherit' },
+                },
+            },
+            tooltip: {
+                theme: 'dark',
+                y: {
+                    formatter: (_value, opts) => {
+                        const idx = opts?.dataPointIndex ?? -1;
+                        if (idx < 0) return '';
+                        const realQty = chartData.realQtys[idx] ?? 0;
+                        const unit = chartData.units[idx] ?? '';
+                        const code = chartData.codes[idx] ?? '';
+                        return `${realQty.toLocaleString('id-ID')} ${unit} [${code}]`;
+                    },
+                },
+            },
+        }),
+        [chartData]
+    );
 
     const series = useMemo(
         () => [{ name: 'Total Out', data: chartData.seriesData }],
@@ -133,7 +183,8 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
                 aria-hidden="true"
             />
 
-            <div className="relative z-10 mb-3 flex flex-wrap items-center justify-between gap-2">
+            {/* Header */}
+            <div className="relative z-10 mb-2 flex flex-wrap items-center justify-between gap-2">
                 <div>
                     <h2 className="text-base font-semibold tracking-tight text-foreground">
                         Top Out Material
@@ -142,25 +193,67 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
                         30 Hari Terakhir
                     </p>
                 </div>
-                {!isStaff && (
-                    <Select value={selectedWh} onValueChange={setSelectedWh}>
-                        <SelectTrigger
-                            aria-label="Filter gudang top out material"
-                            className="w-[125px] sm:w-[135px] h-7.5 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* Category tabs */}
+                    <div className="inline-flex rounded-md border border-border/70 p-0.5 bg-background/80 shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => setCategoryFilter('all')}
+                            className={`px-2 py-0.5 text-[10px] font-medium rounded-sm transition-colors ${
+                                categoryFilter === 'all'
+                                    ? 'bg-primary text-primary-foreground shadow-xs'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
                         >
-                            <SelectValue placeholder="Pilih Gudang" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Gudang</SelectItem>
-                            {warehouses.map((warehouse) => (
-                                <SelectItem key={warehouse.id} value={String(warehouse.id)}>
-                                    {warehouse.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                )}
+                            Semua
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setCategoryFilter('cable')}
+                            className={`px-2 py-0.5 text-[10px] font-medium rounded-sm transition-colors ${
+                                categoryFilter === 'cable'
+                                    ? 'bg-primary text-primary-foreground shadow-xs'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Kabel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setCategoryFilter('accessories')}
+                            className={`px-2 py-0.5 text-[10px] font-medium rounded-sm transition-colors ${
+                                categoryFilter === 'accessories'
+                                    ? 'bg-primary text-primary-foreground shadow-xs'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Pasif
+                        </button>
+                    </div>
+
+                    {!isStaff && (
+                        <Select value={selectedWh} onValueChange={setSelectedWh}>
+                            <SelectTrigger
+                                aria-label="Filter gudang top out material"
+                                className="w-[115px] sm:w-[125px] h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
+                            >
+                                <SelectValue placeholder="Pilih Gudang" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Gudang</SelectItem>
+                                {warehouses.map((warehouse) => (
+                                    <SelectItem key={warehouse.id} value={String(warehouse.id)}>
+                                        {warehouse.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
             </div>
+
+            {/* Chart */}
             <div className="relative z-10 -mx-2 flex-1" aria-busy={isLoading}>
                 {isLoading ? (
                     <Skeleton
