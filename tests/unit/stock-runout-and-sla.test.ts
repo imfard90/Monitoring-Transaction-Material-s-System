@@ -167,3 +167,4 @@ describe('getRekonSlaVelocity', () => {
         expect(tiers?.[2]).toMatchObject({ key: 'breached', count: 10, percentage: 10 });
     });
 });
+

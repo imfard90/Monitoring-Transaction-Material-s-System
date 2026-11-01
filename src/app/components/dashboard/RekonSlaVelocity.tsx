@@ -273,3 +273,4 @@ export const RekonSlaVelocity: React.FC<{
         </Card>
     );
 };
+

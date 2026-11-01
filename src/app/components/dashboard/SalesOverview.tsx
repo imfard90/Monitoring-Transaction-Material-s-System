@@ -68,11 +68,12 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
     });
 
     // Summary KPIs
-    const { totalOut, totalRekon, rekonRatio } = useMemo(() => {
-        const out = chartData.outMaterial.reduce((acc, v) => acc + (v || 0), 0);
-        const rekon = chartData.hasilRekon.reduce((acc, v) => acc + (v || 0), 0);
+    const { totalOut, totalRekon, rekonRatio, gapTerbuka } = useMemo(() => {
+        const out = chartData.outMaterial.reduce((acc, v) => acc + Math.abs(v || 0), 0);
+        const rekon = chartData.hasilRekon.reduce((acc, v) => acc + Math.abs(v || 0), 0);
         const ratio = out > 0 ? Math.round((rekon / out) * 100) : 0;
-        return { totalOut: out, totalRekon: rekon, rekonRatio: ratio };
+        const gap = Math.max(0, out - rekon);
+        return { totalOut: out, totalRekon: rekon, rekonRatio: ratio, gapTerbuka: gap };
     }, [chartData.outMaterial, chartData.hasilRekon]);
 
     const ChartOptions: ApexOptions = useMemo(
@@ -144,21 +145,31 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
                 tickAmount: 5,
                 labels: {
                     style: { fontSize: '11px', fontFamily: 'monospace' },
-                    formatter: (val) => `${Math.abs(val ?? 0)}`,
+                    formatter: (val) => `${Math.abs(val ?? 0).toLocaleString('id-ID')}`,
                 },
             },
             tooltip: {
                 theme: 'dark',
-                y: { formatter: (val) => `${Math.abs(val ?? 0)} transaksi` },
+                y: {
+                    formatter: (val) => `${Math.abs(val ?? 0).toLocaleString('id-ID')} unit`,
+                },
             },
         }),
         [viewMode, chartData.dates]
     );
 
-    const series = [
-        { name: 'Out Material', data: chartData.outMaterial },
-        { name: 'Hasil Rekon', data: chartData.hasilRekon },
-    ];
+    const series = useMemo(
+        () => [
+            { name: 'Out Material', data: chartData.outMaterial },
+            {
+                name: 'Hasil Rekon',
+                data: chartData.hasilRekon.map((v) =>
+                    viewMode === 'stacked' ? -Math.abs(v || 0) : Math.abs(v || 0)
+                ),
+            },
+        ],
+        [chartData.outMaterial, chartData.hasilRekon, viewMode]
+    );
 
     // Generate options for month filter (last 6 months)
     const monthOptions = useMemo(() => {
@@ -301,7 +312,7 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
                 <div className="flex items-center justify-end gap-1.5">
                     <span className="text-[11px] text-muted-foreground">Gap Terbuka:</span>
                     <span className="font-mono font-bold text-amber-600 dark:text-amber-400 tabular-nums">
-                        {Math.max(0, totalOut - totalRekon).toLocaleString('id-ID')}
+                        {gapTerbuka.toLocaleString('id-ID')}
                     </span>
                 </div>
             </div>

@@ -137,6 +137,9 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
         startDate.setDate(endDate.getDate() - daysCount + 1);
         startDate.setHours(0, 0, 0, 0);
 
+        const effectiveEndDate = new Date(endDate);
+        effectiveEndDate.setHours(23, 59, 59, 999);
+
         // 1. Get Out Material from sap_out_items + sap_out_header
         let outQuery = db
             .selectFrom('inventory.sap_out_header as soh')
@@ -148,7 +151,7 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
                 sql<number>`COALESCE(SUM(soi.qty_req), 0)`.as('total_qty'),
             ])
             .where(sql`COALESCE(soh.sap_time, soh.request_time)`, '>=', startDate)
-            .where(sql`COALESCE(soh.sap_time, soh.request_time)`, '<=', endDate)
+            .where(sql`COALESCE(soh.sap_time, soh.request_time)`, '<=', effectiveEndDate)
             .groupBy(sql`TO_CHAR(COALESCE(soh.sap_time, soh.request_time), 'YYYY-MM-DD')`);
 
         if (scopedWarehouseIds) {
@@ -170,7 +173,7 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
                 sql<number>`COALESCE(SUM(tui.qty), 0)`.as('total_qty'),
             ])
             .where('tu.created_at', '>=', startDate)
-            .where('tu.created_at', '<=', endDate)
+            .where('tu.created_at', '<=', effectiveEndDate)
             .groupBy(sql`TO_CHAR(tu.created_at, 'YYYY-MM-DD')`);
 
         if (scopedWarehouseIds) {
@@ -191,7 +194,7 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
                 sql<number>`COALESCE(SUM(rul.qty), 0)`.as('total_qty'),
             ])
             .where('ruh.create_at', '>=', startDate)
-            .where('ruh.create_at', '<=', endDate)
+            .where('ruh.create_at', '<=', effectiveEndDate)
             .groupBy(sql`TO_CHAR(ruh.create_at, 'YYYY-MM-DD')`);
 
         if (scopedWarehouseIds) {

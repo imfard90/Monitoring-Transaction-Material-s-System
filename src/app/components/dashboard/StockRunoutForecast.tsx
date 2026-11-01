@@ -267,3 +267,4 @@ export const StockRunoutForecast: React.FC<{
         </Card>
     );
 };
+
