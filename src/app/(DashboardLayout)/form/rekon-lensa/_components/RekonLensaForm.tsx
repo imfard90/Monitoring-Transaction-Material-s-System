@@ -415,8 +415,8 @@ export default function RekonLensaForm() {
                                             <TableHead className="w-[105px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                                 Tgl Update
                                             </TableHead>
-                                            <TableHead className="w-[130px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                                                Nomor WO
+                                            <TableHead className="w-[100px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-normal leading-tight">
+                                                No WO
                                             </TableHead>
                                             <TableHead className="w-[75px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                                 Tipe
@@ -474,7 +474,7 @@ export default function RekonLensaForm() {
                                                         <TableCell className="text-xs py-2.5 px-2.5 font-mono text-muted-foreground whitespace-nowrap">
                                                             {wo.tanggal_update || '-'}
                                                         </TableCell>
-                                                        <TableCell className="py-2.5 px-2.5 font-mono font-bold text-xs text-foreground whitespace-nowrap">
+                                                        <TableCell className="py-2.5 px-2.5 font-mono font-bold text-xs text-foreground whitespace-normal wrap-break-words leading-tight max-w-[110px]">
                                                             {wo.wo_number}
                                                         </TableCell>
                                                         <TableCell className="text-xs py-2.5 px-2.5 uppercase font-medium text-muted-foreground">
