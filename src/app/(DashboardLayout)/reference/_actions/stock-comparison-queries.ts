@@ -96,14 +96,18 @@ export async function getTeknisiStockList(): Promise<{
                 const rawExcludes = row.exclude_intech_lensa as Array<{
                     id_material: string;
                     qty: number;
+                    type?: 'subtract' | 'add';
                 }> | null;
-                const excludeMap = new Map<string, number>();
+                const excludeMap = new Map<string, { qty: number; type: 'subtract' | 'add' }>();
                 if (Array.isArray(rawExcludes)) {
                     for (const ex of rawExcludes) {
                         if (ex.id_material) {
                             excludeMap.set(
                                 ex.id_material.trim().toUpperCase(),
-                                Number(ex.qty) || 0
+                                {
+                                    qty: Number(ex.qty) || 0,
+                                    type: ex.type === 'add' ? 'add' : 'subtract',
+                                }
                             );
                         }
                     }
@@ -113,8 +117,9 @@ export async function getTeknisiStockList(): Promise<{
                 let diffCount = 0;
                 for (const code of allCodes) {
                     const rawLQty = lensMap.get(code) ?? 0;
-                    const exQty = excludeMap.get(code) ?? 0;
-                    const lQty = Math.max(0, rawLQty - exQty);
+                    const exItem = excludeMap.get(code);
+                    const offset = exItem ? (exItem.type === 'add' ? exItem.qty : -exItem.qty) : 0;
+                    const lQty = rawLQty + offset;
                     const mQty = techMtmsMap.get(code) ?? 0;
                     if (lQty !== mQty) {
                         diffCount++;
@@ -247,12 +252,16 @@ export async function getStockComparison(nik: string): Promise<{
         const rawExcludes = teknisi.exclude_intech_lensa as Array<{
             id_material: string;
             qty: number;
+            type?: 'subtract' | 'add';
         }> | null;
-        const excludeMap = new Map<string, number>();
+        const excludeMap = new Map<string, { qty: number; type: 'subtract' | 'add' }>();
         if (Array.isArray(rawExcludes)) {
             for (const ex of rawExcludes) {
                 if (ex.id_material) {
-                    excludeMap.set(ex.id_material.trim().toUpperCase(), Number(ex.qty) || 0);
+                    excludeMap.set(ex.id_material.trim().toUpperCase(), {
+                        qty: Number(ex.qty) || 0,
+                        type: ex.type === 'add' ? 'add' : 'subtract',
+                    });
                 }
             }
         }
@@ -263,8 +272,9 @@ export async function getStockComparison(nik: string): Promise<{
             const lens = lensMap.get(codeKey);
             const mtms = mtmsMap.get(codeKey);
             const rawLensQty = lens?.qty ?? 0;
-            const excludeQty = excludeMap.get(codeKey) ?? 0;
-            const adjustedLensQty = Math.max(0, rawLensQty - excludeQty);
+            const exItem = excludeMap.get(codeKey);
+            const offset = exItem ? (exItem.type === 'add' ? exItem.qty : -exItem.qty) : 0;
+            const adjustedLensQty = rawLensQty + offset;
             const mtmsQty = mtms?.qty ?? 0;
             const selisih = adjustedLensQty - mtmsQty;
 
@@ -274,7 +284,8 @@ export async function getStockComparison(nik: string): Promise<{
                 satuan: lens?.satuan ?? null,
                 stock_lensa: adjustedLensQty,
                 raw_stock_lensa: rawLensQty,
-                exclude_qty: excludeQty > 0 ? excludeQty : undefined,
+                exclude_qty: exItem?.qty,
+                exclude_type: exItem?.type,
                 stock_mtms: mtmsQty,
                 selisih,
                 match_status: selisih === 0 ? 'match' : 'selisih',

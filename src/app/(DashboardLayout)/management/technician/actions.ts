@@ -178,6 +178,7 @@ const excludeItemSchema = z.object({
     id_material: z.string().trim().min(1, 'Kode material wajib diisi'),
     nama_material: z.string().trim().min(1, 'Nama material wajib diisi'),
     qty: z.coerce.number().int().positive('Jumlah harus lebih dari 0'),
+    type: z.enum(['subtract', 'add']).default('subtract'),
 });
 
 const updateTechnicianExcludeSchema = z.object({
@@ -212,7 +213,12 @@ export async function getMaterialsForSelect(): Promise<
 
 export async function updateTechnicianExclude(data: {
     id: string | number;
-    items: Array<{ id_material: string; nama_material: string; qty: number }>;
+    items: Array<{
+        id_material: string;
+        nama_material: string;
+        qty: number;
+        type?: 'subtract' | 'add';
+    }>;
 }): Promise<{ success: boolean; message?: string }> {
     const parsed = updateTechnicianExcludeSchema.safeParse(data);
     if (!parsed.success) {

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { createColumnHelper, getCoreRowModel, useReactTable } from '@/lib/table';
+import { cn } from '@/lib/utils';
 import type {
     StockComparisonItem,
     StockComparisonResult,
@@ -61,27 +62,47 @@ export function StockComparisonDetailDialog({
                 header: () => <div className="text-center">Lensa</div>,
                 size: 65,
                 cell: (info) => {
-                    const excludeQty = info.row.original.exclude_qty;
+                    const { exclude_qty, exclude_type, raw_stock_lensa } = info.row.original;
                     const val = info.getValue();
 
-                    if (excludeQty && excludeQty > 0) {
+                    if (exclude_qty && exclude_qty > 0) {
+                        const isAdd = exclude_type === 'add';
                         return (
                             <div className="flex justify-center">
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <span className="text-center font-mono text-xs font-bold text-amber-800 bg-amber-100 dark:text-amber-300 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-800 cursor-help">
+                                        <span
+                                            className={cn(
+                                                'text-center font-mono text-xs font-bold px-1.5 py-0.5 rounded border cursor-help',
+                                                isAdd
+                                                    ? 'text-blue-800 bg-blue-100 dark:text-blue-300 dark:bg-blue-950/60 border-blue-300 dark:border-blue-800'
+                                                    : 'text-amber-800 bg-amber-100 dark:text-amber-300 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800'
+                                            )}
+                                        >
                                             {val}
                                         </span>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p className="font-medium">exclude {excludeQty}</p>
-                                        {info.row.original.raw_stock_lensa !== undefined && (
+                                        <p className="font-medium">
+                                            {isAdd
+                                                ? `Normalisasi: +${exclude_qty}`
+                                                : `Exclude: -${exclude_qty}`}
+                                        </p>
+                                        {raw_stock_lensa !== undefined && (
                                             <p className="text-[10px] text-muted-foreground">
-                                                (Lensa asli: {info.row.original.raw_stock_lensa})
+                                                (Lensa asli: {raw_stock_lensa})
                                             </p>
                                         )}
                                     </TooltipContent>
                                 </Tooltip>
+                            </div>
+                        );
+                    }
+
+                    if (val < 0) {
+                        return (
+                            <div className="text-center font-mono text-xs font-semibold text-destructive">
+                                {val}
                             </div>
                         );
                     }

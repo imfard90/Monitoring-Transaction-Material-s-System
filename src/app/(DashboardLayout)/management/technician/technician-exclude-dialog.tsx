@@ -23,6 +23,7 @@ export interface ExcludeMaterialItem {
     id_material: string;
     nama_material: string;
     qty: number;
+    type: 'subtract' | 'add';
 }
 
 interface TechnicianExcludeDialogProps {
@@ -42,6 +43,7 @@ export function TechnicianExcludeDialog({
     const [items, setItems] = useState<ExcludeMaterialItem[]>([]);
     const [selectedCode, setSelectedCode] = useState('');
     const [qtyInput, setQtyInput] = useState('1');
+    const [operationType, setOperationType] = useState<'subtract' | 'add'>('subtract');
 
     useEffect(() => {
         if (technician) {
@@ -52,6 +54,7 @@ export function TechnicianExcludeDialog({
                         id_material: String(it.id_material || ''),
                         nama_material: String(it.nama_material || ''),
                         qty: Number(it.qty) || 1,
+                        type: it.type === 'add' ? 'add' : 'subtract',
                     }))
                 );
             } else {
@@ -59,6 +62,7 @@ export function TechnicianExcludeDialog({
             }
             setSelectedCode('');
             setQtyInput('1');
+            setOperationType('subtract');
         }
     }, [technician]);
 
@@ -89,12 +93,13 @@ export function TechnicianExcludeDialog({
                 (it) => it.id_material.toUpperCase() === selectedCode.toUpperCase()
             );
             if (existingIdx >= 0) {
-                // Update qty jika sudah ada di list
+                // Update qty dan jenis jika sudah ada di list
                 const updated = [...prev];
                 updated[existingIdx] = {
                     id_material: selectedCode,
                     nama_material: namaMaterial,
                     qty: qtyNum,
+                    type: operationType,
                 };
                 return updated;
             }
@@ -104,12 +109,14 @@ export function TechnicianExcludeDialog({
                     id_material: selectedCode,
                     nama_material: namaMaterial,
                     qty: qtyNum,
+                    type: operationType,
                 },
             ];
         });
 
         setSelectedCode('');
         setQtyInput('1');
+        setOperationType('subtract');
     };
 
     const handleRemoveItem = (index: number) => {
@@ -129,10 +136,10 @@ export function TechnicianExcludeDialog({
                     id: technician.id,
                     items,
                 });
-                toast.success(res.message || 'Data exclude berhasil disimpan');
+                toast.success(res.message || 'Data penyesuaian berhasil disimpan');
                 onOpenChange(false);
             } catch (err) {
-                toast.error(err instanceof Error ? err.message : 'Gagal menyimpan data exclude');
+                toast.error(err instanceof Error ? err.message : 'Gagal menyimpan data penyesuaian');
             }
         });
     };
@@ -142,7 +149,7 @@ export function TechnicianExcludeDialog({
             <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6 overflow-hidden">
                 <DialogHeader className="shrink-0">
                     <DialogTitle className="text-lg font-bold flex items-center gap-2">
-                        Kelola Exclude Stok Lensa
+                        Kelola Penyesuaian / Exclude Stok Lensa
                         {technician && (
                             <Badge variant="outline" className="font-mono text-xs font-normal">
                                 NIK: {technician.nik}
@@ -150,10 +157,8 @@ export function TechnicianExcludeDialog({
                         )}
                     </DialogTitle>
                     <DialogDescription className="text-xs text-muted-foreground">
-                        Material yang ada di daftar ini akan dikurangkan dari tampilan stok Intech
-                        Lensa teknisi{' '}
-                        <strong className="text-foreground">{technician?.name}</strong> pada modal
-                        komparasi stok.
+                        Material pada daftar ini akan disesuaikan pada perhitungan stok Lensa Intech teknisi{' '}
+                        <strong className="text-foreground">{technician?.name}</strong> (kurang untuk exclude, tambah untuk normalisasi defisit).
                     </DialogDescription>
                 </DialogHeader>
 
@@ -161,11 +166,11 @@ export function TechnicianExcludeDialog({
                     {/* Form Tambah Item */}
                     <div className="rounded-lg border border-border bg-muted/30 p-3.5 space-y-3">
                         <span className="text-xs font-semibold text-foreground">
-                            Tambah Material Exclude
+                            Tambah Penyesuaian Material
                         </span>
 
                         <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
-                            <div className="sm:col-span-8 space-y-1">
+                            <div className="sm:col-span-5 space-y-1">
                                 <Label className="text-xs">Pilih Material</Label>
                                 <SearchableSelect
                                     options={materialOptions}
@@ -175,6 +180,31 @@ export function TechnicianExcludeDialog({
                                     className="w-full text-xs"
                                     disabled={isPending}
                                 />
+                            </div>
+
+                            <div className="sm:col-span-3 space-y-1">
+                                <Label className="text-xs">Jenis</Label>
+                                <select
+                                    value={operationType}
+                                    onChange={(e) =>
+                                        setOperationType(e.target.value as 'subtract' | 'add')
+                                    }
+                                    className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-xs text-foreground focus:outline-hidden focus:border-primary focus:ring-1 focus:ring-primary"
+                                    disabled={isPending}
+                                >
+                                    <option
+                                        value="subtract"
+                                        className="bg-popover text-popover-foreground"
+                                    >
+                                        Kurang (-) Exclude
+                                    </option>
+                                    <option
+                                        value="add"
+                                        className="bg-popover text-popover-foreground"
+                                    >
+                                        Tambah (+) Normalisasi
+                                    </option>
+                                </select>
                             </div>
 
                             <div className="sm:col-span-2 space-y-1">
@@ -209,7 +239,7 @@ export function TechnicianExcludeDialog({
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
                             <span className="text-xs font-semibold text-foreground">
-                                Daftar Material yang Di-exclude ({items.length})
+                                Daftar Penyesuaian Material ({items.length})
                             </span>
                             {items.length > 0 && (
                                 <Button
@@ -227,23 +257,26 @@ export function TechnicianExcludeDialog({
 
                         {items.length === 0 ? (
                             <div className="border border-dashed border-border rounded-lg p-6 text-center text-xs text-muted-foreground">
-                                Belum ada material yang di-exclude untuk teknisi ini.
+                                Belum ada penyesuaian material untuk teknisi ini.
                             </div>
                         ) : (
                             <div className="rounded-md border border-border overflow-hidden">
                                 <table className="w-full text-xs">
                                     <thead className="bg-muted/60 text-muted-foreground border-b border-border">
                                         <tr>
-                                            <th className="py-2 px-3 text-left font-medium w-[130px]">
+                                            <th className="py-2 px-3 text-left font-medium w-[120px]">
                                                 Kode Material
                                             </th>
                                             <th className="py-2 px-3 text-left font-medium">
                                                 Nama Material
                                             </th>
-                                            <th className="py-2 px-3 text-center font-medium w-[70px]">
+                                            <th className="py-2 px-3 text-center font-medium w-[90px]">
+                                                Jenis
+                                            </th>
+                                            <th className="py-2 px-3 text-center font-medium w-[80px]">
                                                 Jumlah
                                             </th>
-                                            <th className="py-2 px-3 text-center font-medium w-[50px]">
+                                            <th className="py-2 px-3 text-center font-medium w-[45px]">
                                                 Aksi
                                             </th>
                                         </tr>
@@ -257,8 +290,30 @@ export function TechnicianExcludeDialog({
                                                 <td className="py-2 px-3 text-foreground font-medium wrap-break-words">
                                                     {it.nama_material}
                                                 </td>
-                                                <td className="py-2 px-3 text-center font-mono font-semibold text-amber-600 dark:text-amber-400">
-                                                    {it.qty}
+                                                <td className="py-2 px-3 text-center">
+                                                    <Badge
+                                                        variant={
+                                                            it.type === 'add'
+                                                                ? 'lightSuccess'
+                                                                : 'outline'
+                                                        }
+                                                        className="text-[10px] px-1.5 py-0.5 border"
+                                                    >
+                                                        {it.type === 'add'
+                                                            ? 'Tambah (+)'
+                                                            : 'Kurang (-)'}
+                                                    </Badge>
+                                                </td>
+                                                <td className="py-2 px-3 text-center font-mono font-semibold">
+                                                    {it.type === 'add' ? (
+                                                        <span className="text-emerald-600 dark:text-emerald-400">
+                                                            +{it.qty}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-amber-600 dark:text-amber-400">
+                                                            -{it.qty}
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="py-2 px-3 text-center">
                                                     <Button
@@ -300,7 +355,7 @@ export function TechnicianExcludeDialog({
                         className="gap-1.5"
                     >
                         {isPending && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
-                        Simpan Exclude
+                        Simpan Penyesuaian
                     </Button>
                 </DialogFooter>
             </DialogContent>

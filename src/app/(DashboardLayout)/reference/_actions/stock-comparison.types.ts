@@ -17,6 +17,7 @@ export interface StockComparisonItem {
     stock_lensa: number;
     raw_stock_lensa?: number;
     exclude_qty?: number;
+    exclude_type?: 'subtract' | 'add';
     stock_mtms: number;
     selisih: number;
     match_status: 'match' | 'selisih';

@@ -546,6 +546,7 @@ export interface HrTechnicians {
         id_material: string;
         nama_material: string;
         qty: number;
+        type?: 'subtract' | 'add';
     }> | null;
 }
 
