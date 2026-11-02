@@ -95,7 +95,7 @@ export default function NotificationBell() {
             <PopoverContent
                 align="end"
                 sideOffset={8}
-                className="w-[360px] sm:w-[420px] rounded-2xl border-border bg-popover/95 p-0 shadow-2xl backdrop-blur-md overflow-hidden text-popover-foreground"
+                className="w-90 sm:w-105 rounded-2xl border-border bg-popover/95 p-0 shadow-2xl backdrop-blur-md overflow-hidden text-popover-foreground"
             >
                 {/* Popover Header */}
                 <div className="flex items-center justify-between border-b border-border/80 px-4 py-3 bg-muted/30">
@@ -187,7 +187,7 @@ export default function NotificationBell() {
                 </div>
 
                 {/* Urgent Items Feed Section */}
-                <div className="max-h-[260px] overflow-y-auto">
+                <div className="max-h-65 overflow-y-auto">
                     {urgentItems.length > 0 ? (
                         <div>
                             <div className="px-4 py-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase bg-muted/20">
@@ -237,7 +237,7 @@ export default function NotificationBell() {
                             <h5 className="text-xs font-semibold text-foreground">
                                 Semua Tanggungan Selesai
                             </h5>
-                            <p className="text-[11px] text-muted-foreground mt-1 max-w-[280px]">
+                            <p className="text-[11px] text-muted-foreground mt-1 max-w-70">
                                 Tidak ada transaksi Inout Tag, Retur, Out SAP, atau Rekon Lensa yang
                                 tertunda.
                             </p>
