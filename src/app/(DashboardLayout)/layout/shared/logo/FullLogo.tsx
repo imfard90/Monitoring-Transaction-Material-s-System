@@ -10,18 +10,18 @@ const FullLogo = () => {
                 src="/images/logos/dark-logo.svg"
                 alt="Warehouse MTMS Logo"
                 width={220}
-                height={50}
+                height={45}
                 priority
-                className="block dark:hidden rtl:-scale-x-100 shrink-0 w-[205px] sm:w-[220px] h-auto object-contain"
+                className="block dark:hidden rtl:-scale-x-100 shrink-0 w-51.25 sm:w-55 h-auto object-contain"
             />
             {/* Light Logo (Mode Gelap dengan tipografi dan atap terang cerah) */}
             <Image
                 src="/images/logos/light-logo.svg"
                 alt="Warehouse MTMS Logo"
                 width={220}
-                height={50}
+                height={45}
                 priority
-                className="hidden dark:block rtl:-scale-x-100 shrink-0 w-[205px] sm:w-[220px] h-auto object-contain"
+                className="hidden dark:block rtl:-scale-x-100 shrink-0 w-51.25 sm:w-55 h-auto object-contain"
             />
         </>
     );
