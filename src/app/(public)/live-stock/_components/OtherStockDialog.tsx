@@ -15,6 +15,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { queryKeys } from '@/lib/query-keys';
 import { getOtherLocationStock } from '../_actions/live-stock-queries';
 import type { StockItem } from '../_lib/stock-status';
 
@@ -57,7 +58,7 @@ export function OtherStockDialog({ item, onClose }: OtherStockDialogProps) {
     const materialCode = item?.material_code ?? '';
 
     const { data, isLoading, isError, error } = useQuery({
-        queryKey: ['otherLocationStock', materialCode],
+        queryKey: queryKeys.materials.otherLocation(materialCode),
         queryFn: () => getOtherLocationStock(materialCode),
         enabled: item !== null && materialCode.length > 0,
         staleTime: 1000 * 60 * 5,

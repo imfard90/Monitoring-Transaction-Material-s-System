@@ -1,13 +1,13 @@
 'use client';
 
-import { FileUp, FileText, Loader2, X } from 'lucide-react';
+import { FileText, FileUp, Loader2, X } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { parseStockOpnamePdf, type ParsePdfResult } from '../_utils/pdf-parser';
+import type { ParsePdfResult } from '../_utils/pdf-parser';
 
 interface StockOpnameUploadZoneProps {
     onParsed: (result: ParsePdfResult) => void;
@@ -59,6 +59,7 @@ export function StockOpnameUploadZone({
 
             try {
                 const buffer = await file.arrayBuffer();
+                const { parseStockOpnamePdf } = await import('../_utils/pdf-parser');
                 const result = await parseStockOpnamePdf(buffer, {
                     onProgress: (current, total) => {
                         setProgress({ current, total });

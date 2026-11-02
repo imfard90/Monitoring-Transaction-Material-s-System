@@ -6,6 +6,7 @@ import type { DateRange } from 'react-day-picker';
 import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
+import { useDebouncedCallback } from '@/hooks/use-debounce';
 import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
 import {
     getInoutTagItemsByHeaderId,
@@ -106,6 +107,10 @@ export default function InOutTagClient({
         [pagination?.pageSize, filterStatus, toWhFilter, searchQuery, dateFilter, router]
     );
 
+    const debouncedApplySearch = useDebouncedCallback((val: string) => {
+        applyFilters({ search: val, page: 1 });
+    }, 350);
+
     const handleFilterStatusChange = (status: string) => {
         setFilterStatus(status);
         applyFilters({ status, page: 1 });
@@ -113,7 +118,7 @@ export default function InOutTagClient({
 
     const handleSearchChange = (val: string) => {
         setSearchQuery(val);
-        applyFilters({ search: val, page: 1 });
+        debouncedApplySearch(val);
     };
 
     const handleToWhChange = (wh: string) => {
@@ -127,6 +132,7 @@ export default function InOutTagClient({
     };
 
     const handleClearFilters = () => {
+        debouncedApplySearch.cancel();
         setFilterStatus('all');
         setSearchQuery('');
         setToWhFilter('all');

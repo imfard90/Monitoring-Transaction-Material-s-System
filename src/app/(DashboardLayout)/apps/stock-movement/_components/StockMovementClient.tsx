@@ -6,6 +6,7 @@ import type { DateRange } from 'react-day-picker';
 import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
+import { useDebouncedCallback } from '@/hooks/use-debounce';
 import type { StockMovementItem } from './MovementTable';
 import MovementTable from './MovementTable';
 
@@ -96,9 +97,13 @@ export default function StockMovementClient({
         ]
     );
 
+    const debouncedApplySearch = useDebouncedCallback((val: string) => {
+        applyFilters({ search: val, page: 1 });
+    }, 350);
+
     const handleSearchChange = (val: string) => {
         setSearchQuery(val);
-        applyFilters({ search: val, page: 1 });
+        debouncedApplySearch(val);
     };
 
     const handleWarehouseChange = (val: string) => {
@@ -122,6 +127,7 @@ export default function StockMovementClient({
     };
 
     const handleClearFilters = () => {
+        debouncedApplySearch.cancel();
         setSearchQuery('');
         setDateRange(undefined);
         setWarehouseFilter('all');

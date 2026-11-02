@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
 import { acceptReturnTag, cancelTag, updateTag } from '../_actions/tag-actions';
@@ -170,7 +171,7 @@ export default function UpdateTagModal({
         onSuccess: (res) => {
             if (res.success) {
                 toast.success('Transaksi tag berhasil diperbarui');
-                queryClient.invalidateQueries({ queryKey: ['inoutTags'] });
+                queryClient.invalidateQueries({ queryKey: queryKeys.inoutTag.all });
                 onClose();
             } else {
                 toast.error(res.error || 'Gagal memperbarui transaksi tag');
@@ -192,7 +193,7 @@ export default function UpdateTagModal({
         onSuccess: (res) => {
             if (res.success) {
                 toast.success('Transaksi tag berhasil dibatalkan');
-                queryClient.invalidateQueries({ queryKey: ['inoutTags'] });
+                queryClient.invalidateQueries({ queryKey: queryKeys.inoutTag.all });
                 setIsCancelConfirmOpen(false);
                 setCancelNotes('');
                 onClose();

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
+import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import type { OutSapFormItem } from '@/lib/types/inventory';
 import { scrapeReservationAction } from '../../../reference/out-lensa-ref/_actions/out-lensa-actions';
@@ -47,24 +48,24 @@ export default function OutSapForm() {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
     const { data: techData } = useQuery({
-        queryKey: ['technicians', formData.name_sa],
+        queryKey: queryKeys.technicians.bySa(formData.name_sa),
         queryFn: () => getTechnicians(formData.name_sa),
         enabled: !!formData.name_sa,
     });
 
     const { data: whData } = useQuery({
-        queryKey: ['warehouses'],
+        queryKey: queryKeys.warehouses.all,
         queryFn: getWarehouses,
     });
 
     const { data: matData, isFetching: isFetchingMaterials } = useQuery({
-        queryKey: ['materials', formData.warehouse_id],
+        queryKey: queryKeys.materials.byWarehouse(formData.warehouse_id),
         queryFn: () => getMaterialsInWarehouse(parseInt(formData.warehouse_id, 10)),
         enabled: !!formData.warehouse_id,
     });
 
     const { data: branchData } = useQuery({
-        queryKey: ['branches'],
+        queryKey: queryKeys.branches.all,
         queryFn: getBranches,
     });
 
@@ -197,7 +198,9 @@ export default function OutSapForm() {
             !formData.sap_number.trim() ||
             items.length === 0
         ) {
-            toast.error('Please fill all required fields and add at least one material.');
+            toast.error(
+                'Silakan lengkapi seluruh kolom wajib dan tambahkan minimal satu material.'
+            );
             return;
         }
 
@@ -208,7 +211,9 @@ export default function OutSapForm() {
                 !Number.isFinite(Number(item.qty_req)) ||
                 Number(item.qty_req) <= 0
             ) {
-                toast.error('Invalid item data. Please select material and valid quantity.');
+                toast.error(
+                    'Pilihan material atau jumlah permintaan tidak valid. Silakan periksa kembali.'
+                );
                 return;
             }
         }
@@ -235,11 +240,13 @@ export default function OutSapForm() {
         const res = await createOutSap(payload);
 
         if (res.success && res.header_id) {
-            toast.success('Out SAP created and status set to Intech. Stock reduced successfully!');
+            toast.success(
+                'Pengeluaran SAP berhasil disimpan dan status menjadi Intech. Stok gudang berhasil dialokasikan.'
+            );
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['materials'] }),
-                queryClient.invalidateQueries({ queryKey: ['technicians-intech'] }),
-                queryClient.invalidateQueries({ queryKey: ['dashboardStockIntech'] }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.materials.all }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.technicians.all }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.stockIntech() }),
             ]);
             setFormData({
                 nik_teknisi: '',
@@ -254,7 +261,7 @@ export default function OutSapForm() {
             router.refresh();
             router.push('/apps/out-material');
         } else {
-            toast.error(res.error || 'Failed to create Out SAP');
+            toast.error(res.error || 'Gagal menyimpan transaksi Out SAP');
         }
 
         setLoading(false);

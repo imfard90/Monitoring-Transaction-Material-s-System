@@ -2,12 +2,6 @@
 
 import { IconBuildingWarehouse, IconRefresh } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-    createColumnHelper,
-    getCoreRowModel,
-    getPaginationRowModel,
-    useReactTable,
-} from '@/lib/table';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -27,6 +21,13 @@ import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { queryKeys } from '@/lib/query-keys';
+import {
+    createColumnHelper,
+    getCoreRowModel,
+    getPaginationRowModel,
+    useReactTable,
+} from '@/lib/table';
 import { sortStockBalancesByRunout } from '@/lib/utils/stock-balance-order';
 
 interface StockBalanceData {
@@ -87,8 +88,8 @@ export default function StockBalanceOverview() {
             }
             toast.success('Stock lokasi lain berhasil disinkronkan.');
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['otherWarehouseStock'] }),
-                queryClient.invalidateQueries({ queryKey: ['stockBalances'] }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.materials.otherLocation() }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.stockBalance() }),
             ]);
         },
         onError: (error: unknown) => {
@@ -99,7 +100,7 @@ export default function StockBalanceOverview() {
     });
 
     const { data, isLoading } = useQuery({
-        queryKey: ['stockBalances'],
+        queryKey: queryKeys.dashboard.stockBalance(),
         queryFn: async () => {
             const res = await getStockBalances();
             if (!res.success) throw new Error('Failed to fetch stock balances');

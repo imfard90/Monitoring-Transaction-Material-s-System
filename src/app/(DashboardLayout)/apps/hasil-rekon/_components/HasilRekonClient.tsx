@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
 import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
+import { useDebouncedCallback } from '@/hooks/use-debounce';
 import type { HasilRekonData } from '../_actions/rekon-actions';
 import { exportHasilRekonData } from '../_actions/rekon-export-actions';
 import EditRekonModal from './EditRekonModal';
@@ -126,9 +126,13 @@ export default function HasilRekonClient({
         ]
     );
 
+    const debouncedApplySearch = useDebouncedCallback((val: string) => {
+        applyFilters({ search: val, page: 1 });
+    }, 350);
+
     const handleSearchChange = (val: string) => {
         setSearchQuery(val);
-        applyFilters({ search: val, page: 1 });
+        debouncedApplySearch(val);
     };
 
     const handleWarehouseChange = (val: string) => {
@@ -152,6 +156,7 @@ export default function HasilRekonClient({
     };
 
     const handleClearFilters = () => {
+        debouncedApplySearch.cancel();
         setSearchQuery('');
         setDateRange(undefined);
         setWarehouseFilter('all');
@@ -212,6 +217,7 @@ export default function HasilRekonClient({
                 Number(item.qty ?? 0),
             ]);
 
+            const XLSX = await import('xlsx');
             const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
             worksheet['!cols'] = [
                 { wch: 20 }, // Timestamp

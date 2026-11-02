@@ -2,15 +2,9 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-    AlertCircle,
-    CheckCircle2,
-    FileText,
-    Info,
-    PackageCheck,
-} from 'lucide-react';
+import { AlertCircle, CheckCircle2, FileText, Info, PackageCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
@@ -28,12 +22,16 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import {
+    type TechnicianMaterialItem,
+    useMaterialFifoAllocation,
+} from '@/hooks/use-material-fifo-allocation';
+import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import {
     getTechnicianMaterials,
     getTechniciansWithIntechSaps,
     getWOLensa,
-    type RekonLensaItemPayload,
     submitRekonLensa,
 } from '../_actions/rekon-lensa-actions';
 
@@ -42,13 +40,11 @@ export default function RekonLensaForm() {
     const queryClient = useQueryClient();
     const [loading, setLoading] = useState(false);
     const [selectedNik, setSelectedNik] = useState<string>('');
-
-    const [selectedWos, setSelectedWos] = useState<Set<number>>(new Set());
-    const [allocatedQty, setAllocatedQty] = useState<Record<string, number>>({});
+    const [selectedWos, setSelectedWos] = useState<Set<string>>(new Set());
     const [showConfirm, setShowConfirm] = useState(false);
 
     const { data: techData } = useQuery({
-        queryKey: ['technicians-intech'],
+        queryKey: queryKeys.technicians.intech(),
         queryFn: async () => {
             const res = await getTechniciansWithIntechSaps();
             if (!res.success) throw new Error(res.error);
@@ -57,7 +53,7 @@ export default function RekonLensaForm() {
     });
 
     const { data: materialsData, isLoading: materialsLoading } = useQuery({
-        queryKey: ['technician-materials', selectedNik],
+        queryKey: queryKeys.technicians.materials(selectedNik),
         queryFn: async () => {
             if (!selectedNik) return [];
             const res = await getTechnicianMaterials(selectedNik);
@@ -68,7 +64,7 @@ export default function RekonLensaForm() {
     });
 
     const { data: wosData, isLoading: wosLoading } = useQuery({
-        queryKey: ['technician-wos', selectedNik],
+        queryKey: queryKeys.technicians.wos(selectedNik),
         queryFn: async () => {
             if (!selectedNik) return [];
             const res = await getWOLensa(selectedNik);
@@ -78,98 +74,29 @@ export default function RekonLensaForm() {
         enabled: !!selectedNik,
     });
 
-    // Auto-fill logic (FIFO)
-    useEffect(() => {
-        if (!materialsData || !wosData) return;
-
-        // Calculate total required per material code
-        const requiredPerMaterial: Record<string, number> = {};
-
-        wosData.forEach((wo: any) => {
-            if (selectedWos.has(wo.id)) {
-                wo.items.forEach((item: any) => {
-                    const code = item.material_id;
-                    requiredPerMaterial[code] =
-                        (requiredPerMaterial[code] || 0) + item.qty_pemakaian;
-                });
-            }
-        });
-
-        // Allocate using FIFO
-        const newAllocated: Record<string, number> = {};
-        const remainingReq = { ...requiredPerMaterial };
-
-        materialsData.forEach((mat: any) => {
-            const code = mat.material_code;
-            const available = mat.qty_req - (mat.qty_used || 0);
-
-            if (remainingReq[code] > 0 && available > 0) {
-                const toAllocate = Math.min(remainingReq[code], available);
-                newAllocated[mat.sap_out_item_id] = toAllocate;
-                remainingReq[code] -= toAllocate;
-            } else {
-                newAllocated[mat.sap_out_item_id] = 0;
-            }
-        });
-
-        setAllocatedQty(newAllocated);
-    }, [selectedWos, materialsData, wosData]);
+    // Delegated to pure domain FIFO Allocation hook
+    const {
+        allocatedQty,
+        availableStockByCode,
+        selectedWo,
+        woSufficiency,
+        validateAllocationSufficiency,
+        buildFifoPayload,
+    } = useMaterialFifoAllocation({
+        selectedWos,
+        materialsData,
+        wosData,
+    });
 
     // Single WO selection toggle
-    const handleWoToggle = (woId: number) => {
-        const newSet = new Set<number>();
-        if (!selectedWos.has(woId)) {
-            newSet.add(woId);
+    const handleWoToggle = (woId: string | number) => {
+        const idStr = String(woId);
+        const newSet = new Set<string>();
+        if (!selectedWos.has(idStr)) {
+            newSet.add(idStr);
         }
         setSelectedWos(newSet);
     };
-
-    // Hitung total stok per kode material yang tersedia di tangan teknisi
-    const availableStockByCode = useMemo(() => {
-        const map: Record<string, number> = {};
-        materialsData?.forEach((m: any) => {
-            const code = m.material_code;
-            if (code) {
-                const avail = m.qty_req - (m.qty_used || 0);
-                map[code] = (map[code] || 0) + avail;
-            }
-        });
-        return map;
-    }, [materialsData]);
-
-    // Ambil objek WO yang sedang dipilih (jika ada)
-    const selectedWo = useMemo(() => {
-        if (selectedWos.size === 0 || !wosData) return null;
-        const woId = Array.from(selectedWos)[0];
-        return wosData.find((w: any) => w.id === woId) || null;
-    }, [selectedWos, wosData]);
-
-    // Evaluasi kecukupan stok material untuk WO yang dipilih
-    const woSufficiency = useMemo(() => {
-        if (!selectedWo || !selectedWo.items) {
-            return { isReady: false, items: [], totalAllocated: 0 };
-        }
-        let allOk = true;
-        let totalQty = 0;
-        const items = selectedWo.items.map((item: any) => {
-            const available = availableStockByCode[item.material_id] || 0;
-            const isOk = available >= item.qty_pemakaian;
-            if (!isOk) allOk = false;
-            totalQty += item.qty_pemakaian;
-            return {
-                code: item.material_id,
-                required: item.qty_pemakaian,
-                available,
-                uom: item.uom,
-                isOk,
-            };
-        });
-        return {
-            isReady: allOk && items.length > 0,
-            items,
-            totalAllocated: totalQty,
-        };
-    }, [selectedWo, availableStockByCode]);
 
     const handleSubmit = async () => {
         if (!selectedNik || selectedWos.size === 0) {
@@ -177,32 +104,10 @@ export default function RekonLensaForm() {
             return;
         }
 
-        // Check if all required materials are fulfilled
-        const requiredPerMaterial: Record<string, number> = {};
-        wosData?.forEach((wo: any) => {
-            if (selectedWos.has(wo.id)) {
-                wo.items.forEach((item: any) => {
-                    const code = item.material_id;
-                    requiredPerMaterial[code] =
-                        (requiredPerMaterial[code] || 0) + item.qty_pemakaian;
-                });
-            }
-        });
-
-        const allocatedPerMaterial: Record<string, number> = {};
-        materialsData?.forEach((mat: any) => {
-            const code = mat.material_code;
-            allocatedPerMaterial[code] =
-                (allocatedPerMaterial[code] || 0) + (allocatedQty[mat.sap_out_item_id] || 0);
-        });
-
-        for (const code in requiredPerMaterial) {
-            if (requiredPerMaterial[code] > (allocatedPerMaterial[code] || 0)) {
-                toast.error(
-                    `Stok material ${code} di tangan teknisi tidak mencukupi untuk WO yang dipilih.`
-                );
-                return;
-            }
+        const validation = validateAllocationSufficiency();
+        if (!validation.isValid) {
+            toast.error(validation.errorMessage || 'Stok tidak mencukupi untuk WO yang dipilih');
+            return;
         }
 
         setShowConfirm(true);
@@ -211,46 +116,7 @@ export default function RekonLensaForm() {
     const confirmSubmit = async () => {
         setLoading(true);
         try {
-            const payload: RekonLensaItemPayload[] = [];
-
-            wosData?.forEach((wo: any) => {
-                if (selectedWos.has(wo.id)) {
-                    // For each WO, we need to find which SAP items fulfill its requirements
-                    // We do a mini-FIFO just for this WO to map it to sap_out_items
-                    const woReq = { ...requiredPerMaterialForWo(wo) };
-
-                    materialsData?.forEach((mat: any) => {
-                        const code = mat.material_code;
-                        const available =
-                            mat.qty_req -
-                            (mat.qty_used || 0) -
-                            payload
-                                .filter((p) => p.sap_out_item_id === mat.sap_out_item_id)
-                                .reduce((sum, p) => sum + p.qty, 0);
-
-                        if (woReq[code] > 0 && available > 0) {
-                            const toAllocate = Math.min(woReq[code], available);
-
-                            payload.push({
-                                sap_out_id: String(mat.sap_out_id),
-                                sap_number: mat.sap_number,
-                                name_sa: mat.name_sa,
-                                name_wh: mat.name_wh,
-                                designator_id: mat.designator_id,
-                                sap_out_item_id: String(mat.sap_out_item_id),
-                                qty: toAllocate,
-                                wo_type: wo.wo_type,
-                                wo_number: wo.wo_number,
-                                pemakaian_id: String(wo.pemakaian_id),
-                                notes: 'Rekon Lensa',
-                            });
-
-                            woReq[code] -= toAllocate;
-                        }
-                    });
-                }
-            });
-
+            const payload = buildFifoPayload();
             const idemKey = generateIdempotencyKey();
             setIdempotencyKey(idemKey);
 
@@ -259,38 +125,27 @@ export default function RekonLensaForm() {
             if (res.success) {
                 toast.success('Rekon Lensa berhasil disimpan');
                 await Promise.all([
-                    queryClient.invalidateQueries({ queryKey: ['technicians-intech'] }),
-                    queryClient.invalidateQueries({ queryKey: ['technician-materials'] }),
-                    queryClient.invalidateQueries({ queryKey: ['technician-wos'] }),
-                    queryClient.invalidateQueries({ queryKey: ['dashboardStockIntech'] }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.technicians.all }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.stockIntech() }),
                 ]);
                 setSelectedNik('');
                 setSelectedWos(new Set());
-                setAllocatedQty({});
                 setShowConfirm(false);
                 router.refresh();
                 router.push('/apps/hasil-rekon');
             } else {
                 toast.error(res.error || 'Gagal menyimpan Rekon Lensa');
             }
-        } catch (error: any) {
-            toast.error(error.message || 'Terjadi kesalahan');
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Terjadi kesalahan');
         } finally {
             setLoading(false);
             setShowConfirm(false);
         }
     };
 
-    const requiredPerMaterialForWo = (wo: any) => {
-        const req: Record<string, number> = {};
-        wo.items.forEach((item: any) => {
-            req[item.material_id] = (req[item.material_id] || 0) + item.qty_pemakaian;
-        });
-        return req;
-    };
-
     const techOptions =
-        techData?.map((t: any) => ({
+        techData?.map((t: { nik: string; nama_teknisi: string }) => ({
             value: t.nik,
             label: `${t.nik} - ${t.nama_teknisi}`,
         })) || [];
@@ -311,7 +166,6 @@ export default function RekonLensaForm() {
                                 onValueChange={(val: string) => {
                                     setSelectedNik(val);
                                     setSelectedWos(new Set());
-                                    setAllocatedQty({});
                                 }}
                                 placeholder="Cari NIK atau Nama Teknisi..."
                             />
@@ -355,7 +209,8 @@ export default function RekonLensaForm() {
                                         <div className="flex items-center gap-1.5 text-muted-foreground py-0.5">
                                             <Info className="size-4 shrink-0 text-muted-foreground" />
                                             <span>
-                                                Pilih 1 Work Order Lensa di bawah untuk rekonsiliasi.
+                                                Pilih 1 Work Order Lensa di bawah untuk
+                                                rekonsiliasi.
                                             </span>
                                         </div>
                                     )}
@@ -442,12 +297,13 @@ export default function RekonLensaForm() {
                                                     colSpan={5}
                                                     className="text-center py-12 text-xs text-muted-foreground"
                                                 >
-                                                    Tidak ada WO Lensa yang belum direkon untuk teknisi ini
+                                                    Tidak ada WO Lensa yang belum direkon untuk
+                                                    teknisi ini
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
-                                            wosData?.map((wo: any) => {
-                                                const isSelected = selectedWos.has(wo.id);
+                                            wosData?.map((wo) => {
+                                                const isSelected = selectedWos.has(String(wo.id));
                                                 return (
                                                     <TableRow
                                                         key={wo.id}
@@ -486,41 +342,44 @@ export default function RekonLensaForm() {
                                                         </TableCell>
                                                         <TableCell className="py-2.5 px-2.5">
                                                             <div className="flex flex-col gap-1.5">
-                                                                {wo.items.map(
-                                                                    (item: any, idx: number) => {
+                                                                {Array.isArray(wo.items) &&
+                                                                    wo.items.map((item) => {
+                                                                        const matId =
+                                                                            item.material_id || '';
+                                                                        const qtyPem = Number(
+                                                                            item.qty_pemakaian || 0
+                                                                        );
                                                                         const available =
                                                                             availableStockByCode[
-                                                                                item.material_id
+                                                                                matId
                                                                             ] || 0;
                                                                         const isOk =
-                                                                            available >=
-                                                                            item.qty_pemakaian;
+                                                                            available >= qtyPem;
                                                                         return (
                                                                             <span
-                                                                                key={idx}
+                                                                                key={`${wo.id}-${matId}`}
                                                                                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium border w-fit shadow-2xs ${
                                                                                     isOk
                                                                                         ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
                                                                                         : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
                                                                                 }`}
-                                                                                title={`Dibutuhkan: ${item.qty_pemakaian} ${item.uom} | Stok tersedia: ${available} ${item.uom}`}
+                                                                                title={`Dibutuhkan: ${qtyPem} ${item.uom || ''} | Stok tersedia: ${available} ${item.uom || ''}`}
                                                                             >
                                                                                 <span className="font-bold">
-                                                                                    {item.material_id}
+                                                                                    {matId}
                                                                                 </span>
                                                                                 <span className="text-muted-foreground">
                                                                                     :
                                                                                 </span>
                                                                                 <span className="font-bold">
-                                                                                    {item.qty_pemakaian}
+                                                                                    {qtyPem}
                                                                                 </span>
                                                                                 <span className="text-[10px] text-muted-foreground">
                                                                                     {item.uom}
                                                                                 </span>
                                                                             </span>
                                                                         );
-                                                                    }
-                                                                )}
+                                                                    })}
                                                             </div>
                                                         </TableCell>
                                                     </TableRow>
@@ -602,8 +461,9 @@ export default function RekonLensaForm() {
                                 Teknisi:
                             </span>
                             <span className="font-semibold text-foreground">
-                                {techOptions.find((t: any) => t.value === selectedNik)?.label ||
-                                    selectedNik}
+                                {techOptions.find(
+                                    (t: { value: string; label: string }) => t.value === selectedNik
+                                )?.label || selectedNik}
                             </span>
                         </div>
                         <div>
@@ -626,7 +486,7 @@ export default function RekonLensaForm() {
                                     (acc, [sapOutItemId, qty]) => {
                                         if (qty > 0) {
                                             const mat = materialsData?.find(
-                                                (m: any) =>
+                                                (m: TechnicianMaterialItem) =>
                                                     String(m.sap_out_item_id) === sapOutItemId
                                             );
                                             if (mat?.material_code) {

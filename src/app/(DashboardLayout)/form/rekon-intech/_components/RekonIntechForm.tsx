@@ -1,7 +1,6 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'framer-motion';
 import { FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
@@ -32,6 +31,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import {
     getTechnicianMaterials,
@@ -59,18 +59,18 @@ export default function RekonIntechForm() {
     const [itemsToSubmit, setItemsToSubmit] = useState<RekonItemPayload[]>([]);
 
     const { data: techData } = useQuery({
-        queryKey: ['intechTechnicians'],
+        queryKey: queryKeys.technicians.intech(),
         queryFn: getTechniciansWithIntechSaps,
     });
 
     const technicians = techData?.data || [];
-    const techOptions = technicians.map((t: any) => ({
+    const techOptions = technicians.map((t: { nik: string; nama_teknisi: string }) => ({
         value: t.nik,
         label: `${t.nik} - ${t.nama_teknisi}`,
     }));
 
     const { data: materialsData, isLoading: isLoadingMaterials } = useQuery({
-        queryKey: ['technicianMaterials', selectedNik],
+        queryKey: queryKeys.technicians.materials(selectedNik),
         queryFn: () => getTechnicianMaterials(selectedNik),
         enabled: !!selectedNik,
     });
@@ -82,7 +82,7 @@ export default function RekonIntechForm() {
         const mats = materialsData?.data;
         if (mats && mats.length > 0) {
             const initial: Record<string, string> = {};
-            mats.forEach((m: any) => {
+            mats.forEach((m: { sap_out_item_id: number | string }) => {
                 initial[m.sap_out_item_id] = '';
             });
             setRowStates(initial);
@@ -180,9 +180,8 @@ export default function RekonIntechForm() {
         if (res.success) {
             toast.success('Rekon Intech berhasil disubmit!');
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['intechTechnicians'] }),
-                queryClient.invalidateQueries({ queryKey: ['technicianMaterials'] }),
-                queryClient.invalidateQueries({ queryKey: ['dashboardStockIntech'] }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.technicians.all }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.stockIntech() }),
             ]);
             setSelectedNik('');
             setGlobalWoType('');

@@ -398,6 +398,121 @@ LEFT JOIN inventory.mas_wh w ON n.mapping_mas_wh = w.id;
 - Isolasi Background Scraper: ✅ Dikonfigurasi terpisah via PM2 (`ecosystem.config.js` -> `mtms-web` + `mtms-worker`).
 - Audit tidak menyentuh database langsung; kontrak SP diverifikasi via berkas migrasi SQL + integration test, bukan introspeksi live.
 
-**Semua temuan audit (P0, P1, P2, P3) serta pilar Performa, Kredibilitas, dan Kualitas telah ditindaklanjuti.**
+**Semua temuan audit awal (P0, P1, P2, P3) serta pilar Performa, Kredibilitas, dan Kualitas telah ditindaklanjuti.**
+
+---
+
+## 7. Audit Mendalam per Proses Bisnis & Rencana Peningkatan Sistem (Plan 2026)
+
+> Berdasarkan audit kode mendalam pada ~49.700 LOC, bagian ini memetakan kondisi aktual dari **8 proses bisnis inti MTMS**, mengevaluasi kesiapan terhadap 4 pilar kualitas (**Performa Responsif, Kredibilitas, Akuntabilitas, Stabilitas**), serta menetapkan rencana penuntasan **Arsitektur Modular** ke seluruh modul aplikasi sebelum eksekusi dimulai.
+
+### 7.1 Matriks Audit per Proses Bisnis MTMS
+
+| No | Proses Bisnis | Komponen / Rute Utama | Status Modularitas | Temuan & Celah Kualitas | Rekomendasi Peningkatan |
+|---|---|---|---|---|---|
+| **1** | **Pengeluaran Material (Out SAP)** | `/form/out-sap`<br/>`OutSapForm.tsx`<br/>`out-sap-actions.ts` | 🟡 Parsial | Form menggunakan manual `useState` (6 state header terpisah); `OutSapMaterialList.tsx` mengelola array item secara manual; scraper reservasi SAP dipanggil inline dari UI. | Migrasikan form ke `react-hook-form` + `useFieldArray`; integrasikan validasi kuantitas stok gudang via Zod schema; standarisasi query via `queryKeys.outSap`. |
+| **2** | **Rekon Intech** | `/form/rekon-intech`<br/>`RekonIntechForm.tsx`<br/>`/apps/hasil-rekon` | 🟡 Parsial | Menggunakan `TechnicianMaterialTable`, namun global form state (WO, jenis, catatan) masih 4 state terpisah; `HasilRekonClient.tsx` mengimpor `xlsx` secara statis (~350KB bundle); filter tabel belum memakai `useUrlFilterState`. | Dynamic import untuk `xlsx` (`await import('xlsx')`); terapkan `useUrlFilterState` pada `HasilRekonClient`; satukan form state ke `react-hook-form`. |
+| **3** | **Rekon Lensa & SLA H+1** | `/form/rekon-lensa`<br/>`RekonLensaForm.tsx`<br/>`/reference/*-lensa-ref` | 🟡 Parsial | `RekonLensaForm.tsx` sangat besar (660 LOC) dengan ~200 baris helper FIFO alokasi inline di komponen UI; query Lensa Ref sudah modular dengan `useUrlFilterState`. | Ekstraksi logika kalkulasi alokasi FIFO ke pure headless utility `useMaterialFifoAllocation`; pangkas ukuran file form dari 660 baris menjadi < 250 baris. |
+| **4** | **Pengembalian Material (Return)** | `/form/return-material`<br/>`ReturnForm.tsx`<br/>`return-actions.ts` | 🔴 Rendah | Masih menggunakan `useEffect` + raw `useState` (tanpa React Query); tabel material ditulis ulang dari nol (belum memakai reusable table); konfirmasi submit belum terintegrasi skema Zod terpusat. | Migrasikan fetching data ke `useQuery` (`queryKeys.returnMaterial`); gunakan sub-komponen material table terstandarisasi; adopsi `react-hook-form`. |
+| **5** | **Mutasi & Transfer (InOut Tag)** | `/apps/inout-tag`<br/>`CreateTagModal.tsx`<br/>`InOutTagClient.tsx` | 🟢 Baik | `CreateTagModal.tsx` sudah mengadopsi `react-hook-form` + Zod; aksi backend sudah terpecah (`tag-commands`, `tag-queries`); namun `InOutTagClient` dan filter tabel belum mengadopsi `useUrlFilterState`. | Satukan sinkronisasi URL filter dan pagination di `InOutTagClient` menggunakan `useUrlFilterState`; terapkan TanStack Virtual jika tag material melebihi 20 baris. |
+| **6** | **Stock Opname & Live Stock** | `/form/stock-opname`<br/>`StockOpnameClient.tsx`<br/>`pdf-parser.ts` | 🟢 Baik | Parser PDF sudah modular dan teruji unit test; sinkronisasi Google Sheets terlindung atomic distributed lock dan batas 250 baris; panel Dashboard sudah modern. | Tambahkan lazy-loading untuk `pdfjs-dist` saat file diunggah; sediakan fallback caching bila Google Sheets API mengalami rate limiting (HTTP 429). |
+| **7** | **Transaksi & Mapping NTE** | `/stock-nte`<br/>`ReturnNteClient.tsx`<br/>`SetInstallNteClient.tsx` | 🟡 Parsial | Database layer dan SP sangat aman (`nte_inventory`, SP approval, audit log); namun client components masih mengelola form state secara imperatif tanpa form hook standar. | Standardisasi form serial number menggunakan Zod validation; tambahkan auto-complete / scan barcode debounced untuk ribuan serial number. |
+| **8** | **Manajemen Master Data** | `/management/*`<br/>`users`, `technician`<br/>`user-profile` | 🟢 Baik | Otorisasi admin ketat; API Key terlindung SHA-256 dan atomic Redis rate limit; repository HR terpusat; dialog exclude teknisi sudah modular. | Terapkan caching redis metadata peran user (`cache:user:meta:${nik}`) 60–120s pada `getSessionUser` untuk memangkas query berulang per kunjungan page. |
+
+---
+
+### 7.2 Analisis 4 Pilar Kualitas Arsitektur
+
+#### 1. Performa Responsif (Responsive Performance & Speed)
+- **Eliminasi Bundle Bloat**:
+  - `xlsx` (~350KB) di `HasilRekonClient.tsx` diubah dari static import menjadi **dynamic import** (`const XLSX = await import('xlsx')`) yang hanya diunduh saat tombol "Export Excel" diklik.
+  - `pdfjs-dist` di modul Stock Opname diunduh secara lazy hanya ketika pengguna membuka tab atau menyeret file PDF ke area dropzone.
+- **Render Efisien & Bebas Lag Input**:
+  - Form-form utama (`ReturnForm`, `OutSapForm`, `RekonIntechForm`, `RekonLensaForm`) dikonversi dari state reaktif berbasis `useState` per karakter menjadi **uncontrolled form with subscription** via `react-hook-form` + Zod. Mengetik input di HP/tablet teknisi tidak me-re-render seluruh pohon komponen.
+- **Responsivitas Layar Seluler / Lapangan**:
+  - Modal-dialog pada layar sempit ($\le 640\text{px}$) secara responsif beralih ke pola **Bottom Drawer / Sheet** (menggunakan primitif `src/components/ui/drawer.tsx` atau `sheet.tsx`) dengan target sentuh (*touch target*) minimal $44 \times 44\text{px}$.
+
+#### 2. Kredibilitas (Credibility & Data Consistency)
+- **Zero Negative Stock Guarantee**:
+  - Seluruh mutasi pengeluaran, transfer, dan rekon memvalidasi saldo dengan klausa `FOR UPDATE` dan `RAISE EXCEPTION` di Stored Procedure. Saldo gudang tidak pernah bernilai negatif dalam kondisi lonjakan konkurensi apa pun.
+- **Konsistensi Formula SLA Rekon**:
+  - Penghitungan SLA Rekon (maksimal H+1) memanfaatkan kolom terstandarisasi `formatted_date` dan `COALESCE(ruh.create_at, wlh.created_at)` dengan zona waktu eksplisit `AT TIME ZONE 'Asia/Jakarta'`.
+- **Presisi Numerik Finansial & Kuantitas**:
+  - Menghindari *floating-point arithmetic drift* di JavaScript; seluruh agregasi total nilai rupiah material dihitung langsung di basis data PostgreSQL menggunakan tipe `BIGINT` / `NUMERIC` atau melalui utilitas terpusat di `src/lib/formatters.ts`.
+
+#### 3. Akuntabilitas (Accountability & Auditability)
+- **Jejak Audit Kontekstual Lengkap (Full Audit Trail)**:
+  - Setiap mutasi material di `inventory.stock_movement` dan `nte_inventory.nte_movement_log` wajib merekam:
+    1. **Pelaku**: NIK dan ID Pengguna (`created_by`, `session_nik`).
+    2. **Waktu**: Timestamp presisi milidetik dengan zona waktu WIB (`created_at`).
+    3. **Lokasi / Lingkup**: ID Gudang asal dan tujuan (`warehouse_id`, `to_wh_id`).
+    4. **Referensi Transaksi**: Nomor SAP, ID Reservasi Lensa, atau Nomor WO Intech.
+- **Idempotensi Atomik Anti-Duplikasi**:
+  - Penerapan token idempotensi berbasis `SET NX EX` pada Redis di seluruh server action mutasi stok untuk memastikan penekanan tombol submit berulang atau retry jaringan seluler yang tidak stabil tidak menciptakan transaksi ganda.
+
+#### 4. Stabilitas (System Stability & Resilience)
+- **Circuit Breaker & Fallback External Service**:
+  - Integrasi eksternal (Google Sheets API dan scraper Playwright) dilengkapi timeout berjenjang (30 detik), fail-closed error handling, dan graceful degradation sehingga gangguan portal eksternal tidak membuat aplikasi web MTMS down.
+- **Penyempurnaan Connection Pool PostgreSQL**:
+  - Mengonfigurasi `connectionTimeoutMillis: 5000` dan `idleTimeoutMillis: 30000` serta event listener `pool.on('error')` untuk mencegah crash proses Node.js saat koneksi database terputus sejenak.
+- **Penanganan Error Terstruktur**:
+  - Pembungkusan seluruh server action menggunakan wrapper [`toActionResult`](file:///Users/imfard90/Documents/project/Monitoring%20Transaction%20Material's%20System%20(MTMS)/src/lib/errors.ts) dan pemetaan kode error standar RFC 9457 untuk REST API eksternal.
+
+---
+
+### 7.3 Rencana Kerja Penuntasan Arsitektur Modular (Sprint Plan Terbaru)
+
+```mermaid
+gantt
+    title Roadmap Penuntasan Arsitektur Modular & Penguatan Sistem (2026)
+    dateFormat  YYYY-MM-DD
+    section Sprint 1: Form & Domain Table
+    Migrasi ReturnForm ke useQuery & ReactHookForm :s1_1, 2026-11-03, 2d
+    Migrasi OutSapForm & OutSapMaterialList       :s1_2, after s1_1, 2d
+    Ekstraksi FIFO Hook pada RekonLensaForm      :s1_3, after s1_2, 2d
+    section Sprint 2: URL Filter & Performance
+    Perluas useUrlFilterState ke 6 Halaman Tabel :s2_1, after s1_3, 3d
+    Dynamic Import XLSX & PDF Parser             :s2_2, after s2_1, 1d
+    section Sprint 3: Centralized Query Keys
+    Ekspansi queryKeys Factory untuk Semua Modul :s3_1, after s2_2, 2d
+    Standardisasi Caching & Invalidasi Query     :s3_2, after s3_1, 2d
+    section Sprint 4: Verification & Audit Lock
+    Stress Test Konkurensi & Unit Test Expansion :s4_1, after s3_2, 2d
+    Dokumentasi Final & Verification Sign-Off    :s4_2, after s4_1, 1d
+```
+
+#### Rincian Task Rencana:
+
+1. **Sprint 1 — Form Modernization & Reusable Domain Components**:
+   - [ ] Refactor `ReturnForm.tsx`: ganti `useEffect` dengan `useQuery`, terapkan `react-hook-form` + Zod schema, dan gunakan komponen tabel material yang reusable.
+   - [ ] Refactor `OutSapForm.tsx` dan `OutSapMaterialList.tsx`: migrasi ke `react-hook-form` (`useFieldArray`) dengan validasi stok gudang real-time.
+   - [ ] Refactor `RekonLensaForm.tsx`: pisahkan logic alokasi FIFO ke hook domain terisolasi (`useMaterialFifoAllocation.ts`) dan pangkas ukuran file menjadi < 250 LOC.
+
+2. **Sprint 2 — Reusable URL Filter State & Dynamic Imports**:
+   - [ ] Terapkan hook `useUrlFilterState` pada:
+     - `HasilRekonClient.tsx`
+     - `InOutTagClient.tsx`
+     - `OutMaterialClient.tsx`
+     - `StockMovementClient.tsx`
+     - `StockOpnameClient.tsx`
+     - `technician-table.tsx`
+     - `user-table.tsx`
+   - [ ] Implementasikan dynamic import `const XLSX = await import('xlsx')` pada `HasilRekonClient.tsx` dan lazy-load `pdfjs-dist` pada `StockOpnameUploadZone.tsx`.
+
+3. **Sprint 3 — Ekspansi Centralized Query Keys & Data Caching**:
+   - [ ] Perluas `src/lib/query-keys.ts` dengan key factories lengkap:
+     - `queryKeys.outSap`
+     - `queryKeys.returnMaterial`
+     - `queryKeys.inoutTag`
+     - `queryKeys.hasilRekon`
+     - `queryKeys.stockOpname`
+     - `queryKeys.nte`
+   - [ ] Standarisasikan query invalidation pada seluruh mutation action (misal setelah return disetujui, tag ditutup, atau rekon tersimpan).
+
+4. **Sprint 4 — Pengujian Menyeluruh & Verifikasi Bebas Regresi**:
+   - [ ] Tambahkan unit test untuk hook alokasi FIFO dan form schemas baru.
+   - [ ] Jalankan verifikasi menyeluruh: `pnpm test:unit` (100% pass), `npx tsc --noEmit` (0 error), `pnpm biome check` (0 error), dan `pnpm build`.
+
+---
 
 Dokumen ini bersifat hidup—perbarui saat temuan ditindaklanjuti.

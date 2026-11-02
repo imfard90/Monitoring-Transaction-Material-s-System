@@ -1,12 +1,6 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import {
-    createColumnHelper,
-    getCoreRowModel,
-    getPaginationRowModel,
-    useReactTable,
-} from '@/lib/table';
 import { useCallback, useMemo, useState } from 'react';
 import { getDashboardStockIntech } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { DataTable } from '@/app/components/shared/DataTable';
@@ -17,7 +11,14 @@ import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
+import { queryKeys } from '@/lib/query-keys';
 import { formatStockAge } from '@/lib/stock-intech-age';
+import {
+    createColumnHelper,
+    getCoreRowModel,
+    getPaginationRowModel,
+    useReactTable,
+} from '@/lib/table';
 
 interface StockIntechItem {
     branch: string | null;
@@ -49,7 +50,7 @@ export const StockIntechOverview = () => {
         onReset: handleResetFilters,
     });
     const { data, isLoading } = useQuery({
-        queryKey: ['dashboardStockIntech'],
+        queryKey: queryKeys.dashboard.stockIntech(),
         queryFn: getDashboardStockIntech,
     });
 

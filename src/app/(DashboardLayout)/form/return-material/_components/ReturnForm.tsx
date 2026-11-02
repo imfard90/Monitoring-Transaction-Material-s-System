@@ -1,12 +1,14 @@
 'use client';
 
-import { useQueryClient } from '@tanstack/react-query';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Button } from '@/components/ui/button';
@@ -26,120 +28,129 @@ import {
     Table,
     TableBody,
     TableCell,
-    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
-import type { ReturnAvailableItem, ReturnItem, ReturnSapOutOption } from '@/lib/types/inventory';
+import type { ReturnAvailableItem, ReturnSapOutOption } from '@/lib/types/inventory';
 import {
     createReturnMaterial,
     getAvailableSapOuts,
     getSapOutItemsForReturn,
 } from '../_actions/return-actions';
 
+const returnItemSchema = z.object({
+    sap_out_item_id: z.string().min(1, 'Material wajib dipilih'),
+    designator_id: z.string().min(1, 'Designator ID tidak valid'),
+    qty: z.number().min(1, 'Jumlah pengembalian minimal 1'),
+    maxReturn: z.number().min(1),
+});
+
+const returnFormSchema = z.object({
+    sap_out_id: z.string().min(1, 'Silakan pilih transaksi yang akan dikembalikan'),
+    nik_teknisi: z.string(),
+    warehouse_id: z.string(),
+    notes: z.string().optional(),
+    items: z
+        .array(returnItemSchema)
+        .min(1, 'Silakan tambahkan minimal satu material untuk dikembalikan'),
+});
+
+type ReturnFormValues = z.infer<typeof returnFormSchema>;
+
 export default function ReturnForm() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const [loading, setLoading] = useState(false);
-
-    const [sapOuts, setSapOuts] = useState<ReturnSapOutOption[]>([]);
-    const [availableItems, setAvailableItems] = useState<ReturnAvailableItem[]>([]);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
-    const [formData, setFormData] = useState({
-        sap_out_id: '',
-        nik_teknisi: '',
-        warehouse_id: '',
-        notes: '',
+    const {
+        control,
+        handleSubmit,
+        watch,
+        setValue,
+        reset,
+        formState: { errors },
+    } = useForm<ReturnFormValues>({
+        resolver: zodResolver(returnFormSchema),
+        defaultValues: {
+            sap_out_id: '',
+            nik_teknisi: '',
+            warehouse_id: '',
+            notes: '',
+            items: [],
+        },
     });
 
-    const [items, setItems] = useState<ReturnItem[]>([]);
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: 'items',
+    });
 
-    useEffect(() => {
-        const fetchSapOuts = async () => {
+    const selectedSapOutId = watch('sap_out_id');
+    const watchedItems = watch('items') || [];
+    const notesValue = watch('notes') || '';
+
+    // Query available SAP Out transactions
+    const { data: sapOuts = [], refetch: refetchSapOuts } = useQuery({
+        queryKey: queryKeys.returnMaterial.availableSapOuts(),
+        queryFn: async () => {
             const res = await getAvailableSapOuts();
-            if (res.success) {
-                setSapOuts(res.data);
-            }
-        };
-        fetchSapOuts();
-    }, []);
+            return res.success ? (res.data as ReturnSapOutOption[]) : [];
+        },
+    });
 
-    const handleSapOutChange = async (val: string) => {
+    // Query available returnable items for the selected SAP Out
+    const { data: availableItems = [] } = useQuery({
+        queryKey: queryKeys.returnMaterial.sapOutItems(selectedSapOutId),
+        queryFn: async () => {
+            if (!selectedSapOutId) return [];
+            const res = await getSapOutItemsForReturn(selectedSapOutId);
+            return res.success ? (res.data as ReturnAvailableItem[]) : [];
+        },
+        enabled: !!selectedSapOutId,
+    });
+
+    const handleSapOutChange = (val: string) => {
         const selected = sapOuts.find((s: ReturnSapOutOption) => s.id.toString() === val);
         if (!selected) return;
 
-        setFormData({
-            ...formData,
-            sap_out_id: val,
-            nik_teknisi: selected.nik_teknisi || '',
-            warehouse_id: selected.warehouse_id?.toString() || '',
-        });
-
-        // Fetch items
-        const res = await getSapOutItemsForReturn(val);
-        if (res.success) {
-            setAvailableItems(res.data);
-            setItems([]); // reset selected items
-        }
+        setValue('sap_out_id', val, { shouldValidate: true });
+        setValue('nik_teknisi', selected.nik_teknisi || '');
+        setValue('warehouse_id', selected.warehouse_id?.toString() || '');
+        setValue('items', []); // Reset items on transaction change
     };
 
     const handleAddItem = () => {
-        setItems([...items, { sap_out_item_id: '', designator_id: '', qty: '', maxReturn: 0 }]);
+        append({
+            sap_out_item_id: '',
+            designator_id: '',
+            qty: 1,
+            maxReturn: 1,
+        });
     };
 
-    const handleRemoveItem = (index: number) => {
-        const newItems = [...items];
-        newItems.splice(index, 1);
-        setItems(newItems);
-    };
-
-    const handleItemChange = (index: number, field: string, value: number | string) => {
-        const newItems = [...items];
-
-        if (field === 'sap_out_item_id') {
-            const selectedItem = availableItems.find((i) => i.sap_out_item_id.toString() === value);
-            if (selectedItem) {
-                newItems[index] = {
-                    ...newItems[index],
-                    sap_out_item_id: value,
-                    designator_id: selectedItem.designator_id,
-                    maxReturn: selectedItem.maxReturn,
-                    qty: '',
-                };
-            }
-        } else {
-            newItems[index] = { ...newItems[index], [field]: value };
-
-            if (field === 'qty' && value !== '') {
-                const maxReturn = newItems[index].maxReturn || 0;
-                if (Number(value) > maxReturn) {
-                    newItems[index].qty = maxReturn;
-                    toast.error(`Jumlah pengembalian maksimal adalah ${maxReturn}`);
-                }
-            }
-        }
-
-        setItems(newItems);
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!formData.sap_out_id) {
+    const onSubmitForm = () => {
+        if (!selectedSapOutId) {
             toast.error('Silakan pilih transaksi yang akan dikembalikan');
             return;
         }
 
-        if (items.length === 0) {
+        if (watchedItems.length === 0) {
             toast.error('Silakan tambahkan minimal satu material untuk dikembalikan');
             return;
         }
 
-        const invalidItems = items.filter((i) => !i.sap_out_item_id || Number(i.qty) <= 0);
+        const invalidItems = watchedItems.filter(
+            (i) => !i.sap_out_item_id || Number(i.qty) <= 0 || Number(i.qty) > Number(i.maxReturn)
+        );
+
         if (invalidItems.length > 0) {
-            toast.error('Silakan periksa pilihan material dan jumlah pengembalian');
+            toast.error(
+                'Terdapat material dengan jumlah kembali tidak valid atau melebihi batas maksimal'
+            );
             return;
         }
 
@@ -152,12 +163,14 @@ export default function ReturnForm() {
             const idemKey = generateIdempotencyKey();
             setIdempotencyKey(idemKey, 'inventoryTx');
 
+            const values = watch();
             const payload = {
-                ...formData,
-                sap_out_id: Number(formData.sap_out_id),
-                warehouse_id: Number(formData.warehouse_id),
+                sap_out_id: Number(values.sap_out_id),
+                nik_teknisi: values.nik_teknisi,
+                warehouse_id: Number(values.warehouse_id),
+                notes: values.notes || null,
                 idemKey,
-                items: items.map((i) => ({
+                items: values.items.map((i) => ({
                     designator_id: Number(i.designator_id),
                     sap_out_item_id: Number(i.sap_out_item_id),
                     qty: Number(i.qty),
@@ -167,72 +180,75 @@ export default function ReturnForm() {
             const res = await createReturnMaterial(payload);
             if (res.success) {
                 toast.success('Pengembalian material berhasil diajukan!');
-                // Reset form
-                setFormData({
+                reset({
                     sap_out_id: '',
                     nik_teknisi: '',
                     warehouse_id: '',
                     notes: '',
+                    items: [],
                 });
-                setItems([]);
-                setAvailableItems([]);
 
-                // Refresh available sap outs
-                const sapRes = await getAvailableSapOuts();
-                if (sapRes.success) setSapOuts(sapRes.data);
-
-                await queryClient.invalidateQueries({ queryKey: ['dashboardStockIntech'] });
+                await Promise.all([
+                    refetchSapOuts(),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.stockIntech() }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.technicians.all }),
+                ]);
                 router.refresh();
             } else {
                 toast.error(res.error || 'Gagal mengajukan pengembalian material');
             }
         } catch (_err: unknown) {
-            toast.error('Terjadi kesalahan');
+            toast.error('Terjadi kesalahan jaringan');
         } finally {
             setLoading(false);
             setIsConfirmModalOpen(false);
         }
     };
 
-    const selectedTech = sapOuts.find(
-        (s: ReturnSapOutOption) => s.id.toString() === formData.sap_out_id
-    );
-
-    const totalQty = useMemo(
-        () => items.reduce((acc, curr) => acc + (Number(curr.qty) || 0), 0),
-        [items]
+    const selectedTech = useMemo(
+        () => sapOuts.find((s: ReturnSapOutOption) => s.id.toString() === selectedSapOutId),
+        [sapOuts, selectedSapOutId]
     );
 
     return (
         <StaggerContainer>
-            <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6">
-                <form onSubmit={handleSubmit} className="space-y-8">
+            <Card className="border border-border bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none p-6">
+                <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-8">
                     <StaggerItem>
                         <h2 className="text-lg font-bold text-foreground mb-4 border-b border-border/70 pb-3">
                             Pengembalian Material (Return Transaction)
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label>Cari Teknisi (Intech)</Label>
+                                <Label>Cari Transaksi / Teknisi</Label>
                                 <SearchableSelect
                                     options={sapOuts.map((s: ReturnSapOutOption) => ({
                                         value: s.id.toString(),
                                         label: `${s.id_trx}${s.request_id ? ` - [REQ: ${s.request_id}]` : ''} - ${s.nik_teknisi} - ${s.nama_teknisi}`,
                                     }))}
-                                    value={formData.sap_out_id}
+                                    value={selectedSapOutId}
                                     onValueChange={handleSapOutChange}
                                     placeholder="Cari transaksi / no request / teknisi..."
                                 />
+                                {errors.sap_out_id && (
+                                    <p className="text-xs text-destructive">
+                                        {errors.sap_out_id.message}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
                                 <Label>Catatan / Alasan</Label>
-                                <Input
-                                    value={formData.notes}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, notes: e.target.value })
-                                    }
-                                    placeholder="Contoh: Sisa material instalasi"
+                                <Controller
+                                    name="notes"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            {...field}
+                                            value={field.value ?? ''}
+                                            placeholder="Contoh: Sisa material instalasi"
+                                        />
+                                    )}
                                 />
                             </div>
                         </div>
@@ -240,15 +256,22 @@ export default function ReturnForm() {
 
                     <StaggerItem>
                         <div className="flex justify-between items-center mb-4 border-b border-border/70 pb-3">
-                            <h2 className="text-lg font-bold text-foreground">
-                                Material yang Dikembalikan
-                            </h2>
+                            <div>
+                                <h2 className="text-lg font-bold text-foreground">
+                                    Material yang Dikembalikan
+                                </h2>
+                                {errors.items?.message && (
+                                    <p className="text-xs text-destructive mt-1">
+                                        {errors.items.message}
+                                    </p>
+                                )}
+                            </div>
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 onClick={handleAddItem}
-                                disabled={!formData.sap_out_id}
+                                disabled={!selectedSapOutId}
                             >
                                 <Plus className="h-4 w-4 mr-2" /> Tambah Material
                             </Button>
@@ -256,82 +279,132 @@ export default function ReturnForm() {
 
                         <div className="space-y-4">
                             <AnimatePresence mode="popLayout">
-                                {items.map((item, index) => (
-                                    <motion.div
-                                        key={item.id || index}
-                                        initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                                        exit={{ opacity: 0, height: 0, scale: 0.9 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-muted/40 overflow-hidden"
-                                    >
-                                        <div className="flex-1 space-y-2">
-                                            <Label>Material</Label>
-                                            <Select
-                                                value={item.sap_out_item_id.toString()}
-                                                onValueChange={(val) =>
-                                                    handleItemChange(index, 'sap_out_item_id', val)
-                                                }
-                                            >
-                                                <SelectTrigger className="bg-background">
-                                                    <SelectValue placeholder="Pilih Material" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {availableItems.map((ai) => (
-                                                        <SelectItem
-                                                            key={ai.sap_out_item_id}
-                                                            value={ai.sap_out_item_id.toString()}
+                                {fields.map((fieldItem, index) => {
+                                    const currentItem = watchedItems[index];
+                                    const maxReturn = currentItem?.maxReturn || 1;
+
+                                    return (
+                                        <motion.div
+                                            key={fieldItem.id}
+                                            initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                                            exit={{ opacity: 0, height: 0, scale: 0.9 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-muted/40 overflow-hidden"
+                                        >
+                                            <div className="flex-1 space-y-2">
+                                                <Label>Material</Label>
+                                                <Controller
+                                                    name={`items.${index}.sap_out_item_id`}
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <Select
+                                                            value={field.value}
+                                                            onValueChange={(val) => {
+                                                                field.onChange(val);
+                                                                const matched = availableItems.find(
+                                                                    (ai) =>
+                                                                        ai.sap_out_item_id.toString() ===
+                                                                        val
+                                                                );
+                                                                if (matched) {
+                                                                    setValue(
+                                                                        `items.${index}.designator_id`,
+                                                                        String(
+                                                                            matched.designator_id
+                                                                        )
+                                                                    );
+                                                                    setValue(
+                                                                        `items.${index}.maxReturn`,
+                                                                        matched.maxReturn ?? 1
+                                                                    );
+                                                                    setValue(
+                                                                        `items.${index}.qty`,
+                                                                        1
+                                                                    );
+                                                                }
+                                                            }}
                                                         >
-                                                            {ai.material_code} - {ai.material_name}{' '}
-                                                            (Maks: {ai.maxReturn})
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                                            <SelectTrigger className="bg-background">
+                                                                <SelectValue placeholder="Pilih Material" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {availableItems.map((ai) => (
+                                                                    <SelectItem
+                                                                        key={ai.sap_out_item_id}
+                                                                        value={ai.sap_out_item_id.toString()}
+                                                                    >
+                                                                        {ai.material_code} -{' '}
+                                                                        {ai.material_name} (Maks:{' '}
+                                                                        {ai.maxReturn})
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    )}
+                                                />
+                                            </div>
 
-                                        <div className="w-full sm:w-32 space-y-2">
-                                            <Label>Jumlah Kembali</Label>
-                                            <Input
-                                                type="number"
-                                                min="1"
-                                                max={item.maxReturn || 1}
-                                                placeholder="0"
-                                                value={
-                                                    item.qty === 0 || item.qty === ''
-                                                        ? ''
-                                                        : item.qty
-                                                }
-                                                onChange={(e) => {
-                                                    const val =
-                                                        e.target.value === ''
-                                                            ? ''
-                                                            : parseInt(e.target.value, 10);
-                                                    handleItemChange(index, 'qty', val);
-                                                }}
-                                            />
-                                        </div>
+                                            <div className="w-full sm:w-36 space-y-2">
+                                                <Label>Jumlah Kembali</Label>
+                                                <Controller
+                                                    name={`items.${index}.qty`}
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <Input
+                                                            type="number"
+                                                            min={1}
+                                                            max={maxReturn}
+                                                            value={
+                                                                field.value === 0 ||
+                                                                Number.isNaN(field.value)
+                                                                    ? ''
+                                                                    : field.value
+                                                            }
+                                                            onChange={(e) => {
+                                                                const val =
+                                                                    e.target.value === ''
+                                                                        ? 0
+                                                                        : parseInt(
+                                                                              e.target.value,
+                                                                              10
+                                                                          );
+                                                                if (val > maxReturn) {
+                                                                    toast.error(
+                                                                        `Jumlah pengembalian maksimal adalah ${maxReturn}`
+                                                                    );
+                                                                    field.onChange(maxReturn);
+                                                                } else {
+                                                                    field.onChange(val);
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                />
+                                            </div>
 
-                                        <div className="pt-8">
-                                            <motion.div
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                            >
-                                                <Button
-                                                    type="button"
-                                                    variant="destructive"
-                                                    size="icon"
-                                                    onClick={() => handleRemoveItem(index)}
+                                            <div className="pt-8">
+                                                <motion.div
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
                                                 >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </motion.div>
-                                        </div>
-                                    </motion.div>
-                                ))}
+                                                    <Button
+                                                        type="button"
+                                                        variant="destructive"
+                                                        size="icon"
+                                                        onClick={() => remove(index)}
+                                                        aria-label="Hapus baris material"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </motion.div>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
                             </AnimatePresence>
 
-                            {items.length === 0 && (
+                            {fields.length === 0 && (
                                 <div className="text-center p-8 border border-dashed rounded-lg text-muted-foreground">
                                     Belum ada material yang ditambahkan. Klik "Tambah Material"
                                     untuk memilih material.
@@ -342,12 +415,12 @@ export default function ReturnForm() {
 
                     <StaggerItem className="flex justify-end pt-4 border-t border-border">
                         <motion.div
-                            whileHover={{ scale: items.length === 0 ? 1 : 1.02 }}
-                            whileTap={{ scale: items.length === 0 ? 1 : 0.98 }}
+                            whileHover={{ scale: watchedItems.length === 0 ? 1 : 1.02 }}
+                            whileTap={{ scale: watchedItems.length === 0 ? 1 : 0.98 }}
                         >
                             <Button
                                 type="submit"
-                                disabled={loading || items.length === 0}
+                                disabled={loading || watchedItems.length === 0}
                                 className="w-full sm:w-auto"
                             >
                                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -395,7 +468,7 @@ export default function ReturnForm() {
                                     Catatan:
                                 </span>
                                 <span className="text-muted-foreground text-xs">
-                                    {formData.notes || '-'}
+                                    {notesValue || '-'}
                                 </span>
                             </div>
                         </div>
@@ -406,11 +479,11 @@ export default function ReturnForm() {
                                     Material yang Dikembalikan
                                 </h4>
                                 <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full border border-border/40">
-                                    {items.length} item material
+                                    {watchedItems.length} item material
                                 </span>
                             </div>
 
-                            <div className="border border-border/70 rounded-xl overflow-hidden shadow-xs">
+                            <div className="border border-border/70 rounded-xl overflow-hidden shadow-2xs">
                                 <div className="max-h-[260px] overflow-y-auto">
                                     <Table>
                                         <TableHeader className="bg-muted/80 backdrop-blur-xs sticky top-0 z-10 border-b border-border">
@@ -427,55 +500,32 @@ export default function ReturnForm() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {items.map((item, idx) => {
+                                            {watchedItems.map((item, idx) => {
                                                 const mat = availableItems.find(
-                                                    (ai) =>
-                                                        ai.sap_out_item_id.toString() ===
+                                                    (a) =>
+                                                        a.sap_out_item_id.toString() ===
                                                         item.sap_out_item_id
                                                 );
                                                 return (
-                                                    <TableRow
-                                                        key={item.sap_out_item_id as string}
-                                                        className="hover:bg-muted/40 transition-colors"
-                                                    >
-                                                        <TableCell className="text-center text-xs font-mono text-muted-foreground">
+                                                    <TableRow key={item.sap_out_item_id || idx}>
+                                                        <TableCell className="text-center font-mono text-xs text-muted-foreground">
                                                             {idx + 1}
                                                         </TableCell>
-                                                        <TableCell className="py-2.5">
-                                                            <div className="flex flex-col gap-0.5">
-                                                                <span className="font-mono text-xs font-semibold text-primary">
-                                                                    {mat?.material_code ?? '-'}
-                                                                </span>
-                                                                <span
-                                                                    className="text-xs text-muted-foreground line-clamp-1"
-                                                                    title={mat?.material_name ?? ''}
-                                                                >
-                                                                    {mat?.material_name ?? '-'}
-                                                                </span>
+                                                        <TableCell>
+                                                            <div className="font-medium text-foreground text-xs">
+                                                                {mat?.material_name || '-'}
+                                                            </div>
+                                                            <div className="font-mono text-[10px] text-muted-foreground">
+                                                                {mat?.material_code || '-'}
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell className="text-center font-mono font-bold text-sm text-foreground">
-                                                            <span className="inline-block px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                {item.qty}
-                                                            </span>
+                                                        <TableCell className="text-center font-bold text-foreground tabular-nums">
+                                                            {item.qty}
                                                         </TableCell>
                                                     </TableRow>
                                                 );
                                             })}
                                         </TableBody>
-                                        <TableFooter className="bg-muted/50 border-t border-border font-medium">
-                                            <TableRow className="hover:bg-transparent">
-                                                <TableCell
-                                                    colSpan={2}
-                                                    className="text-right text-xs font-semibold uppercase tracking-wider"
-                                                >
-                                                    Total Unit Dikembalikan:
-                                                </TableCell>
-                                                <TableCell className="text-center font-mono font-bold text-sm text-primary">
-                                                    {totalQty}
-                                                </TableCell>
-                                            </TableRow>
-                                        </TableFooter>
                                     </Table>
                                 </div>
                             </div>

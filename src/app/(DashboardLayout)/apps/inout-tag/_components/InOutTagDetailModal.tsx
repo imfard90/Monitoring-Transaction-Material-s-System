@@ -15,6 +15,7 @@ import {
 import type * as React from 'react';
 import { ModalDialog } from '@/components/ui/modal-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { queryKeys } from '@/lib/query-keys';
 import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
 import { cn } from '@/lib/utils';
 import { getInOutTagItems, getReturnMaterialItemsByHeaderId } from '../_actions/tag-actions';
@@ -215,7 +216,7 @@ export default function InOutTagDetailModal({ row, isOpen, onClose }: InOutTagDe
 
     const isReturn = row?.type === 'return';
     const { data, isLoading } = useQuery({
-        queryKey: ['inoutTagItems', row?.type, headerId],
+        queryKey: queryKeys.inoutTag.items(row?.type, headerId ?? undefined),
         queryFn: async () => {
             if (headerId === null) return { success: false, data: [] };
             const res = isReturn

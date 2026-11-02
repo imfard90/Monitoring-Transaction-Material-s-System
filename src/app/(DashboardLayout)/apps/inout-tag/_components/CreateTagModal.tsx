@@ -30,6 +30,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import { cn } from '@/lib/utils';
 import { createTag, getMaterialsWithStock, getWarehouses } from '../_actions/tag-actions';
@@ -111,12 +112,12 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
 
     // Queries
     const { data: whRes } = useQuery({
-        queryKey: ['warehouses'],
+        queryKey: queryKeys.warehouses.all,
         queryFn: getWarehouses,
     });
 
     const { data: matRes } = useQuery({
-        queryKey: ['materials', fromWhId],
+        queryKey: queryKeys.materials.byWarehouse(fromWhId),
         queryFn: () => getMaterialsWithStock(fromWhId ?? null),
         enabled: Boolean(fromWhId),
     });
@@ -159,7 +160,8 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
         onSuccess: (res) => {
             if (res.success) {
                 toast.success(`Tag created successfully: ${res.id_trx}`);
-                queryClient.invalidateQueries({ queryKey: ['inoutTags'] });
+                queryClient.invalidateQueries({ queryKey: queryKeys.inoutTag.all });
+                queryClient.invalidateQueries({ queryKey: queryKeys.materials.all });
                 onClose();
             } else {
                 toast.error(res.error || 'Failed to create tag');

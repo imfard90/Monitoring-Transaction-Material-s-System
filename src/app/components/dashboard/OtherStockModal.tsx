@@ -19,6 +19,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { queryKeys } from '@/lib/query-keys';
 
 interface OtherStockModalProps {
     isOpen: boolean;
@@ -54,7 +55,7 @@ export function OtherStockModal({
     const [selectedRegional, setSelectedRegional] = useState<string>('all');
 
     const { data, isLoading, isError, error } = useQuery({
-        queryKey: ['otherWarehouseStock', materialCode],
+        queryKey: queryKeys.materials.otherLocation(materialCode),
         queryFn: () => getOtherWarehouseStock(materialCode),
         enabled: isOpen && materialCode.length > 0,
         staleTime: 1000 * 60 * 5,

@@ -6,6 +6,7 @@ import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SearchField } from '@/components/ui/search-field';
+import { queryKeys } from '@/lib/query-keys';
 import { getLiveStockData } from './_actions/live-stock-queries';
 import { LiveIndicator } from './_components/LiveIndicator';
 import { MaterialCards } from './_components/MaterialCards';
@@ -34,7 +35,7 @@ export function LiveStockClient({ initialData }: { initialData?: Result }) {
     });
 
     const { data, isFetching, error, dataUpdatedAt, refetch } = useQuery({
-        queryKey: ['liveStock'],
+        queryKey: queryKeys.liveStock.all,
         queryFn: async () => {
             const result = await getLiveStockData();
             if (!result.success) throw new Error(result.error);

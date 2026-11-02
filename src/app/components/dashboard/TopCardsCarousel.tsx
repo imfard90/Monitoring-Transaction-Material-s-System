@@ -8,6 +8,7 @@ import 'swiper/css';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardKpis } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { Card } from '@/components/ui/card';
+import { queryKeys } from '@/lib/query-keys';
 
 interface TopCardsCarouselProps {
     kpis: {
@@ -138,7 +139,7 @@ function formatKpiDisplay(key: string, value: number): { formatted: string; full
 
 export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
     const { data } = useQuery<TopCardsCarouselProps['kpis']>({
-        queryKey: ['dashboardKpis'],
+        queryKey: queryKeys.dashboard.kpi(),
         queryFn: async () => {
             const res = await getDashboardKpis();
             if (res.success && res.data) return res.data as TopCardsCarouselProps['kpis'];
