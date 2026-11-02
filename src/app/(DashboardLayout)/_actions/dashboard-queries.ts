@@ -65,6 +65,8 @@ export async function getStockWarnings(warehouseId: string = 'all') {
             .select([
                 'w.name as warehouse_name',
                 'm.code as material_code',
+                'm.description as material_name',
+                'm.unit as material_unit',
                 'p.average_demand_weekly',
                 'p.lead_time_weeks',
                 'p.safety_stock_pct',
