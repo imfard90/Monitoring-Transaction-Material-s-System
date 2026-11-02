@@ -1,32 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
-  <!-- Warehouse Body -->
-  <path fill="#7daeff" d="M110 130v332h312V130z" />
-  <path fill="#3b66b4" d="M382 130v332h40V130z" />
-  
-  <!-- Roof -->
-  <path fill="#e6e6e6" d="M256 32L24 160h60v20H44L256 64l212 116h-40v-20h60L256 32z" />
-  <path fill="#f2f2f2" d="M44 180a20 20 0 01-10-37l222-122a20 20 0 0119 0l222 122a20 20 0 01-19 35L256 68 64 174a20 20 0 01-20 6z" />
-  
-  <!-- Vents -->
-  <rect fill="#3b66b4" x="200" y="160" width="40" height="15" rx="7.5" />
-  <rect fill="#3b66b4" x="272" y="160" width="40" height="15" rx="7.5" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="favWall" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="favWallShadow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e40af" />
+      <stop offset="100%" stop-color="#172554" />
+    </linearGradient>
+    <linearGradient id="favRoof" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+    <linearGradient id="favBox" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="favDoor" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+  </defs>
 
-  <!-- Roll-up Door -->
-  <rect fill="#4d5363" x="180" y="220" width="152" height="242" rx="15" />
-  <path fill="#e6e6e6" d="M180 220h152v60H180z" />
-  <path fill="#cccccc" d="M180 220h152v20H180z" />
-  
-  <!-- Large Box -->
-  <rect fill="#e09c48" x="60" y="300" width="120" height="162" rx="10" />
-  <rect fill="#b9722a" x="160" y="300" width="20" height="162" rx="5" />
-  <path fill="#fce595" d="M100 300h40v50l-20 15-20-15z" />
-  <rect fill="#b9722a" x="80" y="390" width="60" height="15" rx="7.5" />
-  <rect fill="#b9722a" x="80" y="420" width="60" height="15" rx="7.5" />
-  
-  <!-- Small Box -->
-  <rect fill="#e09c48" x="180" y="350" width="90" height="112" rx="10" />
-  <rect fill="#b9722a" x="250" y="350" width="20" height="112" rx="5" />
-  <path fill="#fce595" d="M210 350h30v35l-15 10-15-10z" />
-  <rect fill="#b9722a" x="195" y="410" width="45" height="12" rx="6" />
-  <rect fill="#b9722a" x="195" y="435" width="45" height="12" rx="6" />
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .fav-roof { fill: #f8fafc !important; }
+      .fav-roof-lip { fill: #94a3b8 !important; }
+    }
+  </style>
+
+  <!-- Ground Shadow -->
+  <ellipse cx="256" cy="466" rx="200" ry="16" fill="#000000" opacity="0.25" />
+
+  <!-- Warehouse Main Body -->
+  <path fill="url(#favWall)" d="M110 130v332h312V130z" />
+  <path fill="url(#favWallShadow)" d="M382 130v332h40V130z" />
+
+  <!-- Architectural Roof with Theme Adaptation -->
+  <path class="fav-roof-lip" fill="#94a3b8" d="M256 32L24 160h60v20H44L256 64l212 116h-40v-20h60L256 32z" />
+  <path class="fav-roof" fill="url(#favRoof)" d="M44 180a20 20 0 01-10-37l222-122a20 20 0 0119 0l222 122a20 20 0 01-19 35L256 68 64 174a20 20 0 01-20 6z" />
+
+  <!-- Vents -->
+  <rect fill="#1e3a8a" x="200" y="160" width="40" height="15" rx="7.5" />
+  <rect fill="#1e3a8a" x="272" y="160" width="40" height="15" rx="7.5" />
+
+  <!-- Industrial Shutter Door -->
+  <rect fill="url(#favDoor)" x="180" y="220" width="152" height="242" rx="14" stroke="#475569" stroke-width="3" />
+  <path fill="#f8fafc" d="M180 220h152v50H180z" opacity="0.9" />
+
+  <!-- Large Material Box -->
+  <rect fill="url(#favBox)" x="60" y="300" width="120" height="162" rx="12" />
+  <rect fill="#b45309" x="160" y="300" width="20" height="162" rx="4" />
+  <path fill="#fef08a" d="M100 300h40v48l-20 14-20-14z" />
+
+  <!-- Small Material Box -->
+  <rect fill="url(#favBox)" x="180" y="350" width="90" height="112" rx="10" />
+  <rect fill="#b45309" x="250" y="350" width="20" height="112" rx="4" />
+  <path fill="#fef08a" d="M210 350h30v34l-15 10-15-10z" />
 </svg>

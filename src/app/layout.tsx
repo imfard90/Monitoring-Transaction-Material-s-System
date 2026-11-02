@@ -18,6 +18,10 @@ export const metadata: Metadata = {
     },
     description:
         'Sistem manajemen terintegrasi untuk pemantauan transaksi material (MTMS) secara real-time, memberikan efisiensi operasional dan visibilitas akurat.',
+    icons: {
+        icon: '/favicon.svg',
+        apple: '/icons/apple-touch-icon.png',
+    },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -25,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="id" suppressHydrationWarning>
             <head>
                 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+                <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
                 <link rel="manifest" href="/manifest.json" />
                 <meta name="theme-color" content="#5d87ff" />
             </head>
