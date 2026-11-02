@@ -135,21 +135,56 @@ describe('rekon-lensa-actions Unit Tests', () => {
         expect(res.error).toContain('Akses ditolak: Anda tidak memiliki akses ke gudang manapun');
     });
 
-    it('rejects submission if Staff attempts to reconcile unassigned warehouse SAP Out', async () => {
+    it('rejects submission if Staff attempts to reconcile technician not registered in assigned warehouse', async () => {
         mockGetSessionUser.mockResolvedValue({
             nik: 'STAFF_03',
             role: 'Staff',
             isStaff: true,
             warehouseIds: [1, 2],
         });
-        // mockDbExecute returns only allowed headers matching the warehouseIds
-        mockDbExecute.mockResolvedValueOnce([]); // No matching headers found in Staff warehouse
+        mockDbExecuteTakeFirst.mockResolvedValueOnce({ wh_id: 99 }); // Technician registered in WH 99
 
         const res = await submitRekonLensa('TKN01', [validItem], 'idem-lensa-3');
         expect(res.success).toBe(false);
         expect(res.error).toContain(
-            'Akses ditolak: Sebagian transaksi bukan dari gudang wewenang Anda'
+            'Akses ditolak: Teknisi bukan terdaftar di gudang wewenang Anda'
         );
+    });
+
+    it('rejects submission if Staff attempts to reconcile SAP Out not belonging to technician', async () => {
+        mockGetSessionUser.mockResolvedValue({
+            nik: 'STAFF_03',
+            role: 'Staff',
+            isStaff: true,
+            warehouseIds: [1, 2],
+        });
+        mockDbExecuteTakeFirst.mockResolvedValueOnce({ wh_id: 1 }); // Technician registered in WH 1
+        mockDbExecute.mockResolvedValueOnce([]); // No valid headers matching technician
+
+        const res = await submitRekonLensa('TKN01', [validItem], 'idem-lensa-3b');
+        expect(res.success).toBe(false);
+        expect(res.error).toContain(
+            'Akses ditolak: Sebagian transaksi bukan milik teknisi ini'
+        );
+    });
+
+    it('allows Staff to reconcile cross-warehouse SAP Out for technician registered in their warehouse', async () => {
+        mockGetSessionUser.mockResolvedValue({
+            nik: 'STAFF_03',
+            role: 'Staff',
+            isStaff: true,
+            warehouseIds: [1], // Staff from WH 1
+        });
+        // Technician registered in WH 1
+        mockDbExecuteTakeFirst.mockResolvedValueOnce({ wh_id: 1 });
+        // Valid header matching technician (from another warehouse e.g. WH 2)
+        mockDbExecute.mockResolvedValueOnce([{ id: '100' }]);
+        // No duplicate WOs
+        mockDbExecute.mockResolvedValueOnce([]);
+
+        const res = await submitRekonLensa('TKN01', [validItem], 'idem-lensa-staff-cross');
+        expect(res.success).toBe(true);
+        expect(mockRecordRekonLensa).toHaveBeenCalled();
     });
 
     it('blocks submission if WO already exists in transaction_used_header', async () => {

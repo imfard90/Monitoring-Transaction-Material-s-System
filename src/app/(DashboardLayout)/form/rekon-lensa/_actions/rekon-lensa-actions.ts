@@ -33,7 +33,7 @@ export async function getTechniciansWithIntechSaps() {
             if (warehouseIds.length === 0) {
                 return { success: true, data: [] };
             }
-            query = query.where('soh.warehouse_id', 'in', warehouseIds);
+            query = query.where('t.wh_id', 'in', warehouseIds);
         }
 
         const saps = await query.execute();
@@ -80,7 +80,14 @@ export async function getTechnicianMaterials(nik: string) {
             if (warehouseIds.length === 0) {
                 return { success: true, data: [] };
             }
-            query = query.where('soh.warehouse_id', 'in', warehouseIds);
+            const tech = await db
+                .selectFrom('hr.technicians')
+                .select('wh_id')
+                .where('nik', '=', nik)
+                .executeTakeFirst();
+            if (!tech || !tech.wh_id || !warehouseIds.includes(tech.wh_id)) {
+                return { success: true, data: [] };
+            }
         }
 
         const materials = await query.execute();
@@ -97,7 +104,20 @@ export async function getTechnicianMaterials(nik: string) {
 
 export async function getWOLensa(nik: string) {
     try {
-        await getSessionUser();
+        const { isStaff, warehouseIds } = await getSessionUser();
+        if (isStaff) {
+            if (warehouseIds.length === 0) {
+                return { success: true, data: [] };
+            }
+            const tech = await db
+                .selectFrom('hr.technicians')
+                .select('wh_id')
+                .where('nik', '=', nik)
+                .executeTakeFirst();
+            if (!tech || !tech.wh_id || !warehouseIds.includes(tech.wh_id)) {
+                return { success: true, data: [] };
+            }
+        }
         // Get WO Lensa that haven't been reconciled yet
         const wos = await db
             .selectFrom('inventory.wo_lensa_header as h')
@@ -191,19 +211,30 @@ export async function submitRekonLensa(
                     error: 'Akses ditolak: Anda tidak memiliki akses ke gudang manapun',
                 };
             }
+            const tech = await db
+                .selectFrom('hr.technicians')
+                .select('wh_id')
+                .where('nik', '=', parsed.data.nik)
+                .executeTakeFirst();
+            if (!tech || !tech.wh_id || !warehouseIds.includes(tech.wh_id)) {
+                return {
+                    success: false,
+                    error: 'Akses ditolak: Teknisi bukan terdaftar di gudang wewenang Anda',
+                };
+            }
             const sapOutIds = Array.from(
                 new Set(parsed.data.items.map((item) => String(item.sap_out_id)))
             );
-            const allowedHeaders = await db
+            const validHeaders = await db
                 .selectFrom('inventory.sap_out_header')
                 .select('id')
                 .where('id', 'in', sapOutIds)
-                .where('warehouse_id', 'in', warehouseIds)
+                .where('nik_teknisi', '=', parsed.data.nik)
                 .execute();
-            if (allowedHeaders.length !== sapOutIds.length) {
+            if (validHeaders.length !== sapOutIds.length) {
                 return {
                     success: false,
-                    error: 'Akses ditolak: Sebagian transaksi bukan dari gudang wewenang Anda',
+                    error: 'Akses ditolak: Sebagian transaksi bukan milik teknisi ini',
                 };
             }
         }

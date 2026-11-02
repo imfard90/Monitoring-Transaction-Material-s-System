@@ -102,7 +102,7 @@ export async function getDashboardStockIntech() {
             .where('soh.end_status', '=', 'intech')
             .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0);
 
-        query = applyWarehouseScope(query, 'soh.warehouse_id', user);
+        query = applyWarehouseScope(query, 't.wh_id', user);
 
         const data = await query
             .orderBy('soh.request_time', 'asc')

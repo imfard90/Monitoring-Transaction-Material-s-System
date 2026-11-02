@@ -119,7 +119,7 @@ describe('getDashboardStockIntech', () => {
         const result = await getDashboardStockIntech();
 
         expect(result.success).toBe(true);
-        expect(mockWhere).toHaveBeenCalledWith('soh.warehouse_id', 'in', [1]);
+        expect(mockWhere).toHaveBeenCalledWith('t.wh_id', 'in', [1]);
         expect(mockLimit).not.toHaveBeenCalled();
     });
 });
