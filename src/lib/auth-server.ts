@@ -132,7 +132,11 @@ export async function getSessionUser(): Promise<SessionUser> {
             ...sessionMeta,
         };
     } catch (e: any) {
-        if (e.name === 'AuthenticationError') throw e;
+        if (e?.name === 'AuthenticationError') throw e;
+        if (e?.digest?.includes('NEXT_REDIRECT')) throw e;
+        if (e?.code === 'ECONNRESET' || e?.name === 'AbortError' || e?.digest === '511400414') {
+            throw e;
+        }
         authLogger.error('getSessionUser Error', e);
         throw errors.auth();
     }
@@ -147,6 +151,10 @@ export async function getPageSessionUser(): Promise<SessionUser> {
     try {
         return await getSessionUser();
     } catch (e: any) {
+        if (e?.digest?.includes('NEXT_REDIRECT')) throw e;
+        if (e?.code === 'ECONNRESET' || e?.name === 'AbortError' || e?.digest === '511400414') {
+            throw e;
+        }
         if (e?.name === 'AuthenticationError' || e?.statusCode === 401) {
             redirect('/auth/login?reason=expired');
         }

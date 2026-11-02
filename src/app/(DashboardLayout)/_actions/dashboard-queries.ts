@@ -250,7 +250,7 @@ export async function getDashboardKpis() {
         const intechStock = await intechStockQuery.executeTakeFirst();
         data.stockIntechRp = Number(intechStock?.total_rp || 0);
 
-        await encryptedCache.setGeneral('dashboard', data, cacheKey, 10);
+        await encryptedCache.setGeneral('dashboard', data, cacheKey, 60);
         return { success: true, data };
     } catch (error: unknown) {
         actionLogger.error(

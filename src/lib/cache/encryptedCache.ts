@@ -92,6 +92,19 @@ export async function decrypt<T>(token: string): Promise<T> {
     }
 }
 
+function isStaleOrInvalidCacheError(error: unknown): boolean {
+    if (!error) return false;
+    const msg = error instanceof Error ? error.message : String(error);
+    const code = (error as any)?.code;
+    return (
+        code === 'ERR_JWT_EXPIRED' ||
+        msg.includes('claim "exp" is in the past') ||
+        msg.includes('JWTExpired') ||
+        msg.includes('decryption operation failed') ||
+        msg.includes('JWE')
+    );
+}
+
 // ─── Cache Key Helpers ───────────────────────────────────────────────────────
 
 export function getUserCacheKey(
@@ -141,8 +154,8 @@ export class EncryptedCache {
         cacheType: string,
         identifier?: string
     ): Promise<T | null> {
+        const key = getUserCacheKey(userId, cacheType, identifier);
         try {
-            const key = getUserCacheKey(userId, cacheType, identifier);
             const encryptedData = await redis.get(key);
 
             if (!encryptedData) return null;
@@ -151,10 +164,15 @@ export class EncryptedCache {
             cacheLogger.debug(`[EncryptedCache] HIT: ${key}`);
             return decrypted;
         } catch (error) {
-            cacheLogger.error(
-                '[EncryptedCache] ',
-                error instanceof Error ? error : new Error(String(error))
-            );
+            if (isStaleOrInvalidCacheError(error)) {
+                cacheLogger.debug(`[EncryptedCache] Stale/invalid token for ${key}, clearing key`);
+                void redis.del(key).catch(() => {});
+            } else {
+                cacheLogger.warn(
+                    '[EncryptedCache] Cache read error',
+                    error instanceof Error ? error : new Error(String(error))
+                );
+            }
             return null;
         }
     }
@@ -173,8 +191,8 @@ export class EncryptedCache {
             await redis.set(key, encryptedData, 'EX', ttl);
             cacheLogger.debug(`[EncryptedCache] SET: ${key} (TTL: ${ttl}s)`);
         } catch (error) {
-            cacheLogger.error(
-                '[EncryptedCache] ',
+            cacheLogger.warn(
+                '[EncryptedCache] Cache write error',
                 error instanceof Error ? error : new Error(String(error))
             );
         }
@@ -195,8 +213,8 @@ export class EncryptedCache {
                 `[EncryptedCache] Invalidated cache for user: ${userId}, type: ${cacheType ?? 'all'}`
             );
         } catch (error) {
-            cacheLogger.error(
-                '[EncryptedCache] ',
+            cacheLogger.warn(
+                '[EncryptedCache] Invalidate error',
                 error instanceof Error ? error : new Error(String(error))
             );
         }
@@ -211,26 +229,33 @@ export class EncryptedCache {
 
             cacheLogger.debug(`[EncryptedCache] Invalidated all ${keys.length} cache entries`);
         } catch (error) {
-            cacheLogger.error(
-                '[EncryptedCache] ',
+            cacheLogger.warn(
+                '[EncryptedCache] InvalidateAll error',
                 error instanceof Error ? error : new Error(String(error))
             );
         }
     }
 
     async getGeneral<T>(cacheType: string, identifier?: string): Promise<T | null> {
+        const key = getGeneralCacheKey(cacheType, identifier);
         try {
-            const key = getGeneralCacheKey(cacheType, identifier);
             const encryptedData = await redis.get(key);
 
             if (!encryptedData) return null;
 
             return await decrypt<T>(encryptedData);
         } catch (error) {
-            cacheLogger.error(
-                '[EncryptedCache] ',
-                error instanceof Error ? error : new Error(String(error))
-            );
+            if (isStaleOrInvalidCacheError(error)) {
+                cacheLogger.debug(
+                    `[EncryptedCache] Stale/invalid general cache for ${key}, clearing key`
+                );
+                void redis.del(key).catch(() => {});
+            } else {
+                cacheLogger.warn(
+                    '[EncryptedCache] General cache read error',
+                    error instanceof Error ? error : new Error(String(error))
+                );
+            }
             return null;
         }
     }
@@ -246,8 +271,8 @@ export class EncryptedCache {
             const encryptedData = await encrypt(data, ttl);
             await redis.set(key, encryptedData, 'EX', ttl);
         } catch (error) {
-            cacheLogger.error(
-                '[EncryptedCache] ',
+            cacheLogger.warn(
+                '[EncryptedCache] General cache write error',
                 error instanceof Error ? error : new Error(String(error))
             );
         }
@@ -264,8 +289,8 @@ export class EncryptedCache {
                 await redis.del(...keys);
             }
         } catch (error) {
-            cacheLogger.error(
-                '[EncryptedCache] ',
+            cacheLogger.warn(
+                '[EncryptedCache] InvalidateGeneral error',
                 error instanceof Error ? error : new Error(String(error))
             );
         }

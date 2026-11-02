@@ -5,6 +5,10 @@ const baseLogger = pino(
     {
         level: process.env.NODE_ENV === 'production' ? 'warn' : 'debug',
         timestamp: pino.stdTimeFunctions.isoTime,
+        serializers: {
+            err: pino.stdSerializers.err,
+            error: pino.stdSerializers.err,
+        },
         // Redact sensitive fields by path — avoid blanket redaction of entire `err`/`error`/`stack`
         // which strips diagnostic context from server error logs.
         ...(process.env.NODE_ENV === 'production' && {
@@ -41,7 +45,11 @@ const baseLogger = pino(
 function createLoggerWithLevels(parent: pino.Logger): {
     debug: (message: string, context?: Record<string, unknown>) => void;
     info: (message: string, context?: Record<string, unknown>) => void;
-    warn: (message: string, context?: Record<string, unknown>) => void;
+    warn: (
+        message: string,
+        errOrContext?: Error | Record<string, unknown>,
+        context?: Record<string, unknown>
+    ) => void;
     error: (message: string, err?: Error, context?: Record<string, unknown>) => void;
 } {
     return {
@@ -59,18 +67,24 @@ function createLoggerWithLevels(parent: pino.Logger): {
                 parent.info(message);
             }
         },
-        warn(message: string, context?: Record<string, unknown>) {
-            if (context) {
-                parent.warn(context as any, message);
+        warn(
+            message: string,
+            errOrContext?: Error | Record<string, unknown>,
+            context?: Record<string, unknown>
+        ) {
+            if (errOrContext instanceof Error) {
+                parent.warn({ ...context, err: errOrContext } as any, message);
+            } else if (errOrContext) {
+                parent.warn(errOrContext as any, message);
             } else {
                 parent.warn(message);
             }
         },
         error(message: string, err?: Error, context?: Record<string, unknown>) {
             if (err && context) {
-                parent.error({ ...context, error: err } as any, message);
+                parent.error({ ...context, err } as any, message);
             } else if (err) {
-                parent.error({ error: err } as any, message);
+                parent.error({ err } as any, message);
             } else if (context) {
                 parent.error(context as any, message);
             } else {

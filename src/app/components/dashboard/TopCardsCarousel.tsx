@@ -146,7 +146,9 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
             return initialKpis;
         },
         initialData: initialKpis,
-        refetchInterval: 10000, // Poll every 10 seconds
+        staleTime: 30000,
+        refetchInterval: 60000, // Poll every 60 seconds (aligned with 60s Redis TTL)
+        refetchOnWindowFocus: false,
     });
 
     const kpis = data || initialKpis;
