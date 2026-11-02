@@ -8,6 +8,7 @@ import type { HrTechnicians } from '@/lib/db/database.types';
 import { db } from '@/lib/db/db';
 import { errors } from '@/lib/errors';
 import { actionLogger } from '@/lib/logger';
+import { redis } from '@/lib/redis';
 import { hrRepository } from '@/lib/repositories/hr.repository';
 
 export async function getTechnicians() {
@@ -248,6 +249,13 @@ export async function updateTechnicianExclude(data: {
 
         revalidatePath('/management/technician');
         revalidatePath('/reference/stock-comparison');
+        revalidatePath('/');
+
+        try {
+            await redis.del('dashboard:warehouse_leaderboard_global');
+        } catch {
+            // Ignore Redis invalidation errors
+        }
 
         return {
             success: true,

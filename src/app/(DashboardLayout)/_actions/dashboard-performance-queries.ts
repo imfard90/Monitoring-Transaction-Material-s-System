@@ -119,7 +119,13 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
         const techQuery = db
             .selectFrom('hr.technicians as t')
             .innerJoin('inventory.mas_wh as wh', 'wh.id', 't.wh_id')
-            .select(['t.nik', 't.wh_id', 'wh.name as warehouse_name', 't.ref_intech_lensa'])
+            .select([
+                't.nik',
+                't.wh_id',
+                'wh.name as warehouse_name',
+                't.ref_intech_lensa',
+                't.exclude_intech_lensa',
+            ])
             .where('t.wh_id', 'is not', null)
             .where('t.is_active', '=', true);
 
@@ -128,6 +134,7 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
             wh_id: number | null;
             warehouse_name: string | null;
             ref_intech_lensa: unknown;
+            exclude_intech_lensa: unknown;
         }>;
 
         const niks = techRows.map((r) => r.nik).filter((nik): nik is string => Boolean(nik));
@@ -176,10 +183,31 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
                     lensMap.set(code, Number.parseInt(String(material.stock_teknisi), 10) || 0);
                 }
 
+                // Parse exclude/normalization items
+                const rawExcludes = t.exclude_intech_lensa as Array<{
+                    id_material: string;
+                    qty: number;
+                    type?: 'subtract' | 'add';
+                }> | null;
+                const excludeMap = new Map<string, { qty: number; type: 'subtract' | 'add' }>();
+                if (Array.isArray(rawExcludes)) {
+                    for (const ex of rawExcludes) {
+                        if (ex.id_material) {
+                            excludeMap.set(ex.id_material.trim().toUpperCase(), {
+                                qty: Number(ex.qty) || 0,
+                                type: ex.type === 'add' ? 'add' : 'subtract',
+                            });
+                        }
+                    }
+                }
+
                 const allCodes = new Set([...lensMap.keys(), ...techMtmsMap.keys()]);
                 let isMatch = true;
                 for (const code of allCodes) {
-                    const lQty = lensMap.get(code) ?? 0;
+                    const rawLQty = lensMap.get(code) ?? 0;
+                    const exItem = excludeMap.get(code);
+                    const offset = exItem ? (exItem.type === 'add' ? exItem.qty : -exItem.qty) : 0;
+                    const lQty = rawLQty + offset;
                     const mQty = techMtmsMap.get(code) ?? 0;
                     if (lQty !== mQty) {
                         isMatch = false;

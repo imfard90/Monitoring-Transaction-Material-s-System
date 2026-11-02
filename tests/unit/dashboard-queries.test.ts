@@ -393,6 +393,61 @@ describe('getIntechLensaWarehousePerformance', () => {
             },
         ]);
     });
+
+    it('considers normalisasi (exclude_intech_lensa) when calculating match ratio', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: false, warehouseIds: [] });
+
+        mockExecute.mockResolvedValueOnce([
+            {
+                nik: 'TECH01',
+                wh_id: 1,
+                warehouse_name: 'SO Karangpilang',
+                ref_intech_lensa: {
+                    status: 'success',
+                    materials: [{ id_material: 'CLAMP-HOOK', stock_teknisi: '5' }],
+                },
+                exclude_intech_lensa: null,
+            },
+            {
+                nik: 'TECH02',
+                wh_id: 1,
+                warehouse_name: 'SO Karangpilang',
+                ref_intech_lensa: {
+                    status: 'success',
+                    materials: [{ id_material: 'CLAMP-HOOK', stock_teknisi: '3' }],
+                },
+                // Raw Lensa has 3, MTMS has 10. With normalization +7, Lensa becomes 10 -> match!
+                exclude_intech_lensa: [
+                    { id_material: 'CLAMP-HOOK', qty: 7, type: 'add' },
+                ],
+            },
+        ]);
+
+        mockGetBatchTechnicianIntechStock.mockResolvedValueOnce([
+            {
+                nik_teknisi: 'TECH01',
+                material_code: 'CLAMP-HOOK',
+                qty_intech: 5,
+            },
+            {
+                nik_teknisi: 'TECH02',
+                material_code: 'CLAMP-HOOK',
+                qty_intech: 10,
+            },
+        ]);
+
+        const result = await getIntechLensaWarehousePerformance();
+
+        expect(result.success).toBe(true);
+        expect(result.data).toEqual([
+            {
+                key: 1,
+                name: 'SO Karangpilang',
+                total: 2,
+                completed: 2, // Both are match now (100%)
+            },
+        ]);
+    });
 });
 
 // ─── getOtherWarehouseStock ────────────────────────────────────────────────────

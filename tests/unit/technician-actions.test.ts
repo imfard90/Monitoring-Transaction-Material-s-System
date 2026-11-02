@@ -23,6 +23,12 @@ vi.mock('@/lib/logger', () => ({
     },
 }));
 
+vi.mock('@/lib/redis', () => ({
+    redis: {
+        del: vi.fn(),
+    },
+}));
+
 vi.mock('@/lib/repositories/hr.repository', () => ({
     hrRepository: {
         getTechnicians: vi.fn(),
