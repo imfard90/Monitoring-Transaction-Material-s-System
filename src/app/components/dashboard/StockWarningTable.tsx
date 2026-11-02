@@ -378,7 +378,7 @@ export const StockWarningTable = ({
                                                     </span>
                                                     {w.material_name && (
                                                         <span
-                                                            className="text-[11px] text-muted-foreground truncate max-w-[180px] sm:max-w-[240px]"
+                                                            className="text-[11px] text-muted-foreground truncate max-w-45 sm:max-w-60"
                                                             title={w.material_name}
                                                         >
                                                             {w.material_name}
