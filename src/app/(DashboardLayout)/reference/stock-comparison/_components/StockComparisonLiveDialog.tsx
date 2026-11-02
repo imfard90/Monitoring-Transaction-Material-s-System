@@ -58,28 +58,59 @@ export function StockComparisonLiveDialog({
             detailColumnHelper.accessor('id_material', {
                 header: 'ID Material',
                 size: 105,
-                cell: (info) => (
-                    <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                        {info.getValue()}
-                    </span>
-                ),
+                cell: (info) => {
+                    const isZero =
+                        info.row.original.stock_lensa === 0 && info.row.original.stock_mtms === 0;
+                    return (
+                        <span
+                            className={cn(
+                                'font-mono text-xs whitespace-nowrap',
+                                isZero
+                                    ? 'text-muted-foreground/60'
+                                    : 'font-semibold text-foreground'
+                            )}
+                        >
+                            {info.getValue()}
+                        </span>
+                    );
+                },
             }),
             detailColumnHelper.accessor('nama_material', {
                 header: () => <div className="pl-3">Nama Material</div>,
-                cell: (info) => (
-                    <div className="pl-3 whitespace-normal wrap-break-words text-xs font-medium text-foreground leading-snug">
-                        {info.getValue()}
-                    </div>
-                ),
+                cell: (info) => {
+                    const isZero =
+                        info.row.original.stock_lensa === 0 && info.row.original.stock_mtms === 0;
+                    return (
+                        <div
+                            className={cn(
+                                'pl-3 whitespace-normal wrap-break-words text-xs leading-snug',
+                                isZero
+                                    ? 'text-muted-foreground/60 font-normal'
+                                    : 'font-medium text-foreground'
+                            )}
+                        >
+                            {info.getValue()}
+                        </div>
+                    );
+                },
             }),
             detailColumnHelper.accessor('satuan', {
                 header: () => <div className="text-center">Satuan</div>,
                 size: 65,
-                cell: (info) => (
-                    <div className="text-center text-xs font-mono text-muted-foreground">
-                        {info.getValue() || '—'}
-                    </div>
-                ),
+                cell: (info) => {
+                    const isZero =
+                        info.row.original.stock_lensa === 0 && info.row.original.stock_mtms === 0;
+                    return (
+                        <div
+                            className={cn(
+                                'text-center text-xs font-mono',
+                                isZero ? 'text-muted-foreground/40' : 'text-muted-foreground'
+                            )}
+                        >
+                            {info.getValue() || '—'}
+                        </div>
+                    );
+                },
             }),
             detailColumnHelper.accessor('stock_lensa', {
                 header: () => <div className="text-center">Lensa</div>,
@@ -87,6 +118,7 @@ export function StockComparisonLiveDialog({
                 cell: (info) => {
                     const { exclude_qty, exclude_type, raw_stock_lensa } = info.row.original;
                     const val = info.getValue();
+                    const isZero = val === 0 && info.row.original.stock_mtms === 0;
 
                     if (exclude_qty && exclude_qty > 0) {
                         const isAdd = exclude_type === 'add';
@@ -130,8 +162,23 @@ export function StockComparisonLiveDialog({
                         );
                     }
 
+                    if (val === 0) {
+                        return (
+                            <div
+                                className={cn(
+                                    'text-center font-mono text-xs',
+                                    isZero
+                                        ? 'text-muted-foreground/40 font-normal'
+                                        : 'text-muted-foreground font-medium'
+                                )}
+                            >
+                                0
+                            </div>
+                        );
+                    }
+
                     return (
-                        <div className="text-center font-mono text-xs font-medium text-foreground">
+                        <div className="text-center font-mono text-xs font-bold text-foreground">
                             {val}
                         </div>
                     );
@@ -140,26 +187,51 @@ export function StockComparisonLiveDialog({
             detailColumnHelper.accessor('stock_mtms', {
                 header: () => <div className="text-center">MTMS</div>,
                 size: 60,
-                cell: (info) => (
-                    <div className="text-center font-mono text-xs font-medium text-foreground">
-                        {info.getValue()}
-                    </div>
-                ),
+                cell: (info) => {
+                    const val = info.getValue();
+                    const isZero = val === 0 && info.row.original.stock_lensa === 0;
+                    if (val === 0) {
+                        return (
+                            <div
+                                className={cn(
+                                    'text-center font-mono text-xs',
+                                    isZero
+                                        ? 'text-muted-foreground/40 font-normal'
+                                        : 'text-muted-foreground font-medium'
+                                )}
+                            >
+                                0
+                            </div>
+                        );
+                    }
+                    return (
+                        <div className="text-center font-mono text-xs font-bold text-primary">
+                            {val}
+                        </div>
+                    );
+                },
             }),
             detailColumnHelper.accessor('selisih', {
                 header: () => <div className="text-center">Selisih</div>,
                 size: 65,
                 cell: (info) => {
                     const val = info.getValue();
+                    const isZero =
+                        info.row.original.stock_lensa === 0 && info.row.original.stock_mtms === 0;
                     if (val === 0) {
                         return (
-                            <div className="text-center text-muted-foreground font-mono text-xs">
+                            <div
+                                className={cn(
+                                    'text-center font-mono text-xs',
+                                    isZero ? 'text-muted-foreground/40' : 'text-muted-foreground/70'
+                                )}
+                            >
                                 0
                             </div>
                         );
                     }
                     return (
-                        <div className="text-center text-destructive font-mono font-semibold text-xs">
+                        <div className="text-center text-destructive font-mono font-bold text-xs bg-destructive/10 px-1 py-0.5 rounded">
                             {val > 0 ? `+${val}` : val}
                         </div>
                     );
@@ -168,22 +240,65 @@ export function StockComparisonLiveDialog({
             detailColumnHelper.accessor('match_status', {
                 header: () => <div className="text-center">Status</div>,
                 size: 80,
-                cell: (info) => (
-                    <div className="flex justify-center">
-                        <Badge
-                            variant={info.getValue() === 'match' ? 'lightSuccess' : 'lightError'}
-                            className="capitalize text-[11px] px-2 py-0.5 border-0 font-medium"
-                        >
-                            {info.getValue() === 'match' ? 'Sesuai' : 'Selisih'}
-                        </Badge>
-                    </div>
-                ),
+                cell: (info) => {
+                    const isZero =
+                        info.row.original.stock_lensa === 0 && info.row.original.stock_mtms === 0;
+                    const status = info.getValue();
+                    if (status === 'match') {
+                        if (isZero) {
+                            return (
+                                <div className="flex justify-center">
+                                    <Badge
+                                        variant="outline"
+                                        className="text-[10px] px-1.5 py-0 border-border/60 text-muted-foreground/50 font-normal"
+                                    >
+                                        Sesuai (0)
+                                    </Badge>
+                                </div>
+                            );
+                        }
+                        return (
+                            <div className="flex justify-center">
+                                <Badge
+                                    variant="lightSuccess"
+                                    className="capitalize text-[11px] px-2 py-0.5 border-0 font-medium"
+                                >
+                                    Sesuai
+                                </Badge>
+                            </div>
+                        );
+                    }
+                    return (
+                        <div className="flex justify-center">
+                            <Badge
+                                variant="lightError"
+                                className="capitalize text-[11px] px-2 py-0.5 border-0 font-semibold"
+                            >
+                                Selisih
+                            </Badge>
+                        </div>
+                    );
+                },
             }),
         ],
         []
     );
 
-    const detailData = useMemo(() => result?.items ?? [], [result]);
+    const detailData = useMemo(() => {
+        const raw = result?.items ?? [];
+        return [...raw].sort((a, b) => {
+            const totalB = Math.max(0, b.stock_lensa) + Math.max(0, b.stock_mtms);
+            const totalA = Math.max(0, a.stock_lensa) + Math.max(0, a.stock_mtms);
+            if (totalB !== totalA) {
+                return totalB - totalA;
+            }
+            const diffSelisih = Math.abs(b.selisih) - Math.abs(a.selisih);
+            if (diffSelisih !== 0) {
+                return diffSelisih;
+            }
+            return a.nama_material.localeCompare(b.nama_material);
+        });
+    }, [result]);
 
     const detailTable = useReactTable({
         data: detailData,
@@ -256,24 +371,34 @@ export function StockComparisonLiveDialog({
                                         : '—'}
                                 </p>
                             </div>
-                            <Badge
-                                variant={
-                                    result.items.every((i) => i.match_status === 'match')
-                                        ? 'lightSuccess'
-                                        : 'lightError'
-                                }
-                                className="capitalize text-xs font-semibold px-3 py-1"
-                            >
-                                {result.items.every((i) => i.match_status === 'match')
-                                    ? 'Semua Sesuai'
-                                    : `${result.items.filter((i) => i.match_status === 'selisih').length} Material Selisih`}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground font-mono">
+                                    {result.items.filter((i) => i.stock_lensa > 0 || i.stock_mtms > 0).length} Material Aktif
+                                </span>
+                                <Badge
+                                    variant={
+                                        result.items.every((i) => i.match_status === 'match')
+                                            ? 'lightSuccess'
+                                            : 'lightError'
+                                    }
+                                    className="capitalize text-xs font-semibold px-3 py-1"
+                                >
+                                    {result.items.every((i) => i.match_status === 'match')
+                                        ? 'Semua Sesuai'
+                                        : `${result.items.filter((i) => i.match_status === 'selisih').length} Material Selisih`}
+                                </Badge>
+                            </div>
                         </div>
 
                         <DataTable
                             table={detailTable}
                             emptyMessage="Tidak ada detail material (atau belum pernah di-scrape)."
                             maxHeight="45vh"
+                            rowClassName={(row) =>
+                                row.original.stock_lensa === 0 && row.original.stock_mtms === 0
+                                    ? 'opacity-40 hover:opacity-100 transition-opacity bg-muted/10'
+                                    : ''
+                            }
                             className="rounded-md border border-border overflow-y-auto"
                             tableClassName="table-fixed whitespace-normal"
                         />

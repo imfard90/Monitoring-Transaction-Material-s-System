@@ -1,4 +1,4 @@
-import { flexRender, type Table } from '@/lib/table';
+import { flexRender, type Row, type Table } from '@/lib/table';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ interface DataTableProps<TData> {
     tableClassName?: string;
     maxHeight?: string;
     skeletonRowCount?: number;
+    rowClassName?: (row: Row<TData>) => string;
 }
 
 export function DataTable<TData>({
@@ -21,6 +22,7 @@ export function DataTable<TData>({
     tableClassName,
     maxHeight,
     skeletonRowCount = 5,
+    rowClassName,
 }: DataTableProps<TData>) {
     const rows = table.getRowModel().rows;
     const shouldAnimate = rows.length > 0 && rows.length <= 25;
@@ -112,7 +114,10 @@ export function DataTable<TData>({
                                             ? { duration: 0.2, delay: i * 0.02 }
                                             : { duration: 0 }
                                     }
-                                    className="bg-background border-b hover:bg-muted/50 motion-reduce:transition-none"
+                                    className={cn(
+                                        'bg-background border-b hover:bg-muted/50 motion-reduce:transition-none',
+                                        rowClassName?.(row)
+                                    )}
                                 >
                                     {row.getVisibleCells().map((cell) => (
                                         <td

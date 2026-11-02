@@ -311,6 +311,91 @@ describe('stock-comparison-actions unit tests', () => {
             expect(item?.selisih).toBe(0);
             expect(item?.match_status).toBe('match');
         });
+
+        it('sorts comparison items by combined stock descending (lensa + mtms), then selisih, then name', async () => {
+            mockGetSessionUser.mockResolvedValueOnce({
+                nik: 'ADM01',
+                isStaff: false,
+            });
+            mockWarehouseScope.mockReturnValueOnce(null);
+
+            mockExecuteTakeFirst.mockResolvedValueOnce({
+                nik: 'TECH_SORT',
+                name: 'Budi Sort',
+                wh_id: 1,
+                branch: 'SBY',
+                service_area: 'SA1',
+                warehouse_name: 'WH1',
+                ref_intech_lensa: {
+                    status: 'success',
+                    scraped_at: '2026-10-25T10:00:00Z',
+                    materials: [
+                        {
+                            id_material: 'MAT-ZERO',
+                            nama_material: 'Material Nol',
+                            stock_teknisi: '0',
+                            satuan: 'PCS',
+                        },
+                        {
+                            id_material: 'MAT-BIG',
+                            nama_material: 'Drop Cable 1000M',
+                            stock_teknisi: '300',
+                            satuan: 'M',
+                        },
+                        {
+                            id_material: 'MAT-MID',
+                            nama_material: 'S-Clamp',
+                            stock_teknisi: '25',
+                            satuan: 'PCS',
+                        },
+                    ],
+                },
+                exclude_intech_lensa: [],
+            });
+
+            mockGetTechnicianIntechStock.mockResolvedValueOnce([
+                {
+                    material_code: 'MAT-BIG',
+                    material_name: 'Drop Cable 1000M',
+                    qty_intech: 200, // Total: 300 + 200 = 500
+                },
+                {
+                    material_code: 'MAT-MID',
+                    material_name: 'S-Clamp',
+                    qty_intech: 5, // Total: 25 + 5 = 30
+                },
+                {
+                    material_code: 'MAT-ZERO',
+                    material_name: 'Material Nol',
+                    qty_intech: 0, // Total: 0 + 0 = 0
+                },
+                {
+                    material_code: 'MAT-MTMS-ONLY',
+                    material_name: 'Patch Cord',
+                    qty_intech: 50, // Total: 0 + 50 = 50
+                },
+            ]);
+
+            const result = await getStockComparison('TECH_SORT');
+            expect(result.success).toBe(true);
+            const items = result.data?.items ?? [];
+
+            // Order expected:
+            // 1. Drop Cable (500)
+            // 2. Patch Cord (50)
+            // 3. S-Clamp (30)
+            // 4. Material Nol (0)
+            expect(items.map((i) => i.id_material)).toEqual([
+                'MAT-BIG',
+                'MAT-MTMS-ONLY',
+                'MAT-MID',
+                'MAT-ZERO',
+            ]);
+            expect(items[0].stock_lensa + items[0].stock_mtms).toBe(500);
+            expect(items[1].stock_lensa + items[1].stock_mtms).toBe(50);
+            expect(items[3].id_material).toBe('MAT-ZERO');
+            expect(items[3].stock_lensa === 0 && items[3].stock_mtms === 0).toBe(true);
+        });
     });
 
     describe('getLiveStockComparison', () => {

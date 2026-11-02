@@ -298,7 +298,18 @@ export async function getStockComparison(nik: string): Promise<{
             };
         });
 
-        items.sort((a, b) => Math.abs(b.selisih) - Math.abs(a.selisih));
+        items.sort((a, b) => {
+            const totalB = Math.max(0, b.stock_lensa) + Math.max(0, b.stock_mtms);
+            const totalA = Math.max(0, a.stock_lensa) + Math.max(0, a.stock_mtms);
+            if (totalB !== totalA) {
+                return totalB - totalA;
+            }
+            const diffSelisih = Math.abs(b.selisih) - Math.abs(a.selisih);
+            if (diffSelisih !== 0) {
+                return diffSelisih;
+            }
+            return a.nama_material.localeCompare(b.nama_material);
+        });
 
         return {
             success: true,
