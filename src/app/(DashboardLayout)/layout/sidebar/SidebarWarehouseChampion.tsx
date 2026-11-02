@@ -2,7 +2,7 @@
 
 import { Icon } from '@iconify/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -25,8 +25,27 @@ export const SidebarWarehouseChampion = () => {
     const [mounted, setMounted] = useState(false);
     const [leaderboardData, setLeaderboardData] = useState<WarehouseChampionResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [hasError, setHasError] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const fetchChampion = useCallback(async (showRefreshingState = false) => {
+        if (showRefreshingState) setIsRefreshing(true);
+        try {
+            const res = await getWarehouseLeaderboard();
+            if (res.success && res.data) {
+                setLeaderboardData(res.data);
+                setHasError(false);
+            } else {
+                setHasError(true);
+            }
+        } catch {
+            setHasError(true);
+        } finally {
+            setIsLoading(false);
+            if (showRefreshingState) setIsRefreshing(false);
+        }
+    }, []);
 
     useEffect(() => {
         setMounted(true);
@@ -39,30 +58,8 @@ export const SidebarWarehouseChampion = () => {
             // Ignore localStorage errors
         }
 
-        let isSubscribed = true;
-        const fetchChampion = async () => {
-            try {
-                const res = await getWarehouseLeaderboard();
-                if (isSubscribed) {
-                    if (res.success && res.data) {
-                        setLeaderboardData(res.data);
-                    } else {
-                        setHasError(true);
-                    }
-                }
-            } catch {
-                if (isSubscribed) setHasError(true);
-            } finally {
-                if (isSubscribed) setIsLoading(false);
-            }
-        };
-
         void fetchChampion();
-
-        return () => {
-            isSubscribed = false;
-        };
-    }, []);
+    }, [fetchChampion]);
 
     const toggleMinimized = () => {
         setIsMinimized((prev) => {
@@ -201,7 +198,15 @@ export const SidebarWarehouseChampion = () => {
 
     return (
         <aside aria-label="Widget Juara Gudang MTMS" className="relative select-none w-full">
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog
+                open={isDialogOpen}
+                onOpenChange={(open) => {
+                    setIsDialogOpen(open);
+                    if (open) {
+                        void fetchChampion(true);
+                    }
+                }}
+            >
                 <AnimatePresence mode="wait" initial={false}>
                     {isMinimized ? (
                         <motion.button
@@ -419,15 +424,43 @@ export const SidebarWarehouseChampion = () => {
                 {/* Dialog Content: Podium & Full Warehouse Leaderboard */}
                 <DialogContent className="max-w-xl max-h-[85vh] flex flex-col p-5 overflow-hidden">
                     <DialogHeader className="pb-2 border-b border-border/50">
-                        <div className="flex items-center gap-2 text-amber-500">
-                            <Icon icon="solar:cup-star-bold" width="22" height="22" />
-                            <DialogTitle className="text-lg font-bold text-foreground">
-                                Klasemen Performa Gudang MTMS
-                            </DialogTitle>
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 text-amber-500 min-w-0">
+                                <Icon
+                                    icon="solar:cup-star-bold"
+                                    width="22"
+                                    height="22"
+                                    className="shrink-0"
+                                />
+                                <DialogTitle className="text-lg font-bold text-foreground truncate">
+                                    Klasemen Performa Gudang MTMS
+                                </DialogTitle>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => void fetchChampion(true)}
+                                disabled={isRefreshing}
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                                title="Muat ulang klasemen"
+                                aria-label="Muat ulang data klasemen"
+                            >
+                                <Icon
+                                    icon="solar:restart-bold"
+                                    width="16"
+                                    height="16"
+                                    className={cn(isRefreshing && 'animate-spin text-amber-500')}
+                                />
+                            </button>
                         </div>
                         <DialogDescription className="text-xs text-muted-foreground">
                             Penilaian seimbang berdasarkan rata-rata Performa Out Lensa HI, Rekon
                             Lensa, dan Intech Lensa vs MTMS.
+                            {leaderboardData?.updatedAt && (
+                                <span className="block mt-0.5 text-[10px] text-muted-foreground/75 font-mono">
+                                    Terakhir diperbarui:{' '}
+                                    {new Date(leaderboardData.updatedAt).toLocaleTimeString('id-ID')}
+                                </span>
+                            )}
                         </DialogDescription>
                     </DialogHeader>
 
