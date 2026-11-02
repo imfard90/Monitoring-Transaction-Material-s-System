@@ -72,7 +72,7 @@ export async function getTechnicianMaterials(nik: string) {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
 
-        let query = db
+        const query = db
             .selectFrom('inventory.sap_out_header as soh')
             .innerJoin('inventory.sap_out_items as soi', 'soi.header_id', 'soh.id')
             .innerJoin('inventory.materials as m', 'm.id', 'soi.designator_id')
@@ -105,7 +105,7 @@ export async function getTechnicianMaterials(nik: string) {
                 .select('wh_id')
                 .where('nik', '=', nik)
                 .executeTakeFirst();
-            if (!tech || !tech.wh_id || !warehouseIds.includes(tech.wh_id)) {
+            if (!tech?.wh_id || !warehouseIds.includes(tech.wh_id)) {
                 return { success: true, data: [] };
             }
         }
@@ -158,7 +158,7 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
                 .select('wh_id')
                 .where('nik', '=', parsed.data.nik)
                 .executeTakeFirst();
-            if (!tech || !tech.wh_id || !warehouseIds.includes(tech.wh_id)) {
+            if (!tech?.wh_id || !warehouseIds.includes(tech.wh_id)) {
                 return {
                     success: false,
                     error: 'Akses ditolak: Teknisi bukan terdaftar di gudang wewenang Anda',
