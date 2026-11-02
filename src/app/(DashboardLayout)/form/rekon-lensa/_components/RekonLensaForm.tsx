@@ -283,16 +283,16 @@ export default function RekonLensaForm() {
                                 <Table>
                                     <TableHeader className="sticky top-0 z-10 bg-muted/90 backdrop-blur-xs shadow-2xs">
                                         <TableRow className="bg-muted/50 hover:bg-muted/50 border-b border-border/80">
-                                            <TableHead className="w-[40px] text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                            <TableHead className="w-10 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                                 Pilih
                                             </TableHead>
-                                            <TableHead className="w-[95px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                                            <TableHead className="w-23.75 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                                                 Tgl Update
                                             </TableHead>
-                                            <TableHead className="w-[140px] min-w-[130px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                            <TableHead className="w-35 min-w-32.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                                 No WO
                                             </TableHead>
-                                            <TableHead className="w-[90px] text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                            <TableHead className="w-22.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                                 Tipe
                                             </TableHead>
                                             <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -350,7 +350,7 @@ export default function RekonLensaForm() {
                                                             {wo.tanggal_update || '-'}
                                                         </TableCell>
                                                         <TableCell className="py-2.5 px-2.5 align-middle">
-                                                            <div className="w-[130px] font-mono font-bold text-xs text-foreground break-all whitespace-normal leading-snug">
+                                                            <div className="w-32.5 font-mono font-bold text-xs text-foreground break-all whitespace-normal leading-snug">
                                                                 {wo.wo_number}
                                                             </div>
                                                         </TableCell>
@@ -415,7 +415,7 @@ export default function RekonLensaForm() {
                         </Card>
 
                         {/* Panel Kanan: Material di Tangan Teknisi (FIFO) (50%) */}
-                        <Card className="border border-border bg-card text-card-foreground shadow-xs rounded-xl p-5 flex flex-col h-[620px]">
+                        <Card className="border border-border bg-card text-card-foreground shadow-xs rounded-xl p-5 flex flex-col h-155">
                             <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-border/80 shrink-0">
                                 <div className="flex items-center gap-2.5">
                                     <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
