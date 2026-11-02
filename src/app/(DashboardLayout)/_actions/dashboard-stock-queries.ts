@@ -108,7 +108,6 @@ export async function getDashboardStockIntech() {
             .orderBy('soh.request_time', 'asc')
             .orderBy('wh.branch', 'asc')
             .orderBy('t.name', 'asc')
-            .limit(1000)
             .execute();
 
         return { success: true, data };
