@@ -47,6 +47,7 @@ const mockSelectFrom = vi.fn();
 const mockGroupBy = vi.fn();
 const mockSelect = vi.fn();
 const mockInnerJoin = vi.fn();
+const mockLeftJoin = vi.fn();
 const mockWhere = vi.fn();
 const mockWhereByTable = vi.fn();
 const mockOnRef = vi.fn();
@@ -67,6 +68,23 @@ vi.mock('@/lib/db/db', () => ({
             const query = {
                 innerJoin: (...args: unknown[]) => {
                     mockInnerJoin(...args);
+                    if (typeof args[1] === 'function') {
+                        const joinBuilder = {
+                            on: (...onArgs: unknown[]) => {
+                                mockJoinOn(...onArgs);
+                                return joinBuilder;
+                            },
+                            onRef: (...onRefArgs: unknown[]) => {
+                                mockOnRef(...onRefArgs);
+                                return joinBuilder;
+                            },
+                        };
+                        (args[1] as (join: typeof joinBuilder) => unknown)(joinBuilder);
+                    }
+                    return query;
+                },
+                leftJoin: (...args: unknown[]) => {
+                    mockLeftJoin(...args);
                     if (typeof args[1] === 'function') {
                         const joinBuilder = {
                             on: (...onArgs: unknown[]) => {
@@ -294,13 +312,16 @@ describe('getLensaWarehousePerformance', () => {
         expect(mockSelectFrom).not.toHaveBeenCalled();
     });
 
-    it('normalizes warehouse names in both Lensa performance joins', async () => {
+    it('normalizes warehouse names across Lensa performance joins', async () => {
         await getLensaWarehousePerformance();
 
-        expect(mockInnerJoin).toHaveBeenCalledTimes(2);
-        const joinComparisons = mockJoinOn.mock.calls.map(([left, , right]) => [left, right]);
+        expect(mockInnerJoin).toHaveBeenCalledTimes(3);
+        const warehouseJoinComparisons = mockJoinOn.mock.calls
+            .filter(([left]) => typeof left === 'object' && left !== null && 'strings' in left)
+            .map(([left, , right]) => [left, right]);
+        expect(warehouseJoinComparisons).toHaveLength(3);
         expect(
-            joinComparisons.flat().every((expression) => {
+            warehouseJoinComparisons.flat().every((expression) => {
                 const template = expression as { strings: string[] };
                 return template.strings.join('').includes('REGEXP_REPLACE');
             })
@@ -318,7 +339,7 @@ describe('getLensaWarehousePerformance', () => {
                 strings: expect.arrayContaining([expect.stringContaining('CURRENT_DATE')]),
             })
         );
-        expect(mockExecute).toHaveBeenCalledTimes(2);
+        expect(mockExecute).toHaveBeenCalledTimes(3);
     });
 });
 
@@ -417,9 +438,7 @@ describe('getIntechLensaWarehousePerformance', () => {
                     materials: [{ id_material: 'CLAMP-HOOK', stock_teknisi: '3' }],
                 },
                 // Raw Lensa has 3, MTMS has 10. With normalization +7, Lensa becomes 10 -> match!
-                exclude_intech_lensa: [
-                    { id_material: 'CLAMP-HOOK', qty: 7, type: 'add' },
-                ],
+                exclude_intech_lensa: [{ id_material: 'CLAMP-HOOK', qty: 7, type: 'add' }],
             },
         ]);
 
@@ -579,6 +598,7 @@ describe('getWarehouseLeaderboard', () => {
                 outLensa: { total: 10, completed: 10, percentage: 100 },
                 rekonLensa: { total: 10, completed: 9, percentage: 90 },
                 intechLensaVsMtms: { total: 10, completed: 10, percentage: 100 },
+                slaRekon: { total: 10, completed: 8, percentage: 80 },
             },
             leaderboard: [],
             updatedAt: '2026-10-28T10:00:00.000Z',
@@ -592,7 +612,7 @@ describe('getWarehouseLeaderboard', () => {
         expect(mockSelectFrom).not.toHaveBeenCalled();
     });
 
-    it('aggregates outLensa, rekonLensa, and intechLensa and identifies the champion', async () => {
+    it('aggregates outLensa, rekonLensa, intechLensa, and slaRekon and identifies the champion', async () => {
         mockExecute
             .mockResolvedValueOnce([
                 { key: 1, name: 'DC Cikutra', total: 10, completed: 10 },
@@ -601,6 +621,10 @@ describe('getWarehouseLeaderboard', () => {
             .mockResolvedValueOnce([
                 { key: 1, name: 'DC Cikutra', total: 10, completed: 10 },
                 { key: 2, name: 'DC Antapani', total: 10, completed: 7 },
+            ])
+            .mockResolvedValueOnce([
+                { key: 1, name: 'DC Cikutra', total: 10, completed: 10 },
+                { key: 2, name: 'DC Antapani', total: 10, completed: 6 },
             ])
             .mockResolvedValueOnce([
                 {
@@ -635,9 +659,21 @@ describe('getWarehouseLeaderboard', () => {
         if (result.data) {
             expect(result.data.champion?.name).toBe('DC Cikutra');
             expect(result.data.champion?.score).toBe(100);
+            expect(result.data.champion?.slaRekon).toEqual({
+                total: 10,
+                completed: 10,
+                percentage: 100,
+            });
             expect(result.data.leaderboard).toHaveLength(2);
             expect(result.data.leaderboard[0].name).toBe('DC Cikutra');
             expect(result.data.leaderboard[1].name).toBe('DC Antapani');
+            // Antapani score: (80 + 70 + 0 + 60) / 4 = 52.5
+            expect(result.data.leaderboard[1].score).toBe(52.5);
+            expect(result.data.leaderboard[1].slaRekon).toEqual({
+                total: 10,
+                completed: 6,
+                percentage: 60,
+            });
         }
     });
 });

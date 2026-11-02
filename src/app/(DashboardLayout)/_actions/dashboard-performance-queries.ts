@@ -28,6 +28,7 @@ export type WarehouseLeaderboardEntry = {
     outLensa: WarehouseMetricBreakdown;
     rekonLensa: WarehouseMetricBreakdown;
     intechLensaVsMtms: WarehouseMetricBreakdown;
+    slaRekon: WarehouseMetricBreakdown;
 };
 
 export type WarehouseChampionResponse = {
@@ -75,9 +76,33 @@ export async function getLensaWarehousePerformance() {
             ])
             .groupBy(['wh.id', 'wh.name']);
 
-        const [outLensa, rekonLensa] = await Promise.all([
+        const slaRekonQuery = db
+            .selectFrom('inventory.wo_lensa_header as wlh')
+            .leftJoin('inventory.rekon_used_header as ruh', (join) =>
+                join.on('ruh.id_pemakaian', '=', sql<string>`wlh.pemakaian_id::text`)
+            )
+            .innerJoin('inventory.mas_wh as wh', (join) =>
+                join.on(
+                    sql<string>`LOWER(REGEXP_REPLACE(wh.name, '\\s+', '', 'g'))`,
+                    '=',
+                    sql<string>`LOWER(REGEXP_REPLACE(wlh.nama_gudang, '\\s+', '', 'g'))`
+                )
+            )
+            .select([
+                'wh.id as key',
+                'wh.name as name',
+                sql<number>`COUNT(wlh.id)`.as('total'),
+                sql<number>`COUNT(wlh.id) FILTER (WHERE DATE(COALESCE(ruh.create_at, wlh.created_at) AT TIME ZONE 'Asia/Jakarta') - wlh.formatted_date <= 1)`.as(
+                    'completed'
+                ),
+            ])
+            .where('wlh.rekon_check', '=', true)
+            .groupBy(['wh.id', 'wh.name']);
+
+        const [outLensa, rekonLensa, slaRekon] = await Promise.all([
             outLensaQuery.execute(),
             rekonLensaQuery.execute(),
+            slaRekonQuery.execute(),
         ]);
 
         const sortByCompletion = <
@@ -95,8 +120,16 @@ export async function getLensaWarehousePerformance() {
 
         const sortedOutLensa = sortByCompletion(outLensa);
         const sortedRekonLensa = sortByCompletion(rekonLensa);
+        const sortedSlaRekon = sortByCompletion(slaRekon);
 
-        return { success: true, data: { outLensa: sortedOutLensa, rekonLensa: sortedRekonLensa } };
+        return {
+            success: true,
+            data: {
+                outLensa: sortedOutLensa,
+                rekonLensa: sortedRekonLensa,
+                slaRekon: sortedSlaRekon,
+            },
+        };
     } catch (error: unknown) {
         actionLogger.error(
             'Failed to fetch Lensa warehouse performance:',
@@ -269,6 +302,8 @@ export async function getWarehouseLeaderboard(): Promise<{
             lensaResult.success && lensaResult.data?.outLensa ? lensaResult.data.outLensa : [];
         const rekonRows =
             lensaResult.success && lensaResult.data?.rekonLensa ? lensaResult.data.rekonLensa : [];
+        const slaRows =
+            lensaResult.success && lensaResult.data?.slaRekon ? lensaResult.data.slaRekon : [];
         const intechRows = intechResult.success && intechResult.data ? intechResult.data : [];
 
         const whMap = new Map<
@@ -282,6 +317,8 @@ export async function getWarehouseLeaderboard(): Promise<{
                 rekonCompleted: number;
                 intechTotal: number;
                 intechCompleted: number;
+                slaTotal: number;
+                slaCompleted: number;
             }
         >();
 
@@ -297,6 +334,8 @@ export async function getWarehouseLeaderboard(): Promise<{
                     rekonCompleted: 0,
                     intechTotal: 0,
                     intechCompleted: 0,
+                    slaTotal: 0,
+                    slaCompleted: 0,
                 };
                 whMap.set(key, entry);
             }
@@ -315,6 +354,12 @@ export async function getWarehouseLeaderboard(): Promise<{
             entry.rekonCompleted += Number(item.completed);
         }
 
+        for (const item of slaRows) {
+            const entry = getOrCreate(Number(item.key), item.name);
+            entry.slaTotal += Number(item.total);
+            entry.slaCompleted += Number(item.completed);
+        }
+
         for (const item of intechRows) {
             const entry = getOrCreate(Number(item.key), item.name);
             entry.intechTotal += Number(item.total);
@@ -328,9 +373,10 @@ export async function getWarehouseLeaderboard(): Promise<{
             const pctOut = calcPercentage(wh.outCompleted, wh.outTotal);
             const pctRekon = calcPercentage(wh.rekonCompleted, wh.rekonTotal);
             const pctIntech = calcPercentage(wh.intechCompleted, wh.intechTotal);
+            const pctSla = calcPercentage(wh.slaCompleted, wh.slaTotal);
 
-            const score = Math.round(((pctOut + pctRekon + pctIntech) / 3) * 10) / 10;
-            const totalTransactions = wh.outTotal + wh.rekonTotal + wh.intechTotal;
+            const score = Math.round(((pctOut + pctRekon + pctIntech + pctSla) / 4) * 10) / 10;
+            const totalTransactions = wh.outTotal + wh.rekonTotal + wh.intechTotal + wh.slaTotal;
 
             return {
                 key: wh.key,
@@ -347,6 +393,11 @@ export async function getWarehouseLeaderboard(): Promise<{
                     total: wh.intechTotal,
                     completed: wh.intechCompleted,
                     percentage: pctIntech,
+                },
+                slaRekon: {
+                    total: wh.slaTotal,
+                    completed: wh.slaCompleted,
+                    percentage: pctSla,
                 },
             };
         });

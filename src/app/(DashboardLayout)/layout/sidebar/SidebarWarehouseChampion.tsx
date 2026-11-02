@@ -364,8 +364,8 @@ export const SidebarWarehouseChampion = () => {
                                         />
                                     </div>
 
-                                    {/* 3 Metric Breakdown Chips */}
-                                    <div className="grid grid-cols-3 gap-1 pt-1.5 border-t border-border/40 text-[9.5px]">
+                                    {/* 4 Metric Breakdown Chips */}
+                                    <div className="grid grid-cols-4 gap-1 pt-1.5 border-t border-border/40 text-[9px]">
                                         <div
                                             className="flex flex-col items-center justify-center p-1 rounded-md bg-muted/40 hover:bg-muted/70 transition-colors text-center"
                                             title={`Out Lensa HI: ${champion.outLensa.completed}/${champion.outLensa.total} (${champion.outLensa.percentage}%)`}
@@ -397,6 +397,17 @@ export const SidebarWarehouseChampion = () => {
                                             </span>
                                             <span className="font-bold text-foreground tabular-nums">
                                                 {champion.intechLensaVsMtms.percentage}%
+                                            </span>
+                                        </div>
+                                        <div
+                                            className="flex flex-col items-center justify-center p-1 rounded-md bg-muted/40 hover:bg-muted/70 transition-colors text-center"
+                                            title={`SLA Rekon H+1: ${champion.slaRekon?.completed ?? 0}/${champion.slaRekon?.total ?? 0} (${champion.slaRekon?.percentage ?? 0}%)`}
+                                        >
+                                            <span className="text-muted-foreground/80 font-medium">
+                                                SLA H+1
+                                            </span>
+                                            <span className="font-bold text-foreground tabular-nums">
+                                                {champion.slaRekon?.percentage ?? 0}%
                                             </span>
                                         </div>
                                     </div>
@@ -453,12 +464,14 @@ export const SidebarWarehouseChampion = () => {
                             </button>
                         </div>
                         <DialogDescription className="text-xs text-muted-foreground">
-                            Penilaian seimbang berdasarkan rata-rata Performa Out Lensa HI, Rekon
-                            Lensa, dan Intech Lensa vs MTMS.
+                            Penilaian seimbang berdasarkan rata-rata 4 pilar: Performa Out Lensa HI,
+                            Rekon Lensa, Intech Lensa vs MTMS, dan SLA Rekon (maksimal H+1).
                             {leaderboardData?.updatedAt && (
                                 <span className="block mt-0.5 text-[10px] text-muted-foreground/75 font-mono">
                                     Terakhir diperbarui:{' '}
-                                    {new Date(leaderboardData.updatedAt).toLocaleTimeString('id-ID')}
+                                    {new Date(leaderboardData.updatedAt).toLocaleTimeString(
+                                        'id-ID'
+                                    )}
                                 </span>
                             )}
                         </DialogDescription>
@@ -559,6 +572,12 @@ export const SidebarWarehouseChampion = () => {
                                     <th className="py-2 px-2 text-center">Out HI</th>
                                     <th className="py-2 px-2 text-center">Rekon</th>
                                     <th className="py-2 px-2 text-center">Intech</th>
+                                    <th
+                                        className="py-2 px-2 text-center"
+                                        title="Ketepatan waktu rekon maksimal H+1 dari tanggal update Lensa"
+                                    >
+                                        SLA H+1
+                                    </th>
                                     <th className="py-2 px-3 text-right">Skor Total</th>
                                 </tr>
                             </thead>
@@ -617,6 +636,9 @@ export const SidebarWarehouseChampion = () => {
                                             </td>
                                             <td className="py-2 px-2 text-center tabular-nums text-muted-foreground">
                                                 {row.intechLensaVsMtms.percentage}%
+                                            </td>
+                                            <td className="py-2 px-2 text-center tabular-nums text-muted-foreground">
+                                                {row.slaRekon?.percentage ?? 0}%
                                             </td>
                                             <td className="py-2 px-3 text-right">
                                                 <span
