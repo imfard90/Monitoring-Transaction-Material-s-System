@@ -25,6 +25,8 @@ import {
 import {
     type TechnicianMaterialItem,
     useMaterialFifoAllocation,
+    type WoLensaItem,
+    type WoLensaRecord,
 } from '@/hooks/use-material-fifo-allocation';
 import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
@@ -34,6 +36,19 @@ import {
     getWOLensa,
     submitRekonLensa,
 } from '../_actions/rekon-lensa-actions';
+
+function extractDataArray<T>(value: unknown): T[] {
+    if (Array.isArray(value)) return value as T[];
+    if (
+        value &&
+        typeof value === 'object' &&
+        'data' in value &&
+        Array.isArray((value as { data: unknown }).data)
+    ) {
+        return (value as { data: T[] }).data;
+    }
+    return [];
+}
 
 export default function RekonLensaForm() {
     const router = useRouter();
@@ -74,6 +89,11 @@ export default function RekonLensaForm() {
         enabled: !!selectedNik,
     });
 
+    // Safely normalize data structures to arrays (preventing runtime TypeError if cached as { success, data })
+    const technicians = extractDataArray<{ nik: string; nama_teknisi: string }>(techData);
+    const materialsList = extractDataArray<TechnicianMaterialItem>(materialsData);
+    const wosList = extractDataArray<WoLensaRecord>(wosData);
+
     // Delegated to pure domain FIFO Allocation hook
     const {
         allocatedQty,
@@ -84,8 +104,8 @@ export default function RekonLensaForm() {
         buildFifoPayload,
     } = useMaterialFifoAllocation({
         selectedWos,
-        materialsData,
-        wosData,
+        materialsData: materialsList,
+        wosData: wosList,
     });
 
     // Single WO selection toggle
@@ -144,11 +164,10 @@ export default function RekonLensaForm() {
         }
     };
 
-    const techOptions =
-        techData?.map((t: { nik: string; nama_teknisi: string }) => ({
-            value: t.nik,
-            label: `${t.nik} - ${t.nama_teknisi}`,
-        })) || [];
+    const techOptions = technicians.map((t) => ({
+        value: t.nik,
+        label: `${t.nik} - ${t.nama_teknisi}`,
+    }));
 
     return (
         <StaggerContainer className="space-y-6">
@@ -240,7 +259,7 @@ export default function RekonLensaForm() {
                         className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch"
                     >
                         {/* Panel Kiri: Work Order Lensa (50%) */}
-                        <Card className="border border-border bg-card text-card-foreground shadow-xs rounded-xl p-5 flex flex-col h-[620px]">
+                        <Card className="border border-border bg-card text-card-foreground shadow-xs rounded-xl p-5 flex flex-col h-155">
                             <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-border/80 shrink-0">
                                 <div className="flex items-center gap-2.5">
                                     <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
@@ -256,7 +275,7 @@ export default function RekonLensaForm() {
                                     </div>
                                 </div>
                                 <span className="px-2.5 py-0.5 rounded-full bg-muted text-[11px] font-mono font-semibold text-muted-foreground">
-                                    {wosData?.length ?? 0} WO Tersedia
+                                    {wosList.length} WO Tersedia
                                 </span>
                             </div>
 
@@ -291,7 +310,7 @@ export default function RekonLensaForm() {
                                                     Memuat data WO Lensa...
                                                 </TableCell>
                                             </TableRow>
-                                        ) : wosData?.length === 0 ? (
+                                        ) : wosList.length === 0 ? (
                                             <TableRow>
                                                 <TableCell
                                                     colSpan={5}
@@ -302,7 +321,7 @@ export default function RekonLensaForm() {
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
-                                            wosData?.map((wo) => {
+                                            wosList.map((wo: WoLensaRecord) => {
                                                 const isSelected = selectedWos.has(String(wo.id));
                                                 return (
                                                     <TableRow
@@ -343,43 +362,47 @@ export default function RekonLensaForm() {
                                                         <TableCell className="py-2.5 px-2.5">
                                                             <div className="flex flex-col gap-1.5">
                                                                 {Array.isArray(wo.items) &&
-                                                                    wo.items.map((item) => {
-                                                                        const matId =
-                                                                            item.material_id || '';
-                                                                        const qtyPem = Number(
-                                                                            item.qty_pemakaian || 0
-                                                                        );
-                                                                        const available =
-                                                                            availableStockByCode[
-                                                                                matId
-                                                                            ] || 0;
-                                                                        const isOk =
-                                                                            available >= qtyPem;
-                                                                        return (
-                                                                            <span
-                                                                                key={`${wo.id}-${matId}`}
-                                                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium border w-fit shadow-2xs ${
-                                                                                    isOk
-                                                                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
-                                                                                        : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
-                                                                                }`}
-                                                                                title={`Dibutuhkan: ${qtyPem} ${item.uom || ''} | Stok tersedia: ${available} ${item.uom || ''}`}
-                                                                            >
-                                                                                <span className="font-bold">
-                                                                                    {matId}
+                                                                    wo.items.map(
+                                                                        (item: WoLensaItem) => {
+                                                                            const matId =
+                                                                                item.material_id ||
+                                                                                '';
+                                                                            const qtyPem = Number(
+                                                                                item.qty_pemakaian ||
+                                                                                    0
+                                                                            );
+                                                                            const available =
+                                                                                availableStockByCode[
+                                                                                    matId
+                                                                                ] || 0;
+                                                                            const isOk =
+                                                                                available >= qtyPem;
+                                                                            return (
+                                                                                <span
+                                                                                    key={`${wo.id}-${matId}`}
+                                                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium border w-fit shadow-2xs ${
+                                                                                        isOk
+                                                                                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                                                                                            : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                                                                                    }`}
+                                                                                    title={`Dibutuhkan: ${qtyPem} ${item.uom || ''} | Stok tersedia: ${available} ${item.uom || ''}`}
+                                                                                >
+                                                                                    <span className="font-bold">
+                                                                                        {matId}
+                                                                                    </span>
+                                                                                    <span className="text-muted-foreground">
+                                                                                        :
+                                                                                    </span>
+                                                                                    <span className="font-bold">
+                                                                                        {qtyPem}
+                                                                                    </span>
+                                                                                    <span className="text-[10px] text-muted-foreground">
+                                                                                        {item.uom}
+                                                                                    </span>
                                                                                 </span>
-                                                                                <span className="text-muted-foreground">
-                                                                                    :
-                                                                                </span>
-                                                                                <span className="font-bold">
-                                                                                    {qtyPem}
-                                                                                </span>
-                                                                                <span className="text-[10px] text-muted-foreground">
-                                                                                    {item.uom}
-                                                                                </span>
-                                                                            </span>
-                                                                        );
-                                                                    })}
+                                                                            );
+                                                                        }
+                                                                    )}
                                                             </div>
                                                         </TableCell>
                                                     </TableRow>
@@ -408,13 +431,13 @@ export default function RekonLensaForm() {
                                     </div>
                                 </div>
                                 <span className="px-2.5 py-0.5 rounded-full bg-muted text-[11px] font-mono font-semibold text-muted-foreground">
-                                    {materialsData?.length ?? 0} Item SAP
+                                    {materialsList.length} Item SAP
                                 </span>
                             </div>
 
                             <div className="rounded-lg border overflow-y-auto flex-1 min-h-0">
                                 <TechnicianMaterialTable
-                                    materials={materialsData || []}
+                                    materials={materialsList}
                                     loading={materialsLoading}
                                     emptyMessage="Tidak ada material di tangan teknisi"
                                     mode="allocation"
@@ -485,7 +508,7 @@ export default function RekonLensaForm() {
                                 Object.entries(allocatedQty).reduce(
                                     (acc, [sapOutItemId, qty]) => {
                                         if (qty > 0) {
-                                            const mat = materialsData?.find(
+                                            const mat = materialsList.find(
                                                 (m: TechnicianMaterialItem) =>
                                                     String(m.sap_out_item_id) === sapOutItemId
                                             );

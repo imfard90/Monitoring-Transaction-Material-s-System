@@ -8,7 +8,26 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
-import { TechnicianMaterialTable } from '@/components/domain/material/TechnicianMaterialTable';
+import {
+    type TechnicianMaterialRow,
+    TechnicianMaterialTable,
+} from '@/components/domain/material/TechnicianMaterialTable';
+
+interface IntechTechnicianMaterial extends TechnicianMaterialRow {
+    sap_out_id: number | string;
+    id_trx?: string | number | null;
+    sap_number: string | null;
+    request_time?: string | null;
+    name_sa?: string | null;
+    name_wh: string | null;
+    material_code: string | null;
+    description: string | null;
+    designator_id: number;
+    sap_out_item_id: number | string;
+    qty_req: number;
+    qty_used: number | null;
+}
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -40,6 +59,19 @@ import {
     submitRekonIntech,
 } from '../_actions/rekon-actions';
 
+function extractDataArray<T>(value: unknown): T[] {
+    if (Array.isArray(value)) return value as T[];
+    if (
+        value &&
+        typeof value === 'object' &&
+        'data' in value &&
+        Array.isArray((value as { data: unknown }).data)
+    ) {
+        return (value as { data: T[] }).data;
+    }
+    return [];
+}
+
 export default function RekonIntechForm() {
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -60,10 +92,14 @@ export default function RekonIntechForm() {
 
     const { data: techData } = useQuery({
         queryKey: queryKeys.technicians.intech(),
-        queryFn: getTechniciansWithIntechSaps,
+        queryFn: async () => {
+            const res = await getTechniciansWithIntechSaps();
+            if (!res.success) throw new Error(res.error);
+            return res.data;
+        },
     });
 
-    const technicians = techData?.data || [];
+    const technicians = extractDataArray<{ nik: string; nama_teknisi: string }>(techData);
     const techOptions = technicians.map((t: { nik: string; nama_teknisi: string }) => ({
         value: t.nik,
         label: `${t.nik} - ${t.nama_teknisi}`,
@@ -71,15 +107,20 @@ export default function RekonIntechForm() {
 
     const { data: materialsData, isLoading: isLoadingMaterials } = useQuery({
         queryKey: queryKeys.technicians.materials(selectedNik),
-        queryFn: () => getTechnicianMaterials(selectedNik),
+        queryFn: async () => {
+            if (!selectedNik) return [];
+            const res = await getTechnicianMaterials(selectedNik);
+            if (!res.success) throw new Error(res.error);
+            return res.data;
+        },
         enabled: !!selectedNik,
     });
 
-    const materials = materialsData?.data || [];
+    const materials = extractDataArray<IntechTechnicianMaterial>(materialsData);
 
     // Reset row states when materials change
     useEffect(() => {
-        const mats = materialsData?.data;
+        const mats = extractDataArray<{ sap_out_item_id: number | string }>(materialsData);
         if (mats && mats.length > 0) {
             const initial: Record<string, string> = {};
             mats.forEach((m: { sap_out_item_id: number | string }) => {
@@ -89,7 +130,7 @@ export default function RekonIntechForm() {
         } else {
             setRowStates({});
         }
-    }, [materialsData?.data]);
+    }, [materialsData]);
 
     const handleQtyChange = (itemId: string | number, value: string) => {
         setRowStates((prev) => ({
@@ -146,13 +187,13 @@ export default function RekonIntechForm() {
             }
 
             preparedItems.push({
-                sap_out_id: m.sap_out_id,
-                id_trx: m.id_trx,
-                sap_number: m.sap_number,
-                name_sa: m.name_sa,
-                name_wh: m.name_wh,
-                designator_id: m.designator_id,
-                sap_out_item_id: m.sap_out_item_id,
+                sap_out_id: String(m.sap_out_id),
+                id_trx: String(m.id_trx ?? ''),
+                sap_number: m.sap_number ?? null,
+                name_sa: String(m.name_sa ?? ''),
+                name_wh: m.name_wh ?? null,
+                designator_id: Number(m.designator_id),
+                sap_out_item_id: String(m.sap_out_item_id),
                 qty: qty,
                 wo_type: globalWoType,
                 wo_number: globalWoNumber.trim(),
@@ -399,8 +440,9 @@ export default function RekonIntechForm() {
                                         <TableBody>
                                             {itemsToSubmit.map((item, idx) => {
                                                 const mat = materials.find(
-                                                    (m: Record<string, unknown>) =>
-                                                        m.sap_out_item_id === item.sap_out_item_id
+                                                    (m: IntechTechnicianMaterial) =>
+                                                        String(m.sap_out_item_id) ===
+                                                        String(item.sap_out_item_id)
                                                 );
                                                 return (
                                                     <TableRow
