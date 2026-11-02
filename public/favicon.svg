@@ -8,53 +8,56 @@
       <stop offset="0%" stop-color="#1e40af" />
       <stop offset="100%" stop-color="#172554" />
     </linearGradient>
-    <linearGradient id="favRoof" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#cbd5e1" />
+    <!-- Atap Mode Terang Default: Charcoal Anthracite & Steel Slate -->
+    <linearGradient id="favRoof" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#1e293b" />
     </linearGradient>
     <linearGradient id="favBox" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#f59e0b" />
       <stop offset="100%" stop-color="#d97706" />
     </linearGradient>
     <linearGradient id="favDoor" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#334155" />
+      <stop offset="0%" stop-color="#1e293b" />
       <stop offset="100%" stop-color="#0f172a" />
     </linearGradient>
   </defs>
 
   <style>
+    .fav-roof { fill: url(#favRoof); stroke: #475569; stroke-width: 3; }
+    .fav-roof-lip { fill: #475569; }
     @media (prefers-color-scheme: dark) {
-      .fav-roof { fill: #f8fafc !important; }
-      .fav-roof-lip { fill: #94a3b8 !important; }
+      .fav-roof { fill: #ffffff !important; stroke: none !important; }
+      .fav-roof-lip { fill: #cbd5e1 !important; }
     }
   </style>
 
-  <!-- Ground Shadow -->
+  <!-- Bayangan Lantai -->
   <ellipse cx="256" cy="466" rx="200" ry="16" fill="#000000" opacity="0.25" />
 
-  <!-- Warehouse Main Body -->
-  <path fill="url(#favWall)" d="M110 130v332h312V130z" />
-  <path fill="url(#favWallShadow)" d="M382 130v332h40V130z" />
+  <!-- Dinding Gudang -->
+  <path fill="url(#favWall)" d="M 110 130 v 332 h 312 V 130 z" />
+  <path fill="url(#favWallShadow)" d="M 382 130 v 332 h 40 V 130 z" />
 
-  <!-- Architectural Roof with Theme Adaptation -->
-  <path class="fav-roof-lip" fill="#94a3b8" d="M256 32L24 160h60v20H44L256 64l212 116h-40v-20h60L256 32z" />
-  <path class="fav-roof" fill="url(#favRoof)" d="M44 180a20 20 0 01-10-37l222-122a20 20 0 0119 0l222 122a20 20 0 01-19 35L256 68 64 174a20 20 0 01-20 6z" />
+  <!-- Atap Arsitektural (Adaptif Mode Terang / Gelap) -->
+  <path class="fav-roof-lip" d="M 256 32 L 24 160 h 60 v 20 H 44 L 256 64 l 212 116 h -40 v -20 h 60 L 256 32 z" />
+  <path class="fav-roof" d="M 44 180 a 20 20 0 0 1 -10 -37 l 222 -122 a 20 20 0 0 1 19 0 l 222 122 a 20 20 0 0 1 -19 35 L 256 68 L 64 174 a 20 20 0 0 1 -20 6 z" />
 
-  <!-- Vents -->
+  <!-- Ventilasi -->
   <rect fill="#1e3a8a" x="200" y="160" width="40" height="15" rx="7.5" />
   <rect fill="#1e3a8a" x="272" y="160" width="40" height="15" rx="7.5" />
 
-  <!-- Industrial Shutter Door -->
+  <!-- Pintu Gulung Industri -->
   <rect fill="url(#favDoor)" x="180" y="220" width="152" height="242" rx="14" stroke="#475569" stroke-width="3" />
-  <path fill="#f8fafc" d="M180 220h152v50H180z" opacity="0.9" />
+  <path fill="#f8fafc" d="M 180 220 h 152 v 50 H 180 z" opacity="0.9" />
 
-  <!-- Large Material Box -->
+  <!-- Kotak Material Besar -->
   <rect fill="url(#favBox)" x="60" y="300" width="120" height="162" rx="12" />
   <rect fill="#b45309" x="160" y="300" width="20" height="162" rx="4" />
-  <path fill="#fef08a" d="M100 300h40v48l-20 14-20-14z" />
+  <path fill="#fef08a" d="M 100 300 h 40 v 48 l -20 14 l -20 -14 z" />
 
-  <!-- Small Material Box -->
+  <!-- Kotak Material Kecil -->
   <rect fill="url(#favBox)" x="180" y="350" width="90" height="112" rx="10" />
   <rect fill="#b45309" x="250" y="350" width="20" height="112" rx="4" />
-  <path fill="#fef08a" d="M210 350h30v34l-15 10-15-10z" />
+  <path fill="#fef08a" d="M 210 350 h 30 v 34 l -15 10 l -15 -10 z" />
 </svg>

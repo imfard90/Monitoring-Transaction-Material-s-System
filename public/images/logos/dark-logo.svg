@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 100" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 395 90" width="100%" height="100%">
   <defs>
     <!-- Gradien Dinding Gudang (Royal Cobalt) -->
     <linearGradient id="dlWallGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -9,14 +9,14 @@
       <stop offset="0%" stop-color="#1e40af" />
       <stop offset="100%" stop-color="#172554" />
     </linearGradient>
-    <!-- Gradien Atap Putih Arsitektural -->
-    <linearGradient id="dlRoofTop" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#e2e8f0" />
+    <!-- Atap Mode Terang: Charcoal Anthracite & Steel Metal (Kontras Tinggi di atas background putih) -->
+    <linearGradient id="dlRoofTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#1e293b" />
     </linearGradient>
     <linearGradient id="dlRoofFascia" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#cbd5e1" />
-      <stop offset="100%" stop-color="#94a3b8" />
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="100%" stop-color="#0f172a" />
     </linearGradient>
     <!-- Gradien Kotak Material (Warm Amber) -->
     <linearGradient id="dlBoxMain" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -29,39 +29,39 @@
     </linearGradient>
     <!-- Pintu Gulung Baja Industri -->
     <linearGradient id="dlDoorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#334155" />
+      <stop offset="0%" stop-color="#1e293b" />
       <stop offset="100%" stop-color="#0f172a" />
     </linearGradient>
   </defs>
 
-  <!-- Ikon Gudang Refined -->
-  <g transform="translate(6, 6) scale(0.17)">
-    <ellipse cx="256" cy="466" rx="210" ry="16" fill="#0f172a" opacity="0.12" />
-    <path fill="url(#dlWallGrad)" d="M110 130v332h312V130z" rx="6" />
-    <path fill="url(#dlWallShadow)" d="M382 130v332h40V130z" />
-    <path fill="url(#dlRoofFascia)" d="M256 32L24 160h60v20H44L256 64l212 116h-40v-20h60L256 32z" />
-    <path fill="url(#dlRoofTop)" d="M44 180a20 20 0 01-10-37l222-122a20 20 0 0119 0l222 122a20 20 0 01-19 35L256 68 64 174a20 20 0 01-20 6z" />
-    <rect fill="#1e3a8a" x="200" y="160" width="40" height="15" rx="7.5" opacity="0.9" />
-    <rect fill="#1e3a8a" x="272" y="160" width="40" height="15" rx="7.5" opacity="0.9" />
-    <rect fill="url(#dlDoorGrad)" x="180" y="220" width="152" height="242" rx="14" stroke="#475569" stroke-width="2" />
-    <path fill="#f8fafc" d="M180 220h152v56H180z" opacity="0.95" />
-    <path fill="#cbd5e1" d="M180 220h152v18H180z" />
-    <line x1="184" y1="310" x2="328" y2="310" stroke="#475569" stroke-width="3" stroke-linecap="round" />
-    <line x1="184" y1="340" x2="328" y2="340" stroke="#475569" stroke-width="3" stroke-linecap="round" />
-    <line x1="184" y1="370" x2="328" y2="370" stroke="#475569" stroke-width="3" stroke-linecap="round" />
+  <!-- Ikon Gudang Refined (Skala Proporsional Lebih Besar) -->
+  <g transform="translate(4, 2) scale(0.174)">
+    <ellipse cx="256" cy="466" rx="210" ry="16" fill="#0f172a" opacity="0.15" />
+    <path fill="url(#dlWallGrad)" d="M 110 130 v 332 h 312 V 130 z" rx="6" />
+    <path fill="url(#dlWallShadow)" d="M 382 130 v 332 h 40 V 130 z" />
+    <path fill="url(#dlRoofFascia)" d="M 256 32 L 24 160 h 60 v 20 H 44 L 256 64 l 212 116 h -40 v -20 h 60 L 256 32 z" />
+    <path fill="url(#dlRoofTop)" d="M 44 180 a 20 20 0 0 1 -10 -37 l 222 -122 a 20 20 0 0 1 19 0 l 222 122 a 20 20 0 0 1 -19 35 L 256 68 L 64 174 a 20 20 0 0 1 -20 6 z" stroke="#475569" stroke-width="3" />
+    <rect fill="#0f172a" x="200" y="160" width="40" height="15" rx="7.5" opacity="0.9" />
+    <rect fill="#0f172a" x="272" y="160" width="40" height="15" rx="7.5" opacity="0.9" />
+    <rect fill="url(#dlDoorGrad)" x="180" y="220" width="152" height="242" rx="14" stroke="#334155" stroke-width="2.5" />
+    <path fill="#f1f5f9" d="M 180 220 h 152 v 56 H 180 z" opacity="0.95" />
+    <path fill="#94a3b8" d="M 180 220 h 152 v 18 H 180 z" />
+    <line x1="184" y1="310" x2="328" y2="310" stroke="#475569" stroke-width="3.5" stroke-linecap="round" />
+    <line x1="184" y1="340" x2="328" y2="340" stroke="#475569" stroke-width="3.5" stroke-linecap="round" />
+    <line x1="184" y1="370" x2="328" y2="370" stroke="#475569" stroke-width="3.5" stroke-linecap="round" />
     <rect fill="url(#dlBoxMain)" x="60" y="300" width="120" height="162" rx="12" />
     <rect fill="url(#dlBoxShadow)" x="160" y="300" width="20" height="162" rx="4" />
-    <path fill="#fef08a" d="M100 300h40v48l-20 14-20-14z" />
+    <path fill="#fef08a" d="M 100 300 h 40 v 48 l -20 14 l -20 -14 z" />
     <rect fill="url(#dlBoxShadow)" x="80" y="390" width="60" height="14" rx="7" />
     <rect fill="url(#dlBoxShadow)" x="80" y="420" width="60" height="14" rx="7" />
     <rect fill="url(#dlBoxMain)" x="180" y="350" width="90" height="112" rx="10" />
     <rect fill="url(#dlBoxShadow)" x="250" y="350" width="20" height="112" rx="4" />
-    <path fill="#fef08a" d="M210 350h30v34l-15 10-15-10z" />
+    <path fill="#fef08a" d="M 210 350 h 30 v 34 l -15 10 l -15 -10 z" />
     <rect fill="url(#dlBoxShadow)" x="195" y="410" width="45" height="11" rx="5.5" />
     <rect fill="url(#dlBoxShadow)" x="195" y="435" width="45" height="11" rx="5.5" />
   </g>
 
-  <!-- Typography: Clean, Modern Enterprise Kerning -->
-  <text x="110" y="55" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="38" letter-spacing="-0.8" fill="#0f172a">Warehouse<tspan font-weight="900" fill="#2563eb">MTMS</tspan></text>
-  <text x="112" y="77" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="600" font-size="11.5" letter-spacing="2.8" fill="#64748b">TRANSACTION MONITORING</text>
+  <!-- Tipografi: Kontras Tajam, Tegas & Terbaca Jelas -->
+  <text x="96" y="52" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="39" letter-spacing="-0.8" fill="#0f172a">Warehouse<tspan font-weight="900" fill="#2563eb">MTMS</tspan></text>
+  <text x="98" y="73" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="11" letter-spacing="2.8" fill="#475569">TRANSACTION MONITORING</text>
 </svg>
