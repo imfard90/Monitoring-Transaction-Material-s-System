@@ -22,9 +22,14 @@ export const auth = betterAuth({
         'http://127.0.0.1:3000',
         'http://localhost:8000',
         'http://127.0.0.1:8000',
+        'http://192.168.1.2:8000',
+        'http://192.168.1.2:3000',
         'https://mtms-app.credea.biz.id',
         ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
         ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
+        ...(process.env.BETTER_AUTH_TRUSTED_ORIGINS
+            ? process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(',').map((o) => o.trim())
+            : []),
     ].filter(Boolean),
     database: pool,
     emailAndPassword: {
