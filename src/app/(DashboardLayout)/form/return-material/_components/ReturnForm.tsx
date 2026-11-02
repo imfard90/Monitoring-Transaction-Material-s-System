@@ -484,7 +484,7 @@ export default function ReturnForm() {
                             </div>
 
                             <div className="border border-border/70 rounded-xl overflow-hidden shadow-2xs">
-                                <div className="max-h-[260px] overflow-y-auto">
+                                <div className="max-h-65 overflow-y-auto">
                                     <Table>
                                         <TableHeader className="bg-muted/80 backdrop-blur-xs sticky top-0 z-10 border-b border-border">
                                             <TableRow className="hover:bg-transparent">
