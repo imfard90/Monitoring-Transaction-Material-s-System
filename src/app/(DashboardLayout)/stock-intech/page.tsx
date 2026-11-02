@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
+import { getPageSessionUser } from '@/lib/auth-server';
 import { StockIntechOverview } from '../../components/dashboard/StockIntechOverview';
 import BreadcrumbComp from '../layout/shared/breadcrumb/BreadcrumbComp';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
     title: 'Stok Intech',
@@ -19,7 +22,9 @@ const BCrumb = [
     },
 ];
 
-const StockIntechPage = () => {
+export default async function StockIntechPage() {
+    await getPageSessionUser();
+
     return (
         <StaggerContainer className="flex flex-col flex-1 w-full min-w-0 max-w-full h-full min-h-0">
             <StaggerItem className="shrink-0 w-full min-w-0">
@@ -30,6 +35,4 @@ const StockIntechPage = () => {
             </StaggerItem>
         </StaggerContainer>
     );
-};
-
-export default StockIntechPage;
+}

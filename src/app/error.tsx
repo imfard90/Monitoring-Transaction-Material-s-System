@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/card';
 
 interface ErrorProps {
-    error: Error & { digest?: string };
+    error: Error & { digest?: string; code?: string; statusCode?: number };
     reset: () => void;
 }
 
@@ -24,20 +24,34 @@ interface ErrorProps {
 export default function GlobalError({ error, reset }: ErrorProps) {
     const router = useRouter();
 
+    const isAbortError =
+        error.name === 'AbortError' ||
+        error.code === 'ECONNRESET' ||
+        error.digest === '511400414' ||
+        error.message?.includes('aborted') ||
+        error.digest?.includes('NEXT_REDIRECT');
+
     const isAuthError =
-        error.name === 'AuthenticationError' ||
-        error.message?.toLowerCase().includes('authentication') ||
-        error.message?.toLowerCase().includes('unauthorized') ||
-        error.message?.toLowerCase().includes('sesi') ||
-        (typeof document !== 'undefined' &&
-            !document.cookie.includes('better-auth.session_token') &&
-            !document.cookie.includes('__Secure-better-auth.session_token'));
+        !isAbortError &&
+        (error.name === 'AuthenticationError' ||
+            error.statusCode === 401 ||
+            error.code === 'AUTHENTICATION_ERROR' ||
+            error.message === 'Authentication required');
 
     useEffect(() => {
-        if (isAuthError) {
-            window.location.replace('/auth/login');
+        if (isAbortError) {
+            reset();
+            return;
         }
-    }, [isAuthError]);
+
+        if (isAuthError) {
+            window.location.replace('/auth/login?reason=expired');
+        }
+    }, [isAbortError, isAuthError, reset]);
+
+    if (isAbortError) {
+        return null;
+    }
 
     if (isAuthError) {
         return (
@@ -54,13 +68,14 @@ export default function GlobalError({ error, reset }: ErrorProps) {
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm text-muted-foreground">
-                            Jika peramban Anda tidak beralih otomatis dalam beberapa detik, silakan klik tombol di bawah.
+                            Jika peramban Anda tidak beralih otomatis dalam beberapa detik, silakan
+                            klik tombol di bawah.
                         </p>
                     </CardContent>
                     <CardFooter className="justify-center">
                         <Button
                             onClick={() => {
-                                window.location.replace('/auth/login');
+                                window.location.replace('/auth/login?reason=expired');
                             }}
                             className="gap-2"
                         >
@@ -99,4 +114,3 @@ export default function GlobalError({ error, reset }: ErrorProps) {
         </div>
     );
 }
-

@@ -63,11 +63,16 @@ const LoginForm = () => {
     }, [searchParams]);
 
     // Jika user sudah memiliki sesi valid aktif di database/server, alihkan ke dashboard utama
+    // KECUALI jika diarahkan ke halaman login karena logout, sesi expired, atau idle
     useEffect(() => {
+        const reason = searchParams.get('reason');
+        if (reason === 'idle' || reason === 'expired') {
+            return;
+        }
         if (!isSessionPending && session?.user) {
             router.replace('/');
         }
-    }, [isSessionPending, session, router]);
+    }, [isSessionPending, session, router, searchParams]);
 
     const handleTurnstileToken = useCallback((token: string) => {
         setTurnstileToken(token);
