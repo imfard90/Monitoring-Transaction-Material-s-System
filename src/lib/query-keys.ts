@@ -113,4 +113,10 @@ export const queryKeys = {
             [...queryKeys.dashboard.all, 'rekon-sla', warehouseId ?? 'all'] as const,
         productPerformance: () => [...queryKeys.dashboard.all, 'product-performance'] as const,
     },
+
+    // Operational pending notifications
+    notifications: {
+        all: ['notifications'] as const,
+        pending: () => [...queryKeys.notifications.all, 'pending'] as const,
+    },
 } as const;

@@ -7,6 +7,7 @@ import { useTheme } from '@/components/theme-provider';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import FullLogo from '../shared/logo/FullLogo';
 import SidebarLayout from '../sidebar/Sidebar';
+import NotificationBell from './NotificationBell';
 import Profile from './Profile';
 import Search from './Search';
 
@@ -47,7 +48,10 @@ const Header = () => {
                     </div>
 
                     {/* RIGHT SECTION */}
-                    <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        {/* Notification Bell */}
+                        <NotificationBell />
+
                         {/* Theme Toggle */}
                         <button
                             type="button"
