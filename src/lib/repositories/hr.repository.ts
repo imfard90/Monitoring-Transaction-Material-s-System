@@ -8,78 +8,98 @@
  * This repository provides the canonical query implementations. Server actions
  * wrap these with auth + error handling.
  */
+import { getOrSetLru, masterDataLru } from '@/lib/cache/lru-cache';
 import { db } from '@/lib/db/db';
 
 export const hrRepository = {
     /**
      * Get all technicians with optional service-area and active-status filters.
      * Joins branches and mitras for display columns.
+     * Cached in L1 LRU Cache for 5 minutes.
      */
     getTechnicians: (options?: { serviceArea?: string; isActive?: boolean }) => {
-        let query = db
-            .selectFrom('hr.technicians as t')
-            .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
-            .leftJoin('hr.mitras as m', 'm.id', 't.mitra_id')
-            .leftJoin('inventory.mas_wh as w', 'w.id', 't.wh_id')
-            .select([
-                't.id',
-                't.nik',
-                't.name',
-                't.is_active',
-                't.branch_id',
-                't.mitra_id',
-                't.wh_id',
-                't.exclude_intech_lensa',
-                'w.name as warehouse_name',
-                'b.service_area',
-                'm.mitra_name',
-            ]);
+        const cacheKey = `hr:tech:${options?.serviceArea ?? 'all'}:${options?.isActive ?? 'all'}`;
 
-        if (options?.serviceArea) {
-            query = query.where('b.service_area', '=', options.serviceArea);
-        }
+        return getOrSetLru(masterDataLru, cacheKey, async () => {
+            let query = db
+                .selectFrom('hr.technicians as t')
+                .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
+                .leftJoin('hr.mitras as m', 'm.id', 't.mitra_id')
+                .leftJoin('inventory.mas_wh as w', 'w.id', 't.wh_id')
+                .select([
+                    't.id',
+                    't.nik',
+                    't.name',
+                    't.is_active',
+                    't.branch_id',
+                    't.mitra_id',
+                    't.wh_id',
+                    't.exclude_intech_lensa',
+                    'w.name as warehouse_name',
+                    'b.service_area',
+                    'm.mitra_name',
+                ]);
 
-        if (options?.isActive !== undefined) {
-            query = query.where('t.is_active', '=', options.isActive);
-        }
+            if (options?.serviceArea) {
+                query = query.where('b.service_area', '=', options.serviceArea);
+            }
 
-        return query.orderBy('t.name', 'asc').execute();
+            if (options?.isActive !== undefined) {
+                query = query.where('t.is_active', '=', options.isActive);
+            }
+
+            return await query.orderBy('t.name', 'asc').execute();
+        });
     },
 
     /**
      * Get technician by NIK (single record).
      * Automatically sanitizes input NIK (strips standard whitespace and Unicode NBSP).
+     * Cached in L1 LRU Cache for 5 minutes.
      */
     getTechnicianByNik: (nik: string) => {
         const cleanNik = nik.replace(/[\s\u00A0]+/g, '');
-        return db
-            .selectFrom('hr.technicians as t')
-            .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
-            .select(['t.nik', 't.name', 't.is_active', 'b.service_area as sa'])
-            .where('t.nik', '=', cleanNik)
-            .executeTakeFirst();
+        const cacheKey = `hr:tech:nik:${cleanNik}`;
+
+        return getOrSetLru(masterDataLru, cacheKey, async () => {
+            return await db
+                .selectFrom('hr.technicians as t')
+                .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
+                .select(['t.nik', 't.name', 't.is_active', 'b.service_area as sa'])
+                .where('t.nik', '=', cleanNik)
+                .executeTakeFirst();
+        });
     },
 
     /**
      * Get all branches, optionally scoped to a specific branch name.
+     * Cached in L1 LRU Cache for 5 minutes.
      */
     getBranches: (options?: { branchName?: string }) => {
-        let query = db.selectFrom('hr.branches').select(['id', 'service_area', 'branch']);
+        const cacheKey = `hr:branches:${options?.branchName ?? 'all'}`;
 
-        if (options?.branchName) {
-            query = query.where('branch', '=', options.branchName);
-        }
+        return getOrSetLru(masterDataLru, cacheKey, async () => {
+            let query = db.selectFrom('hr.branches').select(['id', 'service_area', 'branch']);
 
-        return query.orderBy('service_area', 'asc').execute();
+            if (options?.branchName) {
+                query = query.where('branch', '=', options.branchName);
+            }
+
+            return await query.orderBy('service_area', 'asc').execute();
+        });
     },
 
     /**
      * Get all mitras.
+     * Cached in L1 LRU Cache for 5 minutes.
      */
-    getMitras: () =>
-        db
-            .selectFrom('hr.mitras')
-            .select(['id', 'mitra_name'])
-            .orderBy('mitra_name', 'asc')
-            .execute(),
+    getMitras: () => {
+        return getOrSetLru(masterDataLru, 'hr:mitras:all', async () => {
+            return await db
+                .selectFrom('hr.mitras')
+                .select(['id', 'mitra_name'])
+                .orderBy('mitra_name', 'asc')
+                .execute();
+        });
+    },
 };

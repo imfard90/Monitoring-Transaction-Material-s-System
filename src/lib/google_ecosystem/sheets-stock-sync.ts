@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { google } from 'googleapis';
+import { otherStockLru } from '@/lib/cache/lru-cache';
 import { actionLogger } from '@/lib/logger';
 
 // ─── Paths ────────────────────────────────────────────────────────────────────
@@ -33,23 +34,16 @@ export interface OtherStockCache {
     items: OtherStockItem[];
 }
 
-// ─── In-Memory Cache ──────────────────────────────────────────────────────────
+// ─── In-Memory Cache (LRU) ───────────────────────────────────────────────────
 
-// Module-level cache: avoids reading the file on every request.
-// TTL = 25 hours — slightly longer than the 24h cron interval to prevent
-// a gap if the cron fires a few minutes late.
-const IN_MEMORY_TTL_MS = 25 * 60 * 60 * 1000;
-
-let memCache: OtherStockCache | null = null;
-let memCacheLoadedAt = 0;
+const OTHER_STOCK_LRU_KEY = 'other-stock-data';
 
 /**
  * Invalidate the in-memory cache so the next read picks up the fresh file.
  * Called automatically after a successful sync.
  */
 function invalidateMemCache(): void {
-    memCache = null;
-    memCacheLoadedAt = 0;
+    otherStockLru.delete(OTHER_STOCK_LRU_KEY);
 }
 
 // ─── File I/O ─────────────────────────────────────────────────────────────────
@@ -129,17 +123,16 @@ export function normalizeStockQuantity(value: unknown): number | null {
  *   3. null — caller should surface a "data not yet synced" message
  */
 export function loadOtherStockCache(): OtherStockCache | null {
-    // 1. In-memory
-    const now = Date.now();
-    if (memCache !== null && now - memCacheLoadedAt < IN_MEMORY_TTL_MS) {
-        return memCache;
+    // 1. In-memory LRU Cache
+    const cached = otherStockLru.get(OTHER_STOCK_LRU_KEY) as OtherStockCache | undefined;
+    if (cached) {
+        return cached;
     }
 
     // 2. Disk
     const fromDisk = readCacheFile();
     if (fromDisk !== null) {
-        memCache = fromDisk;
-        memCacheLoadedAt = now;
+        otherStockLru.set(OTHER_STOCK_LRU_KEY, fromDisk);
     }
     return fromDisk;
 }

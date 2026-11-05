@@ -5,6 +5,7 @@
  */
 
 import { type Kysely, sql, type Transaction } from 'kysely';
+import { getOrSetLru, masterDataLru } from '@/lib/cache/lru-cache';
 import type { DB } from '@/lib/db/database.types';
 import { db } from '@/lib/db/db';
 import { expandWarehouseAliases } from '@/lib/warehouse-helper';
@@ -397,10 +398,12 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
     },
 
     /**
-     * List materials
+     * List materials (cached in L1 LRU Cache for 5 minutes)
      */
     listMaterials: () =>
-        dbClient.selectFrom('inventory.materials').selectAll().orderBy('code').execute(),
+        getOrSetLru(masterDataLru, 'mat:all', () =>
+            dbClient.selectFrom('inventory.materials').selectAll().orderBy('code').execute()
+        ),
 
     /**
      * Get materials with positive stock in a specific warehouse

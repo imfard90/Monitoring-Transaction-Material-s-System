@@ -4,6 +4,7 @@ import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireTechnicianManagementAccess } from '@/lib/auth-server';
+import { invalidateMasterData } from '@/lib/cache/lru-cache';
 import type { HrTechnicians } from '@/lib/db/database.types';
 import { db } from '@/lib/db/db';
 import { errors } from '@/lib/errors';
@@ -83,6 +84,7 @@ export async function toggleTechnicianStatus(id: string | number, isActive: bool
             .where('id', '=', String(id))
             .execute();
 
+        invalidateMasterData('hr:');
         revalidatePath('/management/technician');
         return { success: true };
     } catch (error: unknown) {
@@ -156,6 +158,7 @@ export async function upsertTechnician(data: {
                 .execute();
         }
 
+        invalidateMasterData('hr:');
         revalidatePath('/management/technician');
         return { success: true };
     } catch (error: unknown) {
@@ -247,6 +250,7 @@ export async function updateTechnicianExclude(data: {
             .where('id', '=', String(id))
             .execute();
 
+        invalidateMasterData('hr:');
         revalidatePath('/management/technician');
         revalidatePath('/reference/stock-comparison');
         revalidatePath('/');

@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
+import { sessionMetaLru } from '@/lib/cache/lru-cache';
 import { db } from '@/lib/db/db';
 
 import { errors } from '@/lib/errors';
@@ -64,14 +65,25 @@ export async function getSessionUser(): Promise<SessionUser> {
         void touchUserPresence(redis, nik, session?.session?.id);
 
         const cacheKey = `cache:user:session-meta:${nik}`;
-        let cachedMeta: {
+        type SessionMetaData = {
             role: string | null;
             branchId: number | null;
             branchName: string | null;
             warehouseIds: number[];
             isStaff: boolean;
-        } | null = null;
+        };
 
+        // 1. Check Tier-1: Local In-Memory LRU Cache (0ms)
+        const l1Cached = sessionMetaLru.get(cacheKey) as SessionMetaData | undefined;
+        if (l1Cached) {
+            return {
+                nik,
+                ...l1Cached,
+            };
+        }
+
+        // 2. Check Tier-2: Distributed Redis Cache (1-3ms)
+        let cachedMeta: SessionMetaData | null = null;
         try {
             const raw = await redis.get(cacheKey);
             if (raw) {
@@ -82,6 +94,7 @@ export async function getSessionUser(): Promise<SessionUser> {
         }
 
         if (cachedMeta) {
+            sessionMetaLru.set(cacheKey, cachedMeta, { ttl: 30 * 1000 });
             return {
                 nik,
                 ...cachedMeta,
@@ -112,7 +125,7 @@ export async function getSessionUser(): Promise<SessionUser> {
             warehouseIds = whs.map((w) => w.id);
         }
 
-        const sessionMeta = {
+        const sessionMeta: SessionMetaData = {
             role,
             warehouseIds,
             isStaff: role === 'Staff',
@@ -120,12 +133,13 @@ export async function getSessionUser(): Promise<SessionUser> {
             branchName,
         };
 
-        // Cache for 60 seconds to eliminate redundant DB roundtrips across concurrent actions/widgets
+        // Cache for 60 seconds in L2 Redis and 30 seconds in L1 LRU Cache
         try {
             await redis.set(cacheKey, JSON.stringify(sessionMeta), 'EX', 60);
         } catch {
             // Non-blocking cache write failure
         }
+        sessionMetaLru.set(cacheKey, sessionMeta, { ttl: 30 * 1000 });
 
         return {
             nik,
