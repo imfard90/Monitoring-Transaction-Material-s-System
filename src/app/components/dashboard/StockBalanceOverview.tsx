@@ -2,6 +2,7 @@
 
 import { IconBuildingWarehouse, IconRefresh } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -9,7 +10,6 @@ import {
     triggerOtherStockSync,
 } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { getSidebarUserAccess } from '@/app/(DashboardLayout)/management/users/actions';
-import { OtherStockModal } from '@/app/components/dashboard/OtherStockModal';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
@@ -30,6 +30,11 @@ import {
     useReactTable,
 } from '@/lib/table';
 import { sortStockBalancesByRunout } from '@/lib/utils/stock-balance-order';
+
+const OtherStockModal = dynamic(
+    () => import('@/app/components/dashboard/OtherStockModal').then((mod) => mod.OtherStockModal),
+    { ssr: false }
+);
 
 interface StockBalanceData {
     warehouse_name: string | null;

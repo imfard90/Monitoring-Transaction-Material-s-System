@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
@@ -11,10 +12,11 @@ import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { useDebouncedCallback } from '@/hooks/use-debounce';
 import type { HasilRekonData } from '../_actions/rekon-actions';
 import { exportHasilRekonData } from '../_actions/rekon-export-actions';
-import EditRekonModal from './EditRekonModal';
 import ExportLoadingOverlay from './ExportLoadingOverlay';
-import ExportRekonModal from './ExportRekonModal';
 import HasilRekonTable from './HasilRekonTable';
+
+const EditRekonModal = dynamic(() => import('./EditRekonModal'), { ssr: false });
+const ExportRekonModal = dynamic(() => import('./ExportRekonModal'), { ssr: false });
 
 const MONTH_NAMES = [
     'Januari',

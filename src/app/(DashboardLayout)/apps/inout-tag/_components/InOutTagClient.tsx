@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
@@ -12,11 +13,12 @@ import {
     getInoutTagItemsByHeaderId,
     getReturnMaterialItemsByHeaderId,
 } from '../_actions/tag-actions';
-import CreateTagModal from './CreateTagModal';
 import InOutTagCards from './InOutTagCards';
-import InOutTagDetailModal from './InOutTagDetailModal';
 import InOutTagTable from './InOutTagTable';
-import UpdateTagModal from './UpdateTagModal';
+
+const CreateTagModal = dynamic(() => import('./CreateTagModal'), { ssr: false });
+const UpdateTagModal = dynamic(() => import('./UpdateTagModal'), { ssr: false });
+const InOutTagDetailModal = dynamic(() => import('./InOutTagDetailModal'), { ssr: false });
 
 interface InOutTagClientProps {
     canCreateTag: boolean;
