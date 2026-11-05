@@ -21,6 +21,7 @@ import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { formatDateId } from '@/lib/formatters';
 import { queryKeys } from '@/lib/query-keys';
 import {
     createColumnHelper,
@@ -38,6 +39,7 @@ interface StockBalanceData {
     qty_stock: number;
     average_demand_weekly: number | null;
     has_out_material_history: boolean;
+    policy_updated_at?: string | Date | null;
 }
 
 const columnHelper = createColumnHelper<StockBalanceData>();
@@ -209,8 +211,20 @@ export default function StockBalanceOverview() {
                                 <span className="text-muted-foreground">Tidak habis</span>
                             ) : (
                                 <>
-                                    <div className="font-medium">
-                                        Habis dalam {daysUntilEmpty} hari
+                                    <div className="font-medium flex items-center justify-end gap-1">
+                                        <span>Habis dalam {daysUntilEmpty} hari</span>
+                                        {row.original.policy_updated_at && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <sup className="cursor-help text-[10px] text-muted-foreground/80 hover:text-foreground font-sans font-normal">
+                                                        *
+                                                    </sup>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top">
+                                                    Update Policy: {formatDateId(row.original.policy_updated_at)}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        )}
                                     </div>
                                     <div className="text-xs text-muted-foreground">
                                         Rata-rata{' '}

@@ -30,24 +30,10 @@ export async function getStockBalances() {
             .selectFrom('inventory.stock_balance as sb')
             .innerJoin('inventory.mas_wh as w', 'w.id', 'sb.warehouse_id')
             .innerJoin('inventory.materials as m', 'm.id', 'sb.designator_id')
-            .leftJoin(
-                (eb) =>
-                    eb
-                        .selectFrom('inventory.stock_movement')
-                        .select([
-                            'warehouse_id',
-                            'designator_id',
-                            sql<number>`SUM(ABS(qty_delta)) / 12.0`.as('average_demand_weekly'),
-                            sql<boolean>`TRUE`.as('has_out_material_history'),
-                        ])
-                        .where('movement_type', '=', 'sap_out')
-                        .where(sql<boolean>`created_at >= CURRENT_DATE - INTERVAL '84 days'`)
-                        .groupBy(['warehouse_id', 'designator_id'])
-                        .as('sm_agg'),
-                (join) =>
-                    join
-                        .onRef('sm_agg.warehouse_id', '=', 'sb.warehouse_id')
-                        .onRef('sm_agg.designator_id', '=', 'sb.designator_id')
+            .leftJoin('inventory.stock_policy as sp', (join) =>
+                join
+                    .onRef('sp.warehouse_id', '=', 'sb.warehouse_id')
+                    .onRef('sp.designator_id', '=', 'sb.designator_id')
             )
             .select([
                 'sb.id',
@@ -58,11 +44,23 @@ export async function getStockBalances() {
                 'm.code as material_code',
                 'm.description as material_name',
                 'sb.qty_stock',
-                sql<number | null>`sm_agg.average_demand_weekly`.as('average_demand_weekly'),
-                sql<boolean>`COALESCE(sm_agg.has_out_material_history, FALSE)`.as(
-                    'has_out_material_history'
-                ),
+                sql<number | null>`sp.average_demand_weekly`.as('average_demand_weekly'),
+                'sp.updated_at as policy_updated_at',
             ])
+            .select((eb) =>
+                sql<boolean>`CASE WHEN ${eb.exists(
+                    eb
+                        .selectFrom('inventory.stock_movement as sm')
+                        .select('sm.id')
+                        .whereRef('sm.warehouse_id', '=', 'sb.warehouse_id')
+                        .whereRef('sm.designator_id', '=', 'sb.designator_id')
+                        .where('sm.movement_type', 'in', [
+                            'material_used',
+                            'sap_out',
+                            'transfer_out',
+                        ])
+                )} THEN TRUE ELSE FALSE END`.as('has_out_material_history')
+            )
             .orderBy('w.name', 'asc')
             .orderBy('m.code', 'asc')
             .execute();

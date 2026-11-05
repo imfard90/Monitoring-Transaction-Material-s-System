@@ -74,6 +74,7 @@ const stockRow = (overrides: Partial<StockItem>): StockItem => ({
     average_demand_weekly: null,
     safety_stock_pct: null,
     has_out_material_history: true,
+    policy_updated_at: null,
     stock_status: 'normal',
     ...overrides,
 });

@@ -444,6 +444,7 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
                 'sp.max_qty as maxQty',
                 'sp.average_demand_weekly as averageDemandWeekly',
                 'sp.safety_stock_pct as safetyStockPct',
+                'sp.updated_at as policyUpdatedAt',
             ])
             .select((eb) =>
                 eb

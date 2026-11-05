@@ -8,6 +8,8 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { formatDateId } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import {
     calculateDaysUntilRunout,
@@ -123,11 +125,25 @@ export function MaterialCards({ items }: MaterialCardsProps) {
                                                         className="size-3.5"
                                                         aria-hidden="true"
                                                     />
-                                                    {days === null
-                                                        ? 'Belum ada riwayat keluar'
-                                                        : days === 0
-                                                          ? 'Stok habis'
-                                                          : `Habis dalam ${days} hari`}
+                                                    <span>
+                                                        {days === null
+                                                            ? 'Belum ada riwayat keluar'
+                                                            : days === 0
+                                                              ? 'Stok habis'
+                                                              : `Habis dalam ${days} hari`}
+                                                    </span>
+                                                    {days !== null && group.policy_updated_at && (
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <sup className="cursor-help text-[10px] text-muted-foreground/80 hover:text-foreground font-sans font-normal">
+                                                                    *
+                                                                </sup>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top">
+                                                                Update Policy: {formatDateId(group.policy_updated_at)}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    )}
                                                 </span>
                                                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                                                     {group.warehouse_count} gudang

@@ -17,6 +17,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { queryKeys } from '@/lib/query-keys';
+import { formatDateId } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 
 export interface StockWarning {
@@ -30,6 +31,7 @@ export interface StockWarning {
     min_qty: number;
     qty_stock: number;
     deficit: number;
+    policy_updated_at?: string | Date | null;
 }
 
 type WarehouseOption = { id: number; name: string };
@@ -77,6 +79,22 @@ export const StockWarningTable = ({
         () => activeWarnings.filter((item) => item.qty_stock < item.min_qty).length,
         [activeWarnings]
     );
+
+    const latestPolicyUpdate = useMemo(() => {
+        let maxDate: string | null = null;
+        for (const item of warnings) {
+            if (item.policy_updated_at) {
+                const s =
+                    typeof item.policy_updated_at === 'string'
+                        ? item.policy_updated_at
+                        : new Date(item.policy_updated_at).toISOString();
+                if (!maxDate || s > maxDate) {
+                    maxDate = s;
+                }
+            }
+        }
+        return maxDate;
+    }, [warnings]);
 
     // Filtered data based on status toggle and search query
     const filteredWarnings = useMemo(() => {
@@ -142,8 +160,13 @@ export const StockWarningTable = ({
                                 </Badge>
                             )}
                         </div>
-                        <p className="text-xs text-muted-foreground font-normal mt-0.5">
-                            Daftar material yang memerlukan pengisian ulang stok gudang
+                        <p className="text-xs text-muted-foreground font-normal mt-0.5 flex flex-wrap items-center gap-x-2">
+                            <span>Daftar material yang memerlukan pengisian ulang stok gudang</span>
+                            {latestPolicyUpdate && (
+                                <span className="inline-flex items-center text-[11px] text-muted-foreground/80 font-mono">
+                                    • Update Policy: {formatDateId(latestPolicyUpdate)}
+                                </span>
+                            )}
                         </p>
                     </div>
                 </div>

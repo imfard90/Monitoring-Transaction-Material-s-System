@@ -47,6 +47,7 @@ export interface StockRunoutItem {
     daily_demand: number;
     days_of_supply: number;
     status: 'critical' | 'warning' | 'safe';
+    policy_updated_at?: string | null;
 }
 
 const getRekonSlaVelocitySchema = z.object({
@@ -760,23 +761,10 @@ export async function getStockRunoutForecast(wh_id: string = 'all', limit: numbe
             .selectFrom('inventory.stock_balance as sb')
             .innerJoin('inventory.mas_wh as w', 'w.id', 'sb.warehouse_id')
             .innerJoin('inventory.materials as m', 'm.id', 'sb.designator_id')
-            .leftJoin(
-                (eb) =>
-                    eb
-                        .selectFrom('inventory.stock_movement')
-                        .select([
-                            'warehouse_id',
-                            'designator_id',
-                            sql<number>`SUM(ABS(qty_delta)) / 12.0`.as('average_demand_weekly'),
-                        ])
-                        .where('movement_type', '=', 'sap_out')
-                        .where(sql<boolean>`created_at >= CURRENT_DATE - INTERVAL '84 days'`)
-                        .groupBy(['warehouse_id', 'designator_id'])
-                        .as('sm_agg'),
-                (join) =>
-                    join
-                        .onRef('sm_agg.warehouse_id', '=', 'sb.warehouse_id')
-                        .onRef('sm_agg.designator_id', '=', 'sb.designator_id')
+            .leftJoin('inventory.stock_policy as sp', (join) =>
+                join
+                    .onRef('sp.warehouse_id', '=', 'sb.warehouse_id')
+                    .onRef('sp.designator_id', '=', 'sb.designator_id')
             )
             .select([
                 'm.code as material_code',
@@ -784,17 +772,18 @@ export async function getStockRunoutForecast(wh_id: string = 'all', limit: numbe
                 'm.unit as material_unit',
                 'w.name as warehouse_name',
                 'sb.qty_stock',
-                sql<number>`ROUND(COALESCE(sm_agg.average_demand_weekly, 0)::numeric, 1)`.as('weekly_demand'),
-                sql<number>`ROUND((COALESCE(sm_agg.average_demand_weekly, 0) / 7.0)::numeric, 2)`.as('daily_demand'),
+                sql<number>`ROUND(COALESCE(sp.average_demand_weekly, 0)::numeric, 1)`.as('weekly_demand'),
+                sql<number>`ROUND((COALESCE(sp.average_demand_weekly, 0) / 7.0)::numeric, 2)`.as('daily_demand'),
                 sql<number>`
                   CASE 
-                    WHEN COALESCE(sm_agg.average_demand_weekly, 0) <= 0 THEN 999
-                    ELSE ROUND((sb.qty_stock / (sm_agg.average_demand_weekly / 7.0))::numeric, 1)
+                    WHEN COALESCE(sp.average_demand_weekly, 0) <= 0 THEN 999
+                    ELSE ROUND((sb.qty_stock / (sp.average_demand_weekly / 7.0))::numeric, 1)
                   END
                 `.as('days_of_supply'),
+                'sp.updated_at as policy_updated_at',
             ])
             .where('sb.qty_stock', '>', 0)
-            .where(sql`COALESCE(sm_agg.average_demand_weekly, 0)`, '>', 0);
+            .where(sql`COALESCE(sp.average_demand_weekly, 0)`, '>', 0);
 
         if (wh_id !== 'all') {
             query = query.where('sb.warehouse_id', '=', Number(wh_id));
@@ -803,7 +792,7 @@ export async function getStockRunoutForecast(wh_id: string = 'all', limit: numbe
         }
 
         const rows = await query
-            .orderBy(sql`sb.qty_stock / (sm_agg.average_demand_weekly / 7.0)`, 'asc')
+            .orderBy(sql`sb.qty_stock / (sp.average_demand_weekly / 7.0)`, 'asc')
             .limit(parsed.data.limit)
             .execute();
 
@@ -825,6 +814,9 @@ export async function getStockRunoutForecast(wh_id: string = 'all', limit: numbe
                 daily_demand: Number(r.daily_demand || 0),
                 days_of_supply: days,
                 status,
+                policy_updated_at: r.policy_updated_at
+                    ? new Date(r.policy_updated_at).toISOString()
+                    : null,
             };
         });
 

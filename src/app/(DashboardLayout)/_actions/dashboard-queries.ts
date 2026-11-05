@@ -73,6 +73,7 @@ export async function getStockWarnings(warehouseId: string = 'all') {
                 'p.min_qty',
                 'b.qty_stock',
                 sql<number>`p.min_qty - b.qty_stock`.as('deficit'),
+                'p.updated_at as policy_updated_at',
             ])
             .orderBy('deficit', 'desc')
             .orderBy('w.name')

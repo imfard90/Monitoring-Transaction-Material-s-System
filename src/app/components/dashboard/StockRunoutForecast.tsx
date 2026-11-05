@@ -17,6 +17,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDateId } from '@/lib/formatters';
 import { queryKeys } from '@/lib/query-keys';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -46,6 +47,18 @@ export const StockRunoutForecast: React.FC<{
         () => runoutData.filter((item) => item.status === 'critical').length,
         [runoutData]
     );
+
+    const latestPolicyUpdate = useMemo(() => {
+        let maxDate: string | null = null;
+        for (const item of runoutData) {
+            if (item.policy_updated_at) {
+                if (!maxDate || item.policy_updated_at > maxDate) {
+                    maxDate = item.policy_updated_at;
+                }
+            }
+        }
+        return maxDate;
+    }, [runoutData]);
 
     const chartData = useMemo(() => {
         const categories = runoutData.map((item) => {
@@ -198,8 +211,13 @@ export const StockRunoutForecast: React.FC<{
                                 </Badge>
                             )}
                         </div>
-                        <p className="text-xs text-muted-foreground font-normal mt-0.5">
-                            Estimasi sisa hari sebelum stok habis (Days of Supply) berdasarkan laju konsumsi harian
+                        <p className="text-xs text-muted-foreground font-normal mt-0.5 flex flex-wrap items-center gap-x-2">
+                            <span>Estimasi sisa hari sebelum stok habis (Days of Supply) berdasarkan laju konsumsi policy</span>
+                            {latestPolicyUpdate && (
+                                <span className="inline-flex items-center text-[11px] text-muted-foreground/80 font-mono">
+                                    • Update Policy: {formatDateId(latestPolicyUpdate)}
+                                </span>
+                            )}
                         </p>
                     </div>
                 </div>

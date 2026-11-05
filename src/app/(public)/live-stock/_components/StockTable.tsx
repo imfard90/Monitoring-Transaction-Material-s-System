@@ -32,6 +32,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { formatDateId } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { StockItem, StockStatus, WarehouseSummary } from '../_lib/stock-status';
 import { calculateDaysUntilRunout, warehouseLocation } from '../_lib/stock-status';
@@ -225,11 +226,23 @@ export function StockTable({
                 return (
                     <div
                         className={cn(
-                            'text-center font-mono tabular-nums',
+                            'text-center font-mono tabular-nums inline-flex items-center justify-center gap-1 w-full',
                             days <= 7 ? 'text-destructive font-semibold' : 'text-muted-foreground'
                         )}
                     >
-                        {days} hari
+                        <span>{days} hari</span>
+                        {row.policy_updated_at && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <sup className="cursor-help text-[10px] text-muted-foreground/80 hover:text-foreground font-sans font-normal">
+                                        *
+                                    </sup>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                    Update Policy: {formatDateId(row.policy_updated_at)}
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
                     </div>
                 );
             },

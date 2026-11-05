@@ -54,6 +54,9 @@ export async function getLiveStockData(): Promise<
                     safetyPct
                 ),
                 has_out_material_history: Boolean(row.hasOutMaterialHistory),
+                policy_updated_at: row.policyUpdatedAt
+                    ? new Date(row.policyUpdatedAt).toISOString()
+                    : null,
             };
         });
 

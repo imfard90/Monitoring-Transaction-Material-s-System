@@ -15,6 +15,7 @@ export interface StockItem {
     safety_stock_pct: number | null;
     stock_status: StockStatus;
     has_out_material_history: boolean;
+    policy_updated_at: string | null;
 }
 
 export interface WarehouseSummary {
@@ -94,6 +95,7 @@ export interface MaterialStockGroup {
     /** Penjumlahan rata-rata permintaan mingguan semua gudang. */
     average_demand_weekly: number | null;
     has_out_material_history: boolean;
+    policy_updated_at: string | null;
     warehouses: StockItem[];
 }
 
@@ -115,6 +117,7 @@ export function groupByMaterial(items: readonly StockItem[]): MaterialStockGroup
                 warehouse_count: 1,
                 average_demand_weekly: item.average_demand_weekly,
                 has_out_material_history: item.has_out_material_history,
+                policy_updated_at: item.policy_updated_at,
                 warehouses: [item],
             });
             continue;
@@ -124,6 +127,9 @@ export function groupByMaterial(items: readonly StockItem[]): MaterialStockGroup
         existing.warehouse_count += 1;
         existing.warehouses.push(item);
         existing.has_out_material_history ||= item.has_out_material_history;
+        if (item.policy_updated_at && (!existing.policy_updated_at || item.policy_updated_at > existing.policy_updated_at)) {
+            existing.policy_updated_at = item.policy_updated_at;
+        }
         if (item.average_demand_weekly !== null) {
             existing.average_demand_weekly =
                 (existing.average_demand_weekly ?? 0) + item.average_demand_weekly;

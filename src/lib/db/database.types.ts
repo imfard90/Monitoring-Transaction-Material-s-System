@@ -1050,6 +1050,16 @@ export interface InventoryScraperCronjobLog {
     timestamp: Generated<Timestamp>;
 }
 
+export interface InventoryStockPolicyLog {
+    id: Generated<string | number>;
+    trigger_type: Generated<string>;
+    status: Generated<string>;
+    warehouses_processed: Generated<number>;
+    duration_ms: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+    error_message: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+    created_at: Generated<Timestamp>;
+}
+
 export interface InventoryOutLensaRefHeader {
     id: Generated<string>;
     reservation_id: string;
@@ -1209,4 +1219,5 @@ export interface DB {
     'inventory.rekon_used_header': InventoryRekonUsedHeader;
     'inventory.rekon_used_list': InventoryRekonUsedList;
     'inventory.scraper_cronjob_log': InventoryScraperCronjobLog;
+    'inventory.stock_policy_log': InventoryStockPolicyLog;
 }
