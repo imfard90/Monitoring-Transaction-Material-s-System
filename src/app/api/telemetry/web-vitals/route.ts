@@ -40,6 +40,13 @@ export async function POST(request: Request): Promise<Response> {
 
         const { name, value, rating, navigationType } = parsed.data;
 
+        if (process.env.NODE_ENV === 'development') {
+            actionLogger.debug(
+                `[WebVitals:Dev] ${name} = ${value.toFixed(2)} (${rating ?? 'unknown'}, nav: ${navigationType ?? 'navigate'})`
+            );
+            return new Response(null, { status: 204 });
+        }
+
         if (rating === 'poor') {
             actionLogger.warn(
                 `[WebVitals:Poor] ${name} = ${value.toFixed(2)} (${rating}, nav: ${navigationType ?? 'navigate'})`
@@ -61,4 +68,3 @@ export async function POST(request: Request): Promise<Response> {
 export async function OPTIONS(): Promise<Response> {
     return new Response(null, { status: 405, headers: { Allow: 'POST' } });
 }
-

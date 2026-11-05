@@ -29,7 +29,10 @@ const BreadcrumbComp = ({ items = [], title }: BreadCrumbType) => {
                 <div className="col-span-10 min-w-0">
                     <h4 className="font-semibold text-xl mb-3 truncate">{title}</h4>
 
-                    <ol className="flex items-center whitespace-nowrap overflow-x-auto" aria-label="Breadcrumb">
+                    <ol
+                        className="flex items-center whitespace-nowrap overflow-x-auto"
+                        aria-label="Breadcrumb"
+                    >
                         {items.map((item, index) => {
                             const isLast = index === items.length - 1;
                             const canNavigate = Boolean(item.to && !isLast && isNavigable(item.to));
@@ -69,7 +72,8 @@ const BreadcrumbComp = ({ items = [], title }: BreadCrumbType) => {
                             width={145}
                             height={95}
                             sizes="145px"
-                            className="h-auto w-[145px] object-contain"
+                            style={{ width: '145px', height: 'auto' }}
+                            className="object-contain"
                         />
                     </div>
                 </div>

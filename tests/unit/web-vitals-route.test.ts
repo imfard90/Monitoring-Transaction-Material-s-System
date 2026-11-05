@@ -98,5 +98,25 @@ describe('/api/telemetry/web-vitals Route Handler', () => {
         expect(res.status).toBe(204);
         expect(actionLogger.debug).not.toHaveBeenCalled();
     });
-});
 
+    it('logs as debug when NODE_ENV is development even if rating is poor', async () => {
+        const originalEnv = process.env.NODE_ENV;
+        try {
+            (process.env as any).NODE_ENV = 'development';
+            const req = new Request('http://localhost:3000/api/telemetry/web-vitals', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: 'LCP', value: 9000, rating: 'poor' }),
+            });
+
+            const res = await POST(req);
+            expect(res.status).toBe(204);
+            expect(actionLogger.warn).not.toHaveBeenCalled();
+            expect(actionLogger.debug).toHaveBeenCalledWith(
+                expect.stringContaining('[WebVitals:Dev] LCP = 9000.00 (poor, nav: navigate)')
+            );
+        } finally {
+            (process.env as any).NODE_ENV = originalEnv;
+        }
+    });
+});

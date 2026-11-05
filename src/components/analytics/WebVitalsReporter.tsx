@@ -8,6 +8,11 @@ import { useReportWebVitals } from 'next/web-vitals';
  */
 export function WebVitalsReporter() {
     useReportWebVitals((metric) => {
+        // Skip reporting during local development to avoid telemetry spam caused by JIT compilation delays
+        if (process.env.NODE_ENV === 'development') {
+            return;
+        }
+
         try {
             const body = JSON.stringify({
                 id: metric.id,
@@ -38,4 +43,3 @@ export function WebVitalsReporter() {
 
     return null;
 }
-
