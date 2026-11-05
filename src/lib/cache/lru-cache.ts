@@ -68,6 +68,26 @@ export const otherStockLru = createLruCache<any>('other-stock', {
 });
 
 /**
+ * L1 Cache for Notification Bell Aggregation:
+ * Caches pending counts and recent items per user/warehouse-scope for 20 seconds.
+ * Max 500 items, TTL: 20 seconds.
+ */
+export const notificationLru = createLruCache<any>('notifications', {
+    max: 500,
+    ttlMs: 20 * 1000,
+});
+
+/**
+ * L1 Cache for Public Live Stock Data:
+ * Caches the aggregated multi-table join snapshot for 30 seconds to withstand traffic spikes.
+ * Max 10 items, TTL: 30 seconds.
+ */
+export const liveStockLru = createLruCache<any>('live-stock', {
+    max: 10,
+    ttlMs: 30 * 1000,
+});
+
+/**
  * Helper to fetch with L1 LRU caching: returns cached value or executes fetcher and populates cache.
  */
 export async function getOrSetLru<T>(
@@ -111,4 +131,26 @@ export function invalidateSessionMeta(nik?: string): void {
         return;
     }
     sessionMetaLru.delete(`session:${nik}`);
+}
+
+/**
+ * Invalidate public live-stock cache.
+ */
+export function invalidateLiveStockCache(): void {
+    liveStockLru.clear();
+}
+
+/**
+ * Invalidate notification cache for a specific user NIK or all users.
+ */
+export function invalidateNotificationCache(nik?: string): void {
+    if (!nik) {
+        notificationLru.clear();
+        return;
+    }
+    for (const key of notificationLru.keys()) {
+        if (key.startsWith(`notif:${nik}`)) {
+            notificationLru.delete(key);
+        }
+    }
 }

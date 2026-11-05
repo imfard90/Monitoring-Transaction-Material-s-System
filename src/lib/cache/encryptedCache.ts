@@ -1,4 +1,3 @@
-import { cacheLogger } from '@/lib/logger';
 /**
  * Encrypted Cache Utility for MTMS
  *
@@ -11,6 +10,8 @@ import { cacheLogger } from '@/lib/logger';
  */
 
 import { EncryptJWT, jwtDecrypt } from 'jose';
+import { createLruCache } from '@/lib/cache/lru-cache';
+import { cacheLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
 
 // Cache configuration
@@ -144,6 +145,10 @@ async function scanKeys(pattern: string): Promise<string[]> {
 
 export class EncryptedCache {
     private readonly defaultTTL: number;
+    private readonly l1Lru = createLruCache<any>('encrypted-l1', {
+        max: 500,
+        ttlMs: 15 * 1000,
+    });
 
     constructor(ttl: number = CACHE_CONFIG.TTL) {
         this.defaultTTL = ttl;
@@ -155,17 +160,25 @@ export class EncryptedCache {
         identifier?: string
     ): Promise<T | null> {
         const key = getUserCacheKey(userId, cacheType, identifier);
+        const l1Cached = this.l1Lru.get(key) as T | undefined;
+        if (l1Cached !== undefined) {
+            cacheLogger.debug(`[EncryptedCache] L1 HIT: ${key}`);
+            return l1Cached;
+        }
+
         try {
             const encryptedData = await redis.get(key);
 
             if (!encryptedData) return null;
 
             const decrypted = await decrypt<T>(encryptedData);
-            cacheLogger.debug(`[EncryptedCache] HIT: ${key}`);
+            this.l1Lru.set(key, decrypted, { ttl: 15 * 1000 });
+            cacheLogger.debug(`[EncryptedCache] L2 HIT: ${key}`);
             return decrypted;
         } catch (error) {
             if (isStaleOrInvalidCacheError(error)) {
                 cacheLogger.debug(`[EncryptedCache] Stale/invalid token for ${key}, clearing key`);
+                this.l1Lru.delete(key);
                 void redis.del(key).catch(() => {});
             } else {
                 cacheLogger.warn(
@@ -184,8 +197,9 @@ export class EncryptedCache {
         identifier?: string,
         ttl: number = this.defaultTTL
     ): Promise<void> {
+        const key = getUserCacheKey(userId, cacheType, identifier);
+        this.l1Lru.set(key, data, { ttl: Math.min(15 * 1000, ttl * 1000) });
         try {
-            const key = getUserCacheKey(userId, cacheType, identifier);
             const encryptedData = await encrypt(data, ttl);
 
             await redis.set(key, encryptedData, 'EX', ttl);
@@ -200,6 +214,16 @@ export class EncryptedCache {
 
     async invalidate(userId: string | number, cacheType?: string): Promise<void> {
         try {
+            const prefix = cacheType
+                ? `${CACHE_CONFIG.PREFIX}:${CACHE_CONFIG.USER_NS}:${userId}:${cacheType}`
+                : `${CACHE_CONFIG.PREFIX}:${CACHE_CONFIG.USER_NS}:${userId}:`;
+
+            for (const key of this.l1Lru.keys()) {
+                if (key.startsWith(prefix)) {
+                    this.l1Lru.delete(key);
+                }
+            }
+
             const pattern = cacheType
                 ? `${CACHE_CONFIG.PREFIX}:${CACHE_CONFIG.USER_NS}:${userId}:${cacheType}:*`
                 : `${CACHE_CONFIG.PREFIX}:${CACHE_CONFIG.USER_NS}:${userId}:*`;
@@ -222,6 +246,7 @@ export class EncryptedCache {
 
     async invalidateAll(): Promise<void> {
         try {
+            this.l1Lru.clear();
             const keys = await scanKeys(`${CACHE_CONFIG.PREFIX}:*`);
             if (keys.length > 0) {
                 await redis.del(...keys);
@@ -238,17 +263,27 @@ export class EncryptedCache {
 
     async getGeneral<T>(cacheType: string, identifier?: string): Promise<T | null> {
         const key = getGeneralCacheKey(cacheType, identifier);
+        const l1Cached = this.l1Lru.get(key) as T | undefined;
+        if (l1Cached !== undefined) {
+            cacheLogger.debug(`[EncryptedCache] L1 HIT general: ${key}`);
+            return l1Cached;
+        }
+
         try {
             const encryptedData = await redis.get(key);
 
             if (!encryptedData) return null;
 
-            return await decrypt<T>(encryptedData);
+            const decrypted = await decrypt<T>(encryptedData);
+            this.l1Lru.set(key, decrypted, { ttl: 15 * 1000 });
+            cacheLogger.debug(`[EncryptedCache] L2 HIT general: ${key}`);
+            return decrypted;
         } catch (error) {
             if (isStaleOrInvalidCacheError(error)) {
                 cacheLogger.debug(
                     `[EncryptedCache] Stale/invalid general cache for ${key}, clearing key`
                 );
+                this.l1Lru.delete(key);
                 void redis.del(key).catch(() => {});
             } else {
                 cacheLogger.warn(
@@ -266,8 +301,9 @@ export class EncryptedCache {
         identifier?: string,
         ttl: number = this.defaultTTL
     ): Promise<void> {
+        const key = getGeneralCacheKey(cacheType, identifier);
+        this.l1Lru.set(key, data, { ttl: Math.min(15 * 1000, ttl * 1000) });
         try {
-            const key = getGeneralCacheKey(cacheType, identifier);
             const encryptedData = await encrypt(data, ttl);
             await redis.set(key, encryptedData, 'EX', ttl);
         } catch (error) {
@@ -280,6 +316,16 @@ export class EncryptedCache {
 
     async invalidateGeneral(cacheType?: string): Promise<void> {
         try {
+            const prefix = cacheType
+                ? `${CACHE_CONFIG.PREFIX}:general:${cacheType}`
+                : `${CACHE_CONFIG.PREFIX}:general:`;
+
+            for (const key of this.l1Lru.keys()) {
+                if (key.startsWith(prefix)) {
+                    this.l1Lru.delete(key);
+                }
+            }
+
             const pattern = cacheType
                 ? `${CACHE_CONFIG.PREFIX}:general:${cacheType}:*`
                 : `${CACHE_CONFIG.PREFIX}:general:*`;

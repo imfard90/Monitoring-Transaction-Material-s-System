@@ -2,9 +2,11 @@
 
 import { sql } from 'kysely';
 import { getSessionUser } from '@/lib/auth-server';
+import { notificationLru } from '@/lib/cache/lru-cache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 import { warehouseScope } from '@/lib/policies';
+import { inventoryRepository } from '@/lib/repositories/inventory.repository';
 import { expandWarehouseAliases } from '@/lib/warehouse-helper';
 
 export interface NotificationCategorySummary {
@@ -101,14 +103,16 @@ export async function getPendingNotifications(): Promise<{
             };
         }
 
-        // Determine warehouse names for Staff
+        const cacheKey = `notif:${user.nik}:${isStaff ? (scopedWarehouseIds?.slice().sort().join('_') ?? 'none') : 'all'}`;
+        const cached = notificationLru.get(cacheKey) as NotificationPayload | undefined;
+        if (cached) {
+            return { success: true, data: cached };
+        }
+
+        // Determine warehouse names for Staff (uses cached inventoryRepository)
         let whNames: string[] = [];
         if (isStaff && warehouseIds && warehouseIds.length > 0) {
-            const whs = await db
-                .selectFrom('inventory.mas_wh')
-                .select('name')
-                .where('id', 'in', warehouseIds)
-                .execute();
+            const whs = await inventoryRepository.getWarehouses(warehouseIds);
             whNames = expandWarehouseAliases(
                 whs
                     .map((w) => w.name as string)
@@ -383,13 +387,16 @@ export async function getPendingNotifications(): Promise<{
             return timeB - timeA;
         });
 
+        const payload: NotificationPayload = {
+            total,
+            categories,
+            urgentItems,
+        };
+        notificationLru.set(cacheKey, payload, { ttl: 20 * 1000 });
+
         return {
             success: true,
-            data: {
-                total,
-                categories,
-                urgentItems,
-            },
+            data: payload,
         };
     } catch (error: unknown) {
         actionLogger.error(

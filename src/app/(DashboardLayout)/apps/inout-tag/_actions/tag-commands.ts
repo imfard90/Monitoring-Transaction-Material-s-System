@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
+import { invalidateLiveStockCache, invalidateNotificationCache } from '@/lib/cache/lru-cache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 import { canAccessWarehouse, canCancelInOutTag, canUpdateInOutTag } from '@/lib/policies';
@@ -132,6 +133,8 @@ export async function createTag(payload: {
         if (isDuplicate)
             return { success: false, error: 'Transaksi ganda terdeteksi. Silakan tunggu.' };
 
+        invalidateLiveStockCache();
+        invalidateNotificationCache();
         return { success: true, id_trx: result };
     } catch (error: unknown) {
         actionLogger.error(
@@ -231,6 +234,8 @@ export async function updateTag(payload: {
         revalidatePath('/apps/inout-tag');
         revalidatePath('/stock-inventory');
         revalidatePath('/stock-intech');
+        invalidateLiveStockCache();
+        invalidateNotificationCache();
         return { success: true };
     } catch (error: unknown) {
         actionLogger.error(
@@ -322,6 +327,8 @@ export async function cancelTag(headerId: number, notes: string, type?: string) 
         revalidatePath('/apps/inout-tag');
         revalidatePath('/stock-inventory');
         revalidatePath('/stock-intech');
+        invalidateLiveStockCache();
+        invalidateNotificationCache();
         return { success: true };
     } catch (error: unknown) {
         actionLogger.error(
@@ -383,6 +390,8 @@ export async function acceptReturnTag(headerId: number, acceptId: string, idemKe
         revalidatePath('/apps/inout-tag');
         revalidatePath('/stock-inventory');
         revalidatePath('/stock-intech');
+        invalidateLiveStockCache();
+        invalidateNotificationCache();
         return { success: true };
     } catch (error: unknown) {
         actionLogger.error(

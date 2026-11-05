@@ -380,21 +380,35 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
     // ==================== Read Operations (Kysely Query Builder) ====================
 
     /**
-     * List warehouses
+     * List warehouses (cached in L1 LRU Cache for 10 minutes)
      */
     listWarehouses: () =>
-        dbClient.selectFrom('inventory.mas_wh').selectAll().orderBy('name').execute(),
+        getOrSetLru(
+            masterDataLru,
+            'wh:all',
+            () => dbClient.selectFrom('inventory.mas_wh').selectAll().orderBy('name').execute(),
+            10 * 60 * 1000
+        ),
 
     /**
-     * Get warehouses with optional warehouse ID scoping
+     * Get warehouses with optional warehouse ID scoping.
+     * Reuses cached listWarehouses() and filters in memory to eliminate redundant DB calls.
      */
-    getWarehouses: (warehouseIds?: readonly number[]) => {
-        let query = dbClient.selectFrom('inventory.mas_wh').selectAll().orderBy('name');
-        if (warehouseIds !== undefined) {
-            if (warehouseIds.length === 0) return Promise.resolve([]);
-            query = query.where('id', 'in', warehouseIds as number[]);
+    getWarehouses: async (warehouseIds?: readonly number[]) => {
+        if (warehouseIds !== undefined && warehouseIds.length === 0) {
+            return [];
         }
-        return query.execute();
+        const allWhs = await getOrSetLru(
+            masterDataLru,
+            'wh:all',
+            () => dbClient.selectFrom('inventory.mas_wh').selectAll().orderBy('name').execute(),
+            10 * 60 * 1000
+        );
+        if (warehouseIds !== undefined) {
+            const idSet = new Set(warehouseIds);
+            return allWhs.filter((wh) => idSet.has(wh.id));
+        }
+        return allWhs;
     },
 
     /**
@@ -474,14 +488,24 @@ export const createInventoryRepository = (dbClient: Kysely<DB> | Transaction<DB>
     /**
      * Check if warehouse is internal (same branch as user)
      * Business rule: Internal WH deducts stock, External WH logs only
+     * Reuses cached wh:all if present in LRU, otherwise queries DB.
      */
-    isInternalWarehouse: (warehouseId: number, currentBranch: string) =>
-        dbClient
+    isInternalWarehouse: async (warehouseId: number, currentBranch: string) => {
+        const cachedWhs = masterDataLru.get('wh:all') as
+            | Array<{ id: number; branch: string | null }>
+            | undefined;
+        if (cachedWhs) {
+            const wh = cachedWhs.find((w) => w.id === warehouseId);
+            return wh?.branch === currentBranch;
+        }
+
+        return dbClient
             .selectFrom('inventory.mas_wh')
             .where('id', '=', warehouseId)
             .select('branch')
             .executeTakeFirst()
-            .then((wh) => wh?.branch === currentBranch),
+            .then((wh) => wh?.branch === currentBranch);
+    },
 
     /**
      * Get stock balance for material in warehouse

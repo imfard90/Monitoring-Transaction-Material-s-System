@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSessionNik, getSessionUser, requireWarehouseAccess } from '@/lib/auth-server';
+import { invalidateLiveStockCache, invalidateNotificationCache } from '@/lib/cache/lru-cache';
 import { db } from '@/lib/db/db';
 import { errors } from '@/lib/errors';
 import { actionLogger } from '@/lib/logger';
@@ -228,6 +229,8 @@ export async function createOutSap(payload: {
         revalidatePath('/form/rekon-intech');
         revalidatePath('/form/rekon-lensa');
         revalidatePath('/');
+        invalidateLiveStockCache();
+        invalidateNotificationCache();
         return { success: true, header_id: result.headerId, id_trx: result.idTrx };
     } catch (error: unknown) {
         actionLogger.error(
@@ -281,6 +284,8 @@ export async function updateOutSapStatusToIntech(headerId: number | string) {
         revalidatePath('/form/rekon-intech');
         revalidatePath('/form/rekon-lensa');
         revalidatePath('/');
+        invalidateLiveStockCache();
+        invalidateNotificationCache();
         return { success: true };
     } catch (error: unknown) {
         actionLogger.error(

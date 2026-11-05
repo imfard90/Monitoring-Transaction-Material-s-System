@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
+import { createLruCache } from '@/lib/cache/lru-cache';
 import { actionLogger } from '@/lib/logger';
 
 /**
@@ -99,9 +100,12 @@ export const withLogging =
     };
 
 /**
- * Wraps a handler with rate limiting (simple in-memory)
+ * Wraps a handler with rate limiting (bounded in-memory LRU)
  */
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const rateLimitLru = createLruCache<{ count: number; resetAt: number }>('hofs-rate-limit', {
+    max: 2000,
+    ttlMs: 60 * 1000,
+});
 export const withRateLimit =
     <T extends unknown[], R>(
         key: string,
@@ -111,15 +115,16 @@ export const withRateLimit =
     ) =>
     async (...args: T): Promise<R> => {
         const now = Date.now();
-        const record = rateLimitMap.get(key);
+        const record = rateLimitLru.get(key);
 
         if (record && record.resetAt > now) {
             if (record.count >= maxRequests) {
                 throw new Error(`Rate limit exceeded for ${key}`);
             }
             record.count += 1;
+            rateLimitLru.set(key, record, { ttl: Math.max(0, record.resetAt - now) });
         } else {
-            rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
+            rateLimitLru.set(key, { count: 1, resetAt: now + windowMs }, { ttl: windowMs });
         }
 
         return handler(...args);

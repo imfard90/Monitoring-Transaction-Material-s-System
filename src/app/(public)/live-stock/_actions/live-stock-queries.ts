@@ -1,5 +1,6 @@
 'use server';
 
+import { liveStockLru } from '@/lib/cache/lru-cache';
 import { loadOtherStockCache, type OtherStockItem } from '@/lib/google_ecosystem/sheets-stock-sync';
 import { actionLogger } from '@/lib/logger';
 import { inventoryRepository } from '@/lib/repositories/inventory.repository';
@@ -28,6 +29,11 @@ export async function getLiveStockData(): Promise<
     { success: true; data: LiveStockData } | { success: false; error: string }
 > {
     try {
+        const cached = liveStockLru.get('live-stock:snapshot') as LiveStockData | undefined;
+        if (cached) {
+            return { success: true, data: cached };
+        }
+
         const rows = await inventoryRepository.listLiveStockRows();
 
         const items: StockItem[] = rows.map((row) => {
@@ -90,20 +96,24 @@ export async function getLiveStockData(): Promise<
             a.warehouse_name.localeCompare(b.warehouse_name)
         );
 
+        const resultData: LiveStockData = {
+            summary: {
+                total_materials: items.length,
+                total_qty: items.reduce((sum, item) => sum + item.qty_stock, 0),
+                critical_items: items.filter((item) => item.stock_status === 'critical').length,
+                low_items: items.filter((item) => item.stock_status === 'low').length,
+                warehouses_count: warehouses.length,
+            },
+            warehouses,
+            items,
+            last_updated: new Date().toISOString(),
+        };
+
+        liveStockLru.set('live-stock:snapshot', resultData, { ttl: 30 * 1000 });
+
         return {
             success: true,
-            data: {
-                summary: {
-                    total_materials: items.length,
-                    total_qty: items.reduce((sum, item) => sum + item.qty_stock, 0),
-                    critical_items: items.filter((item) => item.stock_status === 'critical').length,
-                    low_items: items.filter((item) => item.stock_status === 'low').length,
-                    warehouses_count: warehouses.length,
-                },
-                warehouses,
-                items,
-                last_updated: new Date().toISOString(),
-            },
+            data: resultData,
         };
     } catch (error: unknown) {
         actionLogger.error(

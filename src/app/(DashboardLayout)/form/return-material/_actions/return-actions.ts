@@ -4,6 +4,7 @@ import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSessionNik, getSessionUser, requireWarehouseAccess } from '@/lib/auth-server';
+import { invalidateLiveStockCache, invalidateNotificationCache } from '@/lib/cache/lru-cache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 import { inventoryRepository } from '@/lib/repositories';
@@ -188,6 +189,8 @@ export async function createReturnMaterial(payload: ReturnMaterialPayload) {
         revalidatePath('/form/rekon-intech');
         revalidatePath('/form/rekon-lensa');
         revalidatePath('/');
+        invalidateLiveStockCache();
+        invalidateNotificationCache();
         return { success: true, id_trx: result, header_id: result };
     } catch (error: unknown) {
         actionLogger.error(

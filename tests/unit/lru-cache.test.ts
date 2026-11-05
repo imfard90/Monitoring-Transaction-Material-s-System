@@ -1,12 +1,23 @@
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@/lib/redis', () => ({
+    redis: {},
+}));
+
 import {
     createLruCache,
     getOrSetLru,
+    invalidateLiveStockCache,
     invalidateMasterData,
+    invalidateNotificationCache,
     invalidateSessionMeta,
+    liveStockLru,
     masterDataLru,
+    notificationLru,
     sessionMetaLru,
 } from '@/lib/cache/lru-cache';
+import { withRateLimit } from '@/lib/fp/hofs';
+import { createInventoryRepository } from '@/lib/repositories/inventory.repository';
 
 describe('LRU Cache Core Module', () => {
     it('sets and retrieves items correctly', () => {
@@ -77,6 +88,87 @@ describe('LRU Cache Core Module', () => {
 
         invalidateSessionMeta();
         expect(sessionMetaLru.has('session:67890')).toBe(false);
+    });
+
+    it('invalidateNotificationCache clears specific user or all users', () => {
+        notificationLru.set('notif:12345:1_2', { total: 5 });
+        notificationLru.set('notif:67890:all', { total: 2 });
+
+        invalidateNotificationCache('12345');
+        expect(notificationLru.has('notif:12345:1_2')).toBe(false);
+        expect(notificationLru.has('notif:67890:all')).toBe(true);
+
+        invalidateNotificationCache();
+        expect(notificationLru.has('notif:67890:all')).toBe(false);
+    });
+
+    it('invalidateLiveStockCache clears live stock snapshot', () => {
+        liveStockLru.set('live-stock:snapshot', { items: [] });
+        expect(liveStockLru.has('live-stock:snapshot')).toBe(true);
+
+        invalidateLiveStockCache();
+        expect(liveStockLru.has('live-stock:snapshot')).toBe(false);
+    });
+
+    it('withRateLimit bounds requests and respects limits via LRU cache', async () => {
+        const handler = vi.fn().mockImplementation(async (x: number) => x * 2);
+        const rateLimited = withRateLimit('test_user', 2, 1000, handler);
+
+        // 1st request: OK
+        await expect(rateLimited(1)).resolves.toBe(2);
+        // 2nd request: OK
+        await expect(rateLimited(2)).resolves.toBe(4);
+        // 3rd request: Exceeds limit
+        await expect(rateLimited(3)).rejects.toThrow('Rate limit exceeded for test_user');
+        expect(handler).toHaveBeenCalledTimes(2);
+    });
+
+    it('caches listWarehouses and filters in memory for getWarehouses', async () => {
+        masterDataLru.delete('wh:all');
+        const mockExecute = vi.fn().mockResolvedValue([
+            { id: 1, name: 'WH Alpha', branch: 'SURABAYA' },
+            { id: 2, name: 'WH Beta', branch: 'SIDOARJO' },
+            { id: 3, name: 'WH Gamma', branch: 'GRESIK' },
+        ]);
+        const mockDb: any = {
+            selectFrom: vi.fn().mockReturnValue({
+                selectAll: vi.fn().mockReturnValue({
+                    orderBy: vi.fn().mockReturnValue({
+                        execute: mockExecute,
+                    }),
+                }),
+            }),
+        };
+
+        const repo = createInventoryRepository(mockDb);
+
+        // 1st call: queries DB
+        const whsAll = await repo.listWarehouses();
+        expect(whsAll).toHaveLength(3);
+        expect(mockExecute).toHaveBeenCalledTimes(1);
+
+        // 2nd call: cached, no additional DB query
+        const whsAllCached = await repo.listWarehouses();
+        expect(whsAllCached).toHaveLength(3);
+        expect(mockExecute).toHaveBeenCalledTimes(1);
+
+        // getWarehouses with specific IDs: filters in memory, no DB query!
+        const filtered = await repo.getWarehouses([1, 3]);
+        expect(filtered).toHaveLength(2);
+        expect(filtered.map((w) => w.id)).toEqual([1, 3]);
+        expect(mockExecute).toHaveBeenCalledTimes(1);
+
+        // getWarehouses with empty IDs: returns empty immediately
+        const empty = await repo.getWarehouses([]);
+        expect(empty).toEqual([]);
+        expect(mockExecute).toHaveBeenCalledTimes(1);
+
+        // isInternalWarehouse uses cache as well
+        const isInternal = await repo.isInternalWarehouse(1, 'SURABAYA');
+        expect(isInternal).toBe(true);
+        const isExternal = await repo.isInternalWarehouse(2, 'SURABAYA');
+        expect(isExternal).toBe(false);
+        expect(mockExecute).toHaveBeenCalledTimes(1);
     });
 });
 

@@ -124,5 +124,11 @@ describe('getPendingNotifications', () => {
         expect(res.data?.urgentItems).toHaveLength(4);
         // Ordered by time desc: 401 (01:20) should be first
         expect(res.data?.urgentItems[0].title).toBe('WO: WO-401');
+
+        // Subsequent call within TTL returns cached result immediately without DB queries
+        const cachedRes = await getPendingNotifications();
+        expect(cachedRes.success).toBe(true);
+        expect(cachedRes.data?.total).toBe(14);
+        expect(cachedRes.data?.urgentItems).toHaveLength(4);
     });
 });
