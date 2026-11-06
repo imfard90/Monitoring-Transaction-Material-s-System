@@ -1,11 +1,5 @@
 'use client';
 
-import {
-    createColumnHelper,
-    getCoreRowModel,
-    getPaginationRowModel,
-    useReactTable,
-} from '@/lib/table';
 import { format } from 'date-fns';
 import { FilterX } from 'lucide-react';
 import { useCallback } from 'react';
@@ -29,6 +23,12 @@ import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+    createColumnHelper,
+    getCoreRowModel,
+    getPaginationRowModel,
+    useReactTable,
+} from '@/lib/table';
 
 export interface StockMovementItem {
     id?: number | string;

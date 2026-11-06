@@ -1,12 +1,12 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { useDebouncedCallback } from '@/hooks/use-debounce';
+import { useTableFilterNavigation } from '@/hooks/use-table-filters';
 import type { OutMaterialRow } from '@/lib/types/inventory';
 import OutMaterialCards from './OutMaterialCards';
 import OutMaterialDetailModal from './OutMaterialDetailModal';
@@ -43,8 +43,6 @@ export default function OutMaterialClient({
     whOptions,
     initialFilters = { status: 'all', warehouse: 'all', search: '' },
 }: OutMaterialClientProps) {
-    const router = useRouter();
-
     const [filterStatus, setFilterStatus] = useState<string>(initialFilters?.status ?? 'all');
     const [searchQuery, setSearchQuery] = useState<string>(initialFilters?.search ?? '');
     const [whFilter, setWhFilter] = useState<string>(initialFilters?.warehouse ?? 'all');
@@ -59,6 +57,21 @@ export default function OutMaterialClient({
     });
     const [detailRow, setDetailRow] = useState<OutMaterialRow | null>(null);
 
+    const { navigate } = useTableFilterNavigation({
+        basePath: '/apps/out-material',
+        currentState: {
+            search: searchQuery,
+            warehouse: whFilter,
+            page: 1,
+            pageSize: pagination?.pageSize ?? 20,
+        },
+        extraParams: {
+            status: filterStatus,
+            startDate: dateFilter?.from?.toISOString(),
+            endDate: dateFilter?.to?.toISOString(),
+        },
+    });
+
     const applyFilters = useCallback(
         (overrides: {
             page?: number;
@@ -68,26 +81,22 @@ export default function OutMaterialClient({
             search?: string;
             date?: DateRange | undefined;
         }) => {
-            const params = new URLSearchParams();
-            const page = overrides.page ?? 1;
-            const pageSize = overrides.pageSize ?? pagination?.pageSize ?? 20;
-            const status = overrides.status === undefined ? filterStatus : overrides.status;
-            const wh = overrides.warehouse === undefined ? whFilter : overrides.warehouse;
-            const search = overrides.search === undefined ? searchQuery : overrides.search;
             const date = overrides.date === undefined ? dateFilter : overrides.date;
-
-            params.set('page', page.toString());
-            params.set('pageSize', pageSize.toString());
-
-            if (status && status !== 'all') params.set('status', status);
-            if (wh && wh !== 'all') params.set('warehouse', wh);
-            if (search.trim()) params.set('search', search.trim());
-            if (date?.from) params.set('startDate', date.from.toISOString());
-            if (date?.to) params.set('endDate', date.to.toISOString());
-
-            router.push(`/apps/out-material?${params.toString()}`);
+            navigate(
+                {
+                    page: overrides.page ?? 1,
+                    pageSize: overrides.pageSize ?? pagination?.pageSize ?? 20,
+                    search: overrides.search === undefined ? searchQuery : overrides.search,
+                    warehouse: overrides.warehouse === undefined ? whFilter : overrides.warehouse,
+                },
+                {
+                    status: overrides.status === undefined ? filterStatus : overrides.status,
+                    startDate: date?.from?.toISOString(),
+                    endDate: date?.to?.toISOString(),
+                }
+            );
         },
-        [pagination?.pageSize, filterStatus, whFilter, searchQuery, dateFilter, router]
+        [navigate, pagination?.pageSize, searchQuery, whFilter, filterStatus, dateFilter]
     );
 
     const debouncedApplySearch = useDebouncedCallback((val: string) => {
@@ -120,7 +129,10 @@ export default function OutMaterialClient({
         setSearchQuery('');
         setWhFilter('all');
         setDateFilter(undefined);
-        router.push('/apps/out-material?page=1&pageSize=20');
+        navigate(
+            { page: 1, pageSize: pagination?.pageSize ?? 20, search: '', warehouse: 'all' },
+            { status: 'all', startDate: undefined, endDate: undefined }
+        );
     };
 
     const handlePaginationChange = (page: number, pageSize: number) => {

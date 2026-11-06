@@ -16,8 +16,8 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { queryKeys } from '@/lib/query-keys';
 import { formatDateId } from '@/lib/formatters';
+import { queryKeys } from '@/lib/query-keys';
 import { cn } from '@/lib/utils';
 
 export interface StockWarning {

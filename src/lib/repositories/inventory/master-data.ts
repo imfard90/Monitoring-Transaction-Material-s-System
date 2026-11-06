@@ -4,8 +4,9 @@
  * Warehouse and material lists are cached in the L1 LRU cache because they
  * change rarely and are read on nearly every page.
  */
-import { sql } from 'kysely';
+
 import type { Kysely, Transaction } from 'kysely';
+import { sql } from 'kysely';
 import { getOrSetLru, masterDataLru } from '@/lib/cache/lru-cache';
 import type { DB } from '@/lib/db/database.types';
 

@@ -16,7 +16,7 @@ import {
 } from '@/lib/repositories/scraper-log.repository';
 import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
 import { asyncPool, decryptLensaPassword } from './lensa-crypto';
-import { type WOLensaScrapeOutcome, toISODateString } from './lensa-wo-types';
+import { toISODateString, type WOLensaScrapeOutcome } from './lensa-wo-types';
 
 /**
  * Service murni untuk eksekusi scraping WO Lensa (headers + details).

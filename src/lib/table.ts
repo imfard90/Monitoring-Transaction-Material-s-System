@@ -8,7 +8,6 @@ import {
     getFilteredRowModel as baseGetFilteredRowModel,
     getPaginationRowModel as baseGetPaginationRowModel,
     getSortedRowModel as baseGetSortedRowModel,
-    legacyCreateColumnHelper,
     type LegacyCell,
     type LegacyColumn,
     type LegacyColumnDef,
@@ -18,6 +17,7 @@ import {
     type LegacyRow,
     type LegacyTable,
     type LegacyTableOptions,
+    legacyCreateColumnHelper,
     useLegacyTable,
 } from '@tanstack/react-table/legacy';
 

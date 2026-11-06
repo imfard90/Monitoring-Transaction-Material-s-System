@@ -1,9 +1,3 @@
-import {
-    createColumnHelper,
-    getCoreRowModel,
-    getPaginationRowModel,
-    useReactTable,
-} from '@/lib/table';
 import { format } from 'date-fns';
 import { Check, ChevronsUpDown, Eye, FilterX } from 'lucide-react';
 import { useCallback, useState } from 'react';
@@ -27,6 +21,12 @@ import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SearchField } from '@/components/ui/search-field';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+    createColumnHelper,
+    getCoreRowModel,
+    getPaginationRowModel,
+    useReactTable,
+} from '@/lib/table';
 import type { OutMaterialRow } from '@/lib/types/inventory';
 import { cn } from '@/lib/utils';
 

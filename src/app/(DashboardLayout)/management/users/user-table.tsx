@@ -1,12 +1,5 @@
 'use client';
 
-import {
-    createColumnHelper,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    useReactTable,
-} from '@/lib/table';
 import { motion } from 'framer-motion';
 import { ShieldAlert, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState, useTransition } from 'react';
@@ -19,6 +12,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SearchField } from '@/components/ui/search-field';
 import { Switch } from '@/components/ui/switch';
+import {
+    createColumnHelper,
+    getCoreRowModel,
+    getFilteredRowModel,
+    getPaginationRowModel,
+    useReactTable,
+} from '@/lib/table';
 import { deleteUser, getUsers, toggleUserApiApproval, toggleUserStatus } from './actions';
 
 export interface UserItem {

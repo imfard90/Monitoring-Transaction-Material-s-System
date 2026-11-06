@@ -8,5 +8,5 @@
  */
 
 export * from './stock-comparison.types';
-export * from './stock-comparison-queries';
 export * from './stock-comparison-commands';
+export * from './stock-comparison-queries';

@@ -1,13 +1,5 @@
 'use client';
 
-import {
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    type SortingState,
-    useReactTable,
-} from '@/lib/table';
 import { LoaderCircle, Scale } from 'lucide-react';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -23,19 +15,27 @@ import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
+    getCoreRowModel,
+    getFilteredRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    type SortingState,
+    useReactTable,
+} from '@/lib/table';
+import {
     checkBulkScrapingStatus,
     triggerManualStockScraping,
 } from '../../_actions/bulk-scraping-actions';
+import type {
+    StockComparisonResult,
+    TeknisiStockListItem,
+} from '../../_actions/stock-comparison.types';
 import {
     getLiveStockComparison,
     getStockComparison,
     getTeknisiList,
     getTeknisiStockList,
 } from '../../_actions/stock-comparison-actions';
-import type {
-    StockComparisonResult,
-    TeknisiStockListItem,
-} from '../../_actions/stock-comparison.types';
 import { createStockComparisonColumns } from './StockComparisonColumns';
 import { StockComparisonDetailDialog } from './StockComparisonDetailDialog';
 import { StockComparisonLiveDialog } from './StockComparisonLiveDialog';

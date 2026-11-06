@@ -5,8 +5,9 @@
  * procedure in the `inventory` schema for atomicity and data integrity.
  * Signatures must stay in sync with the active migrations.
  */
-import { sql } from 'kysely';
+
 import type { Kysely, Transaction } from 'kysely';
+import { sql } from 'kysely';
 import type { DB } from '@/lib/db/database.types';
 
 export const createStoredProcedureRepository = (dbClient: Kysely<DB> | Transaction<DB>) => ({

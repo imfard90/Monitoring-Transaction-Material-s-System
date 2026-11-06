@@ -15,8 +15,8 @@ import {
     scraperLogRepository,
 } from '@/lib/repositories/scraper-log.repository';
 import { asyncPool, decryptLensaPassword } from './lensa-crypto';
-import { type WOLensaScrapeOutcome, toISODateString } from './lensa-wo-types';
 import { syncMissingWOLensaDetails } from './lensa-wo-sync-service';
+import { toISODateString, type WOLensaScrapeOutcome } from './lensa-wo-types';
 
 /**
  * Nightly Deep Sweep Scraper untuk WO Lensa Ref Header & Detail (Pukul 02:00 WIB).

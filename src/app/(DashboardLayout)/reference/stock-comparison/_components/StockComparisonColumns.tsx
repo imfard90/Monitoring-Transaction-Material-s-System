@@ -1,11 +1,11 @@
 'use client';
 
-import { createColumnHelper } from '@/lib/table';
 import { format } from 'date-fns';
 import { Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { createColumnHelper } from '@/lib/table';
 import type { TeknisiStockListItem } from '../../_actions/stock-comparison.types';
 
 const columnHelper = createColumnHelper<TeknisiStockListItem>();

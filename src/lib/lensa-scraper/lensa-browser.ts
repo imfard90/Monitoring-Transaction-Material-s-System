@@ -27,13 +27,31 @@ export async function getBrowserInstance(): Promise<Browser> {
         await closeBrowser();
         globalBrowser = await chromium.launch({
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-background-networking',
+                '--disable-extensions',
+                '--disable-sync',
+                '--metrics-recording-only',
+            ],
         });
         browserLastLaunched = now;
     }
     if (!globalBrowser) {
         throw new Error('Gagal menjalankan browser Chromium untuk scraping Lensa.');
     }
+
+    // Audit: force-close stale contexts if accumulating (leak detection)
+    const contexts = globalBrowser.contexts();
+    if (contexts.length > 10) {
+        actionLogger.warn(
+            `[BROWSER-LEAK] ${contexts.length} contexts open. Force-closing stale ones.`
+        );
+        await Promise.allSettled(contexts.slice(0, -5).map((ctx) => ctx.close()));
+    }
+
     return globalBrowser;
 }
 

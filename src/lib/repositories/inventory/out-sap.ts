@@ -1,8 +1,9 @@
 /**
  * Out SAP (SAP Out) read operations.
  */
-import { sql } from 'kysely';
+
 import type { Kysely, Transaction } from 'kysely';
+import { sql } from 'kysely';
 import type { DB } from '@/lib/db/database.types';
 import { createStoredProcedureRepository } from './stored-procedures';
 

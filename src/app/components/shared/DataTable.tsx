@@ -1,6 +1,6 @@
-import { flexRender, type Row, type RowData, type Table } from '@/lib/table';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
+import { flexRender, type Row, type RowData, type Table } from '@/lib/table';
 import { cn } from '@/lib/utils';
 
 interface DataTableProps<TData extends RowData> {

@@ -1,12 +1,12 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { useDebouncedCallback } from '@/hooks/use-debounce';
+import { useTableFilterNavigation } from '@/hooks/use-table-filters';
 import type { StockMovementItem } from './MovementTable';
 import MovementTable from './MovementTable';
 
@@ -39,8 +39,6 @@ export default function StockMovementClient({
     filterOptions,
     initialFilters = { search: '', warehouse: 'all', material: 'all', types: [] },
 }: StockMovementClientProps) {
-    const router = useRouter();
-
     const [searchQuery, setSearchQuery] = useState(initialFilters?.search ?? '');
     const [warehouseFilter, setWarehouseFilter] = useState(initialFilters?.warehouse ?? 'all');
     const [materialFilter, setMaterialFilter] = useState(initialFilters?.material ?? 'all');
@@ -55,6 +53,22 @@ export default function StockMovementClient({
         return undefined;
     });
 
+    const { navigate } = useTableFilterNavigation({
+        basePath: '/apps/stock-movement',
+        currentState: {
+            search: searchQuery,
+            warehouse: warehouseFilter,
+            page: 1,
+            pageSize: pagination?.pageSize ?? 20,
+        },
+        extraParams: {
+            material: materialFilter,
+            type: typeFilter.length > 0 ? typeFilter.join(',') : undefined,
+            startDate: dateRange?.from?.toISOString(),
+            endDate: dateRange?.to?.toISOString(),
+        },
+    });
+
     const applyFilters = useCallback(
         (overrides: {
             page?: number;
@@ -65,35 +79,33 @@ export default function StockMovementClient({
             types?: string[];
             date?: DateRange | undefined;
         }) => {
-            const params = new URLSearchParams();
-            const page = overrides.page ?? 1;
-            const pageSize = overrides.pageSize ?? pagination?.pageSize ?? 20;
-            const search = overrides.search === undefined ? searchQuery : overrides.search;
-            const wh = overrides.warehouse === undefined ? warehouseFilter : overrides.warehouse;
-            const mat = overrides.material === undefined ? materialFilter : overrides.material;
-            const types = overrides.types === undefined ? typeFilter : overrides.types;
             const date = overrides.date === undefined ? dateRange : overrides.date;
-
-            params.set('page', page.toString());
-            params.set('pageSize', pageSize.toString());
-
-            if (search.trim()) params.set('search', search.trim());
-            if (wh && wh !== 'all') params.set('warehouse', wh);
-            if (mat && mat !== 'all') params.set('material', mat);
-            if (types && types.length > 0) params.set('type', types.join(','));
-            if (date?.from) params.set('startDate', date.from.toISOString());
-            if (date?.to) params.set('endDate', date.to.toISOString());
-
-            router.push(`/apps/stock-movement?${params.toString()}`);
+            const types = overrides.types === undefined ? typeFilter : overrides.types;
+            navigate(
+                {
+                    page: overrides.page ?? 1,
+                    pageSize: overrides.pageSize ?? pagination?.pageSize ?? 20,
+                    search: overrides.search === undefined ? searchQuery : overrides.search,
+                    warehouse:
+                        overrides.warehouse === undefined ? warehouseFilter : overrides.warehouse,
+                },
+                {
+                    material:
+                        overrides.material === undefined ? materialFilter : overrides.material,
+                    type: types.length > 0 ? types.join(',') : undefined,
+                    startDate: date?.from?.toISOString(),
+                    endDate: date?.to?.toISOString(),
+                }
+            );
         },
         [
+            navigate,
             pagination?.pageSize,
             searchQuery,
             warehouseFilter,
             materialFilter,
             typeFilter,
             dateRange,
-            router,
         ]
     );
 
@@ -133,7 +145,10 @@ export default function StockMovementClient({
         setWarehouseFilter('all');
         setMaterialFilter('all');
         setTypeFilter([]);
-        router.push('/apps/stock-movement?page=1&pageSize=20');
+        navigate(
+            { page: 1, pageSize: pagination?.pageSize ?? 20, search: '', warehouse: 'all' },
+            { material: 'all', type: undefined, startDate: undefined, endDate: undefined }
+        );
     };
 
     const handlePaginationChange = (page: number, pageSize: number) => {

@@ -9,8 +9,8 @@
  */
 
 import type { Kysely, Transaction } from 'kysely';
-import { db } from '@/lib/db/db';
 import type { DB } from '@/lib/db/database.types';
+import { db } from '@/lib/db/db';
 import { createHasilRekonRepository } from './inventory/hasil-rekon';
 import { createMasterDataRepository } from './inventory/master-data';
 import { createOutSapRepository } from './inventory/out-sap';

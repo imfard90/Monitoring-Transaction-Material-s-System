@@ -1,9 +1,9 @@
-import { type NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
-import { getStockComparison } from '@/app/(DashboardLayout)/reference/_actions/stock-comparison-actions';
-import { actionLogger } from '@/lib/logger';
+import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getStockComparison } from '@/app/(DashboardLayout)/reference/_actions/stock-comparison-actions';
+import { auth } from '@/lib/auth';
+import { actionLogger } from '@/lib/logger';
 
 const ParamsSchema = z.object({
     nik: z.string().trim().min(1, 'NIK wajib diisi'),

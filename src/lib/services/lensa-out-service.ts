@@ -6,8 +6,8 @@
  * This barrel keeps the existing import path stable for consumers.
  */
 
-export { executeOutLensaScraping } from './lensa-out/sync-service';
 export { scrapeSingleOutLensaDetailService } from './lensa-out/detail-service';
+export { executeOutLensaScraping } from './lensa-out/sync-service';
 
 export type {
     OutLensaAccountResult,

@@ -1,7 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { format } from 'date-fns';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { useDebouncedCallback } from '@/hooks/use-debounce';
+import { useTableFilterNavigation } from '@/hooks/use-table-filters';
 import type { HasilRekonData } from '../_actions/rekon-actions';
 import { exportHasilRekonData } from '../_actions/rekon-export-actions';
 import ExportLoadingOverlay from './ExportLoadingOverlay';
@@ -86,6 +87,22 @@ export default function HasilRekonClient({
         return undefined;
     });
 
+    const { navigate } = useTableFilterNavigation({
+        basePath: '/apps/hasil-rekon',
+        currentState: {
+            search: searchQuery,
+            warehouse: warehouseFilter,
+            page: 1,
+            pageSize: pagination?.pageSize ?? 20,
+        },
+        extraParams: {
+            type: typeFilter,
+            material: materialFilter,
+            startDate: dateRange?.from?.toISOString(),
+            endDate: dateRange?.to?.toISOString(),
+        },
+    });
+
     const applyFilters = useCallback(
         (overrides: {
             page?: number;
@@ -96,35 +113,32 @@ export default function HasilRekonClient({
             material?: string;
             date?: DateRange | undefined;
         }) => {
-            const params = new URLSearchParams();
-            const page = overrides.page ?? 1;
-            const pageSize = overrides.pageSize ?? pagination?.pageSize ?? 20;
-            const search = overrides.search === undefined ? searchQuery : overrides.search;
-            const wh = overrides.warehouse === undefined ? warehouseFilter : overrides.warehouse;
-            const tp = overrides.type === undefined ? typeFilter : overrides.type;
-            const mat = overrides.material === undefined ? materialFilter : overrides.material;
             const date = overrides.date === undefined ? dateRange : overrides.date;
-
-            params.set('page', page.toString());
-            params.set('pageSize', pageSize.toString());
-
-            if (search.trim()) params.set('search', search.trim());
-            if (wh && wh !== 'all') params.set('warehouse', wh);
-            if (tp && tp !== 'all') params.set('type', tp);
-            if (mat && mat !== 'all') params.set('material', mat);
-            if (date?.from) params.set('startDate', date.from.toISOString());
-            if (date?.to) params.set('endDate', date.to.toISOString());
-
-            router.push(`/apps/hasil-rekon?${params.toString()}`);
+            navigate(
+                {
+                    page: overrides.page ?? 1,
+                    pageSize: overrides.pageSize ?? pagination?.pageSize ?? 20,
+                    search: overrides.search === undefined ? searchQuery : overrides.search,
+                    warehouse:
+                        overrides.warehouse === undefined ? warehouseFilter : overrides.warehouse,
+                },
+                {
+                    type: overrides.type === undefined ? typeFilter : overrides.type,
+                    material:
+                        overrides.material === undefined ? materialFilter : overrides.material,
+                    startDate: date?.from?.toISOString(),
+                    endDate: date?.to?.toISOString(),
+                }
+            );
         },
         [
+            navigate,
             pagination?.pageSize,
             searchQuery,
             warehouseFilter,
             typeFilter,
             materialFilter,
             dateRange,
-            router,
         ]
     );
 
@@ -164,7 +178,10 @@ export default function HasilRekonClient({
         setWarehouseFilter('all');
         setTypeFilter('all');
         setMaterialFilter('all');
-        router.push('/apps/hasil-rekon?page=1&pageSize=20');
+        navigate(
+            { page: 1, pageSize: pagination?.pageSize ?? 20, search: '', warehouse: 'all' },
+            { type: 'all', material: 'all', startDate: undefined, endDate: undefined }
+        );
     };
 
     const handlePaginationChange = (page: number, pageSize: number) => {

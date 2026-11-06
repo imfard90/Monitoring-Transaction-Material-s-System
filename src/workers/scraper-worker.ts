@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { exec } from 'node:child_process';
 import cron from 'node-cron';
 import {
     OTHER_STOCK_SYNC_LOCK_KEY,
@@ -500,6 +501,19 @@ const gracefulShutdown = async (signal: string) => {
         await redis.del(WORKER_HEARTBEAT_KEY).catch(() => {});
         await queueRedis.quit().catch(() => {});
         await redis.quit().catch(() => {});
+
+        // Kill orphaned Chromium processes (safety net)
+        exec('pkill -f "chrome.*playwright_chromiumdev"', (err) => {
+            if (err) {
+                actionLogger.warn(
+                    '[SHUTDOWN] pkill orphan chrome failed (likely none found):',
+                    err
+                );
+            } else {
+                actionLogger.info('[SHUTDOWN] Orphan Chrome processes cleaned.');
+            }
+        });
+
         actionLogger.info('[MTMS-WORKER] Clean shutdown complete.');
     } catch (err) {
         actionLogger.error(

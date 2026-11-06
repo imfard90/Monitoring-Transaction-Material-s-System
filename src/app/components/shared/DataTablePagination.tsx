@@ -1,4 +1,3 @@
-import type { RowData, Table } from '@/lib/table';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import type { RowData, Table } from '@/lib/table';
 
 const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100];
 

@@ -1,19 +1,6 @@
 'use client';
 
 import { IconBuildingWarehouse } from '@tabler/icons-react';
-import {
-    type AnyColumnDef,
-    type Column,
-    type ColumnFiltersState,
-    createColumnHelper,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    type SortingState,
-    useReactTable,
-    type VisibilityState,
-} from '@/lib/table';
 import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { DataTable } from '@/app/components/shared/DataTable';
@@ -32,6 +19,19 @@ import {
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDateId } from '@/lib/formatters';
+import {
+    type AnyColumnDef,
+    type Column,
+    type ColumnFiltersState,
+    createColumnHelper,
+    getCoreRowModel,
+    getFilteredRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    type SortingState,
+    useReactTable,
+    type VisibilityState,
+} from '@/lib/table';
 import { cn } from '@/lib/utils';
 import type { StockItem, StockStatus, WarehouseSummary } from '../_lib/stock-status';
 import { calculateDaysUntilRunout, warehouseLocation } from '../_lib/stock-status';

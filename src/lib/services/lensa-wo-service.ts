@@ -6,16 +6,16 @@
  * This barrel keeps the existing import path stable for consumers.
  */
 
+export { scrapeSingleWODetailService } from './lensa-wo-detail-service';
+export { executeNightlyWOLensaScrapingByNik } from './lensa-wo-nightly-service';
 export {
     executeWOLensaScraping,
     syncMissingWOLensaDetails,
 } from './lensa-wo-sync-service';
-export { executeNightlyWOLensaScrapingByNik } from './lensa-wo-nightly-service';
-export { scrapeSingleWODetailService } from './lensa-wo-detail-service';
 
 export {
     type ScrapedWODetailMaterial,
     type ScrapedWODetailResult,
-    type WOLensaScrapeOutcome,
     toISODateString,
+    type WOLensaScrapeOutcome,
 } from './lensa-wo-types';
