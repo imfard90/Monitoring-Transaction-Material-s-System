@@ -163,9 +163,7 @@ describe('rekon-lensa-actions Unit Tests', () => {
 
         const res = await submitRekonLensa('TKN01', [validItem], 'idem-lensa-3b');
         expect(res.success).toBe(false);
-        expect(res.error).toContain(
-            'Akses ditolak: Sebagian transaksi bukan milik teknisi ini'
-        );
+        expect(res.error).toContain('Akses ditolak: Sebagian transaksi bukan milik teknisi ini');
     });
 
     it('allows Staff to reconcile cross-warehouse SAP Out for technician registered in their warehouse', async () => {

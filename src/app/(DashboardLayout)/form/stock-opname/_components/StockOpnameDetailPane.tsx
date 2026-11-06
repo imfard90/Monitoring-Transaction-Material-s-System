@@ -229,9 +229,9 @@ export function StockOpnameDetailPane({ open, onOpenChange, log, isStaff, onUpda
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredDetails.map((item, idx) => (
+                                    filteredDetails.map((item) => (
                                         <tr
-                                            key={idx}
+                                            key={item.material_code}
                                             className="hover:bg-muted/40 transition-colors"
                                         >
                                             <td className="px-4 py-2.5 font-mono text-xs font-medium">

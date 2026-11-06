@@ -31,8 +31,8 @@ export interface ScraperLog {
     timestamp: Date;
 }
 
-export function createScraperLogRepository(db: Kysely<any>) {
-    const typedDb = db as unknown as Kysely<ScraperLogDatabase>;
+export function createScraperLogRepository(db: Kysely<ScraperLogDatabase>) {
+    const typedDb = db;
 
     return {
         /**
@@ -46,7 +46,7 @@ export function createScraperLogRepository(db: Kysely<any>) {
                     action: data.action,
                     resume_result: data.resume_result,
                     ...(data.timestamp ? { timestamp: data.timestamp } : {}),
-                } as any)
+                })
                 .returningAll()
                 .executeTakeFirstOrThrow();
 
@@ -85,4 +85,3 @@ export function createScraperLogRepository(db: Kysely<any>) {
 }
 
 export const scraperLogRepository = createScraperLogRepository(db);
-

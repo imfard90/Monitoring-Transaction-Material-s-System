@@ -137,7 +137,7 @@ export const RekonSlaVelocity: React.FC<{
                 y: {
                     formatter: (val, opts) => {
                         const tier =
-                            opts?.seriesIndex != null ? data.tiers[opts.seriesIndex] : undefined;
+                            opts?.seriesIndex == null ? undefined : data.tiers[opts.seriesIndex];
                         const count = Number(val).toLocaleString('id-ID');
                         const pct = tier ? tier.percentage : 0;
                         return `${count} transaksi (${pct}%)`;
@@ -145,7 +145,7 @@ export const RekonSlaVelocity: React.FC<{
                 },
             },
         }),
-        [data.tiers, data.totalOpen, data.avgDays]
+        [data.tiers, data.avgDays]
     );
 
     return (
@@ -199,7 +199,11 @@ export const RekonSlaVelocity: React.FC<{
                     </div>
                 ) : data.totalOpen === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center p-4 my-auto text-muted-foreground">
-                        <Icon icon="solar:shield-check-linear" width={28} className="text-emerald-500 mb-1" />
+                        <Icon
+                            icon="solar:shield-check-linear"
+                            width={28}
+                            className="text-emerald-500 mb-1"
+                        />
                         <p className="text-xs font-semibold">Semua Rekon Selesai</p>
                         <p className="text-[10px] text-muted-foreground/80 mt-0.5">
                             Tidak ada transaksi rekon tertahan saat ini.
@@ -273,4 +277,3 @@ export const RekonSlaVelocity: React.FC<{
         </Card>
     );
 };
-

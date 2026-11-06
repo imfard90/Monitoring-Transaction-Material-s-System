@@ -64,9 +64,7 @@ export const StockRunoutForecast: React.FC<{
         const categories = runoutData.map((item) => {
             const name = item.material_name;
             const truncated = name.length > 24 ? `${name.slice(0, 22)}...` : name;
-            return targetWh === 'all'
-                ? `${truncated} (${item.warehouse_name})`
-                : truncated;
+            return targetWh === 'all' ? `${truncated} (${item.warehouse_name})` : truncated;
         });
 
         const seriesValues = runoutData.map((item) => item.days_of_supply);
@@ -212,7 +210,10 @@ export const StockRunoutForecast: React.FC<{
                             )}
                         </div>
                         <p className="text-xs text-muted-foreground font-normal mt-0.5 flex flex-wrap items-center gap-x-2">
-                            <span>Estimasi sisa hari sebelum stok habis (Days of Supply) berdasarkan laju konsumsi policy</span>
+                            <span>
+                                Estimasi sisa hari sebelum stok habis (Days of Supply) berdasarkan
+                                laju konsumsi policy
+                            </span>
                             {latestPolicyUpdate && (
                                 <span className="inline-flex items-center text-[11px] text-muted-foreground/80 font-mono">
                                     • Update Policy: {formatDateId(latestPolicyUpdate)}
@@ -269,7 +270,11 @@ export const StockRunoutForecast: React.FC<{
                     </div>
                 ) : runoutData.length === 0 ? (
                     <div className="flex flex-col items-center justify-center flex-1 h-[260px] text-center text-xs text-muted-foreground">
-                        <Icon icon="solar:check-circle-linear" width={32} className="text-emerald-500 mb-1" />
+                        <Icon
+                            icon="solar:check-circle-linear"
+                            width={32}
+                            className="text-emerald-500 mb-1"
+                        />
                         <span>Seluruh material memiliki ketahanan stok yang aman</span>
                     </div>
                 ) : (
@@ -285,4 +290,3 @@ export const StockRunoutForecast: React.FC<{
         </Card>
     );
 };
-

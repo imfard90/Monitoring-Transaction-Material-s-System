@@ -107,13 +107,10 @@ export async function getTeknisiStockList(options?: { includeInactive?: boolean 
                 if (Array.isArray(rawExcludes)) {
                     for (const ex of rawExcludes) {
                         if (ex.id_material) {
-                            excludeMap.set(
-                                ex.id_material.trim().toUpperCase(),
-                                {
-                                    qty: Number(ex.qty) || 0,
-                                    type: ex.type === 'add' ? 'add' : 'subtract',
-                                }
-                            );
+                            excludeMap.set(ex.id_material.trim().toUpperCase(), {
+                                qty: Number(ex.qty) || 0,
+                                type: ex.type === 'add' ? 'add' : 'subtract',
+                            });
                         }
                     }
                 }
@@ -206,11 +203,7 @@ export async function getStockComparison(nik: string): Promise<{
 
         // Enforce warehouse scoping for staff
         if (user.isStaff) {
-            if (
-                !teknisi.wh_id ||
-                !scopedWarehouseIds ||
-                !scopedWarehouseIds.includes(teknisi.wh_id)
-            ) {
+            if (!teknisi.wh_id || !scopedWarehouseIds?.includes(teknisi.wh_id)) {
                 return {
                     success: false,
                     error: 'Akses ditolak: teknisi bukan di gudang Anda',
@@ -219,7 +212,7 @@ export async function getStockComparison(nik: string): Promise<{
         }
 
         const cached = teknisi.ref_intech_lensa as CachedLensaStock | null;
-        if (!cached || cached.status !== 'success' || !cached.materials) {
+        if (cached?.status !== 'success' || !cached.materials) {
             return {
                 success: false,
                 error: 'Data belum tersedia. Jalankan scraping terlebih dahulu.',

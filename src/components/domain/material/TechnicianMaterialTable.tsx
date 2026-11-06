@@ -68,10 +68,7 @@ export function TechnicianMaterialTable({
         );
     }
 
-    const totalAvailable = materials.reduce(
-        (sum, m) => sum + (m.qty_req - (m.qty_used || 0)),
-        0
-    );
+    const totalAvailable = materials.reduce((sum, m) => sum + (m.qty_req - (m.qty_used || 0)), 0);
 
     const totalQty = Object.values(quantities).reduce<number>((sum, val) => {
         const num = Number(val);
@@ -142,7 +139,7 @@ export function TechnicianMaterialTable({
                         {materials.map((m, index) => {
                             const availableQty = m.qty_req - (m.qty_used || 0);
                             const rawVal = quantities[m.sap_out_item_id];
-                            const currentQty = rawVal !== undefined ? rawVal : '';
+                            const currentQty = rawVal === undefined ? '' : rawVal;
                             const isAllocated = Number(currentQty) > 0;
 
                             return (

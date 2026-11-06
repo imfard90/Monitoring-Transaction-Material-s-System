@@ -21,10 +21,7 @@ export function formatRupiah(amount: number | null | undefined): string {
  * Formats a date to standard Indonesian locale.
  * Default format: "dd MMM yyyy, HH:mm"
  */
-export function formatDateId(
-    date: string | Date | null | undefined,
-    includeTime = true
-): string {
+export function formatDateId(date: string | Date | null | undefined, includeTime = true): string {
     if (!date) return '-';
     try {
         const d = typeof date === 'string' ? new Date(date) : date;

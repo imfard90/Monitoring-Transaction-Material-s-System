@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -39,7 +39,7 @@ export function StockOpnameLogTable({ onViewDetail, refreshTrigger }: Props) {
     const [globalFilter, setGlobalFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-    const loadLogs = async () => {
+    const loadLogs = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await getStockOpnameLogs();
@@ -53,11 +53,12 @@ export function StockOpnameLogTable({ onViewDetail, refreshTrigger }: Props) {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: refreshTrigger is the intended re-fetch signal; it is not read inside the effect body
     useEffect(() => {
         loadLogs();
-    }, [refreshTrigger]);
+    }, [loadLogs, refreshTrigger]);
 
     // Client-side filtering by status tab
     const filteredLogs = useMemo(() => {

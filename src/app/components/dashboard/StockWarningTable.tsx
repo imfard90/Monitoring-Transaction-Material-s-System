@@ -69,10 +69,7 @@ export const StockWarningTable = ({
     });
 
     // Material with active policies (min_qty > 0)
-    const activeWarnings = useMemo(
-        () => warnings.filter((item) => item.min_qty > 0),
-        [warnings]
-    );
+    const activeWarnings = useMemo(() => warnings.filter((item) => item.min_qty > 0), [warnings]);
 
     // Number of items in deficit / warning
     const deficitCount = useMemo(
@@ -253,7 +250,11 @@ export const StockWarningTable = ({
             <div className="relative z-10 flex-1 min-h-0 overflow-auto rounded-lg border border-border/60 bg-card">
                 {isLoading ? (
                     /* Loading State Skeleton */
-                    <div className="p-3 space-y-2.5" role="status" aria-label="Memuat data peringatan stok">
+                    <div
+                        className="p-3 space-y-2.5"
+                        role="status"
+                        aria-label="Memuat data peringatan stok"
+                    >
                         <div className="flex justify-between items-center pb-2 border-b border-border/40">
                             <Skeleton className="h-4 w-20" />
                             <Skeleton className="h-4 w-32" />
@@ -262,8 +263,11 @@ export const StockWarningTable = ({
                             <Skeleton className="h-4 w-16" />
                         </div>
                         {Array.from({ length: 5 }).map((_, i) => (
-                            // biome-ignore lint/suspicious/noArrayIndexKey: Static skeleton placeholders
-                            <div key={i} className="flex items-center justify-between py-2 border-b border-border/30">
+                            <div
+                                // biome-ignore lint/suspicious/noArrayIndexKey: Static skeleton placeholders
+                                key={`skeleton-row-${i}`}
+                                className="flex items-center justify-between py-2 border-b border-border/30"
+                            >
                                 <div className="space-y-1 w-1/4">
                                     <Skeleton className="h-3.5 w-24" />
                                     <Skeleton className="h-3 w-16" />
@@ -286,7 +290,8 @@ export const StockWarningTable = ({
                         </div>
                         <p className="text-sm font-semibold text-foreground">Gagal Memuat Data</p>
                         <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                            Terjadi kendala saat mengambil data peringatan stok minimum. Silakan coba kembali.
+                            Terjadi kendala saat mengambil data peringatan stok minimum. Silakan
+                            coba kembali.
                         </p>
                         <Button
                             variant="outline"
@@ -337,7 +342,8 @@ export const StockWarningTable = ({
                                     Seluruh Stok Berada Dalam Batas Aman
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                                    Tidak ada material yang berada di bawah stok minimum operasional.
+                                    Tidak ada material yang berada di bawah stok minimum
+                                    operasional.
                                 </p>
                             </>
                         )}
@@ -374,14 +380,25 @@ export const StockWarningTable = ({
                             <AnimatePresence mode="popLayout">
                                 {filteredWarnings.map((w: StockWarning, index: number) => {
                                     const isWarning = w.qty_stock < w.min_qty;
-                                    const ratio = w.min_qty > 0 ? Math.round((w.qty_stock / w.min_qty) * 100) : 100;
+                                    const ratio =
+                                        w.min_qty > 0
+                                            ? Math.round((w.qty_stock / w.min_qty) * 100)
+                                            : 100;
 
                                     return (
                                         <motion.tr
                                             key={`${w.warehouse_name}-${w.material_code}`}
-                                            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                                            initial={
+                                                shouldReduceMotion
+                                                    ? { opacity: 0 }
+                                                    : { opacity: 0, y: 6 }
+                                            }
                                             animate={{ opacity: 1, y: 0 }}
-                                            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                                            exit={
+                                                shouldReduceMotion
+                                                    ? { opacity: 0 }
+                                                    : { opacity: 0, y: -6 }
+                                            }
                                             transition={{ duration: 0.15, delay: index * 0.02 }}
                                             className={cn(
                                                 'border-b border-border/40 transition-colors hover:bg-muted/40',
@@ -414,10 +431,12 @@ export const StockWarningTable = ({
                                             <TableCell className="py-2.5 text-right whitespace-nowrap">
                                                 <div className="flex flex-col items-end gap-0.5">
                                                     <span className="text-xs font-medium text-foreground">
-                                                        {Number(w.average_demand_weekly).toFixed(1)} / mgg
+                                                        {Number(w.average_demand_weekly).toFixed(1)}{' '}
+                                                        / mgg
                                                     </span>
                                                     <span className="text-[10px] text-muted-foreground">
-                                                        LT: {w.lead_time_weeks} mg • SS: {Number(w.safety_stock_pct).toFixed(0)}%
+                                                        LT: {w.lead_time_weeks} mg • SS:{' '}
+                                                        {Number(w.safety_stock_pct).toFixed(0)}%
                                                     </span>
                                                 </div>
                                             </TableCell>
@@ -457,10 +476,12 @@ export const StockWarningTable = ({
                                                                 ratio < 50
                                                                     ? 'bg-rose-500'
                                                                     : ratio < 100
-                                                                    ? 'bg-amber-500'
-                                                                    : 'bg-emerald-500'
+                                                                      ? 'bg-amber-500'
+                                                                      : 'bg-emerald-500'
                                                             )}
-                                                            style={{ width: `${Math.min(100, Math.max(5, ratio))}%` }}
+                                                            style={{
+                                                                width: `${Math.min(100, Math.max(5, ratio))}%`,
+                                                            }}
                                                         />
                                                     </div>
                                                 </div>

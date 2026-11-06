@@ -39,9 +39,7 @@ export function createStockComparisonColumns(onShowCached: (nik: string) => void
                 const row = info.row.original;
                 return (
                     <div className="flex items-center gap-1.5 min-w-[200px]">
-                        <span className="font-medium text-foreground">
-                            {info.getValue()}
-                        </span>
+                        <span className="font-medium text-foreground">{info.getValue()}</span>
                         {row.is_active === false && (
                             <Badge
                                 variant="outline"

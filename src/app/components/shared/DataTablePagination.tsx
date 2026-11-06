@@ -1,4 +1,4 @@
-import type { Table } from '@/lib/table';
+import type { RowData, Table } from '@/lib/table';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -13,14 +13,14 @@ import {
 
 const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100];
 
-interface DataTablePaginationProps<TData> {
+interface DataTablePaginationProps<TData extends RowData> {
     table: Table<TData>;
     pageSizeOptions?: number[];
     showPageJump?: boolean;
     showPageSize?: boolean;
 }
 
-export function DataTablePagination<TData>({
+export function DataTablePagination<TData extends RowData>({
     table,
     pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
     showPageJump = true,

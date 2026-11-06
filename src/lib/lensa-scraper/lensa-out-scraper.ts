@@ -250,7 +250,7 @@ export async function scrapeLensaDetails(
                     for (const el of elements) {
                         const text = el.textContent || '';
                         const match = text.match(/Mitra\s*[:\t]\s*([^\n\r]+)/i);
-                        if (match && match[1]?.trim()) {
+                        if (match?.[1]?.trim()) {
                             const val = match[1].trim();
                             if (!/^(tanggal|gudang|project|nik|status)/i.test(val)) {
                                 return val;
@@ -398,7 +398,7 @@ export async function scrapeReservation(
                     const match = text.match(
                         new RegExp(`${targetLabel}\\s*[:\t]\\s*([^\\n\\r]+)`, 'i')
                     );
-                    if (match && match[1]?.trim()) {
+                    if (match?.[1]?.trim()) {
                         const val = match[1].trim();
                         if (
                             !/^(tanggal|gudang|project|nik|status)/i.test(val) ||

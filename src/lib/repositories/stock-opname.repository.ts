@@ -1,4 +1,5 @@
 import type { ColumnType, Generated, Kysely } from 'kysely';
+import type { DB } from '@/lib/db/database.types';
 
 export interface InventoryStockOpnameLogRow {
     id: Generated<number>;
@@ -66,7 +67,7 @@ export interface StockOpnameFilters {
     offset?: number;
 }
 
-export function createStockOpnameRepository(db: Kysely<any>) {
+export function createStockOpnameRepository(db: Kysely<DB>) {
     const typedDb = db as unknown as Kysely<StockOpnameDatabase>;
 
     return {
@@ -80,7 +81,7 @@ export function createStockOpnameRepository(db: Kysely<any>) {
                     total_items: data.total_items,
                     total_difference: data.total_difference,
                     created_by: data.created_by,
-                    status: (data.status ?? 'pending') as any,
+                    status: data.status ?? 'pending',
                 })
                 .returningAll()
                 .executeTakeFirstOrThrow();
@@ -157,12 +158,12 @@ export function createStockOpnameRepository(db: Kysely<any>) {
             await typedDb
                 .updateTable('inventory.stock_opname_log')
                 .set({
-                    status: 'approved' as any,
+                    status: 'approved',
                     approved_by: approvedBy,
-                    approved_at: new Date().toISOString() as any,
+                    approved_at: new Date().toISOString(),
                 })
                 .where('id', '=', id)
-                .where('status', '=', 'pending' as any)
+                .where('status', '=', 'pending')
                 .execute();
         },
 
@@ -170,13 +171,13 @@ export function createStockOpnameRepository(db: Kysely<any>) {
             await typedDb
                 .updateTable('inventory.stock_opname_log')
                 .set({
-                    status: 'rejected' as any,
+                    status: 'rejected',
                     approved_by: approvedBy,
-                    approved_at: new Date().toISOString() as any,
+                    approved_at: new Date().toISOString(),
                     approval_reason: reason,
                 })
                 .where('id', '=', id)
-                .where('status', '=', 'pending' as any)
+                .where('status', '=', 'pending')
                 .execute();
         },
 

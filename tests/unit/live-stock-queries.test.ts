@@ -60,7 +60,9 @@ describe('getLiveStockData with LRU Cache', () => {
     });
 
     it('returns error when repository throws without leaking details', async () => {
-        vi.mocked(inventoryRepository.listLiveStockRows).mockRejectedValueOnce(new Error('Connection failure'));
+        vi.mocked(inventoryRepository.listLiveStockRows).mockRejectedValueOnce(
+            new Error('Connection failure')
+        );
 
         const res = await getLiveStockData();
         expect(res.success).toBe(false);
@@ -69,4 +71,3 @@ describe('getLiveStockData with LRU Cache', () => {
         }
     });
 });
-

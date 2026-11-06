@@ -127,7 +127,10 @@ export function groupByMaterial(items: readonly StockItem[]): MaterialStockGroup
         existing.warehouse_count += 1;
         existing.warehouses.push(item);
         existing.has_out_material_history ||= item.has_out_material_history;
-        if (item.policy_updated_at && (!existing.policy_updated_at || item.policy_updated_at > existing.policy_updated_at)) {
+        if (
+            item.policy_updated_at &&
+            (!existing.policy_updated_at || item.policy_updated_at > existing.policy_updated_at)
+        ) {
             existing.policy_updated_at = item.policy_updated_at;
         }
         if (item.average_demand_weekly !== null) {

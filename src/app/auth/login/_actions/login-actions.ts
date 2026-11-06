@@ -57,9 +57,7 @@ export async function precheckLogin(email: string, turnstileToken: string) {
                     const sessions: Array<{ token: string; expiresAt?: number }> =
                         JSON.parse(sessionsRaw);
                     const now = Date.now();
-                    const validSessions = sessions.filter(
-                        (s) => !s.expiresAt || s.expiresAt > now
-                    );
+                    const validSessions = sessions.filter((s) => !s.expiresAt || s.expiresAt > now);
                     if (validSessions.length > 0) {
                         return { status: 'active_session_exists' };
                     }
@@ -78,8 +76,11 @@ export async function precheckLogin(email: string, turnstileToken: string) {
                 if (activeSessionResult.rows.length > 0) {
                     return { status: 'active_session_exists' };
                 }
-            } catch (dbErr: any) {
-                actionLogger.warn('Notice when querying DB session:', dbErr?.message || dbErr);
+            } catch (dbErr: unknown) {
+                actionLogger.warn(
+                    'Notice when querying DB session:',
+                    dbErr instanceof Error ? dbErr : new Error(String(dbErr))
+                );
             }
         }
 
@@ -135,8 +136,11 @@ export async function revokeAllUserSessions(email: string) {
             // 3. Purge sessions from auth.session database table
             try {
                 await sql`DELETE FROM auth.session WHERE "userId" = ${user.id}`.execute(db);
-            } catch (dbErr: any) {
-                actionLogger.warn('Notice when revoking DB session:', dbErr?.message || dbErr);
+            } catch (dbErr: unknown) {
+                actionLogger.warn(
+                    'Notice when revoking DB session:',
+                    dbErr instanceof Error ? dbErr : new Error(String(dbErr))
+                );
             }
         }
 

@@ -319,7 +319,12 @@ export function StockComparisonDetailDialog({
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground font-mono">
-                                    {result.items.filter((i) => i.stock_lensa > 0 || i.stock_mtms > 0).length} Material Aktif
+                                    {
+                                        result.items.filter(
+                                            (i) => i.stock_lensa > 0 || i.stock_mtms > 0
+                                        ).length
+                                    }{' '}
+                                    Material Aktif
                                 </span>
                                 <Badge
                                     variant={

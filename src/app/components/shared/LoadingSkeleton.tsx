@@ -25,13 +25,16 @@ export function LoadingSkeleton({
             {showHeader && (
                 <div className="flex gap-4">
                     {Array.from({ length: columns }).map((_, i) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholder, never reordered
                         <Skeleton key={`header-${i}`} className="h-10 w-full" />
                     ))}
                 </div>
             )}
             {Array.from({ length: rows }).map((_, rowIndex) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholder, never reordered
                 <div key={`row-${rowIndex}`} className="flex gap-4">
                     {Array.from({ length: columns }).map((_, colIndex) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholder, never reordered
                         <Skeleton key={`cell-${rowIndex}-${colIndex}`} className="h-12 w-full" />
                     ))}
                 </div>
@@ -63,6 +66,7 @@ export function LoadingTableRowSkeleton({ columns = 4 }: { columns?: number }) {
             aria-label="Memuat baris data, mohon tunggu"
         >
             {Array.from({ length: columns }).map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholder, never reordered
                 <Skeleton key={i} className="h-5 w-full" />
             ))}
         </div>

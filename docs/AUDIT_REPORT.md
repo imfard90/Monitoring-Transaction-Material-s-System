@@ -516,3 +516,75 @@ gantt
 ---
 
 Dokumen ini bersifat hidup—perbarui saat temuan ditindaklanjuti.
+
+---
+
+## LampIRAN A — Refactor Modularisasi & Kualitas Kode (2026-06-11)
+
+Refactor terarah pada modularitas, reusabilitas, dan efektivitas kode.
+Ruang lingkup: `src/` (TypeScript/TSX). Tidak mengubah kontrak stored procedure,
+signature repository yang dipanggil server action, atau perilaku bisnis.
+
+### A.1 Pemecahan File Oversized (>800 baris)
+
+| File | Sebelum | Sesudah | Modul Pecahan |
+|---|---|---|---|
+| `src/app/(DashboardLayout)/_actions/dashboard-charts-queries.ts` | 935 | 25 (barrel) | 8 modul di `_actions/dashboard-charts/` (`types`, `sales-overview`, `out-material-charts`, `warehouse-performance`, `stock-value-comparison`, `intech-aging`, `stock-runout`, `rekon-sla`) |
+| `src/lib/services/lensa-wo-service.ts` | 1259 | 21 (barrel) | `lensa-wo-types`, `lensa-wo-sync-service`, `lensa-wo-nightly-service`, `lensa-wo-detail-service` |
+| `src/lib/services/lensa-out-service.ts` | 634 | 17 (barrel) | `lensa-out/types`, `lensa-out/sync-service`, `lensa-out/detail-service` |
+| `src/lib/repositories/inventory.repository.ts` | 1139 | 52 (barrel) | `inventory/stored-procedures`, `inventory/master-data`, `inventory/out-sap`, `inventory/hasil-rekon`, `inventory/types` |
+
+Semua barrel menjaga path import lama (`from './lensa-wo-service'`), sehingga
+consumer tidak perlu berubah. Repo `inventory.repository.ts` kini mengomposisi
+4 repository domain; dependensi lintas-domain (`out-sap` → `stored-procedures`)
+di-resolve lewat import langsung, bukan lewat factory, untuk menghindari siklus.
+
+### A.2 Type Safety — Eliminasi `any`
+
+- `LensaAccount` (interface) ditambahkan ke `src/lib/db/database.types.ts`;
+  `auth.user.lensa_acount` tidak lagi `any`.
+- `src/lib/table.ts`: `SafeRowData<T>` hack dihapus → constraint `RowData` yang
+  eksplisit; `AnyColumnDef<T>` untuk kolom heterogen; `TableStateInput` untuk
+  `initialState`/`state`; `getState()` mengembalikan tipe konkret.
+- `src/lib/services/lensa-wo-*` & `lensa-out/*`: `as any`, `as Record<string, string>`,
+  dan `catch (e: any)` diganti tipe konkret + null guard.
+- `src/lib/auth-server.ts`: helper `getErrorProp()` untuk membaca properti
+  non-standar (`digest`, `code`, `statusCode`) pada error tanpa `any`.
+- `src/lib/db/scopes.ts`: `applyWarehouseScope` / `applyInOutTagWarehouseScope`
+  memakai tipe struktural (`ScopeQueryBuilder`, `ScopeExpressionBuilder`).
+- `src/lib/presence.ts`: `RedisPresenceClient` diberi signature konkret.
+- `src/lib/logger.ts`: cast pino dihapus; `src/lib/errors.ts`: generik HOF
+  memakai `never[]`; `src/lib/cache/encryptedCache.ts`: `error.code` dipersempit.
+- `src/app/auth/forgot-password/page.tsx`: deklarasi eksplisit method
+  `requestPasswordReset` yang belum ada di tipe client Better Auth.
+- `src/lib/services/bulk-stock-scraper.ts`: `context` bertipe `BrowserContext`.
+
+Sisa `any` yang dipertahankan (dengan alasan terdokumentasi di kode):
+`createLruCache<any>` (constraint `lru-cache` `V extends {}` menolak primitive),
+`RowData` (harus identik dengan constraint upstream TanStack Table).
+
+### A.3 Lint & Kode Mati
+
+- `biome lint src`: 40 warning → **0 warning**.
+- `noNegationElse` (9), `useOptionalChain` (4), `noUnusedImports` (6),
+  `noArrayIndexKey` (8 → key stabil `material_code` / `biome-ignore` untuk skeleton),
+  `useExhaustiveDependencies` (2 → `useCallback` + suppress terdokumentasi),
+  `noNonNullAssertion` (1 → null guard), `useImportType` (1), unused variable (1).
+
+### A.4 Verifikasi
+
+| Pemeriksaan | Hasil |
+|---|---|
+| `pnpm tsc --noEmit` | 0 error |
+| `pnpm exec biome lint src` | 0 warning |
+| `pnpm test:unit` | 71 file, 575 tes lulus |
+| `pnpm format` | bersih |
+
+### A.5 Catatan & Batas
+
+- Tidak ada perubahan pada signature stored procedure, isi migrasi, atau alur otorisasi.
+- `docs/AUDIT_REPORT.md` bagian 1–5 (temuan keamanan/business rule) **tidak**
+  berubah; refactor ini murni struktural dan type-level.
+- File sumber terbesar kini 665 baris (`SidebarWarehouseChampion.tsx`),
+  di bawah plafon 800 baris. `src/lib/db/database.types.ts` (1230 baris) adalah
+  definisi tipe hasil generate dan dikecualikan.

@@ -256,10 +256,7 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
             {/* Chart */}
             <div className="relative z-10 -mx-2 flex-1" aria-busy={isLoading}>
                 {isLoading ? (
-                    <Skeleton
-                        className="h-75 w-full"
-                        aria-label="Memuat grafik top out material"
-                    />
+                    <Skeleton className="h-75 w-full" aria-label="Memuat grafik top out material" />
                 ) : hasError ? (
                     <p
                         className="flex h-75 items-center justify-center text-sm text-destructive"

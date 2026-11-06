@@ -2,8 +2,8 @@
 
 import { IconBuildingWarehouse } from '@tabler/icons-react';
 import {
+    type AnyColumnDef,
     type Column,
-    type ColumnDef,
     type ColumnFiltersState,
     createColumnHelper,
     getCoreRowModel,
@@ -11,7 +11,6 @@ import {
     getPaginationRowModel,
     getSortedRowModel,
     type SortingState,
-    type Table,
     useReactTable,
     type VisibilityState,
 } from '@/lib/table';
@@ -48,13 +47,12 @@ interface StockTableProps {
 
 const columnHelper = createColumnHelper<StockItem>();
 
-function SortableHeader({
+function SortableHeader<TValue>({
     title,
     column,
 }: {
     title: string;
-    column: Column<StockItem, unknown>;
-    table?: any;
+    column: Column<StockItem, TValue>;
 }) {
     const sorted = column.getIsSorted();
     const isSorted = Boolean(sorted);
@@ -131,11 +129,9 @@ export function StockTable({
         return result;
     }, [items, selectedWarehouseId, statusFilter, searchQuery]);
 
-    const columns: ColumnDef<StockItem, any>[] = [
+    const columns: AnyColumnDef<StockItem>[] = [
         columnHelper.accessor('warehouse_name', {
-            header: ({ column, table }) => (
-                <SortableHeader title="Lokasi" column={column} table={table} />
-            ),
+            header: ({ column }) => <SortableHeader title="Lokasi" column={column} />,
             cell: (info) => (
                 <span className="whitespace-nowrap text-sm font-medium text-foreground">
                     {warehouseLocation(info.getValue())}
@@ -143,9 +139,7 @@ export function StockTable({
             ),
         }),
         columnHelper.accessor('material_code', {
-            header: ({ column, table }) => (
-                <SortableHeader title="Kode Material" column={column} table={table} />
-            ),
+            header: ({ column }) => <SortableHeader title="Kode Material" column={column} />,
             cell: (info) => (
                 <button
                     type="button"
@@ -172,9 +166,7 @@ export function StockTable({
             ),
         }),
         columnHelper.accessor('qty_stock', {
-            header: ({ column, table }) => (
-                <SortableHeader title="Stok" column={column} table={table} />
-            ),
+            header: ({ column }) => <SortableHeader title="Stok" column={column} />,
             cell: (info) => (
                 <span className="font-bold tabular-nums text-right">
                     {info.getValue().toLocaleString('id-ID')}

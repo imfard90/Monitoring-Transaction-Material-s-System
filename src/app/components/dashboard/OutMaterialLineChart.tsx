@@ -68,106 +68,110 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
 
     const targetWh = isStaff ? 'all' : selectedWh;
 
-    const { data: chartData = { dates: [], series: [], materials: [] } } = useQuery<ChartDataResult>({
-        queryKey: queryKeys.dashboard.outMaterialLine(targetWh, 30),
-        queryFn: async () => {
-            const { getOutMaterialLineChartData } = await import(
-                '@/app/(DashboardLayout)/_actions/dashboard-actions'
-            );
-            const result = await getOutMaterialLineChartData(targetWh);
+    const { data: chartData = { dates: [], series: [], materials: [] } } =
+        useQuery<ChartDataResult>({
+            queryKey: queryKeys.dashboard.outMaterialLine(targetWh, 30),
+            queryFn: async () => {
+                const { getOutMaterialLineChartData } = await import(
+                    '@/app/(DashboardLayout)/_actions/dashboard-actions'
+                );
+                const result = await getOutMaterialLineChartData(targetWh);
 
-            const resData = result.data as {
-                topMats: {
-                    material_code: string;
-                    material_name: string;
-                    material_unit?: string | null;
-                    total_qty: number;
-                }[];
-                dailyData: {
-                    material_code: string;
-                    material_name: string;
-                    material_unit?: string | null;
-                    date_val: string;
-                    total_qty: number;
-                }[];
-                startDate: Date | string;
-            };
+                const resData = result.data as {
+                    topMats: {
+                        material_code: string;
+                        material_name: string;
+                        material_unit?: string | null;
+                        total_qty: number;
+                    }[];
+                    dailyData: {
+                        material_code: string;
+                        material_name: string;
+                        material_unit?: string | null;
+                        date_val: string;
+                        total_qty: number;
+                    }[];
+                    startDate: Date | string;
+                };
 
-            if (result.success && resData?.topMats) {
-                const dates: string[] = [];
-                const startDate = new Date(resData.startDate);
-                for (let i = 0; i < 30; i++) {
-                    const d = new Date(startDate);
-                    d.setDate(startDate.getDate() + i);
-                    dates.push(`${d.getDate()} ${d.toLocaleString('id-ID', { month: 'short' })}`);
-                }
-
-                const dailyQtyByMaterialAndDate = new Map<string, number>();
-                for (const row of resData.dailyData) {
-                    dailyQtyByMaterialAndDate.set(
-                        `${row.material_code}|${row.date_val}`,
-                        Number(row.total_qty)
-                    );
-                }
-
-                // Detect duplicate descriptions to disambiguate labels
-                const descCount = new Map<string, number>();
-                resData.topMats.forEach((m) => {
-                    const desc = m.material_name || m.material_code;
-                    descCount.set(desc, (descCount.get(desc) || 0) + 1);
-                });
-
-                const materials: MaterialOption[] = resData.topMats.map((t) => {
-                    const isDuplicate = (descCount.get(t.material_name) || 0) > 1;
-                    return {
-                        code: t.material_code,
-                        name: t.material_name,
-                        label: isDuplicate
-                            ? `${t.material_name} (${t.material_code})`
-                            : t.material_name,
-                        unit: formatUnit(t.material_unit),
-                        total30d: Number(t.total_qty ?? 0),
-                    };
-                });
-
-                const series: SeriesItem[] = materials.map((mat) => {
-                    const matCode = mat.code;
-                    const realData: number[] = [];
-                    const data: number[] = [];
-                    const startDateObj = new Date(resData.startDate);
+                if (result.success && resData?.topMats) {
+                    const dates: string[] = [];
+                    const startDate = new Date(resData.startDate);
                     for (let i = 0; i < 30; i++) {
-                        const yyyy = startDateObj.getFullYear();
-                        const mm = String(startDateObj.getMonth() + 1).padStart(2, '0');
-                        const dd = String(startDateObj.getDate()).padStart(2, '0');
-                        const dateStr = `${yyyy}-${mm}-${dd}`;
-
-                        const realVal = dailyQtyByMaterialAndDate.get(`${matCode}|${dateStr}`) ?? 0;
-                        realData.push(realVal);
-
-                        // Skalakan AC-OF-SM-1-3SL visual 1:10 agar tidak mendominasi garis komparasi lain
-                        const visualVal = matCode === 'AC-OF-SM-1-3SL' ? realVal / 10 : realVal;
-                        data.push(visualVal);
-
-                        startDateObj.setDate(startDateObj.getDate() + 1);
+                        const d = new Date(startDate);
+                        d.setDate(startDate.getDate() + i);
+                        dates.push(
+                            `${d.getDate()} ${d.toLocaleString('id-ID', { month: 'short' })}`
+                        );
                     }
-                    const displayName =
-                        matCode === 'AC-OF-SM-1-3SL' ? `${mat.label} (x10)` : mat.label;
-                    return {
-                        name: displayName,
-                        code: matCode,
-                        originalName: mat.name,
-                        unit: mat.unit,
-                        realData,
-                        data,
-                    };
-                });
 
-                return { dates, series, materials };
-            }
-            return { dates: [], series: [], materials: [] };
-        },
-        staleTime: 60 * 1000,
-    });
+                    const dailyQtyByMaterialAndDate = new Map<string, number>();
+                    for (const row of resData.dailyData) {
+                        dailyQtyByMaterialAndDate.set(
+                            `${row.material_code}|${row.date_val}`,
+                            Number(row.total_qty)
+                        );
+                    }
+
+                    // Detect duplicate descriptions to disambiguate labels
+                    const descCount = new Map<string, number>();
+                    resData.topMats.forEach((m) => {
+                        const desc = m.material_name || m.material_code;
+                        descCount.set(desc, (descCount.get(desc) || 0) + 1);
+                    });
+
+                    const materials: MaterialOption[] = resData.topMats.map((t) => {
+                        const isDuplicate = (descCount.get(t.material_name) || 0) > 1;
+                        return {
+                            code: t.material_code,
+                            name: t.material_name,
+                            label: isDuplicate
+                                ? `${t.material_name} (${t.material_code})`
+                                : t.material_name,
+                            unit: formatUnit(t.material_unit),
+                            total30d: Number(t.total_qty ?? 0),
+                        };
+                    });
+
+                    const series: SeriesItem[] = materials.map((mat) => {
+                        const matCode = mat.code;
+                        const realData: number[] = [];
+                        const data: number[] = [];
+                        const startDateObj = new Date(resData.startDate);
+                        for (let i = 0; i < 30; i++) {
+                            const yyyy = startDateObj.getFullYear();
+                            const mm = String(startDateObj.getMonth() + 1).padStart(2, '0');
+                            const dd = String(startDateObj.getDate()).padStart(2, '0');
+                            const dateStr = `${yyyy}-${mm}-${dd}`;
+
+                            const realVal =
+                                dailyQtyByMaterialAndDate.get(`${matCode}|${dateStr}`) ?? 0;
+                            realData.push(realVal);
+
+                            // Skalakan AC-OF-SM-1-3SL visual 1:10 agar tidak mendominasi garis komparasi lain
+                            const visualVal = matCode === 'AC-OF-SM-1-3SL' ? realVal / 10 : realVal;
+                            data.push(visualVal);
+
+                            startDateObj.setDate(startDateObj.getDate() + 1);
+                        }
+                        const displayName =
+                            matCode === 'AC-OF-SM-1-3SL' ? `${mat.label} (x10)` : mat.label;
+                        return {
+                            name: displayName,
+                            code: matCode,
+                            originalName: mat.name,
+                            unit: mat.unit,
+                            realData,
+                            data,
+                        };
+                    });
+
+                    return { dates, series, materials };
+                }
+                return { dates: [], series: [], materials: [] };
+            },
+            staleTime: 60 * 1000,
+        });
 
     // Timeframe slice (last 7, 14, or 30 days)
     const { slicedDates, slicedSeries } = useMemo(() => {
@@ -459,7 +463,9 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                             </div>
                             <span className="text-border hidden sm:inline">|</span>
                             <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] text-muted-foreground">Puncak Harian:</span>
+                                <span className="text-[11px] text-muted-foreground">
+                                    Puncak Harian:
+                                </span>
                                 <span className="font-semibold text-foreground font-mono tabular-nums">
                                     {activeMaterialStats.peakVal.toLocaleString('id-ID')}{' '}
                                     <span className="font-normal text-muted-foreground text-[10px]">
@@ -472,7 +478,9 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                             </div>
                             <span className="text-border hidden sm:inline">|</span>
                             <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] text-muted-foreground">Rata-rata:</span>
+                                <span className="text-[11px] text-muted-foreground">
+                                    Rata-rata:
+                                </span>
                                 <span className="font-semibold text-foreground font-mono tabular-nums">
                                     {activeMaterialStats.avgDaily.toLocaleString('id-ID')}{' '}
                                     <span className="font-normal text-muted-foreground text-[10px]">
@@ -484,14 +492,18 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                     ) : (
                         <>
                             <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] text-muted-foreground">Komparasi:</span>
+                                <span className="text-[11px] text-muted-foreground">
+                                    Komparasi:
+                                </span>
                                 <span className="font-semibold text-foreground">
                                     Top {activeMaterialStats.count} Material
                                 </span>
                             </div>
                             <span className="text-border hidden sm:inline">|</span>
                             <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] text-muted-foreground">Terbanyak:</span>
+                                <span className="text-[11px] text-muted-foreground">
+                                    Terbanyak:
+                                </span>
                                 <span className="font-semibold text-foreground font-mono truncate max-w-50">
                                     {activeMaterialStats.top1Name}
                                 </span>

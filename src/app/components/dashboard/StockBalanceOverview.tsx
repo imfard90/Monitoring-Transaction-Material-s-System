@@ -226,7 +226,8 @@ export default function StockBalanceOverview() {
                                                     </sup>
                                                 </TooltipTrigger>
                                                 <TooltipContent side="top">
-                                                    Update Policy: {formatDateId(row.original.policy_updated_at)}
+                                                    Update Policy:{' '}
+                                                    {formatDateId(row.original.policy_updated_at)}
                                                 </TooltipContent>
                                             </Tooltip>
                                         )}

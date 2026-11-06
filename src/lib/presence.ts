@@ -22,14 +22,26 @@ export function getPresenceTtlSeconds(): number {
     return PRESENCE_TTL_SECONDS;
 }
 
+/**
+ * Minimal Redis surface required for presence tracking.
+ *
+ * Typed structurally so the module stays decoupled from the concrete Redis
+ * client library while still catching misuse at compile time.
+ */
 export interface RedisPresenceClient {
     pipeline?: () => {
-        set: (...args: any[]) => any;
-        exec: () => Promise<any>;
+        set: (key: string, value: string, mode: 'EX', ttlSeconds: number) => unknown;
+        exec: () => Promise<unknown>;
     };
-    set: (...args: any[]) => Promise<any>;
-    del: (...keys: string[]) => Promise<any>;
-    scan?: (...args: any[]) => Promise<any>;
+    set: (key: string, value: string, mode: 'EX', ttlSeconds: number) => Promise<unknown>;
+    del: (...keys: string[]) => Promise<unknown>;
+    scan?: (
+        cursor: string,
+        match: 'MATCH',
+        pattern: string,
+        count: 'COUNT',
+        limit: number
+    ) => Promise<[string, string[]]>;
 }
 
 /**

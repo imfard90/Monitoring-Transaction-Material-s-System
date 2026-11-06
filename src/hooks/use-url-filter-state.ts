@@ -111,7 +111,7 @@ export function useUrlFilterState({
         if (searchQuery === currentSearch) return;
 
         const timer = setTimeout(() => {
-            const currentSearchString = typeof window !== 'undefined' ? window.location.search : '';
+            const currentSearchString = typeof window === 'undefined' ? '' : window.location.search;
             const targetUrl = buildFilteredUrl({
                 basePath,
                 search: searchQuery,
@@ -132,7 +132,7 @@ export function useUrlFilterState({
             const canonical = toCanonicalWarehouseName(value);
             setSelectedWarehouse(canonical);
 
-            const currentSearchString = typeof window !== 'undefined' ? window.location.search : '';
+            const currentSearchString = typeof window === 'undefined' ? '' : window.location.search;
             const targetUrl = buildFilteredUrl({
                 basePath,
                 warehouse: canonical,

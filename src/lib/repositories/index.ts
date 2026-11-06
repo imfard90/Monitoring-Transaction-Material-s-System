@@ -9,4 +9,3 @@ export {
     type ScraperLogInsert,
     type ScraperType,
 } from './scraper-log.repository';
-

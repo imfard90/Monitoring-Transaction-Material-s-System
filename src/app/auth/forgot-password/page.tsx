@@ -30,8 +30,15 @@ export default function ForgotPasswordPage() {
         setError(null);
 
         try {
-            // biome-ignore lint/suspicious/noExplicitAny: authClient type doesn't include requestPasswordReset yet
-            const result = await (authClient as any).requestPasswordReset({
+            // Better Auth's client type does not yet expose `requestPasswordReset`
+            // for the email provider, so the method is declared explicitly here.
+            const passwordResetClient = authClient as unknown as {
+                requestPasswordReset: (input: {
+                    email: string;
+                    redirectTo: string;
+                }) => Promise<{ error: { message?: string } | null }>;
+            };
+            const result = await passwordResetClient.requestPasswordReset({
                 email,
                 redirectTo: '/auth/reset-password',
             });

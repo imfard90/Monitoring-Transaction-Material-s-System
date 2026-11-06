@@ -11,6 +11,13 @@ export interface LruCacheOptions {
 /**
  * Factory to create typed, bounded LRU caches with automatic recency updates and eviction logging.
  */
+/**
+ * Factory for the shared L1 LRU caches.
+ *
+ * The value type defaults to `any` because `lru-cache` constrains `V extends {}`,
+ * which rejects both `unknown` and primitive value types. Consumers that know
+ * the cached shape should still pass an explicit type parameter.
+ */
 export function createLruCache<V extends {} = any>(
     name: string,
     options?: LruCacheOptions

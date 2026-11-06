@@ -67,6 +67,13 @@ export interface AuthAccount {
     userId: string;
 }
 
+/** Encrypted Lensa portal credentials stored in `auth.user.lensa_acount`. */
+export interface LensaAccount {
+    username: string;
+    /** AES-encrypted password; decrypt via `decryptLensaPassword`. */
+    password: string;
+}
+
 export interface AuthUser {
     createdAt: Generated<Timestamp>;
     email: string;
@@ -76,7 +83,7 @@ export interface AuthUser {
     is_active: boolean | null;
     name: string;
     nik: string;
-    lensa_acount?: any;
+    lensa_acount?: LensaAccount | null;
     api_key?: string | null;
     appr_api?: Generated<boolean>;
     updatedAt: Generated<Timestamp>;

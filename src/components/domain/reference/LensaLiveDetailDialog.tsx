@@ -75,17 +75,13 @@ export function LensaLiveDetailDialog({
             columnHelper.accessor('material_id', {
                 header: 'ID Material',
                 cell: (info) => (
-                    <span className="font-mono text-xs font-medium">
-                        {info.getValue() || '-'}
-                    </span>
+                    <span className="font-mono text-xs font-medium">{info.getValue() || '-'}</span>
                 ),
             }),
             columnHelper.accessor('material_desc', {
                 header: 'Deskripsi Material',
                 cell: (info) => (
-                    <span className="text-xs line-clamp-2">
-                        {info.getValue() || '-'}
-                    </span>
+                    <span className="text-xs line-clamp-2">{info.getValue() || '-'}</span>
                 ),
             }),
         ];

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, CheckCircle2, AlertTriangle, Filter, Search } from 'lucide-react';
+import { Check, CheckCircle2, Filter, Search } from 'lucide-react';
 
 import {
     Dialog,
@@ -223,9 +223,9 @@ export function StockOpnameResultDialog({
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredResults.map((item, idx) => (
+                                    filteredResults.map((item) => (
                                         <tr
-                                            key={idx}
+                                            key={item.material_code}
                                             className="hover:bg-muted/40 transition-colors"
                                         >
                                             <td className="px-4 py-2.5 font-mono text-xs font-medium">

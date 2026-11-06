@@ -15,6 +15,17 @@ import { touchUserPresence } from '@/lib/presence';
 import { redis } from '@/lib/redis';
 
 /**
+ * Read a property off an unknown error value without widening to `any`.
+ *
+ * Next.js / Better Auth attach non-standard fields (`digest`, `code`) to
+ * thrown errors, so the shape cannot be described by a concrete type.
+ */
+function getErrorProp(error: unknown, prop: string): unknown {
+    if (typeof error !== 'object' || error === null) return undefined;
+    return (error as Record<string, unknown>)[prop];
+}
+
+/**
  * Helper untuk mengambil NIK pengguna dari session auth di Server Actions.
  * Akan melempar Error 'Unauthorized' jika sesi tidak valid.
  */
@@ -23,15 +34,15 @@ export async function getSessionNik(): Promise<string> {
         const session = await auth.api.getSession({
             headers: await headers(),
         });
-        const nik = (session?.user as any)?.nik;
+        const nik = (session?.user as { nik?: string } | undefined)?.nik;
         if (!nik) {
             throw errors.auth();
         }
         void touchUserPresence(redis, nik, session?.session?.id);
         return nik;
-    } catch (e: any) {
-        if (e.name === 'AuthenticationError') throw e;
-        authLogger.error('getSessionNik Error', e);
+    } catch (e: unknown) {
+        if (getErrorProp(e, 'name') === 'AuthenticationError') throw e;
+        authLogger.error('getSessionNik Error', e instanceof Error ? e : new Error(String(e)));
         throw errors.auth();
     }
 }
@@ -54,8 +65,8 @@ export async function getSessionUser(): Promise<SessionUser> {
             headers: await headers(),
         });
 
-        const user = session?.user as any;
-        const nik: string = user?.nik;
+        const user = session?.user as { nik?: string } | undefined;
+        const nik: string = user?.nik ?? '';
 
         if (!nik) {
             throw errors.auth();
@@ -145,13 +156,20 @@ export async function getSessionUser(): Promise<SessionUser> {
             nik,
             ...sessionMeta,
         };
-    } catch (e: any) {
-        if (e?.name === 'AuthenticationError') throw e;
-        if (e?.digest?.includes('NEXT_REDIRECT')) throw e;
-        if (e?.code === 'ECONNRESET' || e?.name === 'AbortError' || e?.digest === '511400414') {
+    } catch (e: unknown) {
+        const errorName = getErrorProp(e, 'name');
+        const errorDigest = getErrorProp(e, 'digest');
+        const errorCode = getErrorProp(e, 'code');
+        if (errorName === 'AuthenticationError') throw e;
+        if (typeof errorDigest === 'string' && errorDigest.includes('NEXT_REDIRECT')) throw e;
+        if (
+            errorCode === 'ECONNRESET' ||
+            errorName === 'AbortError' ||
+            errorDigest === '511400414'
+        ) {
             throw e;
         }
-        authLogger.error('getSessionUser Error', e);
+        authLogger.error('getSessionUser Error', e instanceof Error ? e : new Error(String(e)));
         throw errors.auth();
     }
 }
@@ -164,12 +182,19 @@ export async function getSessionUser(): Promise<SessionUser> {
 export async function getPageSessionUser(): Promise<SessionUser> {
     try {
         return await getSessionUser();
-    } catch (e: any) {
-        if (e?.digest?.includes('NEXT_REDIRECT')) throw e;
-        if (e?.code === 'ECONNRESET' || e?.name === 'AbortError' || e?.digest === '511400414') {
+    } catch (e: unknown) {
+        const errorName = getErrorProp(e, 'name');
+        const errorDigest = getErrorProp(e, 'digest');
+        const errorCode = getErrorProp(e, 'code');
+        if (typeof errorDigest === 'string' && errorDigest.includes('NEXT_REDIRECT')) throw e;
+        if (
+            errorCode === 'ECONNRESET' ||
+            errorName === 'AbortError' ||
+            errorDigest === '511400414'
+        ) {
             throw e;
         }
-        if (e?.name === 'AuthenticationError' || e?.statusCode === 401) {
+        if (errorName === 'AuthenticationError' || getErrorProp(e, 'statusCode') === 401) {
             redirect('/auth/login?reason=expired');
         }
         throw e;

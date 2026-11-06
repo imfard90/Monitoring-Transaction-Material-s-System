@@ -140,7 +140,10 @@ export function MaterialCards({ items }: MaterialCardsProps) {
                                                                 </sup>
                                                             </TooltipTrigger>
                                                             <TooltipContent side="top">
-                                                                Update Policy: {formatDateId(group.policy_updated_at)}
+                                                                Update Policy:{' '}
+                                                                {formatDateId(
+                                                                    group.policy_updated_at
+                                                                )}
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     )}

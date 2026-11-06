@@ -37,10 +37,15 @@ const serwist = new Serwist({
  * the Service Worker JavaScript thread.
  * Conforms to AGENTS.md §3.4 (Service worker only caches static assets).
  */
-self.addEventListener('install', (event: any) => {
-    if (typeof event?.addRoutes === 'function') {
+type RouteCapableInstallEvent = ExtendableEvent & {
+    addRoutes?: (routes: unknown[]) => void;
+};
+
+self.addEventListener('install', (event) => {
+    const installEvent = event as RouteCapableInstallEvent;
+    if (typeof installEvent.addRoutes === 'function') {
         try {
-            event.addRoutes([
+            installEvent.addRoutes([
                 {
                     condition: {
                         urlPattern: '/api/*',

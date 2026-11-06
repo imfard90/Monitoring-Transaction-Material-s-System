@@ -9,6 +9,7 @@
  */
 
 import { sql } from 'kysely';
+import type { BrowserContext } from 'playwright';
 import { decryptLensaPassword } from '@/lib/crypto/decrypt-lensa';
 import { db } from '@/lib/db/db';
 import { scrapeStockTeknisiOnPage, setupContext } from '@/lib/lensa-scraper/lensa-scraper';
@@ -157,7 +158,7 @@ async function scrapeWarehouseWorker(param: WarehouseWorkerParam): Promise<Scrap
         `[BulkScrape] Memulai worker gudang ${warehouseName} (id=${warehouseId}) untuk total ${technicians.length} teknisi (chunk: ${chunkSize} per putaran)`
     );
 
-    let context: any = null;
+    let context: BrowserContext | null = null;
 
     try {
         const setup = await setupContext(username, password);

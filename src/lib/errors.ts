@@ -186,11 +186,11 @@ export const errors = {
 /**
  * Wrap async route handler with error handling (For API Routes)
  */
-export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
+export function withErrorHandling<T extends (...args: never[]) => Promise<unknown>>(
     handler: T,
     context?: ErrorLogContext
 ): T {
-    return (async (...args: any[]) => {
+    return (async (...args: never[]) => {
         try {
             return await handler(...args);
         } catch (error) {
@@ -203,7 +203,7 @@ export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
 /**
  * Wrap Server Actions with error handling (Returns flat error string for client compatibility)
  */
-export function withActionErrorHandling<T extends (...args: any[]) => Promise<any>>(
+export function withActionErrorHandling<T extends (...args: never[]) => Promise<unknown>>(
     handler: T,
     context?: ErrorLogContext
 ) {

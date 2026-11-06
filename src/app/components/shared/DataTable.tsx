@@ -1,9 +1,9 @@
-import { flexRender, type Row, type Table } from '@/lib/table';
+import { flexRender, type Row, type RowData, type Table } from '@/lib/table';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
-interface DataTableProps<TData> {
+interface DataTableProps<TData extends RowData> {
     table: Table<TData>;
     isLoading?: boolean;
     emptyMessage?: string;
@@ -14,7 +14,7 @@ interface DataTableProps<TData> {
     rowClassName?: (row: Row<TData>) => string;
 }
 
-export function DataTable<TData>({
+export function DataTable<TData extends RowData>({
     table,
     isLoading = false,
     emptyMessage = 'Belum ada data yang ditemukan.',
@@ -71,9 +71,11 @@ export function DataTable<TData>({
                 <tbody>
                     {isLoading ? (
                         Array.from({ length: skeletonRowCount }).map((_, rowIndex) => (
+                            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholder, never reordered
                             <tr key={`skeleton-${rowIndex}`} className="bg-background border-b">
                                 {table.getAllColumns().map((column, colIndex) => (
                                     <td
+                                        // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholder, never reordered
                                         key={`skeleton-cell-${colIndex}`}
                                         className="px-3 py-2.5"
                                         style={

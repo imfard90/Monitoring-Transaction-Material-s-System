@@ -16,7 +16,12 @@ vi.mock('@/lib/redis', () => ({
             }
             return count;
         }),
-        scan: vi.fn().mockImplementation(async (_cursor: string) => ['0', Array.from(mockRedisStore.keys())]),
+        scan: vi
+            .fn()
+            .mockImplementation(async (_cursor: string) => [
+                '0',
+                Array.from(mockRedisStore.keys()),
+            ]),
     },
 }));
 
@@ -85,4 +90,3 @@ describe('EncryptedCache Two-Tier L1 LRU + L2 Redis', () => {
         expect(val1).toBeNull();
     });
 });
-

@@ -40,7 +40,8 @@ vi.mock('@/lib/db/db', () => ({
                 where: vi.fn(() => ({
                     where: vi.fn().mockReturnThis(),
                     executeTakeFirst: mockDbExecuteTakeFirst,
-                    execute: table === 'inventory.wo_lensa_header' ? mockWoLensaExecute : mockDbExecute,
+                    execute:
+                        table === 'inventory.wo_lensa_header' ? mockWoLensaExecute : mockDbExecute,
                 })),
             })),
         })),
@@ -276,9 +277,7 @@ describe('rekon-intech-actions Unit Tests', () => {
 
         const res = await submitRekonIntech('TKN01', [validItem], 'idem-key-staff-diff-tech');
         expect(res.success).toBe(false);
-        expect(res.error).toContain(
-            'Akses ditolak: Sebagian transaksi bukan milik teknisi ini'
-        );
+        expect(res.error).toContain('Akses ditolak: Sebagian transaksi bukan milik teknisi ini');
     });
 
     it('allows Staff to reconcile cross-warehouse SAP Out for technician registered in their warehouse', async () => {

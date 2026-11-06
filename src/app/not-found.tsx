@@ -19,7 +19,9 @@ const NotFoundPage = () => {
                     height={300}
                 />
                 <h1 className="text-foreground font-bold text-4xl mb-6">Halaman tidak ditemukan</h1>
-                <p className="text-xl text-muted-foreground">Halaman yang Anda cari tidak dapat ditemukan.</p>
+                <p className="text-xl text-muted-foreground">
+                    Halaman yang Anda cari tidak dapat ditemukan.
+                </p>
                 <Button asChild className="mt-6 mx-auto">
                     <Link href="/">Kembali ke Beranda</Link>
                 </Button>

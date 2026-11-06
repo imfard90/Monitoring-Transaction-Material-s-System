@@ -437,7 +437,7 @@ describe('executive premium localization invariants', () => {
         expect(dashboardQueries).not.toMatch(/outLensaQuery = outLensaQuery\.where/);
         expect(dashboardQueries).not.toMatch(/rekonLensaQuery = rekonLensaQuery\.where/);
         const dashboardCharts = await readSrc(
-            'src/app/(DashboardLayout)/_actions/dashboard-charts-queries.ts'
+            'src/app/(DashboardLayout)/_actions/dashboard-charts/sales-overview.ts'
         );
         expect(dashboardCharts).toMatch(
             /getTopOutMaterials\(limit: number = 7, warehouseId: string = 'all'\)/

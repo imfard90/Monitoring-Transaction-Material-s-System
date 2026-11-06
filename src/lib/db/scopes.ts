@@ -2,6 +2,28 @@ import type { AuthorizationUser, WarehouseScopeMode } from '@/lib/policies';
 import { warehouseScope } from '@/lib/policies';
 
 /**
+ * Structural shape of the Kysely query builder surface used for scoping.
+ *
+ * Kysely's own generics depend on the concrete `DB` map and per-column types,
+ * which cannot be expressed for a helper that accepts builders from many
+ * tables. These aliases describe only the operations this module performs.
+ */
+type ScopeColumn = string;
+type ScopeOperator = 'in' | '=' | 'not in';
+type ScopeValue = number | readonly number[];
+
+/** Expression builder passed to the callback form of `where`. */
+interface ScopeExpressionBuilder {
+    or: (expressions: readonly unknown[]) => unknown;
+    (col: ScopeColumn, op: ScopeOperator, val: ScopeValue): unknown;
+}
+
+interface ScopeQueryBuilder<QB> {
+    where(col: ScopeColumn, op: ScopeOperator, val: ScopeValue): QB;
+    where(cb: (eb: ScopeExpressionBuilder) => unknown): QB;
+}
+
+/**
  * Applies warehouse scoping filter to a Kysely SelectQueryBuilder.
  *
  * @param query The Kysely query builder
@@ -9,9 +31,9 @@ import { warehouseScope } from '@/lib/policies';
  * @param user The authenticated user
  * @param mode 'when-assigned' (default) or 'always'
  */
-export function applyWarehouseScope<QB extends { where: (col: any, op: any, val: any) => QB }>(
+export function applyWarehouseScope<QB extends ScopeQueryBuilder<QB>>(
     query: QB,
-    column: any,
+    column: ScopeColumn,
     user: AuthorizationUser,
     mode: WarehouseScopeMode = 'when-assigned'
 ): QB {
@@ -30,10 +52,10 @@ export function applyWarehouseScope<QB extends { where: (col: any, op: any, val:
  * Applies warehouse scoping for transfer transactions (InOut Tag)
  * where the user must have access to either the origin (from) or destination (to) warehouse.
  */
-export function applyInOutTagWarehouseScope<QB extends { where: (...args: any[]) => QB }>(
+export function applyInOutTagWarehouseScope<QB extends ScopeQueryBuilder<QB>>(
     query: QB,
-    fromWhCol: any,
-    toWhCol: any,
+    fromWhCol: ScopeColumn,
+    toWhCol: ScopeColumn,
     user: AuthorizationUser,
     mode: WarehouseScopeMode = 'when-assigned'
 ): QB {
@@ -44,7 +66,7 @@ export function applyInOutTagWarehouseScope<QB extends { where: (...args: any[])
         return query.where(fromWhCol, 'in', [-1]);
     }
 
-    return query.where((eb: any) =>
+    return query.where((eb: ScopeExpressionBuilder) =>
         eb.or([eb(fromWhCol, 'in', scopedIds), eb(toWhCol, 'in', scopedIds)])
     );
 }

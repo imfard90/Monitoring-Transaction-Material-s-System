@@ -139,7 +139,9 @@ export function TechnicianExcludeDialog({
                 toast.success(res.message || 'Data penyesuaian berhasil disimpan');
                 onOpenChange(false);
             } catch (err) {
-                toast.error(err instanceof Error ? err.message : 'Gagal menyimpan data penyesuaian');
+                toast.error(
+                    err instanceof Error ? err.message : 'Gagal menyimpan data penyesuaian'
+                );
             }
         });
     };
@@ -157,8 +159,9 @@ export function TechnicianExcludeDialog({
                         )}
                     </DialogTitle>
                     <DialogDescription className="text-xs text-muted-foreground">
-                        Material pada daftar ini akan disesuaikan pada perhitungan stok Lensa Intech teknisi{' '}
-                        <strong className="text-foreground">{technician?.name}</strong> (kurang untuk exclude, tambah untuk normalisasi defisit).
+                        Material pada daftar ini akan disesuaikan pada perhitungan stok Lensa Intech
+                        teknisi <strong className="text-foreground">{technician?.name}</strong>{' '}
+                        (kurang untuk exclude, tambah untuk normalisasi defisit).
                     </DialogDescription>
                 </DialogHeader>
 
@@ -362,4 +365,3 @@ export function TechnicianExcludeDialog({
         </Dialog>
     );
 }
-

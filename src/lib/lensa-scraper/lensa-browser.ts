@@ -31,7 +31,10 @@ export async function getBrowserInstance(): Promise<Browser> {
         });
         browserLastLaunched = now;
     }
-    return globalBrowser!;
+    if (!globalBrowser) {
+        throw new Error('Gagal menjalankan browser Chromium untuk scraping Lensa.');
+    }
+    return globalBrowser;
 }
 
 // Graceful shutdown — Chromium headless process is reaped on SIGTERM/SIGINT.
@@ -160,11 +163,11 @@ export async function setupContext(username: string, password: string) {
             // Prioritaskan targetPage jika aktif, lalu page context awal, atau buat page baru sementara jika sudah tertutup
             if (targetPage && !targetPage.isClosed()) {
                 activePage = targetPage;
-            } else if (!page.isClosed()) {
-                activePage = page;
-            } else {
+            } else if (page.isClosed()) {
                 activePage = await context.newPage();
                 shouldCloseActivePage = true;
+            } else {
+                activePage = page;
             }
 
             try {

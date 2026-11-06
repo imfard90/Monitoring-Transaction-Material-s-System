@@ -253,11 +253,6 @@ describe('cancelTag validation and authorization', () => {
         expect(mockSqlExecute).toHaveBeenCalled();
         const call = mockSqlCalls.at(-1);
         expect(call?.strings.join('?')).toContain('CALL inventory.sp_cancel_inout_tag');
-        expect(call?.values).toEqual([
-            101,
-            'inout',
-            'Salah input alokasi gudang tujuan',
-            'ADM001',
-        ]);
+        expect(call?.values).toEqual([101, 'inout', 'Salah input alokasi gudang tujuan', 'ADM001']);
     });
 });

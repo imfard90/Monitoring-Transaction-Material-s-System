@@ -96,7 +96,10 @@ export async function decrypt<T>(token: string): Promise<T> {
 function isStaleOrInvalidCacheError(error: unknown): boolean {
     if (!error) return false;
     const msg = error instanceof Error ? error.message : String(error);
-    const code = (error as any)?.code;
+    const code =
+        typeof error === 'object' && error !== null && 'code' in error
+            ? (error as { code?: unknown }).code
+            : undefined;
     return (
         code === 'ERR_JWT_EXPIRED' ||
         msg.includes('claim "exp" is in the past') ||
@@ -145,6 +148,13 @@ async function scanKeys(pattern: string): Promise<string[]> {
 
 export class EncryptedCache {
     private readonly defaultTTL: number;
+    /**
+     * L1 plaintext cache in front of the encrypted Redis values.
+     *
+     * Value type is `any` because `lru-cache` constrains `V extends {}`, which
+     * rejects primitives, while this cache stores any JSON-serialisable payload
+     * (including numbers and arrays). Reads narrow back to `T` at the call site.
+     */
     private readonly l1Lru = createLruCache<any>('encrypted-l1', {
         max: 500,
         ttlMs: 15 * 1000,

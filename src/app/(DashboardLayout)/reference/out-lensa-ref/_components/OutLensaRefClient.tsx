@@ -113,7 +113,6 @@ export default function OutLensaRefClient({
         selectedWarehouse: selectedGudang,
         handleWarehouseChange,
         handleResetAll,
-        isFilterActive,
     } = useUrlFilterState({
         basePath: '/reference/out-lensa-ref',
         currentSearch,
@@ -283,7 +282,9 @@ export default function OutLensaRefClient({
             header: 'ID Reservasi',
             size: 140,
             cell: (info) => (
-                <span className="font-mono font-medium text-foreground">{info.getValue() || '-'}</span>
+                <span className="font-mono font-medium text-foreground">
+                    {info.getValue() || '-'}
+                </span>
             ),
         }),
         columnHelper.accessor('formatted_date', {
@@ -315,23 +316,17 @@ export default function OutLensaRefClient({
         columnHelper.accessor('nik_pemakai', {
             header: 'NIK Pemakai',
             size: 120,
-            cell: (info) => (
-                <span className="font-mono">{info.getValue() || '-'}</span>
-            ),
+            cell: (info) => <span className="font-mono">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('reservation_id_sap', {
             header: 'ID Reservasi SAP',
             size: 130,
-            cell: (info) => (
-                <span className="font-mono">{info.getValue() || '-'}</span>
-            ),
+            cell: (info) => <span className="font-mono">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('gi_number', {
             header: 'Nomor GI',
             size: 130,
-            cell: (info) => (
-                <span className="font-mono">{info.getValue() || '-'}</span>
-            ),
+            cell: (info) => <span className="font-mono">{info.getValue() || '-'}</span>,
         }),
         columnHelper.accessor('status_proses', {
             header: () => <div className="text-center">Status</div>,

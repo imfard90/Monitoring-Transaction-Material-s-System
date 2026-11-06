@@ -139,7 +139,8 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                                 fontFamily: 'inherit',
                                 fontWeight: 600,
                                 color: 'var(--muted-foreground)',
-                                formatter: () => `${data.totalRecords.toLocaleString('id-ID')} item`,
+                                formatter: () =>
+                                    `${data.totalRecords.toLocaleString('id-ID')} item`,
                             },
                         },
                     },
@@ -152,9 +153,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                 y: {
                     formatter: (val, opts) => {
                         const tier =
-                            opts?.seriesIndex != null
-                                ? data.tiers[opts.seriesIndex]
-                                : undefined;
+                            opts?.seriesIndex == null ? undefined : data.tiers[opts.seriesIndex];
                         const count = Number(val).toLocaleString('id-ID');
                         const qty = tier ? tier.qty.toLocaleString('id-ID') : '0';
                         return `${count} transaksi (${qty} qty)`;
@@ -170,9 +169,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
         if (activeSecondaryView === 'material') {
             return {
                 categories: data.topMaterials.map((m) =>
-                    m.description.length > 28
-                        ? `${m.description.slice(0, 26)}...`
-                        : m.description
+                    m.description.length > 28 ? `${m.description.slice(0, 26)}...` : m.description
                 ),
                 rawCategories: data.topMaterials.map((m) => m.description),
                 codes: data.topMaterials.map((m) => m.code),
@@ -220,7 +217,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                 },
                 formatter: (val, opts) => {
                     const idx = opts?.dataPointIndex;
-                    const unit = idx != null ? barSeriesData.units[idx] || '' : '';
+                    const unit = idx == null ? '' : barSeriesData.units[idx] || '';
                     return `${Number(val).toLocaleString('id-ID')} ${unit}`;
                 },
             },
@@ -249,8 +246,8 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                 y: {
                     formatter: (val, opts) => {
                         const idx = opts?.dataPointIndex;
-                        const unit = idx != null ? barSeriesData.units[idx] || '' : '';
-                        const code = idx != null ? barSeriesData.codes[idx] || '' : '';
+                        const unit = idx == null ? '' : barSeriesData.units[idx] || '';
+                        const code = idx == null ? '' : barSeriesData.codes[idx] || '';
                         return `${Number(val).toLocaleString('id-ID')} ${unit} [${code}]`;
                     },
                 },

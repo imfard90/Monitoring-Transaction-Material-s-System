@@ -123,9 +123,7 @@ describe('login-actions: precheckLogin & revokeAllUserSessions', () => {
             mockRedisGet
                 .mockResolvedValueOnce(null) // presence:index:12345 is null
                 .mockResolvedValueOnce(
-                    JSON.stringify([
-                        { token: 'token-abc', expiresAt: Date.now() + 100000 },
-                    ])
+                    JSON.stringify([{ token: 'token-abc', expiresAt: Date.now() + 100000 }])
                 ); // active-sessions-u1
 
             const res = await precheckLogin('test@example.com', 'valid-turnstile-token');

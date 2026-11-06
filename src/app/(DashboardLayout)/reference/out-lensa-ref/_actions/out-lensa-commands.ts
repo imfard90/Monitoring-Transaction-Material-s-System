@@ -132,7 +132,7 @@ export async function scrapeReservationAction(id: string) {
                 .executeTakeFirst();
 
             if (userObj?.lensa_acount) {
-                const account = userObj.lensa_acount as any;
+                const account = userObj.lensa_acount;
                 customUsername = account.username;
                 try {
                     customPassword = decryptLensaPassword(account.password);

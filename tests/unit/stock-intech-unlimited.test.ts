@@ -89,7 +89,12 @@ describe('getDashboardStockIntech', () => {
         mockGetSessionUser.mockResolvedValue({ isStaff: false, warehouseIds: [] });
         mockExecute.mockResolvedValue([
             { nik: '16050479', material_code: 'SOC-ILS', wh_name: 'SO Gresik', qty_intech: 6 },
-            { nik: '16050479', material_code: 'SOC-ILS', wh_name: 'SO Karangpilang', qty_intech: 6 },
+            {
+                nik: '16050479',
+                material_code: 'SOC-ILS',
+                wh_name: 'SO Karangpilang',
+                qty_intech: 6,
+            },
         ]);
 
         const { getDashboardStockIntech } = await import(
@@ -109,7 +114,12 @@ describe('getDashboardStockIntech', () => {
     it('applies warehouse scoping for staff user without limit', async () => {
         mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [1] });
         mockExecute.mockResolvedValue([
-            { nik: '16050479', material_code: 'SOC-ILS', wh_name: 'SO Karangpilang', qty_intech: 6 },
+            {
+                nik: '16050479',
+                material_code: 'SOC-ILS',
+                wh_name: 'SO Karangpilang',
+                qty_intech: 6,
+            },
         ]);
 
         const { getDashboardStockIntech } = await import(

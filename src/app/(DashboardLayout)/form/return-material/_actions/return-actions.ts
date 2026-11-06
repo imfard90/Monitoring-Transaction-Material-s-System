@@ -71,7 +71,11 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
                 (eb) =>
                     eb
                         .selectFrom('inventory.return_material_items as rmi')
-                        .innerJoin('inventory.return_material_header as rmh', 'rmh.id', 'rmi.header_id')
+                        .innerJoin(
+                            'inventory.return_material_header as rmh',
+                            'rmh.id',
+                            'rmi.header_id'
+                        )
                         .select([
                             'rmi.sap_out_item_id',
                             sql<number>`SUM(rmi.qty)`.as('pending_qty'),
