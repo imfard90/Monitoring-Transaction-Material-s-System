@@ -120,27 +120,59 @@ export async function triggerScraping(): Promise<
  */
 export async function scrapeReservationAction(id: string) {
     try {
-        const session = await auth.api.getSession({ headers: await headers() });
+        const session = await auth.api.getSession({ headers: await headers() }).catch(() => null);
+        const sessionUser = await getSessionUser().catch(() => null);
+        const userId = session?.user?.id;
+        const nik = sessionUser?.nik ?? (session?.user as { nik?: string } | undefined)?.nik;
         let customUsername = '';
         let customPassword = '';
 
-        if (session?.user?.id) {
-            const userObj = await db
+        let userObj = null;
+        if (userId) {
+            userObj = await db
                 .selectFrom('auth.user')
                 .select(['lensa_acount'])
-                .where('id', '=', session.user.id)
+                .where('id', '=', userId)
                 .executeTakeFirst();
+        }
+        if (!userObj?.lensa_acount && nik) {
+            userObj = await db
+                .selectFrom('auth.user')
+                .select(['lensa_acount'])
+                .where('nik', '=', nik)
+                .executeTakeFirst();
+        }
 
-            if (userObj?.lensa_acount) {
-                const account = userObj.lensa_acount;
-                customUsername = account.username;
-                try {
-                    customPassword = decryptLensaPassword(account.password);
-                } catch (e) {
-                    actionLogger.error(
-                        'Failed to decrypt user password',
-                        e instanceof Error ? e : new Error(String(e))
-                    );
+        if (userObj?.lensa_acount?.username && userObj?.lensa_acount?.password) {
+            customUsername = userObj.lensa_acount.username;
+            try {
+                customPassword = decryptLensaPassword(userObj.lensa_acount.password);
+            } catch (e) {
+                actionLogger.error(
+                    'Failed to decrypt user password',
+                    e instanceof Error ? e : new Error(String(e))
+                );
+            }
+        }
+
+        // Fallback: if current user has no valid connected Lensa account, check for any active Lensa account in system
+        if (!customUsername || !customPassword) {
+            const anyLensaUsers = await db
+                .selectFrom('auth.user')
+                .select(['lensa_acount'])
+                .where('lensa_acount', 'is not', null)
+                .execute();
+
+            for (const u of anyLensaUsers) {
+                if (u.lensa_acount?.username && u.lensa_acount?.password) {
+                    try {
+                        const pass = decryptLensaPassword(u.lensa_acount.password);
+                        if (pass) {
+                            customUsername = u.lensa_acount.username;
+                            customPassword = pass;
+                            break;
+                        }
+                    } catch {}
                 }
             }
         }

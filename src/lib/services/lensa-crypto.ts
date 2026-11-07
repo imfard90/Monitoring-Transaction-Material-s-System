@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { decryptLensaPasswordGcm } from '@/lib/crypto/lensa-credential';
 
 /**
  * P3-S6: Derive strict 32-byte key from MFA_ENCRYPTION_SECRET using SHA-256.
@@ -12,28 +13,42 @@ export function getEncryptionKey(): Buffer {
 }
 
 /**
- * Decrypt Lensa password stored in database (AES-256-CBC) with legacy fallback.
+ * Decrypt Lensa password stored in database.
+ * Supports:
+ * 1. AES-256-GCM (current standard: `<iv-hex>:<authTag-hex>:<ciphertext-hex>`)
+ * 2. AES-256-CBC with strict SHA-256 key (legacy: `<iv-hex>:<ciphertext-hex>`)
+ * 3. AES-256-CBC with legacy slice(0, 32) key (backward compatibility)
  */
 export function decryptLensaPassword(text: string): string {
     if (!text) return '';
     const secret = process.env.MFA_ENCRYPTION_SECRET;
     if (!secret) throw new Error('MFA_ENCRYPTION_SECRET is not set');
 
+    const parts = text.split(':');
+
+    // 1. Primary: AES-256-GCM (3 parts: iv:authTag:ciphertext)
+    if (parts.length === 3) {
+        try {
+            return decryptLensaPasswordGcm(text);
+        } catch {
+            // Fall through to CBC if GCM fails
+        }
+    }
+
     try {
-        const textParts = text.split(':');
-        const shifted = textParts.shift();
+        const shifted = parts[0];
         if (!shifted) throw new Error('Invalid encrypted text format');
         const iv = Buffer.from(shifted, 'hex');
-        const encryptedText = Buffer.from(textParts.join(':'), 'hex');
+        const encryptedText = Buffer.from(parts.slice(1).join(':'), 'hex');
 
-        // Primary: strict SHA-256 derived key (P3-S6)
+        // 2. Primary CBC: strict SHA-256 derived key (P3-S6)
         try {
             const decipher = crypto.createDecipheriv('aes-256-cbc', getEncryptionKey(), iv);
             let decrypted = decipher.update(encryptedText);
             decrypted = Buffer.concat([decrypted, decipher.final()]);
             return decrypted.toString('utf8');
         } catch (_primaryErr) {
-            // Fallback for legacy passwords encrypted with slice(0, 32)
+            // 3. Fallback for legacy passwords encrypted with slice(0, 32)
             const keyLegacy = Buffer.from(secret.slice(0, 32));
             const decipher = crypto.createDecipheriv('aes-256-cbc', keyLegacy, iv);
             let decrypted = decipher.update(encryptedText);
