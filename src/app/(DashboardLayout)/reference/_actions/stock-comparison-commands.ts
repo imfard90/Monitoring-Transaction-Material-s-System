@@ -16,7 +16,8 @@ const NikParamSchema = z.string().trim().min(1, 'NIK teknisi wajib diisi');
  * Resolve Lensa credentials for a warehouse — PIC 1 first, fallback PIC 2.
  */
 export async function resolveLensaCredentials(
-    whId: number
+    whId: number,
+    sessionNik?: string
 ): Promise<{ username: string; password: string } | null> {
     const wh = await db
         .selectFrom('inventory.mas_wh')
@@ -24,32 +25,53 @@ export async function resolveLensaCredentials(
         .where('id', '=', whId)
         .executeTakeFirst();
 
-    if (!wh) return null;
+    if (wh) {
+        for (const picNik of [wh.pic_1, wh.pic_2]) {
+            if (!picNik) continue;
 
-    for (const picNik of [wh.pic_1, wh.pic_2]) {
-        if (!picNik) continue;
+            const picUser = await db
+                .selectFrom('auth.user')
+                .select([
+                    sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
+                    sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
+                ])
+                .where('nik', '=', picNik)
+                .executeTakeFirst();
 
-        const picUser = await db
+            if (picUser?.lensa_username && picUser?.lensa_password) {
+                try {
+                    return {
+                        username: picUser.lensa_username,
+                        password: decryptLensaPassword(picUser.lensa_password),
+                    };
+                } catch (error) {
+                    actionLogger.error(
+                        `Failed to decrypt Lensa password for PIC ${picNik}:`,
+                        error instanceof Error ? error : new Error(String(error))
+                    );
+                }
+            }
+        }
+    }
+
+    // Fallback: if PIC 1 & 2 have no connected Lensa account, try logged-in user
+    if (sessionNik) {
+        const loggedUser = await db
             .selectFrom('auth.user')
             .select([
                 sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
                 sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
             ])
-            .where('nik', '=', picNik)
+            .where('nik', '=', sessionNik)
             .executeTakeFirst();
 
-        if (picUser?.lensa_username && picUser?.lensa_password) {
+        if (loggedUser?.lensa_username && loggedUser?.lensa_password) {
             try {
                 return {
-                    username: picUser.lensa_username,
-                    password: decryptLensaPassword(picUser.lensa_password),
+                    username: loggedUser.lensa_username,
+                    password: decryptLensaPassword(loggedUser.lensa_password),
                 };
-            } catch (error) {
-                actionLogger.error(
-                    `Failed to decrypt Lensa password for PIC ${picNik}:`,
-                    error instanceof Error ? error : new Error(String(error))
-                );
-            }
+            } catch {}
         }
     }
 
@@ -99,7 +121,7 @@ export async function getLiveStockComparison(nik: string): Promise<{
             };
         }
 
-        const credentials = await resolveLensaCredentials(teknisi.wh_id);
+        const credentials = await resolveLensaCredentials(teknisi.wh_id, user.nik);
         if (!credentials) {
             return {
                 success: false,

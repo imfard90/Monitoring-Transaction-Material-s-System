@@ -121,6 +121,35 @@ async function getWarehouseLensaCredentials(pic1Nik: string | null, pic2Nik: str
             }
         }
     }
+
+    // Fallback: jika PIC 1 dan 2 belum menghubungkan akun Lensa, gunakan akun Lensa aktif lain di sistem
+    const anyLensaUsers = await db
+        .selectFrom('auth.user')
+        .select([
+            sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
+            sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
+            'nik',
+        ])
+        .where('lensa_acount', 'is not', null)
+        .where(sql`lensa_acount->>'username'`, 'is not', null)
+        .where(sql`lensa_acount->>'password'`, 'is not', null)
+        .execute();
+
+    for (const u of anyLensaUsers) {
+        if (u.lensa_username && u.lensa_password) {
+            try {
+                const decrypted = decryptLensaPassword(u.lensa_password);
+                if (decrypted) {
+                    return {
+                        username: u.lensa_username,
+                        password: decrypted,
+                        picNik: u.nik,
+                    };
+                }
+            } catch {}
+        }
+    }
+
     return null;
 }
 
