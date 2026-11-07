@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import type { ParsePdfResult } from '../_utils/pdf-parser';
 
 interface StockOpnameUploadZoneProps {
-    onParsed: (result: ParsePdfResult) => void;
+    onParsed: (result: ParsePdfResult) => Promise<void> | void;
     isStaff: boolean;
     userWarehouseIds?: number[];
     masterWarehouses?: Array<{ id: number; name: string }>;
@@ -87,7 +87,7 @@ export function StockOpnameUploadZone({
                     return;
                 }
 
-                onParsed(result);
+                await onParsed(result);
                 resetSelection();
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Gagal memproses berkas PDF.';

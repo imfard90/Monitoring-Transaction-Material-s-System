@@ -133,6 +133,11 @@ export function StockOpnameResultDialog({
                             Perbandingan saldo sistem MTMS dengan hasil export BA SO SAP untuk
                             gudang{' '}
                             <span className="font-semibold text-foreground">{warehouseName}</span>.
+                            {isStaff && (
+                                <span className="block mt-1 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                                    Hasil rekonsiliasi telah otomatis disimpan ke sistem sebagai pengajuan (Pending) dan menunggu peninjauan supervisor/admin.
+                                </span>
+                            )}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -268,24 +273,22 @@ export function StockOpnameResultDialog({
                             Menampilkan {filteredResults.length} dari {results.length} material
                         </span>
                         <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => onOpenChange(false)}
-                                disabled={isSaving}
-                            >
-                                Tutup
-                            </Button>
                             {isStaff ? (
                                 <Button
-                                    onClick={() => setConfirmAction('pending')}
-                                    disabled={isSaving}
-                                    className="gap-2"
+                                    variant="default"
+                                    onClick={() => onOpenChange(false)}
                                 >
-                                    <Check className="h-4 w-4" />
-                                    Simpan Pengajuan
+                                    Tutup
                                 </Button>
                             ) : (
                                 <>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => onOpenChange(false)}
+                                        disabled={isSaving}
+                                    >
+                                        Tutup
+                                    </Button>
                                     <Button
                                         variant="outline"
                                         onClick={() => setConfirmAction('pending')}
@@ -308,28 +311,30 @@ export function StockOpnameResultDialog({
                 </DialogContent>
             </Dialog>
 
-            {/* Confirmation Dialog */}
-            <ConfirmDialog
-                isOpen={confirmAction !== null}
-                onOpenChange={(isOpen) => !isOpen && setConfirmAction(null)}
-                title={
-                    confirmAction === 'approved'
-                        ? 'Konfirmasi Simpan & Setujui Stock Opname'
-                        : 'Konfirmasi Simpan Pengajuan Stock Opname'
-                }
-                description={
-                    confirmAction === 'approved'
-                        ? `Anda akan menyimpan dan langsung menyetujui rekonsiliasi stock opname untuk gudang "${warehouseName}" (${stats.total} material). Tindakan ini akan tercatat permanen di log audit.`
-                        : `Simpan data rekonsiliasi stock opname untuk gudang "${warehouseName}" sebagai pengajuan (Pending)? Supervisor atau Admin akan meninjau hasil sebelum disetujui.`
-                }
-                confirmText={
-                    confirmAction === 'approved' ? 'Ya, Simpan & Setujui' : 'Ya, Simpan Pengajuan'
-                }
-                cancelText="Batal & Periksa Kembali"
-                icon={<Check className="h-4 w-4" />}
-                loading={isSaving}
-                onConfirm={() => confirmAction && executeSave(confirmAction)}
-            />
+            {/* Confirmation Dialog (only for non-staff) */}
+            {!isStaff && (
+                <ConfirmDialog
+                    isOpen={confirmAction !== null}
+                    onOpenChange={(isOpen) => !isOpen && setConfirmAction(null)}
+                    title={
+                        confirmAction === 'approved'
+                            ? 'Konfirmasi Simpan & Setujui Stock Opname'
+                            : 'Konfirmasi Simpan Pengajuan Stock Opname'
+                    }
+                    description={
+                        confirmAction === 'approved'
+                            ? `Anda akan menyimpan dan langsung menyetujui rekonsiliasi stock opname untuk gudang "${warehouseName}" (${stats.total} material). Tindakan ini akan tercatat permanen di log audit.`
+                            : `Simpan data rekonsiliasi stock opname untuk gudang "${warehouseName}" sebagai pengajuan (Pending)? Supervisor atau Admin akan meninjau hasil sebelum disetujui.`
+                    }
+                    confirmText={
+                        confirmAction === 'approved' ? 'Ya, Simpan & Setujui' : 'Ya, Simpan Pengajuan'
+                    }
+                    cancelText="Batal & Periksa Kembali"
+                    icon={<Check className="h-4 w-4" />}
+                    loading={isSaving}
+                    onConfirm={() => confirmAction && executeSave(confirmAction)}
+                />
+            )}
         </>
     );
 }

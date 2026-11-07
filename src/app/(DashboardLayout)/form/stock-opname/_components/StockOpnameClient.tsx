@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { StockOpnameLog } from '@/lib/repositories/stock-opname.repository';
+import { saveStockOpname } from '../_actions/stock-opname-actions';
 import type { ParsePdfResult } from '../_utils/pdf-parser';
 import { StockOpnameDetailPane } from './StockOpnameDetailPane';
 import { StockOpnameLogTable } from './StockOpnameLogTable';
@@ -60,11 +61,35 @@ export function StockOpnameClient({ user, masterWarehouses }: StockOpnameClientP
             setWarehouseId(result.warehouse_id);
             setWarehouseName(result.warehouse);
             setStockResults(results);
-            setShowResultDialog(true);
 
-            toast.success(
-                `Berhasil mengekstrak ${result.totalRows} baris dari dokumen BA SO "${result.warehouse}".`
-            );
+            if (isStaff) {
+                // Auto-save reconciliation result for staff as pending
+                const idemKey = `so_${result.warehouse_id}_${Date.now()}`;
+                const saveRes = await saveStockOpname({
+                    warehouse_id: result.warehouse_id,
+                    warehouse_name: result.warehouse,
+                    details: results,
+                    status: 'pending',
+                    idemKey,
+                });
+
+                if (!saveRes.success) {
+                    toast.error(saveRes.error ?? 'Gagal menyimpan hasil rekonsiliasi stock opname.');
+                    return;
+                }
+
+                // Update table to display newly saved log
+                handleDataChanged();
+                setShowResultDialog(true);
+                toast.success(
+                    `Hasil rekonsiliasi "${result.warehouse}" (${result.totalRows} material) berhasil disimpan otomatis (Pending Approval).`
+                );
+            } else {
+                setShowResultDialog(true);
+                toast.success(
+                    `Berhasil mengekstrak ${result.totalRows} baris dari dokumen BA SO "${result.warehouse}".`
+                );
+            }
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'Gagal menghubungi server.';
             toast.error(msg);
