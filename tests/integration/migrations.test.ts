@@ -498,5 +498,25 @@ describeDb('L5 query logging migration tracked (018)', () => {
             `);
             expect(dirtyNikCount?.count).toBe('0');
         });
+
+        it('054_drop_duplicate_indexes.sql recorded and duplicate indexes removed', async () => {
+            const logRow = await queryOne<{ filename: string }>(`
+                SELECT filename FROM inventory._migration_log WHERE filename LIKE '054_%'
+            `);
+            expect(logRow?.filename).toBe('054_drop_duplicate_indexes.sql');
+
+            const duplicateIndexes = await query<{ indexname: string }>(`
+                SELECT indexname FROM pg_indexes
+                WHERE schemaname IN ('inventory', 'hr', 'auth')
+                  AND indexname IN (
+                    'idx_employees_nik',
+                    'technicians_idx_nik',
+                    'inout_tag_header_index_accept_id',
+                    'idx_sap_out_header_warehouse_id',
+                    'idx_auth_session_token'
+                  )
+            `);
+            expect(duplicateIndexes).toHaveLength(0);
+        });
     });
 });
