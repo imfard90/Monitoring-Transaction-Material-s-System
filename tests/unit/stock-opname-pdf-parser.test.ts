@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+    extractWarehouseFromPage1,
     parseStockOpnamePdf,
     resolveWarehouseId,
 } from '@/app/(DashboardLayout)/form/stock-opname/_utils/pdf-parser';
@@ -17,6 +18,15 @@ describe('pdf-parser: resolveWarehouseId', () => {
         expect(resolveWarehouseId('WH SO SURABAYA')).toBe(6);
     });
 
+    it('resolves prefix variants and city names', () => {
+        expect(resolveWarehouseId('WH Bojonegoro')).toBe(4);
+        expect(resolveWarehouseId('Bojonegoro')).toBe(4);
+        expect(resolveWarehouseId('Gudang Tuban')).toBe(5);
+        expect(resolveWarehouseId('SO Gresik')).toBe(2);
+        expect(resolveWarehouseId('Gresik')).toBe(2);
+        expect(resolveWarehouseId('Karang Pilang')).toBe(1);
+    });
+
     it('resolves using master warehouse array when provided', () => {
         const masters = [
             { id: 10, name: 'Gudang Pusat Cikupa' },
@@ -24,11 +34,62 @@ describe('pdf-parser: resolveWarehouseId', () => {
         ];
         expect(resolveWarehouseId('WH SO Sidoarjo', masters)).toBe(20);
         expect(resolveWarehouseId('Gudang Pusat Cikupa', masters)).toBe(10);
+        expect(resolveWarehouseId('Sidoarjo', masters)).toBe(20);
     });
 
     it('returns 0 for unknown warehouse', () => {
         expect(resolveWarehouseId('WH SO UNKNOWN CITY')).toBe(0);
         expect(resolveWarehouseId('')).toBe(0);
+    });
+});
+
+describe('pdf-parser: extractWarehouseFromPage1', () => {
+    it('extracts warehouse from separate items on the same row, skipping colons', () => {
+        const items = [
+            { x: 40, y: 717, text: 'Nama Gudang' },
+            { x: 181, y: 717, text: ':' },
+            { x: 196, y: 717, text: 'WH SO Bojonegoro' },
+        ];
+        expect(extractWarehouseFromPage1(items)).toBe('WH SO Bojonegoro');
+    });
+
+    it('extracts warehouse even when colon is processed first in item array', () => {
+        const items = [
+            { x: 196, y: 717, text: 'WH SO Karang Pilang' },
+            { x: 181, y: 717, text: ':' },
+            { x: 40, y: 717, text: 'Nama Gudang' },
+        ];
+        expect(extractWarehouseFromPage1(items)).toBe('WH SO Karang Pilang');
+    });
+
+    it('extracts warehouse from a single inline item', () => {
+        const items = [
+            { x: 40, y: 740, text: 'Nama Gudang : WH SO Tuban' },
+        ];
+        expect(extractWarehouseFromPage1(items)).toBe('WH SO Tuban');
+    });
+
+    it('extracts warehouse when coordinates are shifted', () => {
+        const items = [
+            { x: 45, y: 680, text: 'Nama Gudang' },
+            { x: 150, y: 680, text: ':' },
+            { x: 170, y: 680, text: 'WH SO Gresik' },
+        ];
+        expect(extractWarehouseFromPage1(items)).toBe('WH SO Gresik');
+    });
+
+    it('falls back to prefix pattern in header region when label is absent', () => {
+        const items = [
+            { x: 200, y: 700, text: 'WH SO Lamongan' },
+        ];
+        expect(extractWarehouseFromPage1(items)).toBe('WH SO Lamongan');
+    });
+
+    it('returns empty string when no warehouse can be detected', () => {
+        const items = [
+            { x: 40, y: 100, text: 'Footer Page 1' },
+        ];
+        expect(extractWarehouseFromPage1(items)).toBe('');
     });
 });
 

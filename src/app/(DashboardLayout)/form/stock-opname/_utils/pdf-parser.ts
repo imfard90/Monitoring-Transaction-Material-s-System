@@ -31,21 +31,47 @@ interface TextItem {
 
 // Fallback warehouse map if dynamic master data is not yet loaded
 const DEFAULT_WH_MAP: Record<string, number> = {
+    // Karangpilang (ID: 1)
     whsokarangpilang: 1,
     sokarangpilang: 1,
+    whkarangpilang: 1,
+    karangpilang: 1,
     sokarang_pilang: 1,
     'sokarang-pilang': 1,
+    // Gresik (ID: 2)
     whsogresik: 2,
     sogresik: 2,
+    whgresik: 2,
+    gresik: 2,
+    // Lamongan (ID: 3)
     whsolamongan: 3,
     solamongan: 3,
+    whlamongan: 3,
+    lamongan: 3,
+    // Bojonegoro (ID: 4)
     whsobojonegoro: 4,
     sobojonegoro: 4,
+    whbojonegoro: 4,
+    bojonegoro: 4,
+    // Tuban (ID: 5)
     whsotuban: 5,
     sotuban: 5,
+    whtuban: 5,
+    tuban: 5,
+    // Surabaya (ID: 6)
     whsosurabaya: 6,
     sosurabaya: 6,
+    whsurabaya: 6,
+    surabaya: 6,
 };
+
+/**
+ * Strips common warehouse prefixes ("whso", "wh", "so", "gudang")
+ * and separators to aid flexible matching.
+ */
+function cleanWarehouseKey(key: string): string {
+    return key.replace(/^(?:whso|wh|so|gudang)/g, '').replace(/[-_]/g, '');
+}
 
 /**
  * Resolves warehouse name and ID using master warehouse list if available,
@@ -58,12 +84,28 @@ export function resolveWarehouseId(
     const key = normalizeWarehouseKey(whName);
     if (!key) return 0;
 
+    const cleanKey = cleanWarehouseKey(key);
+
     if (masterWarehouses && masterWarehouses.length > 0) {
+        // 1. Direct or substring match on normalized key
         const found = masterWarehouses.find((mw) => {
             const mwKey = normalizeWarehouseKey(mw.name);
             return mwKey === key || key.includes(mwKey) || mwKey.includes(key);
         });
         if (found) return found.id;
+
+        // 2. Match on stripped key
+        if (cleanKey.length >= 3) {
+            const foundClean = masterWarehouses.find((mw) => {
+                const mwClean = cleanWarehouseKey(normalizeWarehouseKey(mw.name));
+                return (
+                    mwClean === cleanKey ||
+                    cleanKey.includes(mwClean) ||
+                    mwClean.includes(cleanKey)
+                );
+            });
+            if (foundClean) return foundClean.id;
+        }
     }
 
     // Direct lookup in default map
@@ -71,10 +113,21 @@ export function resolveWarehouseId(
         return DEFAULT_WH_MAP[key];
     }
 
+    // Direct lookup by clean key
+    if (cleanKey && DEFAULT_WH_MAP[cleanKey]) {
+        return DEFAULT_WH_MAP[cleanKey];
+    }
+
     // Fuzzy matching against default keys
     for (const [mapKey, id] of Object.entries(DEFAULT_WH_MAP)) {
         if (key.includes(mapKey) || mapKey.includes(key)) {
             return id;
+        }
+        if (cleanKey.length >= 3) {
+            const mapClean = cleanWarehouseKey(mapKey);
+            if (mapClean === cleanKey || cleanKey.includes(mapClean) || mapClean.includes(cleanKey)) {
+                return id;
+            }
         }
     }
 
@@ -128,12 +181,89 @@ function extractQuantity(items: TextItem[]): number | null {
 }
 
 /**
+ * Detects warehouse name from Page 1 text items with multiple fallback strategies:
+ * 1. Contextual anchor: Look for "Nama Gudang" label, and extract the text on the same row to the right.
+ * 2. Prefix pattern: Match items starting with "WH SO", "WH ", "SO ", or "Gudang ".
+ * 3. Master warehouse dictionary matching: Match any header item against master or default warehouse keys.
+ * 4. Coordinate fallback: Match items in the header region (y ~ 717) excluding punctuation.
+ */
+export function extractWarehouseFromPage1(
+    items: TextItem[],
+    masterWarehouses?: Array<{ id: number; name: string }>
+): string {
+    // 1. Contextual search: look for "Nama Gudang" or similar label
+    const labelItem = items.find((it) =>
+        /(?:nama\s*gudang|nama\s*wh|^gudang$|^gudang\s*[:])/i.test(it.text)
+    );
+    if (labelItem) {
+        // If label itself contains the colon and value, e.g. "Nama Gudang : WH SO Bojonegoro"
+        const inlineMatch = labelItem.text.match(
+            /(?:nama\s*gudang|nama\s*wh|^gudang)\s*[:]\s*(.+)/i
+        );
+        if (inlineMatch && inlineMatch[1]?.trim()) {
+            const candidate = inlineMatch[1].trim().replace(/^[:\s-]+|[:\s-]+$/g, '');
+            if (candidate && candidate !== ':') {
+                return candidate;
+            }
+        }
+
+        // Search items on the same horizontal row to the right of the label
+        const sameRow = items
+            .filter((it) => Math.abs(it.y - labelItem.y) <= 6 && it.x > labelItem.x)
+            .sort((a, b) => a.x - b.x);
+
+        const rowCandidates = sameRow
+            .map((it) => it.text.replace(/^[:\s-]+|[:\s-]+$/g, '').trim())
+            .filter((txt) => txt.length > 0 && txt !== ':');
+
+        if (rowCandidates.length > 0) {
+            const combined = rowCandidates.join(' ').trim();
+            if (combined) {
+                return combined;
+            }
+        }
+    }
+
+    // 2. Pattern search: items with warehouse prefixes in header area (y > 550)
+    const patternCandidates = items
+        .filter((it) => it.y > 550 && /^(?:WH\s+SO|WH\s+|SO\s+|Gudang\s+)/i.test(it.text))
+        .map((it) => it.text.replace(/^[:\s-]+|[:\s-]+$/g, '').trim())
+        .filter((txt) => txt.length > 3 && txt !== ':');
+
+    if (patternCandidates.length > 0) {
+        return patternCandidates[0];
+    }
+
+    // 3. Master warehouse match in header region (y > 550)
+    for (const it of items) {
+        if (it.y > 550) {
+            const cleaned = it.text.replace(/^[:\s-]+|[:\s-]+$/g, '').trim();
+            if (cleaned.length >= 3 && resolveWarehouseId(cleaned, masterWarehouses) > 0) {
+                return cleaned;
+            }
+        }
+    }
+
+    // 4. Coordinate fallback near y=717, x>=180
+    const coordCandidates = items
+        .filter((it) => Math.abs(it.y - 717) <= 25 && it.x >= 180)
+        .map((it) => it.text.replace(/^[:\s-]+|[:\s-]+$/g, '').trim())
+        .filter((txt) => txt.length > 1 && txt !== ':');
+
+    if (coordCandidates.length > 0) {
+        return coordCandidates[0];
+    }
+
+    return '';
+}
+
+/**
  * Parses BA Stock Opname PDF document.
  * Dynamically loads pdfjs-dist on client or server.
  * Operates page-by-page to prevent cross-page coordinate collision.
  */
 export async function parseStockOpnamePdf(
-    fileData: ArrayBuffer,
+    fileData: ArrayBuffer | Uint8Array,
     options?: {
         onProgress?: ParsePdfProgressCallback;
         masterWarehouses?: Array<{ id: number; name: string }>;
@@ -142,10 +272,12 @@ export async function parseStockOpnamePdf(
     const pdfjsLib = await import('pdfjs-dist');
 
     if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+        const workerVersion = pdfjsLib.version || '6.5.438';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs?v=${workerVersion}`;
     }
 
-    const loadingTask = pdfjsLib.getDocument({ data: fileData });
+    const data = fileData instanceof Uint8Array ? fileData : new Uint8Array(fileData);
+    const loadingTask = pdfjsLib.getDocument({ data });
     const pdf = await loadingTask.promise;
     const numPages = pdf.numPages;
 
@@ -174,17 +306,12 @@ export async function parseStockOpnamePdf(
             const x = Math.round(t.transform[4]);
             const y = Math.round(t.transform[5]);
 
-            // Detect warehouse on page 1
-            if (pageNum === 1 && !detectedWarehouse) {
-                // Check coordinate anchor (near y=717, x=196) or pattern
-                if (Math.abs(y - 717) <= 15 && x >= 180 && x <= 220) {
-                    detectedWarehouse = text;
-                } else if (/^(?:WH\s+SO|SO\s+)/i.test(text)) {
-                    detectedWarehouse = text;
-                }
-            }
-
             pageItems.push({ x, y, text });
+        }
+
+        // Detect warehouse on page 1 (or page 2 fallback)
+        if (!detectedWarehouse && (pageNum === 1 || pageNum === 2)) {
+            detectedWarehouse = extractWarehouseFromPage1(pageItems, options?.masterWarehouses);
         }
 
         // Group rows per page with tolerance
