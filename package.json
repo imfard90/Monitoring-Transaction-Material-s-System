@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/sync-pdf-worker.mjs && next build",
+    "postinstall": "node scripts/sync-pdf-worker.mjs",
     "start": "next start",
     "check": "biome check .",
     "typecheck": "tsc --noEmit",
