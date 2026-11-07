@@ -37,6 +37,54 @@ export const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
 export const WORKER_HEARTBEAT_TTL_SECONDS = 15;
 
 /**
+ * Redis key where the worker publishes the state of its singleton Chromium browser.
+ *
+ * The browser lives in the `mtms-worker` process, not in the `mtms-web` process.
+ * The web health endpoint therefore cannot inspect it in-process and must read
+ * this snapshot instead. TTL is intentionally short so a dead worker's snapshot
+ * expires on its own instead of reporting a stale "healthy" browser.
+ */
+export const WORKER_BROWSER_KEY = 'worker:lensa:browser';
+export const WORKER_BROWSER_TTL_SECONDS = 30;
+
+export interface WorkerBrowserSnapshot {
+    /** Chromium OS process id, used for targeted (non-broad) cleanup. */
+    pid: number | null;
+    /** Number of currently open browser contexts. */
+    contexts: number;
+    /** Whether the browser process is still alive. */
+    connected: boolean;
+    /** Epoch ms of the last publish; used to detect a stalled worker. */
+    updatedAt: number;
+}
+
+/**
+ * Reads the worker browser snapshot published by `mtms-worker`.
+ *
+ * Returns `null` when the worker never launched a browser (idle state) or when
+ * the snapshot has expired (worker down). Callers must treat `null` as
+ * "no browser running", not as "browser unhealthy".
+ */
+export async function getWorkerBrowserSnapshot(): Promise<WorkerBrowserSnapshot | null> {
+    try {
+        const raw = await redis.get(WORKER_BROWSER_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as Partial<WorkerBrowserSnapshot>;
+        return {
+            pid: typeof parsed.pid === 'number' ? parsed.pid : null,
+            contexts: typeof parsed.contexts === 'number' ? parsed.contexts : 0,
+            connected: parsed.connected === true,
+            updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : 0,
+        };
+    } catch (err) {
+        actionLogger.warn('[WORKER-CLIENT] Failed to read worker browser snapshot', {
+            error: err instanceof Error ? err.message : String(err),
+        });
+        return null;
+    }
+}
+
+/**
  * Checks whether the standalone background worker is online.
  */
 export async function isWorkerActive(): Promise<boolean> {

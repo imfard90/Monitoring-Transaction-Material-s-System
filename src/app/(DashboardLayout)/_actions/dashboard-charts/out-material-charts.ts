@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import { canAccessWarehouse, warehouseScope } from '@/lib/policies';
+import { canAccessWarehouse, resolveWarehouseScope } from '@/lib/policies';
 
 const getOutMaterialLineChartDataSchema = z.object({
     wh_id: z.string().min(1),
@@ -22,10 +22,10 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
         return { success: false, error: 'Invalid parameters' };
     }
     const validLimit = parsed.data.limit;
-    const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
-    if (user.isStaff && !scopedWarehouseIds) return { success: true, data: [] };
+    const scope = resolveWarehouseScope(user);
+    if (scope.kind === 'none') return { success: true, data: [] };
     if (
-        scopedWarehouseIds &&
+        scope.kind === 'scoped' &&
         parsed.data.wh_id !== 'all' &&
         !canAccessWarehouse(user, Number(parsed.data.wh_id))
     ) {
@@ -53,8 +53,8 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
             .orderBy('total_qty', 'desc')
             .limit(validLimit);
 
-        if (scopedWarehouseIds) {
-            topMatQuery = topMatQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            topMatQuery = topMatQuery.where('soh.warehouse_id', 'in', scope.ids);
         } else if (wh_id !== 'all') {
             topMatQuery = topMatQuery.where('soh.warehouse_id', '=', Number(wh_id));
         }
@@ -89,8 +89,8 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
                 sql`TO_CHAR(COALESCE(soh.sap_time, soh.request_time), 'YYYY-MM-DD')`,
             ]);
 
-        if (scopedWarehouseIds) {
-            dailyQuery = dailyQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            dailyQuery = dailyQuery.where('soh.warehouse_id', 'in', scope.ids);
         } else if (wh_id !== 'all') {
             dailyQuery = dailyQuery.where('soh.warehouse_id', '=', Number(wh_id));
         }

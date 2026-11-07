@@ -3,7 +3,7 @@
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import { warehouseScope } from '@/lib/policies';
+import { resolveWarehouseScope } from '@/lib/policies';
 import type { InOutTagItem } from '@/lib/types/inventory';
 
 export async function getInOutTagItems(headerId: number, type?: string) {
@@ -187,15 +187,16 @@ export async function getReturnMaterialItemsByHeaderId(headerId: number) {
 export async function getInOutTagFilterOptions() {
     try {
         const user = await getSessionUser();
-        const scopedWarehouseIds = warehouseScope(user, 'always');
+        const scope = resolveWarehouseScope(user);
+        if (scope.kind === 'none') return { toWhOptions: [] };
         let whQuery = db
             .selectFrom('inventory.inout_tag_header as h')
             .innerJoin('inventory.mas_wh as wh', 'wh.id', 'h.to_wh_id')
             .select('wh.name')
             .distinct()
             .orderBy('wh.name', 'asc');
-        if (scopedWarehouseIds) {
-            whQuery = whQuery.where('h.to_wh_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            whQuery = whQuery.where('h.to_wh_id', 'in', scope.ids);
         }
         const whs = await whQuery.execute();
         const toWhOptions = Array.from(new Set(whs.map((w) => w.name).filter(Boolean))) as string[];

@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/db';
-import { getLensaBrowserHealth } from '@/lib/lensa-scraper/lensa-scraper';
 import { redis } from '@/lib/redis';
-import { isWorkerActive } from '@/lib/workers/worker-client';
+import {
+    getWorkerBrowserSnapshot,
+    isWorkerActive,
+    type WorkerBrowserSnapshot,
+} from '@/lib/workers/worker-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +13,14 @@ export const dynamic = 'force-dynamic';
  * GET /api/health
  *
  * Health check endpoint for monitoring, load balancers, and alerting.
- * Returns 200 if all critical services are healthy, 503 if any are degraded.
+ *
+ * The Chromium browser used for Lensa scraping lives in the `mtms-worker`
+ * process, not in the `mtms-web` process, so its state is read from the Redis
+ * snapshot published by the worker rather than inspected in-process.
+ *
+ * - 200 `status: "ok"`       → database, Redis, and the worker are all reachable.
+ * - 503 `status: "degraded"` → at least one critical dependency is down.
+ *
  * No authentication required — internal network only (not exposed publicly).
  */
 export async function GET() {
@@ -19,8 +29,10 @@ export async function GET() {
         redis: false,
         worker: false,
         browser: {
-            connected: false,
-            stale: true,
+            /** 'alive' = running, 'idle' = worker up but no browser launched yet. */
+            state: 'idle' as 'alive' | 'idle' | 'down',
+            pid: null as number | null,
+            contexts: 0,
         },
     };
 
@@ -45,17 +57,27 @@ export async function GET() {
     }
 
     try {
-        checks.browser = getLensaBrowserHealth();
+        const snapshot: WorkerBrowserSnapshot | null = await getWorkerBrowserSnapshot();
+        if (snapshot) {
+            checks.browser = {
+                state: snapshot.connected ? 'alive' : 'down',
+                pid: snapshot.pid,
+                contexts: snapshot.contexts,
+            };
+        } else {
+            // No snapshot: either the worker is idle (never launched a browser)
+            // or the worker is down. The worker heartbeat disambiguates.
+            checks.browser.state = checks.worker ? 'idle' : 'down';
+        }
     } catch {
         // Browser health unavailable
     }
 
-    const allHealthy =
-        checks.database &&
-        checks.redis &&
-        checks.worker &&
-        checks.browser.connected &&
-        !checks.browser.stale;
+    // An idle browser is a normal state (the worker only launches Chromium when a
+    // scrape runs), so it must not degrade the overall health. Only a browser that
+    // is running but disconnected is a real fault.
+    const browserHealthy = checks.browser.state !== 'down';
+    const allHealthy = checks.database && checks.redis && checks.worker && browserHealthy;
 
     return NextResponse.json(
         {

@@ -8,12 +8,26 @@ const mockGetTechnicianIntechStock = vi.fn();
 const mockExecute = vi.fn();
 const mockExecuteTakeFirst = vi.fn();
 
+type ResolvedScopeMock = { kind: 'all' } | { kind: 'none' } | { kind: 'scoped'; ids: number[] };
+
 vi.mock('@/lib/auth-server', () => ({
     getSessionUser: () => mockGetSessionUser(),
 }));
 
 vi.mock('@/lib/policies', () => ({
     warehouseScope: (...args: any[]) => mockWarehouseScope(...args),
+    /**
+     * Mirrors the real `resolveWarehouseScope` contract, which replaced the
+     * ambiguous `warehouseScope` return shape (`null` / `[]` / `null`).
+     * Delegates to the shared `mockWarehouseScope` stub so each test keeps
+     * controlling the resolved warehouse ids.
+     */
+    resolveWarehouseScope: (user: { isStaff: boolean }): ResolvedScopeMock => {
+        const ids = mockWarehouseScope(user, 'when-assigned') as number[] | null;
+        if (!user.isStaff) return { kind: 'all' };
+        if (!ids || ids.length === 0) return { kind: 'none' };
+        return { kind: 'scoped', ids };
+    },
 }));
 
 vi.mock('@/lib/repositories/inventory.repository', () => ({

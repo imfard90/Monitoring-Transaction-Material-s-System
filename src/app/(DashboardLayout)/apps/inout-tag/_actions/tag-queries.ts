@@ -4,13 +4,14 @@ import { sql } from 'kysely';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import { warehouseScope } from '@/lib/policies';
+import { resolveWarehouseScope } from '@/lib/policies';
 import type { InOutTagRow } from '@/lib/types/inventory';
 
 export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
     try {
         const user = await getSessionUser();
-        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+        const scope = resolveWarehouseScope(user);
+        if (scope.kind === 'none') return { success: true, data: [] };
 
         const endDate = new Date();
         endDate.setMonth(endDate.getMonth() - offsetMonths);
@@ -38,11 +39,11 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
             .where('h.request_time', '<=', endDate)
             .where('h.request_time', '>', startDate);
 
-        if (scopedWarehouseIds) {
+        if (scope.kind === 'scoped') {
             inoutQuery = inoutQuery.where((eb) =>
                 eb.or([
-                    eb('h.from_wh_id', 'in', scopedWarehouseIds),
-                    eb('h.to_wh_id', 'in', scopedWarehouseIds),
+                    eb('h.from_wh_id', 'in', scope.ids),
+                    eb('h.to_wh_id', 'in', scope.ids),
                 ])
             );
         }
@@ -76,8 +77,8 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
             .where('r.created_at', '<=', endDate)
             .where('r.created_at', '>', startDate);
 
-        if (scopedWarehouseIds) {
-            returnQuery = returnQuery.where('r.warehouse_id', 'in', scopedWarehouseIds.map(String));
+        if (scope.kind === 'scoped') {
+            returnQuery = returnQuery.where('r.warehouse_id', 'in', scope.ids.map(String));
         }
 
         const returnHeaders = await returnQuery
@@ -173,9 +174,22 @@ export interface GetInOutTagsPaginatedOptions {
 export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOptions = {}) {
     try {
         const user = await getSessionUser();
-        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+        const scope = resolveWarehouseScope(user);
         const page = Math.max(1, options.page ?? 1);
         const pageSize = Math.min(100, Math.max(10, options.pageSize ?? 20));
+        if (scope.kind === 'none') {
+            return {
+                success: true,
+                data: {
+                    tags: [],
+                    total: 0,
+                    page,
+                    pageSize,
+                    totalPages: 0,
+                    counts: { requested: 0, in_transit: 0, closed: 0, cancel: 0 },
+                },
+            };
+        }
         const offset = (page - 1) * pageSize;
 
         const baseCte = sql`
@@ -245,9 +259,10 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
             )
         `;
 
-        const staffWhere = scopedWarehouseIds
-            ? sql`WHERE (wh_from_id = ANY(${scopedWarehouseIds}) OR wh_to_id = ANY(${scopedWarehouseIds}))`
-            : sql``;
+        const staffWhere =
+            scope.kind === 'scoped'
+                ? sql`WHERE (wh_from_id = ANY(${scope.ids}) OR wh_to_id = ANY(${scope.ids}))`
+                : sql``;
 
         const countsQuery = sql<{
             requested: string;
@@ -273,9 +288,9 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
         };
 
         const conditions: ReturnType<typeof sql>[] = [];
-        if (scopedWarehouseIds) {
+        if (scope.kind === 'scoped') {
             conditions.push(
-                sql`(wh_from_id = ANY(${scopedWarehouseIds}) OR wh_to_id = ANY(${scopedWarehouseIds}))`
+                sql`(wh_from_id = ANY(${scope.ids}) OR wh_to_id = ANY(${scope.ids}))`
             );
         }
 

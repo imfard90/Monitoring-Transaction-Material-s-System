@@ -6,7 +6,11 @@ import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import { canAccessWarehouse, warehouseScope } from '@/lib/policies';
+import {
+    canAccessWarehouse,
+    resolveWarehouseScope,
+    warehouseScopeCacheKey,
+} from '@/lib/policies';
 
 const getSalesOverviewDataSchema = z.object({
     wh_id: z.string().min(1),
@@ -25,24 +29,29 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
     }
 
     try {
-        const cacheKey = `sales_overview_${wh_id}_${daysCount}_${endDate.getTime()}`;
+        const scope = resolveWarehouseScope(user);
+        if (scope.kind === 'none') {
+            return { success: false, error: 'Akses gudang ditolak' };
+        }
+        if (
+            scope.kind === 'scoped' &&
+            wh_id !== 'all' &&
+            !canAccessWarehouse(user, Number(wh_id))
+        ) {
+            return { success: false, error: 'Akses gudang ditolak' };
+        }
+
+        // Cache key MUST include the warehouse scope — otherwise users with different
+        // warehouse assignments read each other's cached chart payload.
+        const cacheKey = `sales_overview_${warehouseScopeCacheKey(scope)}_${wh_id}_${daysCount}_${endDate.getTime()}`;
         const cached = await encryptedCache.getGeneral<{
             dates: string[];
             outMaterial: number[];
             hasilRekon: number[];
         }>('dashboard', cacheKey);
-        if (cached && !warehouseScope(user, 'always')) {
+        if (cached) {
             actionLogger.debug(`Cache hit for ${cacheKey}`);
             return { success: true, data: cached };
-        }
-
-        const scopedWarehouseIds = warehouseScope(user, 'always');
-        if (
-            scopedWarehouseIds &&
-            (scopedWarehouseIds.length === 0 ||
-                (wh_id !== 'all' && !canAccessWarehouse(user, Number(wh_id))))
-        ) {
-            return { success: false, error: 'Akses gudang ditolak' };
         }
 
         const startDate = new Date(endDate);
@@ -66,8 +75,8 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             .where(sql`COALESCE(soh.sap_time, soh.request_time)`, '<=', effectiveEndDate)
             .groupBy(sql`TO_CHAR(COALESCE(soh.sap_time, soh.request_time), 'YYYY-MM-DD')`);
 
-        if (scopedWarehouseIds) {
-            outQuery = outQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            outQuery = outQuery.where('soh.warehouse_id', 'in', scope.ids);
         }
         if (wh_id && wh_id !== 'all') {
             outQuery = outQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
@@ -88,8 +97,8 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             .where('tu.created_at', '<=', effectiveEndDate)
             .groupBy(sql`TO_CHAR(tu.created_at, 'YYYY-MM-DD')`);
 
-        if (scopedWarehouseIds) {
-            rekonQuery = rekonQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            rekonQuery = rekonQuery.where('soh.warehouse_id', 'in', scope.ids);
         }
         if (wh_id && wh_id !== 'all') {
             rekonQuery = rekonQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
@@ -109,8 +118,8 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             .where('ruh.create_at', '<=', effectiveEndDate)
             .groupBy(sql`TO_CHAR(ruh.create_at, 'YYYY-MM-DD')`);
 
-        if (scopedWarehouseIds) {
-            lensaRekonQuery = lensaRekonQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            lensaRekonQuery = lensaRekonQuery.where('soh.warehouse_id', 'in', scope.ids);
         }
         if (wh_id && wh_id !== 'all') {
             lensaRekonQuery = lensaRekonQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
@@ -147,9 +156,7 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
         }
 
         const finalData = { dates, outMaterial, hasilRekon };
-        if (!warehouseScope(user, 'always')) {
-            await encryptedCache.setGeneral('dashboard', finalData, cacheKey, 300); // Cache for 5 mins
-        }
+        await encryptedCache.setGeneral('dashboard', finalData, cacheKey, 300); // Cache for 5 mins
 
         return { success: true, data: finalData };
     } catch (error: unknown) {
@@ -174,10 +181,10 @@ export async function getTopOutMaterials(limit: number = 7, warehouseId: string 
         return { success: false, error: 'Invalid parameters' };
     }
     const validLimit = parsed.data.limit;
-    const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
-    if (user.isStaff && !scopedWarehouseIds) return { success: true, data: [] };
+    const scope = resolveWarehouseScope(user);
+    if (scope.kind === 'none') return { success: true, data: [] };
     if (
-        scopedWarehouseIds &&
+        scope.kind === 'scoped' &&
         parsed.data.warehouseId !== 'all' &&
         !canAccessWarehouse(user, Number(parsed.data.warehouseId))
     ) {
@@ -204,8 +211,8 @@ export async function getTopOutMaterials(limit: number = 7, warehouseId: string 
             .orderBy('total_qty', 'desc')
             .limit(validLimit);
 
-        if (scopedWarehouseIds) {
-            query = query.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            query = query.where('soh.warehouse_id', 'in', scope.ids);
         } else if (parsed.data.warehouseId !== 'all') {
             query = query.where('soh.warehouse_id', '=', Number(parsed.data.warehouseId));
         }

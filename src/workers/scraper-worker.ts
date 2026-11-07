@@ -1,12 +1,15 @@
 import 'dotenv/config';
-import { exec } from 'node:child_process';
 import cron from 'node-cron';
 import {
     OTHER_STOCK_SYNC_LOCK_KEY,
     OTHER_STOCK_SYNC_LOCK_TTL_SECONDS,
     syncOtherStock,
 } from '@/lib/google_ecosystem/sheets-stock-sync';
-import { closeBrowser } from '@/lib/lensa-scraper/lensa-scraper';
+import {
+    closeBrowser,
+    getLensaBrowserHealth,
+    publishBrowserSnapshot,
+} from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
 import { acquireLock } from '@/lib/redis-lock';
@@ -57,6 +60,11 @@ const sendHeartbeat = async () => {
             'EX',
             WORKER_HEARTBEAT_TTL_SECONDS
         );
+        // Refresh the browser snapshot alongside the heartbeat. The snapshot TTL
+        // (30s) is shorter than the scrape interval, so it must be re-published
+        // periodically or the web health endpoint would report "idle" while the
+        // browser is actually running.
+        await publishBrowserSnapshot();
     } catch (err) {
         actionLogger.warn('[MTMS-WORKER] Heartbeat failed:', {
             error: err instanceof Error ? err.message : String(err),
@@ -497,22 +505,32 @@ const gracefulShutdown = async (signal: string) => {
             await new Promise((resolve) => setTimeout(resolve, 1000));
         }
 
+        // Capture the Chromium PID *before* closing the browser — `closeBrowser()`
+        // clears the in-process reference, so reading it afterwards yields null.
+        const browserPid = getLensaBrowserHealth().pid;
+
+        // `closeBrowser()` closes the browser connection and then calls
+        // `server.kill()`, which terminates the whole Chromium process tree.
         await closeBrowser().catch(() => {});
         await redis.del(WORKER_HEARTBEAT_KEY).catch(() => {});
         await queueRedis.quit().catch(() => {});
         await redis.quit().catch(() => {});
 
-        // Kill orphaned Chromium processes (safety net)
-        exec('pkill -f "chrome.*playwright_chromiumdev"', (err) => {
-            if (err) {
-                actionLogger.warn(
-                    '[SHUTDOWN] pkill orphan chrome failed (likely none found):',
-                    err
-                );
-            } else {
-                actionLogger.info('[SHUTDOWN] Orphan Chrome processes cleaned.');
+        // Safety net for a Chromium that survived the graceful close (e.g. the
+        // process ignored SIGTERM). Targeted PID kill only — a broad
+        // `pkill -f chrome` would also terminate Chromium instances owned by
+        // other services running on the same host.
+        if (browserPid) {
+            try {
+                process.kill(browserPid, 'SIGKILL');
+                actionLogger.info(`[SHUTDOWN] Chromium process ${browserPid} killed.`);
+            } catch (killErr) {
+                actionLogger.warn('[SHUTDOWN] Gagal kill process Chromium:', {
+                    pid: browserPid,
+                    error: killErr instanceof Error ? killErr.message : String(killErr),
+                });
             }
-        });
+        }
 
         actionLogger.info('[MTMS-WORKER] Clean shutdown complete.');
     } catch (err) {

@@ -5,7 +5,7 @@ import { getSessionUser } from '@/lib/auth-server';
 import { notificationLru } from '@/lib/cache/lru-cache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import { warehouseScope } from '@/lib/policies';
+import { resolveWarehouseScope, warehouseScopeCacheKey } from '@/lib/policies';
 import { inventoryRepository } from '@/lib/repositories/inventory.repository';
 import { expandWarehouseAliases } from '@/lib/warehouse-helper';
 
@@ -46,7 +46,7 @@ export async function getPendingNotifications(): Promise<{
     try {
         const user = await getSessionUser();
         const { isStaff, warehouseIds } = user;
-        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+        const scope = resolveWarehouseScope(user);
 
         const defaultCategories: NotificationCategorySummary[] = [
             {
@@ -92,7 +92,7 @@ export async function getPendingNotifications(): Promise<{
         ];
 
         // Fail-closed for staff without assigned warehouses
-        if (isStaff && (!warehouseIds || warehouseIds.length === 0)) {
+        if (scope.kind === 'none') {
             return {
                 success: true,
                 data: {
@@ -103,7 +103,9 @@ export async function getPendingNotifications(): Promise<{
             };
         }
 
-        const cacheKey = `notif:${user.nik}:${isStaff ? (scopedWarehouseIds?.slice().sort().join('_') ?? 'none') : 'all'}`;
+        // Cache key MUST include the warehouse scope — otherwise users with different
+        // warehouse assignments share the same cached notification payload.
+        const cacheKey = `notif:${user.nik}:${warehouseScopeCacheKey(scope)}`;
         const cached = notificationLru.get(cacheKey) as NotificationPayload | undefined;
         if (cached) {
             return { success: true, data: cached };
@@ -140,16 +142,16 @@ export async function getPendingNotifications(): Promise<{
             ])
             .where('h.end_status', 'in', ['requested', 'in_transit']);
 
-        if (isStaff && scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+        if (scope.kind === 'scoped') {
             inoutCountQuery = inoutCountQuery.where((eb) =>
                 eb.or([
                     eb.and([
                         eb('h.end_status', '=', 'requested'),
-                        eb('h.from_wh_id', 'in', scopedWarehouseIds),
+                        eb('h.from_wh_id', 'in', scope.ids),
                     ]),
                     eb.and([
                         eb('h.end_status', '=', 'in_transit'),
-                        eb('h.to_wh_id', 'in', scopedWarehouseIds),
+                        eb('h.to_wh_id', 'in', scope.ids),
                     ]),
                 ])
             );
@@ -157,11 +159,11 @@ export async function getPendingNotifications(): Promise<{
                 eb.or([
                     eb.and([
                         eb('h.end_status', '=', 'requested'),
-                        eb('h.from_wh_id', 'in', scopedWarehouseIds),
+                        eb('h.from_wh_id', 'in', scope.ids),
                     ]),
                     eb.and([
                         eb('h.end_status', '=', 'in_transit'),
-                        eb('h.to_wh_id', 'in', scopedWarehouseIds),
+                        eb('h.to_wh_id', 'in', scope.ids),
                     ]),
                 ])
             );
@@ -188,8 +190,8 @@ export async function getPendingNotifications(): Promise<{
             ])
             .where('r.end_status', 'in', ['pending', 'wait_approve', 'requested']);
 
-        if (isStaff && scopedWarehouseIds && scopedWarehouseIds.length > 0) {
-            const whIdsAsStrings = scopedWarehouseIds.map(String);
+        if (scope.kind === 'scoped') {
+            const whIdsAsStrings = scope.ids.map(String);
             returnCountQuery = returnCountQuery.where('r.warehouse_id', 'in', whIdsAsStrings);
             returnRecentQuery = returnRecentQuery.where('r.warehouse_id', 'in', whIdsAsStrings);
         }

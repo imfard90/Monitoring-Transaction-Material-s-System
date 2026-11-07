@@ -1,68 +1,98 @@
 'use server';
 
-import crypto from 'node:crypto';
-import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
-import { db } from '@/lib/db/db';
+import { z } from 'zod';
+import { getSessionUser } from '@/lib/auth-server';
+import { encryptLensaPassword } from '@/lib/crypto/lensa-credential';
+import { userRepository } from '@/lib/repositories/user.repository';
 
-// P3-S6 Fix: Derive a strict 32-byte key from the environment variable using SHA-256
-// instead of a weak slice(0,32) which might pad weak characters or truncate.
-const getEncryptionKey = () => {
-    const secret = process.env.MFA_ENCRYPTION_SECRET;
-    if (!secret) {
-        throw new Error('Critical Configuration Error: MFA_ENCRYPTION_SECRET is not set.');
-    }
-    // Hash the secret to guarantee exactly 32 bytes of high entropy for AES-256
-    return crypto.createHash('sha256').update(secret).digest();
-};
+const lensAccountSchema = z.object({
+    username: z
+        .string()
+        .trim()
+        .min(1, 'Username Lensa wajib diisi')
+        .max(100, 'Username Lensa terlalu panjang'),
+    passwordRaw: z
+        .string()
+        .min(1, 'Password Lensa wajib diisi')
+        .max(200, 'Password Lensa terlalu panjang'),
+});
 
-function encrypt(text: string) {
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv('aes-256-cbc', getEncryptionKey(), iv);
-    let encrypted = cipher.update(text);
-    encrypted = Buffer.concat([encrypted, cipher.final()]);
-    return `${iv.toString('hex')}:${encrypted.toString('hex')}`;
-}
+export type LensAccountResult =
+    | { success: true }
+    | { success: false; error: string };
 
-export async function saveLensaAccount(username: string, passwordRaw: string) {
-    try {
-        const session = await auth.api.getSession({ headers: await headers() });
-        if (!session?.user?.id) {
-            return { success: false, error: 'Unauthorized' };
-        }
-
-        const encryptedPassword = encrypt(passwordRaw);
-
-        await sql`UPDATE auth."user" SET lensa_acount = ${JSON.stringify({ username, password: encryptedPassword })} WHERE id = ${session.user.id}`.execute(
-            db
-        );
-
-        revalidatePath('/management/user-profile');
-        return { success: true };
-    } catch (e: unknown) {
-        return { success: false, error: e instanceof Error ? e.message : 'Failed to save account' };
-    }
-}
-
-export async function deleteLensaAccount() {
-    try {
-        const session = await auth.api.getSession({ headers: await headers() });
-        if (!session?.user?.id) {
-            return { success: false, error: 'Unauthorized' };
-        }
-
-        await sql`UPDATE auth."user" SET lensa_acount = NULL WHERE id = ${session.user.id}`.execute(
-            db
-        );
-
-        revalidatePath('/management/user-profile');
-        return { success: true };
-    } catch (e: unknown) {
+/**
+ * Simpan kredensial Lensa milik user yang sedang login.
+ *
+ * Password dienkripsi AES-256-GCM sebelum disimpan; plaintext tidak pernah
+ * ditulis ke database maupun log (AGENTS.md §1.1, §3.2).
+ */
+export async function saveLensaAccount(
+    username: string,
+    passwordRaw: string
+): Promise<LensAccountResult> {
+    const parsed = lensAccountSchema.safeParse({ username, passwordRaw });
+    if (!parsed.success) {
         return {
             success: false,
-            error: e instanceof Error ? e.message : 'Failed to delete account',
+            error: parsed.error.issues[0]?.message ?? 'Data akun Lensa tidak valid',
+        };
+    }
+
+    try {
+        // Otorisasi server action (AGENTS.md §1.1) — fail-closed.
+        const session = await getSessionUser();
+        if (!session?.nik || session.nik === 'system') {
+            return { success: false, error: 'Sesi tidak valid. Silakan login kembali.' };
+        }
+
+        const userId = await userRepository.getUserIdByNik(session.nik);
+        if (!userId) {
+            return { success: false, error: 'User tidak ditemukan.' };
+        }
+
+        const encryptedPassword = encryptLensaPassword(parsed.data.passwordRaw);
+
+        await userRepository.setLensaAccountByUserId(userId, {
+            username: parsed.data.username,
+            password: encryptedPassword,
+        });
+
+        revalidatePath('/management/user-profile');
+        return { success: true };
+    } catch (error: unknown) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Gagal menyimpan akun Lensa',
+        };
+    }
+}
+
+/**
+ * Hapus kredensial Lensa milik user yang sedang login.
+ */
+export async function deleteLensaAccount(): Promise<LensAccountResult> {
+    try {
+        // Otorisasi server action (AGENTS.md §1.1) — fail-closed.
+        const session = await getSessionUser();
+        if (!session?.nik || session.nik === 'system') {
+            return { success: false, error: 'Sesi tidak valid. Silakan login kembali.' };
+        }
+
+        const userId = await userRepository.getUserIdByNik(session.nik);
+        if (!userId) {
+            return { success: false, error: 'User tidak ditemukan.' };
+        }
+
+        await userRepository.setLensaAccountByUserId(userId, null);
+
+        revalidatePath('/management/user-profile');
+        return { success: true };
+    } catch (error: unknown) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Gagal menghapus akun Lensa',
         };
     }
 }

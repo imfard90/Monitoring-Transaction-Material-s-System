@@ -6,7 +6,11 @@ import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import { canAccessWarehouse, warehouseScope } from '@/lib/policies';
+import {
+    canAccessWarehouse,
+    resolveWarehouseScope,
+    warehouseScopeCacheKey,
+} from '@/lib/policies';
 import type {
     IntechAgingData,
     IntechAgingTier,
@@ -29,16 +33,15 @@ export async function getIntechAgingData(wh_id: string = 'all') {
     }
 
     try {
-        const scopedWarehouseIds = warehouseScope(user, 'always');
-        if (
-            scopedWarehouseIds &&
-            (scopedWarehouseIds.length === 0 ||
-                (wh_id !== 'all' && !canAccessWarehouse(user, Number(wh_id))))
-        ) {
+        const scope = resolveWarehouseScope(user);
+        if (scope.kind === 'none') {
+            return { success: false, error: 'Akses gudang ditolak' };
+        }
+        if (scope.kind === 'scoped' && wh_id !== 'all' && !canAccessWarehouse(user, Number(wh_id))) {
             return { success: false, error: 'Akses gudang ditolak' };
         }
 
-        const cacheKey = `intech_aging_${wh_id}_${scopedWarehouseIds ? scopedWarehouseIds.join('_') : 'all'}`;
+        const cacheKey = `intech_aging_${wh_id}_${warehouseScopeCacheKey(scope)}`;
         const cached = await encryptedCache.getGeneral<IntechAgingData>('dashboard', cacheKey);
         if (cached) {
             return { success: true, data: cached };
@@ -77,8 +80,8 @@ export async function getIntechAgingData(wh_id: string = 'all') {
 
         if (wh_id !== 'all') {
             agingQuery = agingQuery.where('soh.warehouse_id', '=', Number(wh_id));
-        } else if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
-            agingQuery = agingQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        } else if (scope.kind === 'scoped') {
+            agingQuery = agingQuery.where('soh.warehouse_id', 'in', scope.ids);
         }
 
         const agingRes = await agingQuery.executeTakeFirst();
@@ -141,8 +144,8 @@ export async function getIntechAgingData(wh_id: string = 'all') {
 
         if (wh_id !== 'all') {
             topMatQuery = topMatQuery.where('soh.warehouse_id', '=', Number(wh_id));
-        } else if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
-            topMatQuery = topMatQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        } else if (scope.kind === 'scoped') {
+            topMatQuery = topMatQuery.where('soh.warehouse_id', 'in', scope.ids);
         }
 
         const topMatRows = await topMatQuery
@@ -175,8 +178,8 @@ export async function getIntechAgingData(wh_id: string = 'all') {
 
         if (wh_id !== 'all') {
             topTekQuery = topTekQuery.where('soh.warehouse_id', '=', Number(wh_id));
-        } else if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
-            topTekQuery = topTekQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        } else if (scope.kind === 'scoped') {
+            topTekQuery = topTekQuery.where('soh.warehouse_id', 'in', scope.ids);
         }
 
         const topTekRows = await topTekQuery

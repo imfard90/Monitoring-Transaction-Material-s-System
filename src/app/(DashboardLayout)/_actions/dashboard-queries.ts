@@ -6,7 +6,11 @@ import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import { canAccessWarehouse, warehouseScope } from '@/lib/policies';
+import {
+    canAccessWarehouse,
+    resolveWarehouseScope,
+    warehouseScopeCacheKey,
+} from '@/lib/policies';
 
 export async function getWarehouses() {
     const user = await getSessionUser();
@@ -15,10 +19,10 @@ export async function getWarehouses() {
             .selectFrom('inventory.mas_wh')
             .select(['id', 'name', 'branch'])
             .orderBy('name', 'asc');
-        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
-        if (user.isStaff && !scopedWarehouseIds) return { success: true, data: [] };
-        if (scopedWarehouseIds) {
-            query = query.where('id', 'in', scopedWarehouseIds);
+        const scope = resolveWarehouseScope(user);
+        if (scope.kind === 'none') return { success: true, data: [] };
+        if (scope.kind === 'scoped') {
+            query = query.where('id', 'in', scope.ids);
         }
         const data = await query.execute();
 
@@ -42,10 +46,10 @@ export async function getStockWarnings(warehouseId: string = 'all') {
     if (!parsed.success) {
         return { success: false, data: [], error: 'Gudang tidak valid' };
     }
-    const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
-    if (user.isStaff && !scopedWarehouseIds) return { success: true, data: [] };
+    const scope = resolveWarehouseScope(user);
+    if (scope.kind === 'none') return { success: true, data: [] };
     if (
-        scopedWarehouseIds &&
+        scope.kind === 'scoped' &&
         parsed.data.warehouseId !== 'all' &&
         !canAccessWarehouse(user, Number(parsed.data.warehouseId))
     ) {
@@ -79,8 +83,8 @@ export async function getStockWarnings(warehouseId: string = 'all') {
             .orderBy('w.name')
             .orderBy('m.code');
 
-        if (scopedWarehouseIds) {
-            query = query.where('p.warehouse_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            query = query.where('p.warehouse_id', 'in', scope.ids);
         } else if (parsed.data.warehouseId !== 'all') {
             query = query.where('p.warehouse_id', '=', Number(parsed.data.warehouseId));
         }
@@ -100,11 +104,26 @@ export async function getStockWarnings(warehouseId: string = 'all') {
 export async function getDashboardKpis() {
     try {
         const user = await getSessionUser();
-        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
-        const cacheKey =
-            scopedWarehouseIds && scopedWarehouseIds.length > 0
-                ? `dashboard_kpis_${scopedWarehouseIds.slice().sort().join('_')}`
-                : 'dashboard_kpis_all';
+        const scope = resolveWarehouseScope(user);
+        if (scope.kind === 'none') {
+            return {
+                success: true,
+                data: {
+                    onlineUsers: 0,
+                    requestTag: 0,
+                    transitTag: 0,
+                    closeTag: 0,
+                    returnTek: 0,
+                    intechOpen: 0,
+                    intechClose: 0,
+                    stockInventoryRp: 0,
+                    stockIntechRp: 0,
+                },
+            };
+        }
+        // Cache key MUST include the warehouse scope — otherwise users with different
+        // warehouse assignments share the same cached KPI payload.
+        const cacheKey = `dashboard_kpis_${warehouseScopeCacheKey(scope)}`;
 
         const cached = await encryptedCache.getGeneral<unknown>('dashboard', cacheKey);
         if (cached) {
@@ -140,8 +159,8 @@ export async function getDashboardKpis() {
             .selectFrom('inventory.sap_out_header')
             .select(sql<number>`COUNT(id)`.as('total'))
             .where('end_status', '=', 'intech');
-        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
-            intechOpenQuery = intechOpenQuery.where('warehouse_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            intechOpenQuery = intechOpenQuery.where('warehouse_id', 'in', scope.ids);
         }
         const intechOpen = await intechOpenQuery.executeTakeFirst();
         data.intechOpen = Number(intechOpen?.total || 0);
@@ -151,8 +170,8 @@ export async function getDashboardKpis() {
             .selectFrom('inventory.sap_out_header')
             .select(sql<number>`COUNT(id)`.as('total'))
             .where('end_status', '=', 'close');
-        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
-            intechCloseQuery = intechCloseQuery.where('warehouse_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            intechCloseQuery = intechCloseQuery.where('warehouse_id', 'in', scope.ids);
         }
         const intechClose = await intechCloseQuery.executeTakeFirst();
         data.intechClose = Number(intechClose?.total || 0);
@@ -162,11 +181,11 @@ export async function getDashboardKpis() {
             .selectFrom('inventory.inout_tag_header')
             .select(sql<number>`COUNT(id)`.as('total'))
             .where('end_status', '=', 'requested');
-        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+        if (scope.kind === 'scoped') {
             requestTagQuery = requestTagQuery.where((eb) =>
                 eb.or([
-                    eb('from_wh_id', 'in', scopedWarehouseIds),
-                    eb('to_wh_id', 'in', scopedWarehouseIds),
+                    eb('from_wh_id', 'in', scope.ids),
+                    eb('to_wh_id', 'in', scope.ids),
                 ])
             );
         }
@@ -178,11 +197,11 @@ export async function getDashboardKpis() {
             .selectFrom('inventory.inout_tag_header')
             .select(sql<number>`COUNT(id)`.as('total'))
             .where('end_status', '=', 'in_transit');
-        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+        if (scope.kind === 'scoped') {
             transitTagQuery = transitTagQuery.where((eb) =>
                 eb.or([
-                    eb('from_wh_id', 'in', scopedWarehouseIds),
-                    eb('to_wh_id', 'in', scopedWarehouseIds),
+                    eb('from_wh_id', 'in', scope.ids),
+                    eb('to_wh_id', 'in', scope.ids),
                 ])
             );
         }
@@ -194,11 +213,11 @@ export async function getDashboardKpis() {
             .selectFrom('inventory.inout_tag_header')
             .select(sql<number>`COUNT(id)`.as('total'))
             .where('end_status', '=', 'closed');
-        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+        if (scope.kind === 'scoped') {
             closeTagQuery = closeTagQuery.where((eb) =>
                 eb.or([
-                    eb('from_wh_id', 'in', scopedWarehouseIds),
-                    eb('to_wh_id', 'in', scopedWarehouseIds),
+                    eb('from_wh_id', 'in', scope.ids),
+                    eb('to_wh_id', 'in', scope.ids),
                 ])
             );
         }
@@ -209,11 +228,11 @@ export async function getDashboardKpis() {
         let returnTekQuery = db
             .selectFrom('inventory.return_material_header')
             .select(sql<number>`COUNT(id)`.as('total'));
-        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
+        if (scope.kind === 'scoped') {
             returnTekQuery = returnTekQuery.where(
                 'warehouse_id',
                 'in',
-                scopedWarehouseIds.map(String)
+                scope.ids.map(String)
             );
         }
         const returnTek = await returnTekQuery.executeTakeFirst();
@@ -227,8 +246,8 @@ export async function getDashboardKpis() {
                 sql<number>`COALESCE(SUM(sb.qty_stock * COALESCE(m.price, 0)), 0)`.as('total_rp')
             )
             .where('sb.qty_stock', '>', 0);
-        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
-            invStockQuery = invStockQuery.where('sb.warehouse_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            invStockQuery = invStockQuery.where('sb.warehouse_id', 'in', scope.ids);
         }
         const invStock = await invStockQuery.executeTakeFirst();
         data.stockInventoryRp = Number(invStock?.total_rp || 0);
@@ -245,8 +264,8 @@ export async function getDashboardKpis() {
             )
             .where('soh.end_status', '=', 'intech')
             .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0);
-        if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
-            intechStockQuery = intechStockQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            intechStockQuery = intechStockQuery.where('soh.warehouse_id', 'in', scope.ids);
         }
         const intechStock = await intechStockQuery.executeTakeFirst();
         data.stockIntechRp = Number(intechStock?.total_rp || 0);

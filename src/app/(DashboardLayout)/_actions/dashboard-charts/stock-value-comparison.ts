@@ -6,7 +6,11 @@ import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import { canAccessWarehouse, warehouseScope } from '@/lib/policies';
+import {
+    canAccessWarehouse,
+    resolveWarehouseScope,
+    warehouseScopeCacheKey,
+} from '@/lib/policies';
 
 const getStockValueComparisonSchema = z.object({
     wh_id: z.union([z.literal('all'), z.string().regex(/^\d+$/)]).default('all'),
@@ -23,16 +27,15 @@ export async function getStockValueComparison(wh_id: string = 'all') {
     }
 
     try {
-        const scopedWarehouseIds = warehouseScope(user, 'always');
-        if (
-            scopedWarehouseIds &&
-            (scopedWarehouseIds.length === 0 ||
-                (wh_id !== 'all' && !canAccessWarehouse(user, Number(wh_id))))
-        ) {
+        const scope = resolveWarehouseScope(user);
+        if (scope.kind === 'none') {
+            return { success: false, error: 'Akses gudang ditolak' };
+        }
+        if (scope.kind === 'scoped' && wh_id !== 'all' && !canAccessWarehouse(user, Number(wh_id))) {
             return { success: false, error: 'Akses gudang ditolak' };
         }
 
-        const cacheKey = `stock_val_cmp_${wh_id}_${scopedWarehouseIds ? scopedWarehouseIds.join('_') : 'all'}`;
+        const cacheKey = `stock_val_cmp_${wh_id}_${warehouseScopeCacheKey(scope)}`;
         const cached = await encryptedCache.getGeneral<{
             stockInventoryRp: number;
             stockIntechRp: number;
@@ -59,8 +62,8 @@ export async function getStockValueComparison(wh_id: string = 'all') {
 
         if (wh_id !== 'all') {
             invQuery = invQuery.where('sb.warehouse_id', '=', Number(wh_id));
-        } else if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
-            invQuery = invQuery.where('sb.warehouse_id', 'in', scopedWarehouseIds);
+        } else if (scope.kind === 'scoped') {
+            invQuery = invQuery.where('sb.warehouse_id', 'in', scope.ids);
         }
 
         const invResult = await invQuery.executeTakeFirst();
@@ -85,8 +88,8 @@ export async function getStockValueComparison(wh_id: string = 'all') {
 
         if (wh_id !== 'all') {
             intechQuery = intechQuery.where('soh.warehouse_id', '=', Number(wh_id));
-        } else if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
-            intechQuery = intechQuery.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        } else if (scope.kind === 'scoped') {
+            intechQuery = intechQuery.where('soh.warehouse_id', 'in', scope.ids);
         }
 
         const intechResult = await intechQuery.executeTakeFirst();

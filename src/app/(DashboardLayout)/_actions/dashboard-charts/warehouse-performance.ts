@@ -1,12 +1,26 @@
 'use server';
 
 import { sql } from 'kysely';
+import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 
+/**
+ * Performa pengeluaran out material per gudang (dashboard comparison panel).
+ *
+ * Sengaja menampilkan SEMUA gudang: panel ini dipakai sebagai pembanding
+ * antar-gudang, konsisten dengan `LensaPerformance` dan `WarehouseLeaderboard`.
+ * Data yang diekspos hanya agregat (jumlah transaksi + persentase penyelesaian),
+ * tanpa detail transaksi maupun data personally identifiable.
+ *
+ * Autentikasi tetap wajib (AGENTS.md §1.1) — panel hanya untuk user terautentikasi.
+ */
 export async function getWarehousePerformance() {
     try {
+        // Otorisasi server action (AGENTS.md §1.1) — fail-closed.
+        await getSessionUser();
+
         const cacheKey = `warehouse_perf`;
         const cached = await encryptedCache.getGeneral<unknown>('dashboard', cacheKey);
         if (cached) {

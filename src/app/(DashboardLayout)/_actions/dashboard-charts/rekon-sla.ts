@@ -6,7 +6,11 @@ import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import { canAccessWarehouse, warehouseScope } from '@/lib/policies';
+import {
+    canAccessWarehouse,
+    resolveWarehouseScope,
+    warehouseScopeCacheKey,
+} from '@/lib/policies';
 import type { RekonSlaData, RekonSlaTier } from './types';
 
 const getRekonSlaVelocitySchema = z.object({
@@ -24,16 +28,15 @@ export async function getRekonSlaVelocity(wh_id: string = 'all') {
     }
 
     try {
-        const scopedWarehouseIds = warehouseScope(user, 'always');
-        if (
-            scopedWarehouseIds &&
-            (scopedWarehouseIds.length === 0 ||
-                (wh_id !== 'all' && !canAccessWarehouse(user, Number(wh_id))))
-        ) {
+        const scope = resolveWarehouseScope(user);
+        if (scope.kind === 'none') {
+            return { success: false, error: 'Akses gudang ditolak' };
+        }
+        if (scope.kind === 'scoped' && wh_id !== 'all' && !canAccessWarehouse(user, Number(wh_id))) {
             return { success: false, error: 'Akses gudang ditolak' };
         }
 
-        const cacheKey = `rekon_sla_${wh_id}_${scopedWarehouseIds ? scopedWarehouseIds.join('_') : 'all'}`;
+        const cacheKey = `rekon_sla_${wh_id}_${warehouseScopeCacheKey(scope)}`;
         const cached = await encryptedCache.getGeneral<RekonSlaData>('dashboard', cacheKey);
         if (cached) {
             return { success: true, data: cached };
@@ -60,8 +63,8 @@ export async function getRekonSlaVelocity(wh_id: string = 'all') {
 
         if (wh_id !== 'all') {
             query = query.where('soh.warehouse_id', '=', Number(wh_id));
-        } else if (scopedWarehouseIds && scopedWarehouseIds.length > 0) {
-            query = query.where('soh.warehouse_id', 'in', scopedWarehouseIds);
+        } else if (scope.kind === 'scoped') {
+            query = query.where('soh.warehouse_id', 'in', scope.ids);
         }
 
         const res = await query.executeTakeFirst();

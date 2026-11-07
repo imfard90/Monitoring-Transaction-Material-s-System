@@ -1,21 +1,77 @@
 import { parse } from 'date-fns';
-import { type Browser, chromium, type Page } from 'playwright';
+import { type Browser, type BrowserServer, chromium, type Page } from 'playwright';
 import { actionLogger } from '@/lib/logger';
+import {
+    WORKER_BROWSER_KEY,
+    WORKER_BROWSER_TTL_SECONDS,
+    type WorkerBrowserSnapshot,
+} from '@/lib/workers/worker-client';
 import { redis } from '../redis';
 
 let globalBrowser: Browser | null = null;
+let globalServer: BrowserServer | null = null;
 let browserLastLaunched = 0;
 
 // Refresh browser every 30 min to prevent memory bloat from accumulated state.
 // Contexts are closed per-scrape; this reaps the underlying Chromium process.
 const BROWSER_MAX_AGE_MS = 30 * 60 * 1000;
 
+/**
+ * Maximum number of browser contexts allowed to stay open simultaneously.
+ *
+ * Playwright contexts are the unit that leaks: every `setupContext()` call opens
+ * one, and a scrape that throws before its `finally { context.close() }` (or a
+ * context whose close is rejected) leaves it behind. Chromium spawns a process
+ * group per context, so a handful of leaked contexts turns into dozens of
+ * headless Chrome processes.
+ */
+const MAX_OPEN_CONTEXTS = 10;
+
+/**
+ * Publishes the browser snapshot to Redis so the web process can report it.
+ *
+ * The browser only lives inside the `mtms-worker` process, so `mtms-web` cannot
+ * inspect it in-process. The snapshot has a short TTL: if the worker dies, the
+ * key expires on its own instead of leaving a stale "healthy" reading behind.
+ *
+ * Exported so the worker can refresh it on its heartbeat; otherwise the key
+ * would expire during idle gaps between scrapes.
+ */
+export const publishBrowserSnapshot = async () => {
+    if (!globalBrowser) {
+        await redis.del(WORKER_BROWSER_KEY).catch(() => {});
+        return;
+    }
+    const snapshot: WorkerBrowserSnapshot = {
+        pid: globalServer?.process()?.pid ?? null,
+        contexts: globalBrowser.contexts().length,
+        connected: globalBrowser.isConnected(),
+        updatedAt: Date.now(),
+    };
+    await redis
+        .set(WORKER_BROWSER_KEY, JSON.stringify(snapshot), 'EX', WORKER_BROWSER_TTL_SECONDS)
+        .catch((err: unknown) => {
+            actionLogger.warn('[BROWSER] Gagal publish snapshot browser ke Redis:', {
+                error: err instanceof Error ? err.message : String(err),
+            });
+        });
+};
+
 export async function closeBrowser() {
+    const pid = globalServer?.process()?.pid ?? null;
     if (globalBrowser) {
         await globalBrowser.close().catch(() => {});
         globalBrowser = null;
-        browserLastLaunched = 0;
     }
+    if (globalServer) {
+        // `server.kill()` terminates the Chromium process tree, including any
+        // renderer/zygote children that outlived their context.
+        await globalServer.kill().catch(() => {});
+        globalServer = null;
+    }
+    browserLastLaunched = 0;
+    await redis.del(WORKER_BROWSER_KEY).catch(() => {});
+    actionLogger.info(`[BROWSER] Browser ditutup (pid=${pid ?? 'unknown'}).`);
 }
 
 export async function getBrowserInstance(): Promise<Browser> {
@@ -25,7 +81,11 @@ export async function getBrowserInstance(): Promise<Browser> {
 
     if (needsReconnect) {
         await closeBrowser();
-        globalBrowser = await chromium.launch({
+        // `launchServer` (not `launch`) because only the server handle exposes the
+        // spawned Chromium PID. The PID is required to reap the process tree on
+        // shutdown — without it we would need a broad `pkill`, which would also
+        // kill Chromium instances owned by other services on the same host.
+        globalServer = await chromium.launchServer({
             headless: true,
             args: [
                 '--no-sandbox',
@@ -35,22 +95,34 @@ export async function getBrowserInstance(): Promise<Browser> {
                 '--disable-extensions',
                 '--disable-sync',
                 '--metrics-recording-only',
+                // Prevent Chromium from spawning a crash-handler / breakpad child
+                // process that survives the browser and shows up as an orphan.
+                '--disable-crash-reporter',
+                '--disable-breakpad',
+                '--no-first-run',
+                '--no-default-browser-check',
             ],
         });
+        globalBrowser = await chromium.connect(globalServer.wsEndpoint());
         browserLastLaunched = now;
+        actionLogger.info(
+            `[BROWSER] Chromium baru dijalankan (pid=${globalServer.process()?.pid ?? 'unknown'}).`
+        );
     }
     if (!globalBrowser) {
         throw new Error('Gagal menjalankan browser Chromium untuk scraping Lensa.');
     }
 
-    // Audit: force-close stale contexts if accumulating (leak detection)
+    // Leak detection: force-close contexts that outlived their scrape.
     const contexts = globalBrowser.contexts();
-    if (contexts.length > 10) {
+    if (contexts.length > MAX_OPEN_CONTEXTS) {
         actionLogger.warn(
-            `[BROWSER-LEAK] ${contexts.length} contexts open. Force-closing stale ones.`
+            `[BROWSER-LEAK] ${contexts.length} contexts open (max ${MAX_OPEN_CONTEXTS}). Menutup yang tertinggal.`
         );
         await Promise.allSettled(contexts.slice(0, -5).map((ctx) => ctx.close()));
     }
+
+    await publishBrowserSnapshot();
 
     return globalBrowser;
 }
@@ -73,6 +145,8 @@ export function getLensaBrowserHealth() {
     return {
         connected: globalBrowser?.isConnected() ?? false,
         launchedAt: browserLastLaunched || null,
+        pid: globalServer?.process()?.pid ?? null,
+        contexts: globalBrowser?.contexts().length ?? 0,
         stale:
             browserLastLaunched > 0 ? Date.now() - browserLastLaunched > BROWSER_MAX_AGE_MS : true,
     };

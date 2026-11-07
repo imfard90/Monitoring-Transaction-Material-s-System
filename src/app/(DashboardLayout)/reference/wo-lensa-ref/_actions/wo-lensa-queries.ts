@@ -366,11 +366,39 @@ export async function getWOLensaRefList() {
 
 export async function getWOLensaRefDetails(headerId: number | string) {
     try {
-        const details = await db
+        // Otorisasi + scoping gudang (AGENTS.md §1.1).
+        // Staff hanya boleh membaca detail WO dari gudang tempatnya terdaftar.
+        const { isStaff, warehouseIds } = await getSessionUser();
+        if (isStaff && warehouseIds.length === 0) {
+            return { success: false, error: 'Akses gudang ditolak' };
+        }
+
+        let query = db
             .selectFrom('inventory.wo_lensa_list')
-            .selectAll()
-            .where('header_id', '=', String(headerId))
-            .execute();
+            .innerJoin(
+                'inventory.wo_lensa_header as h',
+                'h.id',
+                'inventory.wo_lensa_list.header_id'
+            )
+            .selectAll('inventory.wo_lensa_list')
+            .where('inventory.wo_lensa_list.header_id', '=', String(headerId));
+
+        if (isStaff) {
+            const allowedWhNames = await db
+                .selectFrom('inventory.mas_wh')
+                .select('name')
+                .where('id', 'in', warehouseIds)
+                .execute();
+            const whNames = expandWarehouseAliases(
+                allowedWhNames.map((w) => w.name as string).filter(Boolean)
+            );
+            if (whNames.length === 0) {
+                return { success: false, error: 'Akses gudang ditolak' };
+            }
+            query = query.where('h.nama_gudang', 'in', whNames);
+        }
+
+        const details = await query.execute();
 
         return { success: true, data: details };
     } catch (error: unknown) {

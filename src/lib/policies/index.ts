@@ -24,14 +24,66 @@ export type WarehouseScopeMode = 'when-assigned' | 'always';
 /**
  * Returns warehouse IDs to scope query to, or null no filtering.
  *
- * - 'when-assigned': Staff empty warehouseIds → null (no filter, show all)
- * - 'always': Staff empty warehouseIds → [] (filter to nothing)
+ * - 'when-assigned': Staff empty warehouseIds → null (no filter, show all) — LEGACY, fail-open
+ * - 'always': Staff empty warehouseIds → [] (filter to nothing) — fail-closed
  * - non-Staff: always null (no filter)
+ *
+ * @deprecated Prefer {@link resolveWarehouseScope}. The `null` / `[]` / `null` triple
+ * return shape is easy to misuse: `if (ids)` treats `[]` as truthy, and
+ * `ids && ids.length > 0` silently drops the filter and leaks all warehouses.
  */
 export function warehouseScope(user: AuthorizationUser, mode: WarehouseScopeMode): number[] | null {
     if (!user.isStaff) return null;
     if (mode === 'when-assigned' && user.warehouseIds.length === 0) return null;
     return user.warehouseIds;
+}
+
+/**
+ * Resolved warehouse scope with an explicit, unambiguous shape.
+ *
+ * - `all`   → no warehouse filter (non-Staff, or a comparison panel that intentionally
+ *             shows every warehouse).
+ * - `none`  → the user may see nothing; callers must short-circuit and return an empty
+ *             result. Never pass this to an `IN` clause (PostgreSQL rejects `IN ()`).
+ * - `scoped` → filter by `ids`; `ids` is guaranteed non-empty.
+ */
+export type ResolvedWarehouseScope =
+    | { kind: 'all' }
+    | { kind: 'none' }
+    | { kind: 'scoped'; ids: number[] };
+
+/**
+ * Resolves the warehouse scope for a request in a fail-closed way.
+ *
+ * Staff users are always restricted to their assigned warehouses. A Staff user with
+ * no warehouse assignment resolves to `none` (sees nothing) instead of falling through
+ * to "see everything".
+ *
+ * @param user Authenticated user.
+ * @param options.includeAllWhenUnassigned Set to `true` only for panels whose sole
+ *        purpose is cross-warehouse comparison and whose payload is aggregate-only.
+ */
+export function resolveWarehouseScope(
+    user: AuthorizationUser,
+    options: { includeAllWhenUnassigned?: boolean } = {}
+): ResolvedWarehouseScope {
+    if (!user.isStaff) return { kind: 'all' };
+    if (user.warehouseIds.length === 0) {
+        return options.includeAllWhenUnassigned ? { kind: 'all' } : { kind: 'none' };
+    }
+    return { kind: 'scoped', ids: user.warehouseIds };
+}
+
+/**
+ * Cache-key fragment describing the warehouse scope of a request.
+ *
+ * Scoped caches MUST include this fragment, otherwise users with different
+ * warehouse assignments share cached results (cross-tenant data leak).
+ */
+export function warehouseScopeCacheKey(scope: ResolvedWarehouseScope): string {
+    if (scope.kind === 'all') return 'all';
+    if (scope.kind === 'none') return 'none';
+    return scope.ids.slice().sort((a, b) => a - b).join('_');
 }
 
 function isPic(user: AuthorizationUser, pic1: string | null, pic2: string | null): boolean {

@@ -44,6 +44,7 @@ vi.mock('@/lib/db/db', () => ({
             if (table === 'inventory.wo_lensa_list') {
                 return {
                     selectAll: vi.fn().mockReturnThis(),
+                    innerJoin: vi.fn().mockReturnThis(),
                     where: vi.fn().mockReturnThis(),
                     execute: mockDetailsExecute,
                 };

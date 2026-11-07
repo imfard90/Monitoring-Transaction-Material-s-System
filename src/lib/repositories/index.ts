@@ -1,6 +1,7 @@
 export { hrRepository } from './hr.repository';
 export type { InventoryRepository } from './inventory.repository';
 export { createInventoryRepository, inventoryRepository } from './inventory.repository';
+export { createUserRepository, type UserRepository, userRepository } from './user.repository';
 export {
     createScraperLogRepository,
     type ScraperAction,

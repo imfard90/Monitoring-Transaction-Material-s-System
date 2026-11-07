@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import { warehouseScope } from '@/lib/policies';
+import { resolveWarehouseScope } from '@/lib/policies';
 import { inventoryRepository } from '@/lib/repositories/inventory.repository';
 import type {
     CachedLensaStock,
@@ -27,7 +27,8 @@ export async function getTeknisiStockList(options?: { includeInactive?: boolean 
 }> {
     try {
         const user = await getSessionUser();
-        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+        const scope = resolveWarehouseScope(user);
+        if (scope.kind === 'none') return { success: true, data: [] };
 
         let query = db
             .selectFrom('hr.technicians as t')
@@ -50,11 +51,8 @@ export async function getTeknisiStockList(options?: { includeInactive?: boolean 
             query = query.where('t.is_active', '=', true);
         }
 
-        if (user.isStaff) {
-            if (!scopedWarehouseIds || scopedWarehouseIds.length === 0) {
-                return { success: true, data: [] };
-            }
-            query = query.where('t.wh_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            query = query.where('t.wh_id', 'in', scope.ids);
         }
 
         const rows = (await query.execute()) as TeknisiRow[];
@@ -178,7 +176,7 @@ export async function getStockComparison(nik: string): Promise<{
         const validNik = parsedNik.data;
 
         const user = await getSessionUser();
-        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+        const scope = resolveWarehouseScope(user);
 
         const teknisi = await db
             .selectFrom('hr.technicians as t')
@@ -202,8 +200,8 @@ export async function getStockComparison(nik: string): Promise<{
         }
 
         // Enforce warehouse scoping for staff
-        if (user.isStaff) {
-            if (!teknisi.wh_id || !scopedWarehouseIds?.includes(teknisi.wh_id)) {
+        if (scope.kind === 'scoped') {
+            if (!teknisi.wh_id || !scope.ids.includes(teknisi.wh_id)) {
                 return {
                     success: false,
                     error: 'Akses ditolak: teknisi bukan di gudang Anda',
@@ -338,7 +336,8 @@ export async function getTeknisiList(): Promise<{
 }> {
     try {
         const user = await getSessionUser();
-        const scopedWarehouseIds = warehouseScope(user, 'when-assigned');
+        const scope = resolveWarehouseScope(user);
+        if (scope.kind === 'none') return { success: true, data: [] };
 
         let query = db
             .selectFrom('hr.technicians')
@@ -347,11 +346,8 @@ export async function getTeknisiList(): Promise<{
             .where('is_active', '=', true);
 
         // Staff: hanya teknisi yang berada di gudang yang di-assign ke user
-        if (user.isStaff) {
-            if (!scopedWarehouseIds || scopedWarehouseIds.length === 0) {
-                return { success: true, data: [] };
-            }
-            query = query.where('wh_id', 'in', scopedWarehouseIds);
+        if (scope.kind === 'scoped') {
+            query = query.where('wh_id', 'in', scope.ids);
         }
 
         const rows = await query.orderBy('name', 'asc').execute();

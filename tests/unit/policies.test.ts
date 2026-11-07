@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
     warehouseScope,
+    resolveWarehouseScope,
+    warehouseScopeCacheKey,
     canAccessWarehouse,
     canSyncStock,
     canUpdateInOutTag,
@@ -51,6 +53,51 @@ describe('warehouseScope', () => {
 
     it('returns null for non-Staff always (always)', () => {
         expect(warehouseScope({ ...staff, isStaff: false }, 'always')).toBeNull();
+    });
+});
+
+describe('resolveWarehouseScope', () => {
+    it('resolves Staff with warehouses to scoped ids', () => {
+        expect(resolveWarehouseScope(staff)).toEqual({ kind: 'scoped', ids: [1] });
+    });
+
+    it('resolves Staff without warehouses to none (fail-closed)', () => {
+        expect(resolveWarehouseScope({ ...staff, warehouseIds: [] })).toEqual({ kind: 'none' });
+    });
+
+    it('resolves non-Staff to all', () => {
+        expect(resolveWarehouseScope({ ...staff, isStaff: false })).toEqual({ kind: 'all' });
+    });
+
+    it('allows comparison panels to opt into all warehouses when unassigned', () => {
+        expect(
+            resolveWarehouseScope({ ...staff, warehouseIds: [] }, { includeAllWhenUnassigned: true })
+        ).toEqual({ kind: 'all' });
+    });
+
+    it('never returns an empty scoped id list', () => {
+        const scope = resolveWarehouseScope({ ...staff, warehouseIds: [] });
+        expect(scope.kind === 'scoped' && scope.ids.length === 0).toBe(false);
+    });
+});
+
+describe('warehouseScopeCacheKey', () => {
+    it('is stable regardless of id order', () => {
+        const a = resolveWarehouseScope({ ...staff, warehouseIds: [3, 1, 2] });
+        const b = resolveWarehouseScope({ ...staff, warehouseIds: [1, 2, 3] });
+        expect(warehouseScopeCacheKey(a)).toBe(warehouseScopeCacheKey(b));
+    });
+
+    it('distinguishes all, none, and scoped', () => {
+        expect(warehouseScopeCacheKey({ kind: 'all' })).toBe('all');
+        expect(warehouseScopeCacheKey({ kind: 'none' })).toBe('none');
+        expect(warehouseScopeCacheKey({ kind: 'scoped', ids: [1, 2] })).toBe('1_2');
+    });
+
+    it('produces different keys for different scopes', () => {
+        const a = warehouseScopeCacheKey({ kind: 'scoped', ids: [1] });
+        const b = warehouseScopeCacheKey({ kind: 'scoped', ids: [2] });
+        expect(a).not.toBe(b);
     });
 });
 
