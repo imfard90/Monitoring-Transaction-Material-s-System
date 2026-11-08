@@ -171,12 +171,13 @@ export async function revealOnScroll(element: HTMLElement): Promise<() => void> 
 
     // Below fold: apply scroll-triggered animation
     element.style.opacity = '0';
+    element.style.transform = 'translateY(40px)';
 
     const { gsap, ScrollTrigger } = await loadGSAP();
 
-    const tween = gsap.from(element, {
-        opacity: 0,
-        y: 40,
+    const tween = gsap.to(element, {
+        opacity: 1,
+        y: 0,
         duration: 0.8,
         ease: 'power2.out',
         scrollTrigger: {
