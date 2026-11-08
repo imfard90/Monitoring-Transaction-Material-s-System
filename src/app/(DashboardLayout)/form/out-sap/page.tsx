@@ -25,20 +25,14 @@ const BCrumb = [
 ];
 
 export default async function OutSapPage() {
-    const user = await getPageSessionUser();
+    await getPageSessionUser();
 
     return (
         <div className="flex flex-col flex-1 w-full min-w-0 max-w-full gap-6">
             <div className="shrink-0 w-full min-w-0">
                 <BreadcrumbComp title="Out SAP" items={BCrumb} />
             </div>
-            <OutSapForm
-                currentUser={{
-                    isStaff: user.isStaff,
-                    warehouseIds: user.warehouseIds,
-                    nik: user.nik,
-                }}
-            />
+            <OutSapForm />
             <Footer />
         </div>
     );

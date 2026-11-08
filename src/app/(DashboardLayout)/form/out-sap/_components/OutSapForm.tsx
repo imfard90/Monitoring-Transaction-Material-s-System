@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { LoadingOverlay } from '@/app/components/shared/LoadingOverlay';
 import { Button } from '@/components/ui/button';
@@ -15,12 +15,13 @@ import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import type { OutSapFormItem } from '@/lib/types/inventory';
+import { scrapeReservationAction } from '../../../reference/out-lensa-ref/_actions/out-lensa-actions';
 import {
     createOutSap,
     getBranches,
+    getMaterials,
     getMaterialsInWarehouse,
-    getOutLensaReservationOptionsForAdmin,
-    getOutSapReservationData,
+    getTechnicianByNik,
     getTechnicians,
     getWarehouses,
 } from '../_actions/out-sap-actions';
@@ -28,15 +29,7 @@ import { OutSapConfirmModal } from './OutSapConfirmModal';
 import { type OutSapFormData, OutSapHeaderFields } from './OutSapHeaderFields';
 import { OutSapMaterialList } from './OutSapMaterialList';
 
-interface OutSapFormProps {
-    currentUser?: {
-        isStaff: boolean;
-        warehouseIds: number[];
-        nik: string;
-    };
-}
-
-export default function OutSapForm({ currentUser }: OutSapFormProps) {
+export default function OutSapForm() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const [loading, setLoading] = useState(false);
@@ -76,96 +69,123 @@ export default function OutSapForm({ currentUser }: OutSapFormProps) {
         queryFn: getBranches,
     });
 
-    // Untuk Admin: query daftar reservasi dari out_lensa_ref_header
-    const { data: adminOptionsRes } = useQuery({
-        queryKey: ['out-lensa-reservation-options-admin'],
-        queryFn: getOutLensaReservationOptionsForAdmin,
-        enabled: !currentUser?.isStaff,
-    });
-
     const technicians = techData?.data || [];
     const warehouses = whData?.data || [];
     const materials = matData?.data || [];
     const branches = branchData?.data || [];
-    const adminReservationOptions = adminOptionsRes?.data || [];
-
-    // User staff gudang otomatis terisi sesuai gudangnya
-    useEffect(() => {
-        if (currentUser?.isStaff && warehouses.length > 0 && !formData.warehouse_id) {
-            setFormData((prev) => ({
-                ...prev,
-                warehouse_id: String(warehouses[0].id),
-            }));
-        }
-    }, [currentUser?.isStaff, warehouses, formData.warehouse_id]);
 
     const handleGetData = async () => {
-        const cleanReqId = formData.request_id.trim();
-        if (!cleanReqId) {
+        if (!formData.request_id) {
             toast.error('Masukkan Request ID terlebih dahulu');
             return;
         }
         setIsScraping(true);
         try {
-            const res = await getOutSapReservationData({
-                requestId: cleanReqId,
-                warehouseId: formData.warehouse_id
-                    ? parseInt(formData.warehouse_id, 10)
-                    : undefined,
-            });
+            const data = await scrapeReservationAction(formData.request_id);
 
-            if (!res.success || !res.data) {
-                toast.error(res.error || 'Gagal mengambil data reservasi');
+            if ('error' in data && data.error) {
+                toast.error(data.error || 'Gagal mengambil data Lensa');
                 setIsScraping(false);
                 return;
             }
 
-            const {
-                id_reservasi,
-                sap_number,
-                name_sa,
-                nik_teknisi,
-                warehouse_id,
-                items: mappedItems,
-                source,
-                nik_pemakai,
-            } = res.data;
+            const successData = data as Record<string, unknown>;
+            const scrapedListData = (successData.listData as Record<string, unknown[]>)
+                ?.data?.[0] as Record<string, unknown>;
+            const scrapedDetail = successData.detailContent as Record<string, unknown>;
 
-            setFormData((prev) => ({
-                ...prev,
-                id_reservasi: id_reservasi || prev.id_reservasi,
-                sap_number: sap_number || prev.sap_number,
-                name_sa: name_sa || prev.name_sa,
-                nik_teknisi: nik_teknisi || prev.nik_teknisi,
-                warehouse_id: warehouse_id || prev.warehouse_id,
-            }));
+            if (scrapedListData && scrapedDetail) {
+                const resIdSap = (scrapedListData.reservation_id_sap as string) || '';
+                const giNumber = (scrapedListData.gi_number as string) || '';
+                const headerInfo = scrapedDetail.headerInfo as Record<string, string> | undefined;
+                const nik = (headerInfo?.nikPemakai || '').replace(/[\s\u00A0]+/g, '');
+                const namaGudang = (scrapedListData.nama_gudang as string) || '';
 
-            if (mappedItems && mappedItems.length > 0) {
-                setItems(mappedItems);
-                setIsScraped(true);
+                let name_sa = formData.name_sa;
+                let nik_teknisi = formData.nik_teknisi;
+                let warehouse_id = formData.warehouse_id;
 
-                if (nik_pemakai && !nik_teknisi) {
-                    toast.error(
-                        `Teknisi (NIK: ${nik_pemakai}) tidak ditemukan di Master Data Teknisi MTMS. Material berhasil dimuat, silakan daftarkan teknisi tersebut.`
+                if (namaGudang) {
+                    const matchedWh = warehouses.find((w: Record<string, unknown>) =>
+                        (w.name as string).toLowerCase().includes(namaGudang.toLowerCase())
                     );
-                } else if (source === 'database') {
-                    toast.success(
-                        'Data reservasi berhasil dimuat dari database referensi Out Lensa.'
-                    );
+                    if (matchedWh) {
+                        warehouse_id = String(matchedWh.id);
+                    }
+                }
+
+                let hasError = false;
+                let errorMessage = '';
+
+                if (nik) {
+                    const techRes = await getTechnicianByNik(nik);
+                    if (techRes.success && techRes.data) {
+                        name_sa = techRes.data.sa || '';
+                        nik_teknisi = techRes.data.nik || '';
+                    } else {
+                        hasError = true;
+                        errorMessage = `Teknisi (NIK: ${nik}) tidak ditemukan di database MTMS. `;
+                    }
+                }
+
+                const materialsRes = await getMaterials();
+                const allMaterials = materialsRes.success ? materialsRes.data : [];
+
+                const mappedItems: OutSapFormItem[] = [];
+                const scrapedMaterials = scrapedDetail.materials as Record<string, string>[];
+                scrapedMaterials?.forEach((scrapedMat: Record<string, string>) => {
+                    const code = (scrapedMat['ID MATERIAL'] || '').trim();
+                    const qty = parseInt(scrapedMat['QTY ACCEPTED'], 10) || 0;
+
+                    if (code && qty > 0) {
+                        const matchedMat = allMaterials?.find(
+                            (m: Record<string, unknown>) => (m.code as string).trim() === code
+                        );
+                        if (matchedMat) {
+                            mappedItems.push({
+                                id: crypto.randomUUID(),
+                                designator_id: String(matchedMat.id),
+                                qty_req: qty,
+                            });
+                        }
+                    }
+                });
+
+                setFormData((prev) => ({
+                    ...prev,
+                    id_reservasi: resIdSap,
+                    sap_number: giNumber,
+                    name_sa,
+                    nik_teknisi,
+                    warehouse_id,
+                }));
+
+                if (mappedItems.length > 0) {
+                    setItems(mappedItems);
+                    setIsScraped(true);
+
+                    if (hasError) {
+                        toast.error(
+                            `${errorMessage} Material berhasil dimuat, tetapi Anda tidak bisa lanjut. Silakan daftarkan NIK tersebut ke Master Data Teknisi lalu ulangi!`,
+                            { duration: 10000 }
+                        );
+                    } else {
+                        toast.success('Data Lensa berhasil dimuat dan material di-map.');
+                    }
                 } else {
-                    toast.success('Data reservasi Lensa berhasil diambil secara langsung.');
+                    toast.warning(
+                        hasError
+                            ? `${errorMessage} Dan juga tidak ada material yang cocok.`
+                            : 'Data Lensa dimuat tapi tidak ada material yang cocok dengan database.'
+                    );
                 }
             } else {
-                setIsScraped(true);
-                toast.warning(
-                    'Data reservasi berhasil diambil, tetapi tidak ada material yang cocok dengan database MTMS.'
-                );
+                toast.error('Data Lensa tidak lengkap.');
             }
         } catch (_err) {
-            toast.error('Terjadi kesalahan jaringan atau sistem.');
-        } finally {
-            setIsScraping(false);
+            toast.error('Terjadi kesalahan jaringan.');
         }
+        setIsScraping(false);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -286,8 +306,6 @@ export default function OutSapForm({ currentUser }: OutSapFormProps) {
                             technicians={technicians}
                             warehouses={warehouses}
                             branches={branches}
-                            isStaff={Boolean(currentUser?.isStaff)}
-                            adminReservationOptions={adminReservationOptions}
                         />
 
                         <OutSapMaterialList
@@ -311,10 +329,7 @@ export default function OutSapForm({ currentUser }: OutSapFormProps) {
                                         setFormData({
                                             nik_teknisi: '',
                                             name_sa: '',
-                                            warehouse_id:
-                                                currentUser?.isStaff && warehouses.length > 0
-                                                    ? String(warehouses[0].id)
-                                                    : '',
+                                            warehouse_id: '',
                                             id_reservasi: '',
                                             sap_number: '',
                                             request_id: '',

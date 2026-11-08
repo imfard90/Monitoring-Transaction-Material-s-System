@@ -18,6 +18,7 @@ import {
     scrapeSingleOutLensaDetailService,
 } from '@/lib/services/lensa-out-service';
 import { dispatchWorkerJob, isWorkerActive } from '@/lib/workers/worker-client';
+import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
 
 export type { ScrapedOutLensaDetailMaterial, ScrapedOutLensaDetailResult };
 
@@ -120,6 +121,55 @@ export async function triggerScraping(): Promise<
  */
 export async function scrapeReservationAction(id: string) {
     try {
+        const cleanId = (id || '').trim();
+        if (!cleanId) {
+            return { error: 'Masukkan Request ID terlebih dahulu' };
+        }
+
+        // 1. Cek apakah reservasi sudah ada di database (out_lensa_ref_header & out_lensa_ref_list)
+        const headerInDb = await db
+            .selectFrom('inventory.out_lensa_ref_header as h')
+            .selectAll()
+            .where((eb) =>
+                eb.or([
+                    eb('h.reservation_id', '=', cleanId),
+                    eb('h.reservation_id_sap', '=', cleanId),
+                ])
+            )
+            .executeTakeFirst();
+
+        if (headerInDb) {
+            const detailRows = await db
+                .selectFrom('inventory.out_lensa_ref_list')
+                .selectAll()
+                .where('header_id', '=', headerInDb.id)
+                .execute();
+
+            if (detailRows.length > 0) {
+                return {
+                    listData: {
+                        data: [
+                            {
+                                reservation_id_sap: headerInDb.reservation_id_sap || '',
+                                gi_number: headerInDb.gi_number || '',
+                                nama_gudang: headerInDb.nama_gudang || '',
+                            },
+                        ],
+                    },
+                    detailContent: {
+                        headerInfo: {
+                            nikPemakai: headerInDb.nik_pemakai || '',
+                        },
+                        materials: detailRows.map((d) => ({
+                            'ID MATERIAL': d.material_id || '',
+                            'QTY ACCEPTED': String(d.qty_approve || 0),
+                        })),
+                    },
+                };
+            }
+        }
+
+        // 2. Resolusi kredensial Lensa: cek PIC gudang 1 failback PIC gudang 2
         const session = await auth.api.getSession({ headers: await headers() }).catch(() => null);
         const sessionUser = await getSessionUser().catch(() => null);
         const userId = session?.user?.id;
@@ -127,64 +177,84 @@ export async function scrapeReservationAction(id: string) {
         let customUsername = '';
         let customPassword = '';
 
-        let userObj = null;
-        if (userId) {
-            userObj = await db
-                .selectFrom('auth.user')
-                .select(['lensa_acount'])
-                .where('id', '=', userId)
-                .executeTakeFirst();
-        }
-        if (!userObj?.lensa_acount && nik) {
-            userObj = await db
-                .selectFrom('auth.user')
-                .select(['lensa_acount'])
-                .where('nik', '=', nik)
-                .executeTakeFirst();
-        }
-
-        if (userObj?.lensa_acount?.username && userObj?.lensa_acount?.password) {
-            customUsername = userObj.lensa_acount.username;
-            try {
-                customPassword = decryptLensaPassword(userObj.lensa_acount.password);
-            } catch (e) {
-                actionLogger.error(
-                    'Failed to decrypt user password',
-                    e instanceof Error ? e : new Error(String(e))
-                );
-            }
-        }
-
-        // Fallback 1: check warehouse PIC 1 and PIC 2 if user has assigned warehouse
-        if ((!customUsername || !customPassword) && sessionUser?.warehouseIds?.[0]) {
-            const wh = await db
+        // Tentukan gudang target
+        let targetWh: { id: number; name: string; pic_1: string | null; pic_2: string | null } | null = null;
+        if (headerInDb?.nama_gudang) {
+            const whs = await db
                 .selectFrom('inventory.mas_wh')
-                .select(['pic_1', 'pic_2'])
-                .where('id', '=', sessionUser.warehouseIds[0])
-                .executeTakeFirst();
-            if (wh) {
-                for (const picNik of [wh.pic_1, wh.pic_2]) {
-                    if (!picNik) continue;
-                    const picUser = await db
-                        .selectFrom('auth.user')
-                        .select(['lensa_acount'])
-                        .where('nik', '=', picNik)
-                        .executeTakeFirst();
-                    if (picUser?.lensa_acount?.username && picUser?.lensa_acount?.password) {
-                        try {
-                            const pass = decryptLensaPassword(picUser.lensa_acount.password);
-                            if (pass) {
-                                customUsername = picUser.lensa_acount.username;
-                                customPassword = pass;
-                                break;
-                            }
-                        } catch {}
+                .select(['id', 'name', 'pic_1', 'pic_2'])
+                .execute();
+            targetWh = findMatchingMasterWarehouse(headerInDb.nama_gudang, whs) || null;
+        }
+
+        if (!targetWh && sessionUser?.warehouseIds?.[0]) {
+            targetWh =
+                (await db
+                    .selectFrom('inventory.mas_wh')
+                    .select(['id', 'name', 'pic_1', 'pic_2'])
+                    .where('id', '=', sessionUser.warehouseIds[0])
+                    .executeTakeFirst()) || null;
+        }
+
+        // Cek PIC 1 lalu fallback PIC 2 dari gudang tersebut
+        if (targetWh) {
+            for (const picNik of [targetWh.pic_1, targetWh.pic_2]) {
+                if (!picNik) continue;
+                const picUser = await db
+                    .selectFrom('auth.user')
+                    .select(['lensa_acount'])
+                    .where('nik', '=', picNik)
+                    .executeTakeFirst();
+                if (picUser?.lensa_acount?.username && picUser?.lensa_acount?.password) {
+                    try {
+                        const pass = decryptLensaPassword(picUser.lensa_acount.password);
+                        if (pass) {
+                            customUsername = picUser.lensa_acount.username;
+                            customPassword = pass;
+                            break;
+                        }
+                    } catch (e) {
+                        actionLogger.warn(
+                            `Failed to decrypt Lensa password for PIC ${picNik}`,
+                            { error: e instanceof Error ? e.message : String(e) }
+                        );
                     }
                 }
             }
         }
 
-        // Fallback 2: if current user and warehouse PIC have no connected Lensa account, check for any active Lensa account in system
+        // Fallback 1: cek profil user yang sedang login (jika user bersangkutan menghubungkan akun)
+        if (!customUsername || !customPassword) {
+            let userObj = null;
+            if (userId) {
+                userObj = await db
+                    .selectFrom('auth.user')
+                    .select(['lensa_acount'])
+                    .where('id', '=', userId)
+                    .executeTakeFirst();
+            }
+            if (!userObj?.lensa_acount && nik) {
+                userObj = await db
+                    .selectFrom('auth.user')
+                    .select(['lensa_acount'])
+                    .where('nik', '=', nik)
+                    .executeTakeFirst();
+            }
+
+            if (userObj?.lensa_acount?.username && userObj?.lensa_acount?.password) {
+                customUsername = userObj.lensa_acount.username;
+                try {
+                    customPassword = decryptLensaPassword(userObj.lensa_acount.password);
+                } catch (e) {
+                    actionLogger.error(
+                        'Failed to decrypt user password',
+                        e instanceof Error ? e : new Error(String(e))
+                    );
+                }
+            }
+        }
+
+        // Fallback 2: cek sembarang akun Lensa aktif di sistem
         if (!customUsername || !customPassword) {
             const anyLensaUsers = await db
                 .selectFrom('auth.user')
@@ -206,7 +276,7 @@ export async function scrapeReservationAction(id: string) {
             }
         }
 
-        const result = await scrapeReservation(id, customUsername, customPassword);
+        const result = await scrapeReservation(cleanId, customUsername, customPassword);
         return result;
     } catch (error: unknown) {
         return { error: error instanceof Error ? error.message : 'Terjadi kesalahan sistem' };
