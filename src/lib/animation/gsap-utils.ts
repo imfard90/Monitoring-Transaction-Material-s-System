@@ -146,3 +146,36 @@ export async function killAllGSAP() {
     // biome-ignore lint/suspicious/useIterableCallbackReturn: forEach for side effect
     scrollTriggerInstance.getAll().forEach((st) => st.kill());
 }
+
+/**
+ * Scroll-triggered reveal with cleanup.
+ *
+ * Returns a cleanup function that kills the animation and ScrollTrigger instance
+ * when the component unmounts. Use with `useScrollReveal` hook for automatic lifecycle.
+ */
+export async function revealOnScroll(element: HTMLElement): Promise<() => void> {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+        element.style.opacity = '1';
+        return () => {};
+    }
+
+    const { gsap, ScrollTrigger } = await loadGSAP();
+
+    const tween = gsap.from(element, {
+        opacity: 0,
+        y: 40,
+        duration: 0.8,
+        ease: 'power2.out',
+        scrollTrigger: {
+            trigger: element,
+            start: 'top 80%',
+            toggleActions: 'play none none reverse',
+        },
+    });
+
+    return () => {
+        tween.scrollTrigger?.kill();
+        tween.kill();
+    };
+}

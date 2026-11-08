@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import type { RekonSlaData } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { useScrollReveal } from '@/hooks/use-scroll-reveal';
 import {
     Select,
     SelectContent,
@@ -59,6 +60,7 @@ export const RekonSlaVelocity: React.FC<{
     isStaff: boolean;
     warehouses: WarehouseOption[];
 }> = ({ isStaff, warehouses }) => {
+    const cardRef = useScrollReveal();
     const [selectedWh, setSelectedWh] = useState<string>('all');
     const targetWh = isStaff ? 'all' : selectedWh;
 
@@ -149,7 +151,8 @@ export const RekonSlaVelocity: React.FC<{
     );
 
     return (
-        <Card className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl p-3.5 sm:p-4 h-full w-full relative overflow-hidden flex flex-col justify-between">
+        <Card
+            ref={cardRef} className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl p-3.5 sm:p-4 h-full w-full relative overflow-hidden flex flex-col justify-between">
             <div
                 className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-primary/5 to-transparent pointer-events-none"
                 aria-hidden="true"

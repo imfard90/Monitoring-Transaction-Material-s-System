@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import type React from 'react';
 import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { useScrollReveal } from '@/hooks/use-scroll-reveal';
 import {
     Select,
     SelectContent,
@@ -65,6 +66,7 @@ export const StockValueDonutChart: React.FC<{
     isStaff: boolean;
     warehouses: WarehouseOption[];
 }> = ({ isStaff, warehouses }) => {
+    const cardRef = useScrollReveal();
     const [selectedWh, setSelectedWh] = useState<string>('all');
     const targetWh = isStaff ? 'all' : selectedWh;
 
@@ -173,7 +175,8 @@ export const StockValueDonutChart: React.FC<{
     );
 
     return (
-        <Card className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-sm p-3.5 sm:p-4 motion-reduce:transition-none h-full w-full relative overflow-hidden flex flex-col justify-between">
+        <Card
+            ref={cardRef} className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-sm p-3.5 sm:p-4 motion-reduce:transition-none h-full w-full relative overflow-hidden flex flex-col justify-between">
             {/* Ambient decorative gradient */}
             <div
                 className="absolute top-0 left-0 w-full h-20 bg-linear-to-b from-primary/5 to-transparent pointer-events-none"

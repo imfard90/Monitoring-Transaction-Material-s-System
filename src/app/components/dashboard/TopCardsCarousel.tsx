@@ -8,6 +8,7 @@ import 'swiper/css';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardKpis } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { Card } from '@/components/ui/card';
+import { useNumberCounter } from '@/hooks/use-number-counter';
 import { queryKeys } from '@/lib/query-keys';
 
 interface TopCardsCarouselProps {
@@ -153,6 +154,29 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
 
     const kpis = data || initialKpis;
 
+    // Create counters at top level (Rules of Hooks)
+    const counters = {
+        onlineUsers: useNumberCounter(kpis.onlineUsers, (n) =>
+            Math.floor(n).toLocaleString('id-ID')
+        ),
+        stockInventoryRp: useNumberCounter(kpis.stockInventoryRp ?? 0, (n) => {
+            const { formatted } = formatKpiDisplay('stockInventoryRp', Math.floor(n));
+            return formatted;
+        }),
+        stockIntechRp: useNumberCounter(kpis.stockIntechRp ?? 0, (n) => {
+            const { formatted } = formatKpiDisplay('stockIntechRp', Math.floor(n));
+            return formatted;
+        }),
+        requestTag: useNumberCounter(kpis.requestTag, (n) => Math.floor(n).toLocaleString('id-ID')),
+        transitTag: useNumberCounter(kpis.transitTag, (n) => Math.floor(n).toLocaleString('id-ID')),
+        closeTag: useNumberCounter(kpis.closeTag, (n) => Math.floor(n).toLocaleString('id-ID')),
+        returnTek: useNumberCounter(kpis.returnTek, (n) => Math.floor(n).toLocaleString('id-ID')),
+        intechOpen: useNumberCounter(kpis.intechOpen, (n) => Math.floor(n).toLocaleString('id-ID')),
+        intechClose: useNumberCounter(kpis.intechClose, (n) =>
+            Math.floor(n).toLocaleString('id-ID')
+        ),
+    };
+
     return (
         <div>
             <Swiper
@@ -195,6 +219,7 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
                 {kpiConfig.map((item) => {
                     const rawValue = kpis[item.key as KpiKey] ?? 0;
                     const { formatted, full } = formatKpiDisplay(item.key, rawValue);
+                    const { AnimatedNumber } = counters[item.key as KpiKey];
 
                     return (
                         <SwiperSlide key={item.key} className="py-1">
@@ -227,7 +252,7 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
                                                 title={full}
                                                 className={`text-lg sm:text-xl font-bold tracking-tight tabular-nums truncate ${item.iconColor}`}
                                             >
-                                                {formatted}
+                                                <AnimatedNumber />
                                             </p>
                                         </div>
                                     </div>

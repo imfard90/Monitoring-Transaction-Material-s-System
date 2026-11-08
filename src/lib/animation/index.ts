@@ -17,7 +17,14 @@
 export * from './motion-presets';
 
 // GSAP utilities (lazy-loaded)
-export { loadGSAP, revealChart, staggerReveal, drawPath, killAllGSAP } from './gsap-utils';
+export {
+    loadGSAP,
+    revealChart,
+    staggerReveal,
+    drawPath,
+    killAllGSAP,
+    revealOnScroll,
+} from './gsap-utils';
 
 // React Spring utilities (lazy-loaded)
 export {

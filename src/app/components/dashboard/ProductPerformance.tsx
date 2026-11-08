@@ -4,11 +4,13 @@ import { Icon } from '@iconify/react';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
+import { useScrollReveal } from '@/hooks/use-scroll-reveal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { queryKeys } from '@/lib/query-keys';
 import { cn } from '@/lib/utils';
 
 export const ProductPerformance = () => {
+    const cardRef = useScrollReveal();
     const { data: warehouseData = [], isLoading } = useQuery({
         queryKey: queryKeys.dashboard.leaderboard(),
         queryFn: async () => {
@@ -61,7 +63,8 @@ export const ProductPerformance = () => {
         .sort((a, b) => b.percentage - a.percentage || b.trxOut - a.trxOut);
 
     return (
-        <Card className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-sm p-3.5 sm:p-4 motion-reduce:transition-none w-full relative overflow-hidden flex flex-col">
+        <Card
+            ref={cardRef} className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-sm p-3.5 sm:p-4 motion-reduce:transition-none w-full relative overflow-hidden flex flex-col">
             <div
                 className="pointer-events-none absolute right-0 top-0 h-24 w-24 bg-linear-to-bl from-primary/5 to-transparent"
                 aria-hidden="true"
