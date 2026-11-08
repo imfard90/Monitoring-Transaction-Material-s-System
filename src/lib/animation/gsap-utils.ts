@@ -160,11 +160,11 @@ export async function revealOnScroll(element: HTMLElement): Promise<() => void> 
         return () => {};
     }
 
-    // Check if element is above the fold — skip animation to prevent delayed render
+    // Check if element is already visible in viewport — skip animation to prevent delayed render
     const rect = element.getBoundingClientRect();
-    const isAboveFold = rect.top < window.innerHeight * 0.8;
+    const isVisible = rect.top >= 0 && rect.top < window.innerHeight * 0.8;
 
-    if (isAboveFold) {
+    if (isVisible) {
         element.style.opacity = '1';
         return () => {};
     }
