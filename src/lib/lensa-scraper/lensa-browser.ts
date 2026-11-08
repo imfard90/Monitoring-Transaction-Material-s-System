@@ -69,6 +69,19 @@ export async function closeBrowser() {
         await globalServer.kill().catch(() => {});
         globalServer = null;
     }
+    // On Linux/Unix, ensure any remaining child processes of Chromium are reaped
+    if (
+        typeof pid === 'number' &&
+        pid > 0 &&
+        (process.platform === 'linux' || process.platform === 'darwin')
+    ) {
+        try {
+            const { exec } = await import('node:child_process');
+            exec(`pkill -P ${pid} 2>/dev/null || true`);
+        } catch {
+            // ignore if child process reap fails
+        }
+    }
     browserLastLaunched = 0;
     await redis.del(WORKER_BROWSER_KEY).catch(() => {});
     actionLogger.info(`[BROWSER] Browser ditutup (pid=${pid ?? 'unknown'}).`);
@@ -91,6 +104,7 @@ export async function getBrowserInstance(): Promise<Browser> {
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
+                '--disable-gpu',
                 '--disable-background-networking',
                 '--disable-extensions',
                 '--disable-sync',

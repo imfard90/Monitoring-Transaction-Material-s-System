@@ -5,7 +5,7 @@ const apps = [
         name: 'mtms-web',
         script: 'node_modules/next/dist/bin/next',
         args: 'start',
-        instances: 1, // Bisa diubah ke 'max' untuk memanfaatkan multi-core CPU di server
+        instances: 4, // Bisa diubah ke 'max' untuk memanfaatkan multi-core CPU di server
         exec_mode: 'cluster',
         autorestart: true,
         watch: false,

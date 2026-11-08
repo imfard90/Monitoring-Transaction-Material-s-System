@@ -65,6 +65,8 @@ export async function register() {
                 '[CRON] Error during scheduled scraping:',
                 error instanceof Error ? error : new Error(String(error))
             );
+        } finally {
+            await closeBrowser().catch(() => {});
         }
     };
 

@@ -33,6 +33,24 @@ actionLogger.info(`[MTMS-WORKER] Process ID: ${process.pid}`);
 actionLogger.info(`[MTMS-WORKER] Node Env: ${process.env.NODE_ENV || 'development'}`);
 actionLogger.info('====================================================');
 
+// Cleanup any orphaned Playwright Chromium instances left by a previously killed/crashed worker
+if (process.platform === 'linux') {
+    import('node:child_process')
+        .then(({ exec }) => {
+            exec(
+                'pkill -f "chrome-headless.*playwright_chromiumdev" 2>/dev/null || true',
+                (err) => {
+                    if (!err) {
+                        actionLogger.info(
+                            '[MTMS-WORKER] Orphaned Playwright Chromium processes cleaned up on startup.'
+                        );
+                    }
+                }
+            );
+        })
+        .catch(() => {});
+}
+
 let isRunning = true;
 let isJobActive = false;
 
@@ -105,6 +123,8 @@ const runScrapers = async (perpage: number) => {
             '[CRON] Error during scheduled scraping:',
             error instanceof Error ? error : new Error(String(error))
         );
+    } finally {
+        await closeBrowser().catch(() => {});
     }
 };
 
@@ -523,6 +543,10 @@ const gracefulShutdown = async (signal: string) => {
         if (browserPid) {
             try {
                 process.kill(browserPid, 'SIGKILL');
+                if (process.platform === 'linux' || process.platform === 'darwin') {
+                    const { exec } = await import('node:child_process');
+                    exec(`pkill -P ${browserPid} 2>/dev/null || true`);
+                }
                 actionLogger.info(`[SHUTDOWN] Chromium process ${browserPid} killed.`);
             } catch (killErr) {
                 actionLogger.warn('[SHUTDOWN] Gagal kill process Chromium:', {
