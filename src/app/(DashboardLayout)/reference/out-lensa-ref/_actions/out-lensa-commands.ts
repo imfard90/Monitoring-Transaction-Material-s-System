@@ -155,7 +155,36 @@ export async function scrapeReservationAction(id: string) {
             }
         }
 
-        // Fallback: if current user has no valid connected Lensa account, check for any active Lensa account in system
+        // Fallback 1: check warehouse PIC 1 and PIC 2 if user has assigned warehouse
+        if ((!customUsername || !customPassword) && sessionUser?.warehouseIds?.[0]) {
+            const wh = await db
+                .selectFrom('inventory.mas_wh')
+                .select(['pic_1', 'pic_2'])
+                .where('id', '=', sessionUser.warehouseIds[0])
+                .executeTakeFirst();
+            if (wh) {
+                for (const picNik of [wh.pic_1, wh.pic_2]) {
+                    if (!picNik) continue;
+                    const picUser = await db
+                        .selectFrom('auth.user')
+                        .select(['lensa_acount'])
+                        .where('nik', '=', picNik)
+                        .executeTakeFirst();
+                    if (picUser?.lensa_acount?.username && picUser?.lensa_acount?.password) {
+                        try {
+                            const pass = decryptLensaPassword(picUser.lensa_acount.password);
+                            if (pass) {
+                                customUsername = picUser.lensa_acount.username;
+                                customPassword = pass;
+                                break;
+                            }
+                        } catch {}
+                    }
+                }
+            }
+        }
+
+        // Fallback 2: if current user and warehouse PIC have no connected Lensa account, check for any active Lensa account in system
         if (!customUsername || !customPassword) {
             const anyLensaUsers = await db
                 .selectFrom('auth.user')

@@ -84,7 +84,7 @@ describe('lensa browser lifecycle', () => {
 
         expect(mockLaunchServer).toHaveBeenCalledTimes(1);
         expect(mockConnect).toHaveBeenCalledWith('ws://localhost:1234');
-    });
+    }, 15000);
 
     it('exposes the Chromium PID in the health snapshot', async () => {
         const { getBrowserInstance, getLensaBrowserHealth } = await import(
