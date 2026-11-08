@@ -414,3 +414,25 @@ input[type="time"] {
         width: calc(clamp(0, var(--score-val), 100) * 1%);
     }
 }
+
+/* ============================================================================
+   View Transition API — Smooth Theme Switching
+   ========================================================================= */
+
+/**
+ * Cross-fade animation for theme transitions using the View Transitions API.
+ * Respects prefers-reduced-motion; falls back to instant when API unavailable.
+ * Triggered by Header.tsx toggleMode() when supported.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 0.3s;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: 0.01ms !important;
+    }
+}

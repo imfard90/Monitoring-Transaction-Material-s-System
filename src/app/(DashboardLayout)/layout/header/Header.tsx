@@ -16,7 +16,19 @@ const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
 
     const toggleMode = () => {
-        setTheme(theme === 'light' ? 'dark' : 'light');
+        const newTheme = theme === 'light' ? 'dark' : 'light';
+        // Use View Transitions API when available for smooth cross-fade
+        if (
+            typeof document !== 'undefined' &&
+            'startViewTransition' in document &&
+            !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) {
+            (document as any).startViewTransition(() => {
+                setTheme(newTheme);
+            });
+        } else {
+            setTheme(newTheme);
+        }
     };
 
     return (

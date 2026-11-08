@@ -4,6 +4,7 @@ import type React from 'react';
 import './css/globals.css';
 import ServiceWorkerRegister from '@/app/components/service-worker/ServiceWorkerRegister';
 import { WebVitalsReporter } from '@/components/analytics/WebVitalsReporter';
+import { A11yAuditor } from '@/components/a11y/A11yAuditor';
 import { Providers } from './providers';
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </head>
             <body className={`${plusJakarta.className} antialiased`}>
                 <Providers>
+                    <A11yAuditor />
                     <ServiceWorkerRegister />
                     <WebVitalsReporter />
                     {children}
