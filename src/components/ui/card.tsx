@@ -76,3 +76,11 @@ function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
 }
 
 export { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle };
+
+// Compound component namespace for dot notation usage
+Card.Header = CardHeader;
+Card.Title = CardTitle;
+Card.Description = CardDescription;
+Card.Content = CardContent;
+Card.Footer = CardFooter;
+Card.Action = CardAction;
