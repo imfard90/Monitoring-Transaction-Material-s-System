@@ -11,7 +11,6 @@ import type { IntechAgingData } from '@/app/(DashboardLayout)/_actions/dashboard
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useScrollReveal } from '@/hooks/use-scroll-reveal';
 import {
     Select,
     SelectContent,
@@ -31,9 +30,7 @@ interface IntechAgingPanelProps {
     warehouses: WarehouseOption[];
 }
 
-export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, warehouses }) => {
-    const cardRef = useScrollReveal();
-    const [selectedWh, setSelectedWh] = useState<string>('all');
+export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, warehouses }) => {    const [selectedWh, setSelectedWh] = useState<string>('all');
     const [activeSecondaryView, setActiveSecondaryView] = useState<'material' | 'technician'>(
         'material'
     );
@@ -260,7 +257,6 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
 
     return (
         <Card
-            ref={cardRef}
             className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl p-3.5 sm:p-4 transition-shadow duration-200 hover:shadow-sm relative overflow-hidden"
         >
             {/* Header */}

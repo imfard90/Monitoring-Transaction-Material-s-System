@@ -17,7 +17,6 @@ import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useScrollReveal } from '@/hooks/use-scroll-reveal';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
@@ -50,9 +49,7 @@ interface StockBalanceData {
 
 const columnHelper = createColumnHelper<StockBalanceData>();
 
-export default function StockBalanceOverview() {
-    const cardRef = useScrollReveal();
-    const [searchQuery, setSearchQuery] = useState('');
+export default function StockBalanceOverview() {    const [searchQuery, setSearchQuery] = useState('');
     const [whFilter, setWhFilter] = useState<string>('all');
     const [openCombo, setOpenCombo] = useState(false);
 
@@ -342,7 +339,7 @@ export default function StockBalanceOverview() {
         <StaggerContainer className="flex flex-col flex-1 min-h-0">
             <StaggerItem className="flex flex-col flex-1 min-h-0">
                 <Card
-            ref={cardRef} className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none flex flex-col flex-1 min-h-0 p-6">
+            className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none flex flex-col flex-1 min-h-0 p-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-4">
                         <div>
                             <h2 className="text-lg font-bold text-foreground">

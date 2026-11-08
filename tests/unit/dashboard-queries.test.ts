@@ -239,7 +239,7 @@ describe('dashboard warehouse scoping', () => {
         await expect(getTopOutMaterials()).resolves.toMatchObject({ success: true, data: [] });
         await expect(getOutMaterialLineChartData('all')).resolves.toMatchObject({
             success: true,
-            data: [],
+            data: { dailyData: [], topMats: [] },
         });
         await expect(getStockWarnings()).resolves.toMatchObject({ success: true, data: [] });
         expect(mockSelectFrom).not.toHaveBeenCalled();

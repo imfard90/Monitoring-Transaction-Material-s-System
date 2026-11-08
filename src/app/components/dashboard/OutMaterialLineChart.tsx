@@ -13,7 +13,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { useScrollReveal } from '@/hooks/use-scroll-reveal';
 import { queryKeys } from '@/lib/query-keys';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -62,9 +61,7 @@ function formatUnit(unit?: string | null): string {
 const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] }> = ({
     isStaff,
     warehouses,
-}) => {
-    const cardRef = useScrollReveal();
-    const [selectedWh, setSelectedWh] = useState<string>('all');
+}) => {    const [selectedWh, setSelectedWh] = useState<string>('all');
     const [selectedMaterial, setSelectedMaterial] = useState<string>('all');
     const [timeframe, setTimeframe] = useState<TimeframeOption>(30);
 
@@ -363,7 +360,6 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
 
     return (
         <Card
-            ref={cardRef}
             className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-sm p-3.5 sm:p-4 motion-reduce:transition-none pb-1 h-full w-full relative overflow-hidden flex flex-col justify-between"
         >
             <div
