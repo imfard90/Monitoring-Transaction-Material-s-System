@@ -92,17 +92,26 @@ export function getApexTheme(isDark: boolean) {
  * `{ ...getApexBaseOptions(), chart: { type: 'donut' }, ... }`
  */
 export function getApexBaseOptions() {
+    // Check for prefers-reduced-motion
+    const prefersReducedMotion =
+        typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     return {
         chart: {
             fontFamily: 'inherit',
             foreColor: 'var(--muted-foreground)',
             toolbar: { show: false },
             animations: {
-                enabled: true,
-                speed: 550,
+                enabled: !prefersReducedMotion,
+                speed: 800,
+                easing: 'easeinout',
                 animateGradually: {
                     enabled: true,
-                    delay: 150,
+                    delay: 120,
+                },
+                dynamicAnimation: {
+                    enabled: true,
+                    speed: 350,
                 },
             },
         },
