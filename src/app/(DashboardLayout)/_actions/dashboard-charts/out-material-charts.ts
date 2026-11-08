@@ -23,7 +23,8 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
     }
     const validLimit = parsed.data.limit;
     const scope = resolveWarehouseScope(user);
-    if (scope.kind === 'none') return { success: true, data: [] };
+    if (scope.kind === 'none')
+        return { success: true, data: { topMats: [], dailyData: [], startDate: new Date() } };
     if (
         scope.kind === 'scoped' &&
         parsed.data.wh_id !== 'all' &&
@@ -63,7 +64,10 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
         const topMatCodes = topMats.map((t) => t.material_code);
 
         if (topMatCodes.length === 0) {
-            return { success: true, data: [] };
+            return {
+                success: true,
+                data: { topMats: [], dailyData: [], startDate: thirtyDaysAgo },
+            };
         }
 
         // Then get daily data for these top materials
