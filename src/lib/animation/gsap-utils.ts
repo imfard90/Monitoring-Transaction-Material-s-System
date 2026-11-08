@@ -160,6 +160,18 @@ export async function revealOnScroll(element: HTMLElement): Promise<() => void> 
         return () => {};
     }
 
+    // Check if element is above the fold — skip animation to prevent delayed render
+    const rect = element.getBoundingClientRect();
+    const isAboveFold = rect.top < window.innerHeight * 0.8;
+
+    if (isAboveFold) {
+        element.style.opacity = '1';
+        return () => {};
+    }
+
+    // Below fold: apply scroll-triggered animation
+    element.style.opacity = '0';
+
     const { gsap, ScrollTrigger } = await loadGSAP();
 
     const tween = gsap.from(element, {
