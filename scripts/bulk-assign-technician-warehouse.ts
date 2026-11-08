@@ -10,7 +10,7 @@
  */
 
 import 'dotenv/config';
-import { createPool, executeWrite } from '@/lib/db/execute';
+import { createPool } from '@/lib/db/execute';
 
 const MAPPINGS = [
     { branchIds: [5], whId: 1, whName: 'SO Karangpilang', serviceAreas: ['BAMBE'] }, // BAMBE -> Karangpilang

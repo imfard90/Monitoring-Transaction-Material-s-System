@@ -55,7 +55,7 @@ describe('API User Rate Limiter', () => {
         expect(result.allowed).toBe(false);
         expect(result.retryAfterSeconds).toBe(240);
         expect(result.retryAt).toBeTruthy();
-        expect(new Date(result.retryAt!).getTime()).toBeGreaterThan(Date.now());
+        expect(new Date(result.retryAt ?? '').getTime()).toBeGreaterThan(Date.now());
     });
 
     it('fails closed if Redis throws an unexpected error', async () => {
