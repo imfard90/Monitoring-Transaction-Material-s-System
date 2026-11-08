@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { staggerContainer } from '@/lib/animation/stagger';
 
 interface StaggerContainerProps {
     children: ReactNode;
@@ -14,24 +15,25 @@ interface StaggerContainerProps {
 export function StaggerContainer({
     children,
     className,
-    delay = 0,
-    staggerDelay = 0.1,
+    delay = 0.04,
+    staggerDelay = 0.08,
 }: StaggerContainerProps) {
     return (
         <motion.div
             className={cn(className)}
-            initial="hidden"
-            animate="visible"
             variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                    opacity: 1,
+                ...staggerContainer,
+                show: {
+                    ...staggerContainer.show,
                     transition: {
+                        ...(staggerContainer.show as any).transition,
                         delayChildren: delay,
                         staggerChildren: staggerDelay,
                     },
                 },
             }}
+            initial="hidden"
+            animate="show"
         >
             {children}
         </motion.div>

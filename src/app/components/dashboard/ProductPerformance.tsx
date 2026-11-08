@@ -2,11 +2,12 @@
 
 import { Icon } from '@iconify/react';
 import { useQuery } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { queryKeys } from '@/lib/query-keys';
 import { cn } from '@/lib/utils';
+import { staggerContainer, staggerItemVariants } from '@/lib/animation/stagger';
 
 export const ProductPerformance = () => {    const { data: warehouseData = [], isLoading } = useQuery({
         queryKey: queryKeys.dashboard.leaderboard(),
@@ -115,7 +116,12 @@ export const ProductPerformance = () => {    const { data: warehouseData = [], i
                         Belum ada data transaksi gudang.
                     </div>
                 ) : (
-                    <AnimatePresence>
+                    <motion.div
+                        variants={staggerContainer}
+                        initial="hidden"
+                        animate="show"
+                        className="space-y-0"
+                    >
                         {performanceData.map((item, index) => {
                             const isGold = index === 0;
                             const isSilver = index === 1;
@@ -124,9 +130,7 @@ export const ProductPerformance = () => {    const { data: warehouseData = [], i
                             return (
                                 <motion.div
                                     key={item.key}
-                                    initial={{ opacity: 0, y: 6 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.2, delay: index * 0.02 }}
+                                    variants={staggerItemVariants}
                                     className="group space-y-1 rounded-lg p-1.5 -mx-1 transition-colors hover:bg-muted/40"
                                 >
                                     {/* Top Row: Rank, Warehouse Name, Count & Badge */}
@@ -188,7 +192,7 @@ export const ProductPerformance = () => {    const { data: warehouseData = [], i
                                 </motion.div>
                             );
                         })}
-                    </AnimatePresence>
+                    </motion.div>
                 )}
             </div>
         </Card>

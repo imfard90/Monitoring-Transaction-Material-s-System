@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { staggerItemVariants } from '@/lib/animation/stagger';
 
 interface StaggerItemProps {
     children: ReactNode;
@@ -11,21 +12,7 @@ interface StaggerItemProps {
 
 export function StaggerItem({ children, className }: StaggerItemProps) {
     return (
-        <motion.div
-            className={cn(className)}
-            variants={{
-                hidden: { opacity: 0, y: 20 },
-                visible: {
-                    opacity: 1,
-                    y: 0,
-                    transition: {
-                        type: 'spring',
-                        stiffness: 300,
-                        damping: 24,
-                    },
-                },
-            }}
-        >
+        <motion.div className={cn(className)} variants={staggerItemVariants}>
             {children}
         </motion.div>
     );
