@@ -13,8 +13,10 @@ import {
 } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
-import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
-import { decryptLensaPassword } from './lensa-crypto';
+import {
+    executeWithLensaFallback,
+    getWarehouseLensaCandidates,
+} from './lensa-credential-helper';
 import {
     type LensaDetailMaterial,
     type ScrapedWODetailMaterial,
@@ -57,87 +59,13 @@ export async function scrapeSingleWODetailService(
             )
             .executeTakeFirst();
 
-        let customUsername = '';
-        let customPassword = '';
+        // 2. Ambil kandidat akun Lensa (PIC 1 -> fallback PIC 2 -> user -> system)
+        const candidates = await getWarehouseLensaCandidates({
+            warehouseName: header?.nama_gudang,
+            sessionNik,
+        });
 
-        if (sessionNik) {
-            const loggedUser = await db
-                .selectFrom('auth.user')
-                .select([
-                    sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
-                    sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
-                ])
-                .where('nik', '=', sessionNik)
-                .executeTakeFirst();
-
-            if (loggedUser?.lensa_username && loggedUser?.lensa_password) {
-                try {
-                    customUsername = loggedUser.lensa_username;
-                    customPassword = decryptLensaPassword(loggedUser.lensa_password);
-                } catch (e) {
-                    actionLogger.warn('Failed to decrypt user Lensa password', {
-                        error: e instanceof Error ? e.message : String(e),
-                    });
-                }
-            }
-        }
-
-        if ((!customUsername || !customPassword) && header?.nama_gudang) {
-            const whs = await db
-                .selectFrom('inventory.mas_wh')
-                .select(['name', 'pic_1', 'pic_2'])
-                .execute();
-            const matchedWh = findMatchingMasterWarehouse(header.nama_gudang, whs);
-            if (matchedWh) {
-                for (const picNik of [matchedWh.pic_1, matchedWh.pic_2]) {
-                    if (!picNik) continue;
-                    const picUser = await db
-                        .selectFrom('auth.user')
-                        .select([
-                            sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
-                            sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
-                        ])
-                        .where('nik', '=', picNik)
-                        .executeTakeFirst();
-
-                    if (picUser?.lensa_username && picUser?.lensa_password) {
-                        try {
-                            customUsername = picUser.lensa_username;
-                            customPassword = decryptLensaPassword(picUser.lensa_password);
-                            if (customUsername && customPassword) break;
-                        } catch {}
-                    }
-                }
-            }
-        }
-
-        if (!customUsername || !customPassword) {
-            const anyLensaUsers = await db
-                .selectFrom('auth.user')
-                .select([
-                    sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
-                    sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
-                ])
-                .where('lensa_acount', 'is not', null)
-                .execute();
-
-            for (const u of anyLensaUsers) {
-                if (u.lensa_username && u.lensa_password) {
-                    try {
-                        customUsername = u.lensa_username;
-                        customPassword = decryptLensaPassword(u.lensa_password);
-                        if (customUsername && customPassword) break;
-                    } catch {}
-                }
-            }
-        }
-
-        if (!customUsername || !customPassword) {
-            customUsername = process.env.LENSA_USERNAME || '';
-            customPassword = process.env.LENSA_PASSWORD || '';
-        }
-
-        if (!customUsername || !customPassword) {
+        if (candidates.length === 0) {
             return {
                 success: false,
                 error: 'Kredensial akun Lensa tidak ditemukan. Pastikan ada akun Lensa yang terhubung.',
@@ -163,97 +91,116 @@ export async function scrapeSingleWODetailService(
               }
             : null;
 
-        // Jika belum ada resolvedPemakaianId dan input bukan angka murni (misal: "INC123456", "SC..."),
-        // langsung cari header ke endpoint pencarian Lensa untuk menghemat waktu (fast path).
-        if (!resolvedPemakaianId && !isNumeric) {
-            const searchedHeader = await searchSingleWOLensaHeader(
-                cleanInput,
-                customUsername,
-                customPassword
-            );
-            if (searchedHeader) {
-                headerMetadata = searchedHeader;
-                resolvedPemakaianId = searchedHeader.pemakaian_id;
-            }
-        } else if (!resolvedPemakaianId && isNumeric) {
-            // Jika angka murni dan belum ada di DB, gunakan input sebagai kandidat pemakaian_id awal
-            resolvedPemakaianId = cleanInput;
-        }
+        const scrapeOutcome = await executeWithLensaFallback(
+            candidates,
+            async (creds) => {
+                let currentHeaderMeta = headerMetadata;
+                let currentPemakaianId = resolvedPemakaianId;
 
-        let detail:
-            | {
-                  header_id: number;
-                  pemakaian_id: string;
-                  materials: Record<string, string>[];
-              }
-            | undefined;
-
-        // Coba scraping detail langsung jika sudah memiliki resolvedPemakaianId
-        if (resolvedPemakaianId) {
-            try {
-                const details = await scrapeWOLensaDetails(
-                    [
-                        {
-                            id: header?.id ? Number(header.id) : 0,
-                            pemakaian_id: resolvedPemakaianId,
-                            type: headerMetadata?.type || 'assurance',
-                        },
-                    ],
-                    customUsername,
-                    customPassword
-                );
-                if (details[0] && details[0].materials.length > 0) {
-                    detail = details[0];
-                }
-            } catch (detailErr) {
-                actionLogger.warn(
-                    `[scrapeSingleWODetailService] Direct detail scrape failed for ${resolvedPemakaianId}:`,
-                    { error: detailErr instanceof Error ? detailErr.message : String(detailErr) }
-                );
-            }
-        }
-
-        // PROSES FALLBACK:
-        // Jika detail belum didapatkan atau material kosong, fallback ke endpoint header search Lensa
-        if (!detail || detail.materials.length === 0) {
-            actionLogger.info(
-                `[scrapeSingleWODetailService] Running fallback search header on Lensa for '${cleanInput}'...`
-            );
-            const fallbackHeader = await searchSingleWOLensaHeader(
-                cleanInput,
-                customUsername,
-                customPassword
-            );
-
-            if (fallbackHeader?.pemakaian_id) {
-                headerMetadata = fallbackHeader;
-                resolvedPemakaianId = fallbackHeader.pemakaian_id;
-
-                try {
-                    const fallbackDetails = await scrapeWOLensaDetails(
-                        [
-                            {
-                                id: header?.id ? Number(header.id) : 0,
-                                pemakaian_id: resolvedPemakaianId,
-                                type: fallbackHeader.type || 'assurance',
-                            },
-                        ],
-                        customUsername,
-                        customPassword
+                if (!currentPemakaianId && !isNumeric) {
+                    const searchedHeader = await searchSingleWOLensaHeader(
+                        cleanInput,
+                        creds.username,
+                        creds.password
                     );
-                    if (fallbackDetails[0]) {
-                        detail = fallbackDetails[0];
+                    if (searchedHeader) {
+                        currentHeaderMeta = searchedHeader;
+                        currentPemakaianId = searchedHeader.pemakaian_id;
                     }
-                } catch (fallbackDetailErr) {
-                    actionLogger.error(
-                        `[scrapeSingleWODetailService] Fallback detail scrape failed for ${resolvedPemakaianId}:`,
-                        fallbackDetailErr instanceof Error
-                            ? fallbackDetailErr
-                            : new Error(String(fallbackDetailErr))
-                    );
+                } else if (!currentPemakaianId && isNumeric) {
+                    currentPemakaianId = cleanInput;
                 }
-            }
-        }
+
+                let currentDetail:
+                    | {
+                          header_id: number;
+                          pemakaian_id: string;
+                          materials: Record<string, string>[];
+                      }
+                    | undefined;
+
+                if (currentPemakaianId) {
+                    try {
+                        const details = await scrapeWOLensaDetails(
+                            [
+                                {
+                                    id: header?.id ? Number(header.id) : 0,
+                                    pemakaian_id: currentPemakaianId,
+                                    type: currentHeaderMeta?.type || 'assurance',
+                                },
+                            ],
+                            creds.username,
+                            creds.password
+                        );
+                        if (details[0] && details[0].materials.length > 0) {
+                            currentDetail = details[0];
+                        }
+                    } catch (detailErr) {
+                        actionLogger.warn(
+                            `[scrapeSingleWODetailService] Direct detail scrape failed for ${currentPemakaianId}:`,
+                            {
+                                error:
+                                    detailErr instanceof Error
+                                        ? detailErr.message
+                                        : String(detailErr),
+                            }
+                        );
+                    }
+                }
+
+                if (!currentDetail || currentDetail.materials.length === 0) {
+                    actionLogger.info(
+                        `[scrapeSingleWODetailService] Running fallback search header on Lensa for '${cleanInput}' via ${creds.username}...`
+                    );
+                    const fallbackHeader = await searchSingleWOLensaHeader(
+                        cleanInput,
+                        creds.username,
+                        creds.password
+                    );
+
+                    if (fallbackHeader?.pemakaian_id) {
+                        currentHeaderMeta = fallbackHeader;
+                        currentPemakaianId = fallbackHeader.pemakaian_id;
+
+                        try {
+                            const fallbackDetails = await scrapeWOLensaDetails(
+                                [
+                                    {
+                                        id: header?.id ? Number(header.id) : 0,
+                                        pemakaian_id: currentPemakaianId,
+                                        type: fallbackHeader.type || 'assurance',
+                                    },
+                                ],
+                                creds.username,
+                                creds.password
+                            );
+                            if (fallbackDetails[0]) {
+                                currentDetail = fallbackDetails[0];
+                            }
+                        } catch (fallbackDetailErr) {
+                            actionLogger.error(
+                                `[scrapeSingleWODetailService] Fallback detail scrape failed for ${currentPemakaianId}:`,
+                                fallbackDetailErr instanceof Error
+                                    ? fallbackDetailErr
+                                    : new Error(String(fallbackDetailErr))
+                            );
+                        }
+                    }
+                }
+
+                return {
+                    detail: currentDetail,
+                    headerMetadata: currentHeaderMeta,
+                    resolvedPemakaianId: currentPemakaianId,
+                    creds,
+                };
+            },
+            'WO-Detail-Manual'
+        );
+
+        const detail = scrapeOutcome.detail;
+        headerMetadata = scrapeOutcome.headerMetadata;
+        resolvedPemakaianId = scrapeOutcome.resolvedPemakaianId;
 
         if (!resolvedPemakaianId) {
             return {
@@ -268,14 +215,14 @@ export async function scrapeSingleWODetailService(
             try {
                 let extraHeader = await searchSingleWOLensaHeader(
                     resolvedPemakaianId,
-                    customUsername,
-                    customPassword
+                    scrapeOutcome.creds.username,
+                    scrapeOutcome.creds.password
                 );
                 if (!extraHeader && cleanInput !== resolvedPemakaianId) {
                     extraHeader = await searchSingleWOLensaHeader(
                         cleanInput,
-                        customUsername,
-                        customPassword
+                        scrapeOutcome.creds.username,
+                        scrapeOutcome.creds.password
                     );
                 }
                 if (extraHeader) {

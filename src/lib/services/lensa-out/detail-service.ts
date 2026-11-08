@@ -5,14 +5,15 @@
  * configured account), scrapes the reservation detail, and upserts the header
  * plus its material rows.
  */
-import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
 import { scrapeLensaDetails } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { resolveMaterialAlias } from '@/lib/material-alias-helper';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
-import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
-import { decryptLensaPassword } from '../lensa-crypto';
+import {
+    executeWithLensaFallback,
+    getWarehouseLensaCandidates,
+} from '../lensa-credential-helper';
 import type { ScrapedOutLensaDetailMaterial, ScrapedOutLensaDetailResult } from './types';
 
 /**
@@ -33,87 +34,13 @@ export async function scrapeSingleOutLensaDetailService(
             .where('reservation_id', '=', reservationId)
             .executeTakeFirst();
 
-        let customUsername = '';
-        let customPassword = '';
+        // 2. Ambil kandidat kredensial Lensa (PIC 1 -> fallback PIC 2 -> user -> system)
+        const candidates = await getWarehouseLensaCandidates({
+            warehouseName: header?.nama_gudang,
+            sessionNik,
+        });
 
-        if (sessionNik) {
-            const loggedUser = await db
-                .selectFrom('auth.user')
-                .select([
-                    sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
-                    sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
-                ])
-                .where('nik', '=', sessionNik)
-                .executeTakeFirst();
-
-            if (loggedUser?.lensa_username && loggedUser?.lensa_password) {
-                try {
-                    customUsername = loggedUser.lensa_username;
-                    customPassword = decryptLensaPassword(loggedUser.lensa_password);
-                } catch (e) {
-                    actionLogger.warn('Failed to decrypt user Lensa password', {
-                        error: e instanceof Error ? e.message : String(e),
-                    });
-                }
-            }
-        }
-
-        if ((!customUsername || !customPassword) && header?.nama_gudang) {
-            const whs = await db
-                .selectFrom('inventory.mas_wh')
-                .select(['name', 'pic_1', 'pic_2'])
-                .execute();
-            const matchedWh = findMatchingMasterWarehouse(header.nama_gudang, whs);
-            if (matchedWh) {
-                for (const picNik of [matchedWh.pic_1, matchedWh.pic_2]) {
-                    if (!picNik) continue;
-                    const picUser = await db
-                        .selectFrom('auth.user')
-                        .select([
-                            sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
-                            sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
-                        ])
-                        .where('nik', '=', picNik)
-                        .executeTakeFirst();
-
-                    if (picUser?.lensa_username && picUser?.lensa_password) {
-                        try {
-                            customUsername = picUser.lensa_username;
-                            customPassword = decryptLensaPassword(picUser.lensa_password);
-                            if (customUsername && customPassword) break;
-                        } catch {}
-                    }
-                }
-            }
-        }
-
-        if (!customUsername || !customPassword) {
-            const anyLensaUsers = await db
-                .selectFrom('auth.user')
-                .select([
-                    sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
-                    sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
-                ])
-                .where('lensa_acount', 'is not', null)
-                .execute();
-
-            for (const u of anyLensaUsers) {
-                if (u.lensa_username && u.lensa_password) {
-                    try {
-                        customUsername = u.lensa_username;
-                        customPassword = decryptLensaPassword(u.lensa_password);
-                        if (customUsername && customPassword) break;
-                    } catch {}
-                }
-            }
-        }
-
-        if (!customUsername || !customPassword) {
-            customUsername = process.env.LENSA_USERNAME || '';
-            customPassword = process.env.LENSA_PASSWORD || '';
-        }
-
-        if (!customUsername || !customPassword) {
+        if (candidates.length === 0) {
             return {
                 success: false,
                 error: 'Kredensial akun Lensa tidak ditemukan. Pastikan ada akun Lensa yang terhubung.',
@@ -125,11 +52,17 @@ export async function scrapeSingleOutLensaDetailService(
         actionLogger.info(
             `[Out-Lensa-Detail-Manual] Scraping detail for reservation_id=${reservationId}...`
         );
-        const scrapeResults = await scrapeLensaDetails(
-            [{ id: Number(headerId) || 0, reservation_id: reservationId }],
-            customUsername,
-            customPassword,
-            1
+        const scrapeResults = await executeWithLensaFallback(
+            candidates,
+            async (creds) => {
+                return scrapeLensaDetails(
+                    [{ id: Number(headerId) || 0, reservation_id: reservationId }],
+                    creds.username,
+                    creds.password,
+                    1
+                );
+            },
+            'Out-Lensa-Detail-Manual'
         );
 
         const detailItem = scrapeResults[0];

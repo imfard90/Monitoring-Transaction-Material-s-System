@@ -8,6 +8,10 @@ import { db } from '@/lib/db/db';
 import { scrapeStockTeknisi } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { inventoryRepository } from '@/lib/repositories/inventory.repository';
+import {
+    executeWithLensaFallback,
+    getWarehouseLensaCandidates,
+} from '@/lib/services/lensa-credential-helper';
 import type { StockComparisonItem, StockComparisonResult } from './stock-comparison.types';
 
 const NikParamSchema = z.string().trim().min(1, 'NIK teknisi wajib diisi');
@@ -121,19 +125,40 @@ export async function getLiveStockComparison(nik: string): Promise<{
             };
         }
 
-        const credentials = await resolveLensaCredentials(teknisi.wh_id, user.nik);
-        if (!credentials) {
+        const candidates = await getWarehouseLensaCandidates({
+            warehouseId: teknisi.wh_id,
+            sessionNik: user.nik,
+        });
+        if (candidates.length === 0) {
             return {
                 success: false,
                 error: 'Gudang ini belum memiliki akun Lensa yang terhubung. Silakan hubungi PIC gudang.',
             };
         }
 
-        const lensData = await scrapeStockTeknisi(
-            validNik,
-            credentials.username,
-            credentials.password
-        );
+        let lensData: Awaited<ReturnType<typeof scrapeStockTeknisi>>;
+
+        try {
+            lensData = await executeWithLensaFallback(
+                candidates,
+                async (creds) => {
+                    return scrapeStockTeknisi(
+                        validNik,
+                        creds.username,
+                        creds.password
+                    );
+                },
+                'Stock Comparison'
+            );
+        } catch (scrapeErr) {
+            return {
+                success: false,
+                error:
+                    scrapeErr instanceof Error
+                        ? scrapeErr.message
+                        : 'Gagal melakukan scraping data stok Lensa teknisi',
+            };
+        }
 
         // Update database cache with scraped result
         await db

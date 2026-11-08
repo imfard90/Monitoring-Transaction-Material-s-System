@@ -319,13 +319,36 @@ export async function syncMissingWOLensaDetails(): Promise<number> {
         .map((gudang) => {
             const wh = findMatchingMasterWarehouse(gudang, whs);
             if (!wh) return null;
-            const picNik = wh.pic_1 || wh.pic_2;
-            if (!picNik) return null;
-            const userObj = usersWithLensa.find((u) => u.nik === picNik);
-            if (!userObj) return null;
+            const candidates: {
+                username: string;
+                password: string;
+                picNik: string;
+                source: 'pic1' | 'pic2';
+            }[] = [];
+            for (const [source, picNik] of [
+                ['pic1', wh.pic_1],
+                ['pic2', wh.pic_2],
+            ] as const) {
+                if (!picNik) continue;
+                const userObj = usersWithLensa.find((u) => u.nik === picNik);
+                if (userObj?.lensa_acount?.username && userObj?.lensa_acount?.password) {
+                    try {
+                        const pass = decryptLensaPassword(userObj.lensa_acount.password);
+                        if (pass) {
+                            candidates.push({
+                                username: userObj.lensa_acount.username,
+                                password: pass,
+                                picNik,
+                                source,
+                            });
+                        }
+                    } catch {}
+                }
+            }
+            if (candidates.length === 0) return null;
             return {
                 gudang,
-                userObj,
+                candidates,
                 headers: groupedHeaders[gudang],
             };
         })
@@ -334,18 +357,9 @@ export async function syncMissingWOLensaDetails(): Promise<number> {
     let insertedDetailsCount = 0;
 
     const detailResults = await asyncPool(5, tasks, async (task) => {
-        const { userObj, headers } = task;
-        const lensesAcount = userObj.lensa_acount;
-        if (!lensesAcount) return [];
-        const customUsername = lensesAcount.username;
-        let customPassword = '';
-        try {
-            customPassword = decryptLensaPassword(lensesAcount.password);
-        } catch (_e) {
-            return [];
-        }
-
-        if (customUsername && customPassword) {
+        const { candidates, headers, gudang } = task;
+        for (let i = 0; i < candidates.length; i++) {
+            const creds = candidates[i];
             try {
                 return await scrapeWOLensaDetails(
                     headers.map((h) => ({
@@ -353,15 +367,21 @@ export async function syncMissingWOLensaDetails(): Promise<number> {
                         pemakaian_id: String(h.pemakaian_id),
                         type: (h as { type?: string | null }).type || 'assurance',
                     })),
-                    customUsername,
-                    customPassword
+                    creds.username,
+                    creds.password
                 );
             } catch (e: unknown) {
-                actionLogger.error(
-                    `Failed to scrape details for WO gudang ${task.gudang}:`,
-                    e instanceof Error ? e : new Error(String(e))
+                const msg = e instanceof Error ? e.message : String(e);
+                const isLast = i === candidates.length - 1;
+                actionLogger.warn(
+                    `[WO-Sync][${gudang}] Detail scrape via PIC ${creds.username} (${creds.source}) gagal: ${msg}${isLast ? '' : ' — mencoba fallback ke PIC berikutnya'}`
                 );
-                return [];
+                if (isLast) {
+                    actionLogger.error(
+                        `Failed to scrape details for WO gudang ${gudang}:`,
+                        e instanceof Error ? e : new Error(String(e))
+                    );
+                }
             }
         }
         return [];

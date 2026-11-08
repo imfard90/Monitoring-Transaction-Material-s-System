@@ -173,7 +173,7 @@ describe('stock-comparison-actions unit tests', () => {
             expect(result.success).toBe(true);
             expect(result.data).toHaveLength(4);
 
-            const [tech1, tech2, tech3, tech4] = result.data!;
+            const [tech1, tech2, tech3, tech4] = result.data ?? [];
 
             // TECH01: match
             expect(tech1.nik).toBe('TECH01');

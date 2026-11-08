@@ -312,7 +312,13 @@ export async function setupContext(username: string, password: string) {
     };
 
     if (!isAuthenticated) {
-        await performLogin(page);
+        try {
+            await performLogin(page);
+        } catch (loginErr) {
+            await redis.del(sessionKey).catch(() => {});
+            await context.close().catch(() => {});
+            throw loginErr;
+        }
     }
 
     return { context, page, safeGoto, sessionKey, performLogin };

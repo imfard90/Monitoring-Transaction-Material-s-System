@@ -13,6 +13,10 @@ import { actionLogger } from '@/lib/logger';
 import { hrRepository } from '@/lib/repositories/hr.repository';
 import { inventoryRepository } from '@/lib/repositories/inventory.repository';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
+import {
+    executeWithLensaFallback,
+    getWarehouseLensaCandidates,
+} from '@/lib/services/lensa-credential-helper';
 import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
 
 const createOutSapSchema = z.object({
@@ -530,17 +534,13 @@ export async function getOutSapReservationData(params: {
             resolvedWhId = warehouseIds[0];
         }
 
-        let creds: { username: string; password: string } | null = null;
-        if (resolvedWhId) {
-            creds = await resolveWarehouseLensaCredentials(resolvedWhId);
-        }
+        const candidates = await getWarehouseLensaCandidates({
+            warehouseId: resolvedWhId,
+            warehouseName: headerInDb?.nama_gudang,
+            sessionNik: isStaff ? undefined : (await getSessionNik().catch(() => null)),
+        });
 
-        if (!creds && !isStaff) {
-            // Admin fallback ke sembarang akun Lensa aktif di sistem
-            creds = await resolveAnyActiveLensaCredentials();
-        }
-
-        if (!creds) {
+        if (candidates.length === 0) {
             if (resolvedWhId) {
                 const wh = await db
                     .selectFrom('inventory.mas_wh')
@@ -558,19 +558,32 @@ export async function getOutSapReservationData(params: {
             };
         }
 
-        // Live scrape ke sistem Lensa
-        const scrapeResult = await scrapeReservation(
-            cleanRequestId,
-            creds.username,
-            creds.password
-        );
-        if ('error' in scrapeResult && scrapeResult.error) {
+        let scrapeResult: unknown;
+        try {
+            scrapeResult = await executeWithLensaFallback(
+                candidates,
+                async (creds) => {
+                    return scrapeReservation(cleanRequestId, creds.username, creds.password);
+                },
+                'Out SAP'
+            );
+        } catch (err) {
             return {
                 success: false,
-                error:
-                    typeof scrapeResult.error === 'string'
-                        ? scrapeResult.error
-                        : 'Gagal scraping data Lensa',
+                error: err instanceof Error ? err.message : 'Gagal scraping data Lensa',
+            };
+        }
+
+        if (
+            scrapeResult &&
+            typeof scrapeResult === 'object' &&
+            'error' in scrapeResult &&
+            (scrapeResult as { error?: unknown }).error
+        ) {
+            const errVal = (scrapeResult as { error: unknown }).error;
+            return {
+                success: false,
+                error: typeof errVal === 'string' ? errVal : 'Gagal scraping data Lensa',
             };
         }
 

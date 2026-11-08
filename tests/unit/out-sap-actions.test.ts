@@ -89,6 +89,11 @@ vi.mock('@/lib/crypto/decrypt-lensa', () => ({
     decryptLensaPassword: (...args: any[]) => mockDecryptLensaPassword(...args),
 }));
 
+vi.mock('@/lib/services/lensa-crypto', () => ({
+    decryptLensaPassword: (...args: any[]) => mockDecryptLensaPassword(...args),
+    asyncPool: vi.fn(),
+}));
+
 vi.mock('@/lib/cache/lru-cache', () => ({
     invalidateLiveStockCache: vi.fn(),
     invalidateNotificationCache: vi.fn(),
@@ -515,42 +520,34 @@ describe('out-sap-actions Unit Tests', () => {
             });
 
             // 1. DB header query returns null
-            mockDbSelectFrom.mockImplementationOnce(() => ({
-                selectAll: () => ({
-                    where: () => ({
-                        executeTakeFirst: vi.fn().mockResolvedValue(null),
-                    }),
-                }),
-            }));
+            const chain1 = createChain();
+            chain1.executeTakeFirst.mockResolvedValue(null);
 
-            // 2. resolveWarehouseLensaCredentials queries mas_wh then auth.user
+            // 2. Warehouse query
+            const chain2 = createChain();
+            chain2.executeTakeFirst.mockResolvedValue({
+                id: 1,
+                name: 'GUDANG SURABAYA TIMUR',
+                pic_1: 'PIC001',
+                pic_2: null,
+            });
+
+            // 3. PIC 1 user query
+            const chain3 = createChain();
+            chain3.executeTakeFirst.mockResolvedValue({
+                lensa_username: 'pic1_user',
+                lensa_password: 'enc_pic1_pass',
+            });
+
+            // 4. Any users query
+            const chain4 = createChain();
+            chain4.execute.mockResolvedValue([]);
+
             mockDbSelectFrom
-                .mockImplementationOnce(() => ({
-                    select: () => ({
-                        where: () => ({
-                            executeTakeFirst: vi.fn().mockResolvedValue({
-                                id: 1,
-                                name: 'GUDANG SURABAYA TIMUR',
-                                pic_1: 'PIC001',
-                                pic_2: null,
-                            }),
-                        }),
-                    }),
-                }))
-                .mockImplementationOnce(() => ({
-                    select: () => ({
-                        where: () => ({
-                            where: () => ({
-                                where: () => ({
-                                    executeTakeFirst: vi.fn().mockResolvedValue({
-                                        lensa_username: 'pic1_user',
-                                        lensa_password: 'enc_pic1_pass',
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }));
+                .mockReturnValueOnce(chain1)
+                .mockReturnValueOnce(chain2)
+                .mockReturnValueOnce(chain3)
+                .mockReturnValueOnce(chain4);
 
             mockDecryptLensaPassword.mockReturnValueOnce('plain_pic1_pass');
 
@@ -589,6 +586,99 @@ describe('out-sap-actions Unit Tests', () => {
             );
         });
 
+        it('falls back to PIC 2 when PIC 1 fails login during scraping', async () => {
+            mockGetSessionUser.mockResolvedValueOnce({
+                nik: 'STAFF_TEST_NIK',
+                isStaff: true,
+                warehouseIds: [1],
+            });
+
+            // 1. DB header query returns null
+            const chain1 = createChain();
+            chain1.executeTakeFirst.mockResolvedValue(null);
+
+            // 2. Warehouse query has PIC 1 and PIC 2
+            const chain2 = createChain();
+            chain2.executeTakeFirst.mockResolvedValue({
+                id: 1,
+                name: 'GUDANG SURABAYA TIMUR',
+                pic_1: 'PIC001',
+                pic_2: 'PIC002',
+            });
+
+            // 3. PIC 1 query
+            const chain3 = createChain();
+            chain3.executeTakeFirst.mockResolvedValue({
+                lensa_username: 'pic1_user',
+                lensa_password: 'enc_pic1_pass',
+            });
+
+            // 4. PIC 2 query
+            const chain4 = createChain();
+            chain4.executeTakeFirst.mockResolvedValue({
+                lensa_username: 'pic2_user',
+                lensa_password: 'enc_pic2_pass',
+            });
+
+            // 5. Any users query
+            const chain5 = createChain();
+            chain5.execute.mockResolvedValue([]);
+
+            mockDbSelectFrom
+                .mockReturnValueOnce(chain1)
+                .mockReturnValueOnce(chain2)
+                .mockReturnValueOnce(chain3)
+                .mockReturnValueOnce(chain4)
+                .mockReturnValueOnce(chain5);
+
+            mockDecryptLensaPassword
+                .mockReturnValueOnce('plain_pic1_pass')
+                .mockReturnValueOnce('plain_pic2_pass');
+
+            // First call with PIC 1 fails with login error
+            mockScrapeReservation.mockRejectedValueOnce(
+                new Error('Gagal login ke sistem Lensa (masih tertahan di halaman login).')
+            );
+
+            // Second call with PIC 2 succeeds
+            mockScrapeReservation.mockResolvedValueOnce({
+                listData: {
+                    data: [
+                        {
+                            reservation_id_sap: 'RES-LIVE-002',
+                            gi_number: 'GI-LIVE-002',
+                            nama_gudang: 'GUDANG SURABAYA TIMUR',
+                        },
+                    ],
+                },
+                detailContent: {
+                    headerInfo: { nikPemakai: 'TKN001' },
+                    materials: [{ 'ID MATERIAL': 'MAT-01', 'QTY ACCEPTED': '3' }],
+                },
+            });
+
+            const res = await getOutSapReservationData({
+                requestId: 'REQ-FALLBACK-001',
+                warehouseId: 1,
+            });
+
+            expect(res.success).toBe(true);
+            expect(res.data?.id_reservasi).toBe('RES-LIVE-002');
+            expect(mockScrapeReservation).toHaveBeenCalledTimes(2);
+            expect(mockScrapeReservation).toHaveBeenNthCalledWith(
+                1,
+                'REQ-FALLBACK-001',
+                'pic1_user',
+                'plain_pic1_pass'
+            );
+            expect(mockScrapeReservation).toHaveBeenNthCalledWith(
+                2,
+                'REQ-FALLBACK-001',
+                'pic2_user',
+                'plain_pic2_pass'
+            );
+        });
+
         it('returns error when Lensa scraper returns an error', async () => {
             mockGetSessionUser.mockResolvedValueOnce({
                 nik: 'STAFF_TEST_NIK',
@@ -596,49 +686,41 @@ describe('out-sap-actions Unit Tests', () => {
                 warehouseIds: [1],
             });
 
-            // DB header query returns null
-            mockDbSelectFrom.mockImplementationOnce(() => ({
-                selectAll: () => ({
-                    where: () => ({
-                        executeTakeFirst: vi.fn().mockResolvedValue(null),
-                    }),
-                }),
-            }));
+            // 1. DB header query returns null
+            const chain1 = createChain();
+            chain1.executeTakeFirst.mockResolvedValue(null);
 
-            // resolveWarehouseLensaCredentials
+            // 2. Warehouse query
+            const chain2 = createChain();
+            chain2.executeTakeFirst.mockResolvedValue({
+                id: 1,
+                name: 'GUDANG SURABAYA TIMUR',
+                pic_1: 'PIC001',
+                pic_2: null,
+            });
+
+            // 3. PIC 1 query
+            const chain3 = createChain();
+            chain3.executeTakeFirst.mockResolvedValue({
+                lensa_username: 'pic1_user',
+                lensa_password: 'enc_pic1_pass',
+            });
+
+            // 4. Any users query
+            const chain4 = createChain();
+            chain4.execute.mockResolvedValue([]);
+
             mockDbSelectFrom
-                .mockImplementationOnce(() => ({
-                    select: () => ({
-                        where: () => ({
-                            executeTakeFirst: vi.fn().mockResolvedValue({
-                                id: 1,
-                                name: 'GUDANG SURABAYA TIMUR',
-                                pic_1: 'PIC001',
-                                pic_2: null,
-                            }),
-                        }),
-                    }),
-                }))
-                .mockImplementationOnce(() => ({
-                    select: () => ({
-                        where: () => ({
-                            where: () => ({
-                                where: () => ({
-                                    executeTakeFirst: vi.fn().mockResolvedValue({
-                                        lensa_username: 'pic1_user',
-                                        lensa_password: 'enc_pic1_pass',
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }));
+                .mockReturnValueOnce(chain1)
+                .mockReturnValueOnce(chain2)
+                .mockReturnValueOnce(chain3)
+                .mockReturnValueOnce(chain4);
 
             mockDecryptLensaPassword.mockReturnValueOnce('plain_pic1_pass');
 
-            mockScrapeReservation.mockResolvedValueOnce({
-                error: 'Sesi Lensa kadaluarsa atau username/password salah',
-            });
+            mockScrapeReservation.mockRejectedValueOnce(
+                new Error('Sesi Lensa kadaluarsa atau username/password salah')
+            );
 
             const res = await getOutSapReservationData({
                 requestId: 'REQ-FAIL-001',

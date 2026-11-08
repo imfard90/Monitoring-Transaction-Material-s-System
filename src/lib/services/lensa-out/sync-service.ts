@@ -223,48 +223,54 @@ export async function executeOutLensaScraping(
                 .map((gudang) => {
                     const wh = findMatchingMasterWarehouse(gudang, whs);
                     if (!wh) return null;
-                    const picNik = wh.pic_1 || wh.pic_2;
-                    if (!picNik) return null;
-                    const userObj = usersWithLensa.find((u) => u.nik === picNik);
-                    if (!userObj) return null;
+                    const candidates: {
+                        username: string;
+                        password: string;
+                        picNik: string;
+                        source: 'pic1' | 'pic2';
+                    }[] = [];
+                    for (const [source, picNik] of [
+                        ['pic1', wh.pic_1],
+                        ['pic2', wh.pic_2],
+                    ] as const) {
+                        if (!picNik) continue;
+                        const userObj = usersWithLensa.find((u) => u.nik === picNik);
+                        if (userObj?.lensa_acount?.username && userObj?.lensa_acount?.password) {
+                            try {
+                                const pass = decryptLensaPassword(userObj.lensa_acount.password);
+                                if (pass) {
+                                    candidates.push({
+                                        username: userObj.lensa_acount.username,
+                                        password: pass,
+                                        picNik,
+                                        source,
+                                    });
+                                }
+                            } catch {}
+                        }
+                    }
+                    if (candidates.length === 0) return null;
                     return {
                         gudang,
-                        userObj,
+                        candidates,
                         headers: groupedHeaders[gudang],
                     };
                 })
-                .filter((t) => !!t);
+                .filter((t): t is NonNullable<typeof t> => !!t);
 
             const detailResults = await asyncPool(5, userDetailTasks, async (task) => {
-                const { userObj, headers, gudang } = task;
-                const lensesAcount = userObj.lensa_acount;
-                if (!lensesAcount) return [];
-                const customUsername = lensesAcount.username;
-                let customPassword = '';
-                try {
-                    customPassword = decryptLensaPassword(lensesAcount.password);
-                } catch (_e) {
-                    accountResults.push({
-                        username: customUsername,
-                        phase: 'details',
-                        gudang,
-                        status: 'skip',
-                        count: 0,
-                        error: 'decrypt_failed',
-                    });
-                    return [];
-                }
-
-                if (customUsername && customPassword) {
+                const { candidates, headers, gudang } = task;
+                for (let i = 0; i < candidates.length; i++) {
+                    const creds = candidates[i];
                     try {
                         const details = await scrapeLensaDetails(
                             headers,
-                            customUsername,
-                            customPassword
+                            creds.username,
+                            creds.password
                         );
                         totalUsersScraped++;
                         accountResults.push({
-                            username: customUsername,
+                            username: creds.username,
                             phase: 'details',
                             gudang,
                             status: details.length > 0 ? 'success' : 'no_data',
@@ -273,32 +279,29 @@ export async function executeOutLensaScraping(
                         return details;
                     } catch (e: unknown) {
                         const msg = e instanceof Error ? e.message : String(e);
-                        const isLoginErr =
-                            msg.toLowerCase().includes('sesi') ||
-                            msg.toLowerCase().includes('login');
-                        accountResults.push({
-                            username: customUsername,
-                            phase: 'details',
-                            gudang,
-                            status: isLoginErr ? 'login_fail' : 'scrape_fail',
-                            count: 0,
-                            error: msg,
-                        });
-                        actionLogger.error(
-                            `Failed to scrape details for gudang ${gudang}:`,
-                            new Error(msg)
+                        const isLast = i === candidates.length - 1;
+                        actionLogger.warn(
+                            `[Out-Lensa][${gudang}] Detail scrape via PIC ${creds.username} (${creds.source}) gagal: ${msg}${isLast ? '' : ' — mencoba fallback ke PIC berikutnya'}`
                         );
-                        return [];
+                        if (isLast) {
+                            const isLoginErr =
+                                msg.toLowerCase().includes('sesi') ||
+                                msg.toLowerCase().includes('login');
+                            accountResults.push({
+                                username: creds.username,
+                                phase: 'details',
+                                gudang,
+                                status: isLoginErr ? 'login_fail' : 'scrape_fail',
+                                count: 0,
+                                error: msg,
+                            });
+                            actionLogger.error(
+                                `Failed to scrape details for gudang ${gudang}:`,
+                                new Error(msg)
+                            );
+                        }
                     }
                 }
-                accountResults.push({
-                    username: customUsername,
-                    phase: 'details',
-                    gudang,
-                    status: 'skip',
-                    count: 0,
-                    error: 'missing_credentials',
-                });
                 return [];
             });
 

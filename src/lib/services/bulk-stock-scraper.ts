@@ -10,7 +10,10 @@
 
 import { sql } from 'kysely';
 import type { BrowserContext } from 'playwright';
-import { decryptLensaPassword } from '@/lib/crypto/decrypt-lensa';
+import {
+    getWarehouseLensaCandidates,
+    type LensaCredentialCandidate,
+} from './lensa-credential-helper';
 import { db } from '@/lib/db/db';
 import { scrapeStockTeknisiOnPage, setupContext } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
@@ -87,77 +90,10 @@ async function asyncPool<T, R>(
     return Promise.all(ret);
 }
 
-/**
- * Mengambil kredensial akun Lensa dari PIC gudang (PIC 1 fallback PIC 2)
- */
-async function getWarehouseLensaCredentials(pic1Nik: string | null, pic2Nik: string | null) {
-    for (const picNik of [pic1Nik, pic2Nik]) {
-        if (!picNik) continue;
-
-        const picUser = await db
-            .selectFrom('auth.user')
-            .select([
-                sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
-                sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
-            ])
-            .where('nik', '=', picNik)
-            .where(sql`lensa_acount->>'username'`, 'is not', null)
-            .where(sql`lensa_acount->>'password'`, 'is not', null)
-            .executeTakeFirst();
-
-        if (picUser?.lensa_username && picUser?.lensa_password) {
-            try {
-                const decrypted = decryptLensaPassword(picUser.lensa_password);
-                return {
-                    username: picUser.lensa_username,
-                    password: decrypted,
-                    picNik,
-                };
-            } catch (err) {
-                actionLogger.error(
-                    `[BulkScrape] Gagal mendekripsi password Lensa untuk PIC ${picNik}:`,
-                    err instanceof Error ? err : new Error(String(err))
-                );
-            }
-        }
-    }
-
-    // Fallback: jika PIC 1 dan 2 belum menghubungkan akun Lensa, gunakan akun Lensa aktif lain di sistem
-    const anyLensaUsers = await db
-        .selectFrom('auth.user')
-        .select([
-            sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
-            sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
-            'nik',
-        ])
-        .where('lensa_acount', 'is not', null)
-        .where(sql`lensa_acount->>'username'`, 'is not', null)
-        .where(sql`lensa_acount->>'password'`, 'is not', null)
-        .execute();
-
-    for (const u of anyLensaUsers) {
-        if (u.lensa_username && u.lensa_password) {
-            try {
-                const decrypted = decryptLensaPassword(u.lensa_password);
-                if (decrypted) {
-                    return {
-                        username: u.lensa_username,
-                        password: decrypted,
-                        picNik: u.nik,
-                    };
-                }
-            } catch {}
-        }
-    }
-
-    return null;
-}
-
 interface WarehouseWorkerParam {
     warehouseId: number;
     warehouseName: string;
-    username: string;
-    password: string;
+    candidates: LensaCredentialCandidate[];
     technicians: Array<{ nik: string; name: string }>;
     concurrency: number;
     chunkSize: number;
@@ -175,8 +111,7 @@ async function scrapeWarehouseWorker(param: WarehouseWorkerParam): Promise<Scrap
     const {
         warehouseId,
         warehouseName,
-        username,
-        password,
+        candidates,
         technicians,
         concurrency,
         chunkSize,
@@ -187,18 +122,68 @@ async function scrapeWarehouseWorker(param: WarehouseWorkerParam): Promise<Scrap
         `[BulkScrape] Memulai worker gudang ${warehouseName} (id=${warehouseId}) untuk total ${technicians.length} teknisi (chunk: ${chunkSize} per putaran)`
     );
 
+    let activeCreds: LensaCredentialCandidate | null = null;
     let context: BrowserContext | null = null;
+    let performLogin: ((targetPage?: any) => Promise<void>) | null = null;
+    let sessionKey: string | null = null;
+
+    for (let cIdx = 0; cIdx < candidates.length; cIdx++) {
+        const creds = candidates[cIdx];
+        try {
+            const setup = await setupContext(creds.username, creds.password);
+            context = setup.context;
+            const authPage = setup.page;
+            performLogin = setup.performLogin;
+            sessionKey = setup.sessionKey;
+
+            if (authPage.url().includes('login')) {
+                await performLogin(authPage);
+            }
+            await authPage.close().catch(() => {});
+            activeCreds = creds;
+            actionLogger.info(
+                `[BulkScrape][${warehouseName}] Berhasil login Lensa via ${creds.source.toUpperCase()} (${creds.username})`
+            );
+            break;
+        } catch (setupErr) {
+            if (context) {
+                await context.close().catch(() => {});
+                context = null;
+            }
+            const isLast = cIdx === candidates.length - 1;
+            actionLogger.warn(
+                `[BulkScrape][${warehouseName}] Gagal login via ${creds.source.toUpperCase()} (${creds.username}): ${setupErr instanceof Error ? setupErr.message : String(setupErr)}${isLast ? '' : ' — mencoba fallback ke kandidat berikutnya'}`
+            );
+        }
+    }
+
+    if (!activeCreds || !context || !performLogin || !sessionKey) {
+        const errorMsg = 'Seluruh akun Lensa (PIC 1 & PIC 2) gagal login ke sistem Lensa';
+        for (const tech of technicians) {
+            await db
+                .updateTable('hr.technicians')
+                .set({
+                    ref_intech_lensa: sql`${JSON.stringify({
+                        status: 'failed',
+                        scraped_at: new Date().toISOString(),
+                        error_message: errorMsg,
+                        materials: [],
+                    })}::jsonb`,
+                })
+                .where('nik', '=', tech.nik)
+                .execute();
+        }
+
+        return technicians.map((tech) => ({
+            nik: tech.nik,
+            status: 'failed' as const,
+            error: errorMsg,
+            warehouseId,
+            warehouseName,
+        }));
+    }
 
     try {
-        const setup = await setupContext(username, password);
-        context = setup.context;
-        const { page: authPage, performLogin, sessionKey } = setup;
-
-        // Pastikan context dalam keadaan terautentikasi
-        if (authPage.url().includes('login')) {
-            await performLogin(authPage);
-        }
-        await authPage.close().catch(() => {});
 
         const allResults: ScrapingResult[] = [];
 
@@ -384,10 +369,10 @@ export async function bulkScrapeStockTeknisi(
     const workerParams: WarehouseWorkerParam[] = [];
 
     for (const wh of warehouses) {
-        const creds = await getWarehouseLensaCredentials(wh.pic_1, wh.pic_2);
-        if (!creds) {
+        const candidates = await getWarehouseLensaCandidates({ warehouseId: wh.id });
+        if (candidates.length === 0) {
             actionLogger.warn(
-                `[BulkScrape] Gudang "${wh.name}" (id=${wh.id}) dilewati: PIC tidak memiliki akun Lensa terhubung.`
+                `[BulkScrape] Gudang "${wh.name}" (id=${wh.id}) dilewati: Tidak ada akun Lensa yang terhubung.`
             );
             continue;
         }
@@ -412,8 +397,7 @@ export async function bulkScrapeStockTeknisi(
         workerParams.push({
             warehouseId: wh.id,
             warehouseName: wh.name,
-            username: creds.username,
-            password: creds.password,
+            candidates,
             technicians,
             concurrency: concurrencyPerWarehouse,
             chunkSize,

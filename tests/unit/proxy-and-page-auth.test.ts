@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { proxy } from '@/proxy';
 import { getPageSessionUser } from '@/lib/auth-server';
-import { AuthenticationError } from '@/lib/errors';
 
 const { mockAuthGetSession, mockDbQuery, mockRedirect } = vi.hoisted(() => ({
     mockAuthGetSession: vi.fn(),
