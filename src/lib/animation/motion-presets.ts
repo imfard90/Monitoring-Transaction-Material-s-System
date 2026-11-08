@@ -56,34 +56,18 @@ export const fadeSlideVariants: Variants = {
 };
 
 /**
- * Stagger container variants — for lists (max 25 items).
+ * Stagger animations — re-exported from centralized stagger.ts.
+ *
+ * Use `staggerContainer` and `staggerItemVariants` for consistent list reveals.
+ * @see ./stagger.ts for full documentation
  */
-export const staggerContainerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.1,
-            delayChildren: 0.05,
-        },
-    },
-};
-
-/**
- * Stagger item variants — pair with staggerContainerVariants.
- */
-export const staggerItemVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-            type: 'spring',
-            stiffness: 300,
-            damping: 24,
-        },
-    },
-};
+export {
+    staggerContainer as staggerContainerVariants,
+    staggerItemVariants,
+    staggerItem,
+    fadeInUp,
+    scaleIn,
+} from './stagger';
 
 /**
  * Modal scale variants — zoom in/out.
