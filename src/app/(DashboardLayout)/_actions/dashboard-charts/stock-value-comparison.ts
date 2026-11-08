@@ -6,11 +6,7 @@ import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import {
-    canAccessWarehouse,
-    resolveWarehouseScope,
-    warehouseScopeCacheKey,
-} from '@/lib/policies';
+import { canAccessWarehouse, resolveWarehouseScope, warehouseScopeCacheKey } from '@/lib/policies';
 
 const getStockValueComparisonSchema = z.object({
     wh_id: z.union([z.literal('all'), z.string().regex(/^\d+$/)]).default('all'),
@@ -31,7 +27,11 @@ export async function getStockValueComparison(wh_id: string = 'all') {
         if (scope.kind === 'none') {
             return { success: false, error: 'Akses gudang ditolak' };
         }
-        if (scope.kind === 'scoped' && wh_id !== 'all' && !canAccessWarehouse(user, Number(wh_id))) {
+        if (
+            scope.kind === 'scoped' &&
+            wh_id !== 'all' &&
+            !canAccessWarehouse(user, Number(wh_id))
+        ) {
             return { success: false, error: 'Akses gudang ditolak' };
         }
 

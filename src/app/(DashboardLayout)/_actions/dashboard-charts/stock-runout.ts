@@ -6,11 +6,7 @@ import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import {
-    canAccessWarehouse,
-    resolveWarehouseScope,
-    warehouseScopeCacheKey,
-} from '@/lib/policies';
+import { canAccessWarehouse, resolveWarehouseScope, warehouseScopeCacheKey } from '@/lib/policies';
 import type { StockRunoutItem } from './types';
 
 const getStockRunoutForecastSchema = z.object({
@@ -33,7 +29,11 @@ export async function getStockRunoutForecast(wh_id: string = 'all', limit: numbe
         if (scope.kind === 'none') {
             return { success: false, error: 'Akses gudang ditolak' };
         }
-        if (scope.kind === 'scoped' && wh_id !== 'all' && !canAccessWarehouse(user, Number(wh_id))) {
+        if (
+            scope.kind === 'scoped' &&
+            wh_id !== 'all' &&
+            !canAccessWarehouse(user, Number(wh_id))
+        ) {
             return { success: false, error: 'Akses gudang ditolak' };
         }
 

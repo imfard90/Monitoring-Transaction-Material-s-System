@@ -83,7 +83,10 @@ export function resolveWarehouseScope(
 export function warehouseScopeCacheKey(scope: ResolvedWarehouseScope): string {
     if (scope.kind === 'all') return 'all';
     if (scope.kind === 'none') return 'none';
-    return scope.ids.slice().sort((a, b) => a - b).join('_');
+    return scope.ids
+        .slice()
+        .sort((a, b) => a - b)
+        .join('_');
 }
 
 function isPic(user: AuthorizationUser, pic1: string | null, pic2: string | null): boolean {

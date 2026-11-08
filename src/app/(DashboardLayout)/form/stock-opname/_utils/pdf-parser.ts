@@ -99,9 +99,7 @@ export function resolveWarehouseId(
             const foundClean = masterWarehouses.find((mw) => {
                 const mwClean = cleanWarehouseKey(normalizeWarehouseKey(mw.name));
                 return (
-                    mwClean === cleanKey ||
-                    cleanKey.includes(mwClean) ||
-                    mwClean.includes(cleanKey)
+                    mwClean === cleanKey || cleanKey.includes(mwClean) || mwClean.includes(cleanKey)
                 );
             });
             if (foundClean) return foundClean.id;
@@ -125,7 +123,11 @@ export function resolveWarehouseId(
         }
         if (cleanKey.length >= 3) {
             const mapClean = cleanWarehouseKey(mapKey);
-            if (mapClean === cleanKey || cleanKey.includes(mapClean) || mapClean.includes(cleanKey)) {
+            if (
+                mapClean === cleanKey ||
+                cleanKey.includes(mapClean) ||
+                mapClean.includes(cleanKey)
+            ) {
                 return id;
             }
         }

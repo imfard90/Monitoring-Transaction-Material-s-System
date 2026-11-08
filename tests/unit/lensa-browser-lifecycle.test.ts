@@ -109,22 +109,18 @@ describe('lensa browser lifecycle', () => {
         );
     });
 
-    it(
-        'kills the Chromium process tree on close instead of relying on a broad pkill',
-        async () => {
-            const { getBrowserInstance, closeBrowser } = await import(
-                '@/lib/lensa-scraper/lensa-browser'
-            );
+    it('kills the Chromium process tree on close instead of relying on a broad pkill', async () => {
+        const { getBrowserInstance, closeBrowser } = await import(
+            '@/lib/lensa-scraper/lensa-browser'
+        );
 
-            await getBrowserInstance();
-            await closeBrowser();
+        await getBrowserInstance();
+        await closeBrowser();
 
-            expect(server.kill).toHaveBeenCalledTimes(1);
-            expect(browser.close).toHaveBeenCalledTimes(1);
-            expect(mockRedisDel).toHaveBeenCalledWith('worker:lensa:browser');
-        },
-        10000
-    );
+        expect(server.kill).toHaveBeenCalledTimes(1);
+        expect(browser.close).toHaveBeenCalledTimes(1);
+        expect(mockRedisDel).toHaveBeenCalledWith('worker:lensa:browser');
+    }, 10000);
 
     it('force-closes leaked contexts once the open-context limit is exceeded', async () => {
         const leakedContext = { close: vi.fn().mockResolvedValue(undefined) };

@@ -71,7 +71,10 @@ describe('resolveWarehouseScope', () => {
 
     it('allows comparison panels to opt into all warehouses when unassigned', () => {
         expect(
-            resolveWarehouseScope({ ...staff, warehouseIds: [] }, { includeAllWhenUnassigned: true })
+            resolveWarehouseScope(
+                { ...staff, warehouseIds: [] },
+                { includeAllWhenUnassigned: true }
+            )
         ).toEqual({ kind: 'all' });
     });
 

@@ -135,7 +135,8 @@ export function StockOpnameResultDialog({
                             <span className="font-semibold text-foreground">{warehouseName}</span>.
                             {isStaff && (
                                 <span className="block mt-1 text-xs text-amber-600 dark:text-amber-400 font-medium">
-                                    Hasil rekonsiliasi telah otomatis disimpan ke sistem sebagai pengajuan (Pending) dan menunggu peninjauan supervisor/admin.
+                                    Hasil rekonsiliasi telah otomatis disimpan ke sistem sebagai
+                                    pengajuan (Pending) dan menunggu peninjauan supervisor/admin.
                                 </span>
                             )}
                         </DialogDescription>
@@ -274,10 +275,7 @@ export function StockOpnameResultDialog({
                         </span>
                         <div className="flex gap-2">
                             {isStaff ? (
-                                <Button
-                                    variant="default"
-                                    onClick={() => onOpenChange(false)}
-                                >
+                                <Button variant="default" onClick={() => onOpenChange(false)}>
                                     Tutup
                                 </Button>
                             ) : (
@@ -327,7 +325,9 @@ export function StockOpnameResultDialog({
                             : `Simpan data rekonsiliasi stock opname untuk gudang "${warehouseName}" sebagai pengajuan (Pending)? Supervisor atau Admin akan meninjau hasil sebelum disetujui.`
                     }
                     confirmText={
-                        confirmAction === 'approved' ? 'Ya, Simpan & Setujui' : 'Ya, Simpan Pengajuan'
+                        confirmAction === 'approved'
+                            ? 'Ya, Simpan & Setujui'
+                            : 'Ya, Simpan Pengajuan'
                     }
                     cancelText="Batal & Periksa Kembali"
                     icon={<Check className="h-4 w-4" />}

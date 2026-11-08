@@ -10,4 +10,3 @@ if (fs.existsSync(src)) {
 } else {
     console.warn('⚠️  pdfjs-dist worker not found in node_modules, skipping sync.');
 }
-

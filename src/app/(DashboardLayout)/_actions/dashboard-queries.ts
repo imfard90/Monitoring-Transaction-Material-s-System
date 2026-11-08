@@ -6,11 +6,7 @@ import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import {
-    canAccessWarehouse,
-    resolveWarehouseScope,
-    warehouseScopeCacheKey,
-} from '@/lib/policies';
+import { canAccessWarehouse, resolveWarehouseScope, warehouseScopeCacheKey } from '@/lib/policies';
 
 export async function getWarehouses() {
     const user = await getSessionUser();
@@ -183,10 +179,7 @@ export async function getDashboardKpis() {
             .where('end_status', '=', 'requested');
         if (scope.kind === 'scoped') {
             requestTagQuery = requestTagQuery.where((eb) =>
-                eb.or([
-                    eb('from_wh_id', 'in', scope.ids),
-                    eb('to_wh_id', 'in', scope.ids),
-                ])
+                eb.or([eb('from_wh_id', 'in', scope.ids), eb('to_wh_id', 'in', scope.ids)])
             );
         }
         const requestTag = await requestTagQuery.executeTakeFirst();
@@ -199,10 +192,7 @@ export async function getDashboardKpis() {
             .where('end_status', '=', 'in_transit');
         if (scope.kind === 'scoped') {
             transitTagQuery = transitTagQuery.where((eb) =>
-                eb.or([
-                    eb('from_wh_id', 'in', scope.ids),
-                    eb('to_wh_id', 'in', scope.ids),
-                ])
+                eb.or([eb('from_wh_id', 'in', scope.ids), eb('to_wh_id', 'in', scope.ids)])
             );
         }
         const transitTag = await transitTagQuery.executeTakeFirst();
@@ -215,10 +205,7 @@ export async function getDashboardKpis() {
             .where('end_status', '=', 'closed');
         if (scope.kind === 'scoped') {
             closeTagQuery = closeTagQuery.where((eb) =>
-                eb.or([
-                    eb('from_wh_id', 'in', scope.ids),
-                    eb('to_wh_id', 'in', scope.ids),
-                ])
+                eb.or([eb('from_wh_id', 'in', scope.ids), eb('to_wh_id', 'in', scope.ids)])
             );
         }
         const closeTag = await closeTagQuery.executeTakeFirst();
@@ -229,11 +216,7 @@ export async function getDashboardKpis() {
             .selectFrom('inventory.return_material_header')
             .select(sql<number>`COUNT(id)`.as('total'));
         if (scope.kind === 'scoped') {
-            returnTekQuery = returnTekQuery.where(
-                'warehouse_id',
-                'in',
-                scope.ids.map(String)
-            );
+            returnTekQuery = returnTekQuery.where('warehouse_id', 'in', scope.ids.map(String));
         }
         const returnTek = await returnTekQuery.executeTakeFirst();
         data.returnTek = Number(returnTek?.total || 0);

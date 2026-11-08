@@ -41,10 +41,7 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
 
         if (scope.kind === 'scoped') {
             inoutQuery = inoutQuery.where((eb) =>
-                eb.or([
-                    eb('h.from_wh_id', 'in', scope.ids),
-                    eb('h.to_wh_id', 'in', scope.ids),
-                ])
+                eb.or([eb('h.from_wh_id', 'in', scope.ids), eb('h.to_wh_id', 'in', scope.ids)])
             );
         }
 
@@ -289,9 +286,7 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
 
         const conditions: ReturnType<typeof sql>[] = [];
         if (scope.kind === 'scoped') {
-            conditions.push(
-                sql`(wh_from_id = ANY(${scope.ids}) OR wh_to_id = ANY(${scope.ids}))`
-            );
+            conditions.push(sql`(wh_from_id = ANY(${scope.ids}) OR wh_to_id = ANY(${scope.ids}))`);
         }
 
         if (options.status && options.status !== 'all') {

@@ -53,4 +53,3 @@ describe('Lensa Password Decryption (Unified GCM + CBC)', () => {
         expect(() => decryptLensaPassword('invalid:garbage:payload')).toThrow();
     });
 });
-

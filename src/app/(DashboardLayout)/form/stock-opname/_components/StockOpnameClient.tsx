@@ -74,7 +74,9 @@ export function StockOpnameClient({ user, masterWarehouses }: StockOpnameClientP
                 });
 
                 if (!saveRes.success) {
-                    toast.error(saveRes.error ?? 'Gagal menyimpan hasil rekonsiliasi stock opname.');
+                    toast.error(
+                        saveRes.error ?? 'Gagal menyimpan hasil rekonsiliasi stock opname.'
+                    );
                     return;
                 }
 

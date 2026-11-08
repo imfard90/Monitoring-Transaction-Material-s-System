@@ -423,7 +423,9 @@ export async function getOutLensaRefDetails(headerId: string) {
                 .select('name')
                 .where('id', 'in', warehouseIds)
                 .execute();
-            const whNames = expandWarehouseAliases(whs.map((w) => w.name as string).filter(Boolean));
+            const whNames = expandWarehouseAliases(
+                whs.map((w) => w.name as string).filter(Boolean)
+            );
             if (whNames.length === 0) {
                 return { success: false, error: 'Akses gudang ditolak' };
             }

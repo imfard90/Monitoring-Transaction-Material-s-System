@@ -63,9 +63,7 @@ describe('pdf-parser: extractWarehouseFromPage1', () => {
     });
 
     it('extracts warehouse from a single inline item', () => {
-        const items = [
-            { x: 40, y: 740, text: 'Nama Gudang : WH SO Tuban' },
-        ];
+        const items = [{ x: 40, y: 740, text: 'Nama Gudang : WH SO Tuban' }];
         expect(extractWarehouseFromPage1(items)).toBe('WH SO Tuban');
     });
 
@@ -79,16 +77,12 @@ describe('pdf-parser: extractWarehouseFromPage1', () => {
     });
 
     it('falls back to prefix pattern in header region when label is absent', () => {
-        const items = [
-            { x: 200, y: 700, text: 'WH SO Lamongan' },
-        ];
+        const items = [{ x: 200, y: 700, text: 'WH SO Lamongan' }];
         expect(extractWarehouseFromPage1(items)).toBe('WH SO Lamongan');
     });
 
     it('returns empty string when no warehouse can be detected', () => {
-        const items = [
-            { x: 40, y: 100, text: 'Footer Page 1' },
-        ];
+        const items = [{ x: 40, y: 100, text: 'Footer Page 1' }];
         expect(extractWarehouseFromPage1(items)).toBe('');
     });
 });

@@ -6,11 +6,7 @@ import { getSessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
-import {
-    canAccessWarehouse,
-    resolveWarehouseScope,
-    warehouseScopeCacheKey,
-} from '@/lib/policies';
+import { canAccessWarehouse, resolveWarehouseScope, warehouseScopeCacheKey } from '@/lib/policies';
 
 const getSalesOverviewDataSchema = z.object({
     wh_id: z.string().min(1),

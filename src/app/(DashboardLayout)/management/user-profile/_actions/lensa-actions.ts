@@ -18,9 +18,7 @@ const lensAccountSchema = z.object({
         .max(200, 'Password Lensa terlalu panjang'),
 });
 
-export type LensAccountResult =
-    | { success: true }
-    | { success: false; error: string };
+export type LensAccountResult = { success: true } | { success: false; error: string };
 
 /**
  * Simpan kredensial Lensa milik user yang sedang login.
