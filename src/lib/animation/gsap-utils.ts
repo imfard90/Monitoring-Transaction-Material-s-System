@@ -154,41 +154,8 @@ export async function killAllGSAP() {
  * when the component unmounts. Use with `useScrollReveal` hook for automatic lifecycle.
  */
 export async function revealOnScroll(element: HTMLElement): Promise<() => void> {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-        element.style.opacity = '1';
-        return () => {};
-    }
-
-    // Check if element is already visible in viewport — skip animation to prevent delayed render
-    const rect = element.getBoundingClientRect();
-    const isVisible = rect.top >= 0 && rect.top < window.innerHeight * 0.8;
-
-    if (isVisible) {
-        element.style.opacity = '1';
-        return () => {};
-    }
-
-    // Below fold: apply scroll-triggered animation
-    element.style.opacity = '0';
-    element.style.transform = 'translateY(40px)';
-
-    const { gsap, ScrollTrigger } = await loadGSAP();
-
-    const tween = gsap.to(element, {
-        opacity: 1,
-        y: 0,
-        duration: 0.8,
-        ease: 'power2.out',
-        scrollTrigger: {
-            trigger: element,
-            start: 'top 80%',
-            toggleActions: 'play none none reverse',
-        },
-    });
-
-    return () => {
-        tween.scrollTrigger?.kill();
-        tween.kill();
-    };
+    // Dashboard operational charts: always show immediately
+    // Motion adds no value when user needs to see data quickly
+    element.style.opacity = '1';
+    return () => {};
 }
