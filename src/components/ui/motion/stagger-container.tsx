@@ -26,7 +26,8 @@ export function StaggerContainer({
                 show: {
                     ...staggerContainer.show,
                     transition: {
-                        ...(staggerContainer.show as any).transition,
+                        ...(staggerContainer.show as { transition?: Record<string, unknown> })
+                            .transition,
                         delayChildren: delay,
                         staggerChildren: staggerDelay,
                     },

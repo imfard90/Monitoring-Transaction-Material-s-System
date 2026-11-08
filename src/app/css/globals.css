@@ -433,6 +433,7 @@ input[type="time"] {
 @media (prefers-reduced-motion: reduce) {
     ::view-transition-old(root),
     ::view-transition-new(root) {
+        /* biome-ignore lint/complexity/noImportantStyles: Override all transitions when motion reduced */
         animation-duration: 0.01ms !important;
     }
 }

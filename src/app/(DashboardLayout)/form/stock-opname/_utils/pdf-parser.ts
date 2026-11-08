@@ -202,7 +202,7 @@ export function extractWarehouseFromPage1(
         const inlineMatch = labelItem.text.match(
             /(?:nama\s*gudang|nama\s*wh|^gudang)\s*[:]\s*(.+)/i
         );
-        if (inlineMatch && inlineMatch[1]?.trim()) {
+        if (inlineMatch?.[1]?.trim()) {
             const candidate = inlineMatch[1].trim().replace(/^[:\s-]+|[:\s-]+$/g, '');
             if (candidate && candidate !== ':') {
                 return candidate;

@@ -218,7 +218,7 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
             >
                 {kpiConfig.map((item) => {
                     const rawValue = kpis[item.key as KpiKey] ?? 0;
-                    const { formatted, full } = formatKpiDisplay(item.key, rawValue);
+                    const { full } = formatKpiDisplay(item.key, rawValue);
                     const { AnimatedNumber } = counters[item.key as KpiKey];
 
                     return (

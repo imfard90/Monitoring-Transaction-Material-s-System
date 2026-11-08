@@ -32,6 +32,7 @@ export async function initA11yAuditor() {
         });
 
         // Suppress console noise; rely on browser DevTools Accessibility panel instead
+        // biome-ignore lint/suspicious/noConsole: Dev-only accessibility auditor notification
         console.info(
             '[a11y] axe-core auditor active. Check console for WCAG violations or use Lighthouse/DevTools Accessibility panel.'
         );
