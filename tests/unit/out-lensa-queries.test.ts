@@ -87,7 +87,7 @@ describe('out-lensa-queries warehouse options', () => {
         mockCountExecuteTakeFirst.mockResolvedValue({ total: 1 });
         mockWarehouseOptionsExecute.mockResolvedValue([
             { nama_gudang: 'SO Gresik' },
-            { nama_gudang: 'SO Surabaya' },
+            { nama_gudang: 'SO Lamongan' },
             { nama_gudang: 'SO Gresik' },
         ]);
         mockHeaderExecute.mockResolvedValue([]);
@@ -99,7 +99,7 @@ describe('out-lensa-queries warehouse options', () => {
 
         expect(result.success).toBe(true);
         expect(result.data?.headers).toEqual([]);
-        expect(result.data?.warehouses).toEqual(['SO Gresik', 'SO Surabaya']);
+        expect(result.data?.warehouses).toEqual(['SO Gresik', 'SO Lamongan']);
     });
 
     it('applies the Staff warehouse scope to warehouse options', async () => {

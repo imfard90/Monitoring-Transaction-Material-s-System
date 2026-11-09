@@ -6,7 +6,7 @@ import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { redis } from '@/lib/redis';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
-import { expandWarehouseAliases } from '@/lib/warehouse-helper';
+import { expandWarehouseAliases, isMasterWarehouse } from '@/lib/warehouse-helper';
 
 export interface ScraperLastUpdateInfo {
     timestamp: string;
@@ -139,7 +139,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             new Set(
                 warehouseRows
                     .map((row) => row.nama_gudang)
-                    .filter((name): name is string => Boolean(name))
+                    .filter((name): name is string => Boolean(name) && isMasterWarehouse(name))
             )
         );
 

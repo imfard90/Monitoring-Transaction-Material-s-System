@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { actionLogger } from '@/lib/logger';
+import { isMasterWarehouse } from '@/lib/warehouse-helper';
 import { redis } from '../redis';
 import {
     asyncPool,
@@ -8,6 +9,7 @@ import {
     parseOutLensaDate,
     setupContext,
 } from './lensa-browser';
+import { CUTOFF_DATE } from './lensa-wo-helpers';
 
 export interface OutLensaHeader {
     reservation_id: string;
@@ -24,11 +26,43 @@ export interface OutLensaHeader {
 
 const OUT_MAX_PAGES = 50;
 const OUT_STOP_ON_EMPTY = 2; // berhenti setelah N halaman kosong berturut-turut
+const CONSECUTIVE_STOP_THRESHOLD = 2;
+
+/**
+ * Mengecek apakah tanggal Out Lensa berada pada atau setelah CUTOFF_DATE.
+ */
+export function isWithinCutoffOut(
+    dateStr: string | null | undefined,
+    cutoffDate: Date = CUTOFF_DATE
+): boolean {
+    const d = parseOutLensaDate(dateStr);
+    if (!d) return false;
+    return d >= cutoffDate;
+}
+
+export function isBeforeCutoffOut(
+    dateStr: string | null | undefined,
+    cutoffDate: Date = CUTOFF_DATE
+): boolean {
+    const d = parseOutLensaDate(dateStr);
+    if (!d) return true;
+    return d < cutoffDate;
+}
+
+export function allBeforeCutoffOut(
+    items: Array<Record<string, unknown>>,
+    cutoffDate: Date = CUTOFF_DATE
+): boolean {
+    if (items.length === 0) return true;
+    return items.every((item) => isBeforeCutoffOut(item.tgl_entry?.toString() || null, cutoffDate));
+}
 
 /**
  * Proses item dari endpoint resevation_list_data.
- * Hanya ambil data dengan status_proses === 'done' dan memiliki gi_number,
- * dan belum ada di seenIds. Update seenIds supaya dedupe antar halaman.
+ * - Hanya ambil data dengan status_proses === 'done' dan memiliki gi_number
+ * - Filter cutoff date (hanya data >= CUTOFF_DATE, misal 2026-10-01)
+ * - Filter gudang master (hanya gudang yang terdaftar di inventory.mas_wh)
+ * - Belum ada di seenIds (dedupe)
  */
 function processOutItems(
     items: Array<Record<string, unknown>>,
@@ -56,6 +90,18 @@ function processOutItems(
             continue;
         }
 
+        const rawTglEntry = item.tgl_entry?.toString() || null;
+        if (!isWithinCutoffOut(rawTglEntry)) {
+            filtered++;
+            continue;
+        }
+
+        const namaGudang = item.nama_gudang?.toString() || null;
+        if (!isMasterWarehouse(namaGudang)) {
+            filtered++;
+            continue;
+        }
+
         if (seenIds.has(resId)) {
             filtered++;
             continue;
@@ -63,13 +109,12 @@ function processOutItems(
         seenIds.add(resId);
         added++;
 
-        const rawTglEntry = item.tgl_entry?.toString() || null;
         const parsedTglEntry = parseOutLensaDate(rawTglEntry);
         results.push({
             reservation_id: resId,
             tgl_entry: rawTglEntry,
             formatted_date: parsedTglEntry ? format(parsedTglEntry, 'yyyy-MM-dd') : null,
-            nama_gudang: item.nama_gudang?.toString() || null,
+            nama_gudang: namaGudang,
             regional: item.regional?.toString() || null,
             project_id: item.project_id?.toString() || null,
             nik_pemakai: item.nik_pemakai?.toString() || null,
@@ -113,12 +158,19 @@ export async function scrapeLensaHeaders(
         const maxPages = Math.min(lastPage, OUT_MAX_PAGES);
         let pagesFetched = 1;
         let consecutiveEmpty = items1.length === 0 ? 1 : 0;
+        let consecutiveBelowCutoff = allBeforeCutoffOut(items1) ? 1 : 0;
 
         // Halaman berikutnya
         for (let p = 2; p <= maxPages; p++) {
             if (consecutiveEmpty >= OUT_STOP_ON_EMPTY) {
                 actionLogger.info(
                     `[OUT][${username}] Stop early: ${consecutiveEmpty} empty pages in a row.`
+                );
+                break;
+            }
+            if (consecutiveBelowCutoff >= CONSECUTIVE_STOP_THRESHOLD) {
+                actionLogger.info(
+                    `[OUT][${username}] Stop early: ${consecutiveBelowCutoff} pages in a row before cutoff (${format(CUTOFF_DATE, 'yyyy-MM-dd')}).`
                 );
                 break;
             }
@@ -137,6 +189,12 @@ export async function scrapeLensaHeaders(
                 consecutiveEmpty++;
             } else {
                 consecutiveEmpty = 0;
+            }
+
+            if (allBeforeCutoffOut(items)) {
+                consecutiveBelowCutoff++;
+            } else {
+                consecutiveBelowCutoff = 0;
             }
         }
 

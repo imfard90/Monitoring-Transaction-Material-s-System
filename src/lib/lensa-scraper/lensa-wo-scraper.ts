@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { actionLogger } from '@/lib/logger';
+import { isMasterWarehouse } from '@/lib/warehouse-helper';
 import { redis } from '../redis';
 import { parseBapbPdfBuffer } from './bapb-pdf-parser';
 import {
@@ -72,6 +73,12 @@ function processItems(
 
         const woNumber = item.wo_number?.toString() || null;
         if (isRejectedWONumber(woNumber)) {
+            filtered++;
+            continue;
+        }
+
+        const namaGudang = item.nama_gudang?.toString() || null;
+        if (!isMasterWarehouse(namaGudang)) {
             filtered++;
             continue;
         }

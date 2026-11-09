@@ -8,6 +8,37 @@ export const CANONICAL_KARANGPILANG = 'SO Karangpilang';
 export const ALIAS_KARANG_PILANG = 'SO Karang Pilang';
 
 /**
+ * Known canonical and alias master warehouse names in MTMS (inventory.mas_wh).
+ * Used to filter out non-master warehouses (e.g. SO Lakarsantri) before inserting to DB or UI.
+ */
+export const KNOWN_MASTER_WAREHOUSE_NAMES = [
+    'SO Karangpilang',
+    'SO Karang Pilang',
+    'SO Gresik',
+    'SO Lamongan',
+    'SO Bojonegoro',
+    'SO Tuban',
+    'Sby Kebalen',
+    'Vendors',
+] as const;
+
+/**
+ * Checks whether a given warehouse name matches any of the canonical master warehouses in MTMS.
+ * Can take an optional list of master warehouses, or compare against known master warehouse names.
+ */
+export function isMasterWarehouse(
+    name: string | null | undefined,
+    masterWarehouses?: Array<{ name: string | null }>
+): boolean {
+    if (!name) return false;
+    if (masterWarehouses && masterWarehouses.length > 0) {
+        return !!findMatchingMasterWarehouse(name, masterWarehouses);
+    }
+    const key = normalizeWarehouseKey(name);
+    return KNOWN_MASTER_WAREHOUSE_NAMES.some((km) => normalizeWarehouseKey(km) === key);
+}
+
+/**
  * Normalizes a warehouse string for comparison:
  * lowercases and strips all whitespace.
  */

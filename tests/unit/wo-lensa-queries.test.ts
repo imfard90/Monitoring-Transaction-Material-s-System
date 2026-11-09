@@ -114,7 +114,7 @@ describe('wo-lensa-queries Unit Tests', () => {
         mockCountExecuteTakeFirst.mockResolvedValue({ total: 1 });
         mockWarehouseOptionsExecute.mockResolvedValue([
             { nama_gudang: 'SO Gresik' },
-            { nama_gudang: 'SO Surabaya' },
+            { nama_gudang: 'SO Lamongan' },
             { nama_gudang: 'SO Gresik' },
         ]);
         mockHeadersExecute.mockResolvedValue([
@@ -154,7 +154,7 @@ describe('wo-lensa-queries Unit Tests', () => {
         expect(result.data?.headers[0].id).toBe('100');
         expect(result.data?.headers[0].materials).toHaveLength(1);
         expect(result.data?.headers[0].materials?.[0].material_id).toBe('CLAMP-HOOK');
-        expect(result.data?.warehouses).toEqual(['SO Gresik', 'SO Surabaya']);
+        expect(result.data?.warehouses).toEqual(['SO Gresik', 'SO Lamongan']);
     });
 
     it('returns empty array if Staff user has no assigned warehouses', async () => {

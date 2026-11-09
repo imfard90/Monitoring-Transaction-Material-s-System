@@ -16,8 +16,8 @@ export function parseLensaDate(dateStr: string | null | undefined): Date | null 
     }
 }
 
-// Cutoff: CUTOFF_MONTH env (YYYY-MM) atau default bulan berjalan.
-export const CUTOFF_MONTH_RAW = process.env.CUTOFF_MONTH || format(new Date(), 'yyyy-MM');
+// Cutoff: CUTOFF_MONTH env (YYYY-MM) atau default '2026-10' (bulan 10).
+export const CUTOFF_MONTH_RAW = process.env.CUTOFF_MONTH || '2026-10';
 const CUTOFF_MONTH_MATCH = /^(\d{4})-(\d{2})$/.exec(CUTOFF_MONTH_RAW);
 if (!CUTOFF_MONTH_MATCH) {
     throw new Error(
@@ -33,21 +33,30 @@ export const CUTOFF_DATE = new Date(CUTOFF_YEAR, CUTOFF_MONTH - 1, 1);
  * Cutoff berfungsi sebagai batas bawah (floor): data transaksi dari bulan cutoff
  * sampai bulan berjalan saat ini tetap di-scrape, sedangkan bulan sebelumnya diabaikan.
  */
-export function isWithinCutoff(dateStr: string | null | undefined): boolean {
+export function isWithinCutoff(
+    dateStr: string | null | undefined,
+    cutoffDate: Date = CUTOFF_DATE
+): boolean {
     const d = parseLensaDate(dateStr);
     if (!d) return false;
-    return d >= CUTOFF_DATE;
+    return d >= cutoffDate;
 }
 
-export function isBeforeCutoff(dateStr: string | null | undefined): boolean {
+export function isBeforeCutoff(
+    dateStr: string | null | undefined,
+    cutoffDate: Date = CUTOFF_DATE
+): boolean {
     const d = parseLensaDate(dateStr);
     if (!d) return true;
-    return d < CUTOFF_DATE;
+    return d < cutoffDate;
 }
 
-export function allBeforeCutoff(items: Array<Record<string, unknown>>): boolean {
+export function allBeforeCutoff(
+    items: Array<Record<string, unknown>>,
+    cutoffDate: Date = CUTOFF_DATE
+): boolean {
     if (items.length === 0) return true;
-    return items.every((item) => isBeforeCutoff(item.tanggal_update?.toString() || null));
+    return items.every((item) => isBeforeCutoff(item.tanggal_update?.toString() || null, cutoffDate));
 }
 
 /**

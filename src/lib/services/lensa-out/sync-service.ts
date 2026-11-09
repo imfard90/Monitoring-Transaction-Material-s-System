@@ -1,11 +1,16 @@
 import { db } from '@/lib/db/db';
-import { scrapeLensaDetails, scrapeLensaHeaders } from '@/lib/lensa-scraper/lensa-scraper';
+import {
+    isBeforeCutoffOut,
+    isWithinCutoffOut,
+    scrapeLensaDetails,
+    scrapeLensaHeaders,
+} from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import {
     type ScraperAction,
     scraperLogRepository,
 } from '@/lib/repositories/scraper-log.repository';
-import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
+import { findMatchingMasterWarehouse, isMasterWarehouse } from '@/lib/warehouse-helper';
 import {
     executeWithLensaFallback,
     getActiveWarehousesWithLensaCandidates,
@@ -114,8 +119,11 @@ export async function executeOutLensaScraping(
         });
 
         const allNewHeaders = headerResults.flat();
+        const filteredHeaders = allNewHeaders.filter(
+            (h) => isMasterWarehouse(h.nama_gudang) && isWithinCutoffOut(h.tgl_entry)
+        );
         const uniqueHeadersMap = new Map();
-        for (const h of allNewHeaders) {
+        for (const h of filteredHeaders) {
             uniqueHeadersMap.set(h.reservation_id, h);
         }
         const deduplicatedHeaders = Array.from(uniqueHeadersMap.values());
@@ -160,7 +168,8 @@ export async function executeOutLensaScraping(
                     const res = h.reservation_id ? String(h.reservation_id).trim() : '';
                     const isSapOutCheck =
                         (Boolean(gi) && matchedSapNumbers.has(gi)) ||
-                        (Boolean(res) && matchedRequestIds.has(res));
+                        (Boolean(res) && matchedRequestIds.has(res)) ||
+                        isBeforeCutoffOut(h.tgl_entry);
 
                     await trx
                         .insertInto('inventory.out_lensa_ref_header')

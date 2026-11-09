@@ -14,6 +14,7 @@ import {
     type ScraperAction,
     scraperLogRepository,
 } from '@/lib/repositories/scraper-log.repository';
+import { isMasterWarehouse } from '@/lib/warehouse-helper';
 import {
     executeWithLensaFallback,
     getActiveWarehousesWithLensaCandidates,
@@ -139,7 +140,7 @@ export async function executeNightlyWOLensaScrapingByNik(
 
         const allNewHeaders = headerResults.flat();
         const filteredHeaders = allNewHeaders.filter(
-            (h) => !isRejectedWONumber(h.wo_number)
+            (h) => !isRejectedWONumber(h.wo_number) && isMasterWarehouse(h.nama_gudang)
         );
 
         const uniqueHeadersMap = new Map<string, (typeof filteredHeaders)[number]>();

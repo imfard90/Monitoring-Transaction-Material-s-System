@@ -197,12 +197,14 @@ export async function getPendingNotifications(): Promise<{
         }
 
         // 3. Out SAP Check False Queries (inventory.out_lensa_ref_header)
+        // Batasi hanya data >= October 2026 cutoff ('2026-10-01') dan gudang master
         let outSapCountQuery = db
             .selectFrom('inventory.out_lensa_ref_header as o')
             .select(sql<number>`COUNT(o.id)`.as('total'))
             .where((eb) =>
                 eb.or([eb('o.sap_out_check', '=', false), eb('o.sap_out_check', 'is', null)])
-            );
+            )
+            .where('o.formatted_date', '>=', sql<Date>`'2026-10-01'::date`);
 
         let outSapRecentQuery = db
             .selectFrom('inventory.out_lensa_ref_header as o')
@@ -216,7 +218,8 @@ export async function getPendingNotifications(): Promise<{
             ])
             .where((eb) =>
                 eb.or([eb('o.sap_out_check', '=', false), eb('o.sap_out_check', 'is', null)])
-            );
+            )
+            .where('o.formatted_date', '>=', sql<Date>`'2026-10-01'::date`);
 
         if (isStaff && whNames.length > 0) {
             outSapCountQuery = outSapCountQuery.where('o.nama_gudang', 'in', whNames);
