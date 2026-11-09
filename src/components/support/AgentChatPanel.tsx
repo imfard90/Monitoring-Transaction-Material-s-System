@@ -246,7 +246,7 @@ export function AgentChatPanel({ onBack }: AgentChatPanelProps) {
                                             : 'bg-muted/70 text-foreground border border-border/60 rounded-bl-xs'
                                     )}
                                 >
-                                    <div className="whitespace-pre-wrap break-words">
+                                    <div className="whitespace-pre-wrap wrap-break-words">
                                         {msg.content}
                                     </div>
                                     <div
@@ -312,7 +312,7 @@ export function AgentChatPanel({ onBack }: AgentChatPanelProps) {
                         e.preventDefault();
                         void handleSend();
                     }}
-                    className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2.5 py-1.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/25 transition-colors duration-150"
+                    className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2.5 py-1.5 focus-within:border-primary/40 transition-colors duration-150"
                 >
                     <textarea
                         ref={inputRef}
@@ -322,7 +322,7 @@ export function AgentChatPanel({ onBack }: AgentChatPanelProps) {
                         onKeyDown={handleKeyDown}
                         placeholder="Ketik pesan untuk MTMS Agent... (Enter untuk kirim)"
                         disabled={isLoading}
-                        className="flex-1 resize-none border-0 bg-transparent text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0 shadow-none max-h-24 py-1 leading-normal"
+                        className="flex-1 resize-none border-0 bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none focus:outline-none ring-0 focus:ring-0 shadow-none max-h-24 py-1 leading-normal"
                     />
 
                     <Button
