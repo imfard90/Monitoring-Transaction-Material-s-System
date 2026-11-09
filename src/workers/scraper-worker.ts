@@ -281,13 +281,13 @@ const runNightlyWOLensaNikScraper = async (action: 'system' | 'manual' = 'system
 
     try {
         actionLogger.info(
-            '[CRON] Starting nightly WO Lensa deep sweep by technician NIK (02:00 WIB)...'
+            '[CRON] Starting WO Lensa deep sweep by technician NIK (22:30 / 02:00 WIB)...'
         );
         const outcome = await executeNightlyWOLensaScrapingByNik(action);
-        actionLogger.info(`[CRON] Nightly WO Lensa deep sweep completed: ${outcome.message}`);
+        actionLogger.info(`[CRON] WO Lensa deep sweep completed: ${outcome.message}`);
     } catch (error) {
         actionLogger.error(
-            '[CRON] Error during nightly WO Lensa scraping:',
+            '[CRON] Error during WO Lensa deep sweep scraping:',
             error instanceof Error ? error : new Error(String(error))
         );
     } finally {
@@ -299,10 +299,16 @@ const runNightlyWOLensaNikScraper = async (action: 'system' | 'manual' = 'system
 // ----------------------------------------------------
 // 3. Register Scheduled Crons
 // ----------------------------------------------------
-// Nightly Deep Sweep WO Lensa by technician NIK at 02:00 WIB
-cron.schedule('0 2 * * *', () => void runNightlyWOLensaNikScraper(), {
-    timezone: 'Asia/Jakarta',
-});
+// Deep Sweep WO Lensa by technician NIK at 22:30 WIB (10:30 malam) & 02:00 WIB
+const deepSweepWOLensaSchedules = [
+    { time: '30 22 * * *', label: '22:30 WIB' },
+    { time: '0 2 * * *', label: '02:00 WIB' },
+];
+for (const schedule of deepSweepWOLensaSchedules) {
+    cron.schedule(schedule.time, () => void runNightlyWOLensaNikScraper(), {
+        timezone: 'Asia/Jakarta',
+    });
+}
 for (const schedule of schedules) {
     cron.schedule(schedule.time, () => void runScrapers(schedule.perpage), {
         timezone: 'Asia/Jakarta',
