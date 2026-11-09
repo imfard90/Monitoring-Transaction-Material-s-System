@@ -51,6 +51,18 @@ if (process.platform === 'linux') {
         .catch(() => {});
 }
 
+// Cleanup any stale Redis scraper locks left behind by an abruptly killed previous worker
+void Promise.all([
+    redis.del('lock:bulk_stock_scrape'),
+    redis.del('lock:out_lensa_scrape'),
+    redis.del('lock:wo_lensa_scrape'),
+    redis.del(OTHER_STOCK_SYNC_LOCK_KEY),
+])
+    .then(() => {
+        actionLogger.info('[MTMS-WORKER] Stale Redis locks cleaned up on startup.');
+    })
+    .catch(() => {});
+
 let isRunning = true;
 let isJobActive = false;
 
@@ -532,7 +544,13 @@ const gracefulShutdown = async (signal: string) => {
         // `closeBrowser()` closes the browser connection and then calls
         // `server.kill()`, which terminates the whole Chromium process tree.
         await closeBrowser().catch(() => {});
-        await redis.del(WORKER_HEARTBEAT_KEY).catch(() => {});
+        await Promise.all([
+            redis.del('lock:bulk_stock_scrape'),
+            redis.del('lock:out_lensa_scrape'),
+            redis.del('lock:wo_lensa_scrape'),
+            redis.del(OTHER_STOCK_SYNC_LOCK_KEY),
+            redis.del(WORKER_HEARTBEAT_KEY),
+        ]).catch(() => {});
         await queueRedis.quit().catch(() => {});
         await redis.quit().catch(() => {});
 
