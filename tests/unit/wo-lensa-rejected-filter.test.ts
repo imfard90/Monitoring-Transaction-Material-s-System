@@ -1,13 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@/lib/redis', () => ({
-    redis: {},
-}));
-
+import { describe, expect, it } from 'vitest';
 import {
     isRejectedWONumber,
     selectBestCandidateWOLensaHeader,
-} from '@/lib/lensa-scraper/lensa-wo-scraper';
+} from '@/lib/lensa-scraper/lensa-wo-helpers';
 
 /** Simulates the REJECTED filter logic using isRejectedWONumber */
 function filterRejectedWOLHeaders(

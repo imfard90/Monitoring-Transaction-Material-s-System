@@ -17,13 +17,13 @@ import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository'
 import {
     executeWithLensaFallback,
     getWarehouseLensaCandidates,
-} from './lensa-credential-helper';
+} from '../lensa-credential-helper';
 import {
     type LensaDetailMaterial,
     type ScrapedWODetailMaterial,
     type ScrapedWODetailResult,
     toISODateString,
-} from './lensa-wo-types';
+} from './types';
 
 /**
  * Service untuk scraping single detail pemakaian WO Lensa.

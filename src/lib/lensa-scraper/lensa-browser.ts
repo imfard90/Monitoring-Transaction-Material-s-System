@@ -166,16 +166,8 @@ export function getLensaBrowserHealth() {
     };
 }
 
-export function parseLensaDate(dateStr: string | null | undefined): Date | null {
-    if (!dateStr) return null;
-    try {
-        const parsed = parse(dateStr.split(' ')[0], 'dd/MM/yyyy', new Date());
-        if (Number.isNaN(parsed.getTime())) return null;
-        return parsed;
-    } catch (_e) {
-        return null;
-    }
-}
+import { parseLensaDate } from './lensa-wo-helpers';
+export { parseLensaDate };
 
 /**
  * Parser tanggal untuk OUT Lensa.

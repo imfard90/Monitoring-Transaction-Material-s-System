@@ -1,14 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@/lib/redis', () => ({
-    redis: {
-        get: vi.fn(),
-        set: vi.fn(),
-        del: vi.fn(),
-    },
-}));
-
-import { getWOPrefixes } from '@/lib/lensa-scraper/lensa-wo-scraper';
+import { describe, expect, it } from 'vitest';
+import { getWOPrefixes } from '@/lib/lensa-scraper/lensa-wo-helpers';
 
 describe('WO Lensa Scraper — Prefix patterns', () => {
     it('generates static and dynamic prefixes for a single target month', () => {
