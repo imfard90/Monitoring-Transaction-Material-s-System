@@ -199,7 +199,7 @@ describe('wo-lensa-queries Unit Tests', () => {
 
     it('retrieves filter options correctly', async () => {
         const options = await getWOLensaFilterOptions();
-        expect(options.warehouses).toEqual(['SO Gresik']);
+        expect(options.warehouses).toEqual(['SO Gresik', 'SO Lamongan']);
     });
 
     it('retrieves header details by header ID', async () => {

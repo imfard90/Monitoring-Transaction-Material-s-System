@@ -369,17 +369,40 @@ export async function getOutLensaFilterOptions() {
     try {
         const { isStaff, warehouseIds } = await getSessionUser();
 
-        let whQuery = db.selectFrom('inventory.mas_wh').select('name').orderBy('name', 'asc');
+        let whNames: string[] = [];
         if (isStaff) {
             if (warehouseIds.length === 0) {
                 return { warehouses: [] };
             }
-            whQuery = whQuery.where('id', 'in', warehouseIds as number[]);
+            const whs = await db
+                .selectFrom('inventory.mas_wh')
+                .select('name')
+                .where('id', 'in', warehouseIds as number[])
+                .execute();
+            whNames = expandWarehouseAliases(
+                whs.map((w: Record<string, unknown>) => w.name as string).filter(Boolean)
+            );
+        }
+
+        let whQuery = db
+            .selectFrom('inventory.out_lensa_ref_header')
+            .select('nama_gudang')
+            .distinct()
+            .orderBy('nama_gudang', 'asc');
+
+        if (isStaff && whNames.length > 0) {
+            whQuery = whQuery.where('nama_gudang', 'in', whNames);
         }
         const whs = await whQuery.execute();
 
         return {
-            warehouses: whs.map((w) => w.name as string).filter(Boolean),
+            warehouses: Array.from(
+                new Set(
+                    whs
+                        .map((w) => w.nama_gudang?.trim())
+                        .filter((name): name is string => Boolean(name))
+                )
+            ),
         };
     } catch {
         return { warehouses: [] };
