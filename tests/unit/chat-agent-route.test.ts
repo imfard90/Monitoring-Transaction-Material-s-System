@@ -138,9 +138,10 @@ describe('API Route /api/chat-agent Unit Tests', () => {
             );
         });
 
-        it('delegates to stock query skill when skill handles the query', async () => {
+        it('falls back to stock query skill when Hermes agent is offline or fails', async () => {
             mockGetSessionUser.mockResolvedValueOnce({ id: 'usr-123', nik: '12345' });
             mockGetHermesChatHistory.mockResolvedValueOnce([]);
+            mockSendChatMessageToHermes.mockRejectedValueOnce(new Error('Connection refused'));
 
             const mockSkillMsg = {
                 id: 'skill-1',
@@ -163,7 +164,6 @@ describe('API Route /api/chat-agent Unit Tests', () => {
             const json = await res.json();
             expect(json.success).toBe(true);
             expect(json.message).toEqual(mockSkillMsg);
-            expect(mockSendChatMessageToHermes).not.toHaveBeenCalled();
             expect(mockSaveHermesChatHistory).toHaveBeenCalledWith(
                 '12345',
                 expect.arrayContaining([

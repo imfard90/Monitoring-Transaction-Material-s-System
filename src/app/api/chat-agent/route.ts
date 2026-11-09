@@ -94,15 +94,21 @@ export async function POST(request: Request) {
             createdAt: new Date().toISOString(),
         };
 
-        // 2. Evaluasi Modular Skills terlebih dahulu (e.g. Skill Cek Stok MTMS)
+        // 2. Hubungi Hermes Agent (dengan kemampuan Tool Calling native)
         let assistantMessage: HermesChatMessage;
-        const stockSkillResult = await handleStockQuerySkill(userText, existingHistory);
-
-        if (stockSkillResult.handled && stockSkillResult.message) {
-            assistantMessage = stockSkillResult.message;
-        } else {
-            // 3. Fallback: Hubungi Hermes Agent secara umum
+        try {
             assistantMessage = await sendChatMessageToHermes(userText, existingHistory);
+        } catch (hermesErr) {
+            actionLogger.warn(
+                '[POST /api/chat-agent] Hermes agent gagal atau offline, mencoba fallback skill offline:',
+                hermesErr instanceof Error ? hermesErr : new Error(String(hermesErr))
+            );
+            const stockSkillResult = await handleStockQuerySkill(userText, existingHistory);
+            if (stockSkillResult.handled && stockSkillResult.message) {
+                assistantMessage = stockSkillResult.message;
+            } else {
+                throw hermesErr;
+            }
         }
 
         // 4. Simpan riwayat yang diperbarui ke Redis (otomatis perpanjang masa aktif 10 menit)

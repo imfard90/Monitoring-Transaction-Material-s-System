@@ -113,6 +113,59 @@ export const createMasterDataRepository = (dbClient: Kysely<DB> | Transaction<DB
     },
 
     /**
+     * Search stock balances in a specific warehouse or across all warehouses.
+     * If warehouseId is omitted, searches across all active warehouses.
+     * Orders by qty_stock descending.
+     */
+    searchStockBalances: (options: {
+        warehouseId?: number;
+        keywords?: string[];
+        limit?: number;
+    }) => {
+        const { warehouseId, keywords = [], limit = 25 } = options;
+        let query = dbClient
+            .selectFrom('inventory.stock_balance as sb')
+            .innerJoin('inventory.materials as m', 'm.id', 'sb.designator_id')
+            .innerJoin('inventory.mas_wh as w', 'w.id', 'sb.warehouse_id')
+            .select([
+                'sb.warehouse_id as warehouseId',
+                'w.name as warehouseName',
+                'w.branch as branchName',
+                'sb.designator_id as materialId',
+                'm.code as materialCode',
+                'm.description as materialName',
+                'm.unit as materialUnit',
+                'sb.qty_stock as qtyStock',
+            ]);
+
+        if (warehouseId !== undefined) {
+            query = query.where('sb.warehouse_id', '=', warehouseId);
+        }
+
+        const cleanKeywords = keywords
+            .map((k) => k.trim())
+            .filter((k) => k.length > 0);
+
+        if (cleanKeywords.length > 0) {
+            query = query.where((eb) =>
+                eb.or(
+                    cleanKeywords.flatMap((kw) => [
+                        eb('m.description', 'ilike', `%${kw}%`),
+                        eb('m.code', 'ilike', `%${kw}%`),
+                    ])
+                )
+            );
+        }
+
+        return query
+            .orderBy('sb.qty_stock', 'desc')
+            .orderBy('w.name', 'asc')
+            .orderBy('m.code', 'asc')
+            .limit(limit)
+            .execute();
+    },
+
+    /**
      * Snapshot stok seluruh gudang untuk halaman publik /live-stock.
      * Read-only: hanya agregat stok + policy, tanpa data transaksi/PIC.
      * hasOutMaterialHistory menandai material yang pernah keluar dari gudang,
