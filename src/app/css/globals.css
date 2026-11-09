@@ -41,9 +41,9 @@
 [data-floating-input],
 [data-floating-input]:focus,
 [data-floating-input]:focus-visible,
-[data-chat-input],
-[data-chat-input]:focus,
-[data-chat-input]:focus-visible {
+textarea[data-chat-input],
+textarea[data-chat-input]:focus,
+textarea[data-chat-input]:focus-visible {
     outline: none;
     outline-offset: 0;
     box-shadow: none;

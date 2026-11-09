@@ -65,6 +65,54 @@ export const createMasterDataRepository = (dbClient: Kysely<DB> | Transaction<DB
             .execute(),
 
     /**
+     * Search stock balance in a warehouse by material keyword(s).
+     * If keywords are provided, matches against material code and description (case-insensitive).
+     * Returns up to limit items ordered by qty_stock descending.
+     */
+    searchWarehouseStockBalance: (
+        warehouseId: number,
+        keywords: string[] = [],
+        limit = 20
+    ) => {
+        let query = dbClient
+            .selectFrom('inventory.stock_balance as sb')
+            .innerJoin('inventory.materials as m', 'm.id', 'sb.designator_id')
+            .innerJoin('inventory.mas_wh as w', 'w.id', 'sb.warehouse_id')
+            .select([
+                'sb.warehouse_id as warehouseId',
+                'w.name as warehouseName',
+                'w.branch as branchName',
+                'sb.designator_id as materialId',
+                'm.code as materialCode',
+                'm.description as materialName',
+                'm.unit as materialUnit',
+                'sb.qty_stock as qtyStock',
+            ])
+            .where('sb.warehouse_id', '=', warehouseId);
+
+        const cleanKeywords = keywords
+            .map((k) => k.trim())
+            .filter((k) => k.length > 0);
+
+        if (cleanKeywords.length > 0) {
+            query = query.where((eb) =>
+                eb.or(
+                    cleanKeywords.flatMap((kw) => [
+                        eb('m.description', 'ilike', `%${kw}%`),
+                        eb('m.code', 'ilike', `%${kw}%`),
+                    ])
+                )
+            );
+        }
+
+        return query
+            .orderBy('sb.qty_stock', 'desc')
+            .orderBy('m.code', 'asc')
+            .limit(limit)
+            .execute();
+    },
+
+    /**
      * Snapshot stok seluruh gudang untuk halaman publik /live-stock.
      * Read-only: hanya agregat stok + policy, tanpa data transaksi/PIC.
      * hasOutMaterialHistory menandai material yang pernah keluar dari gudang,

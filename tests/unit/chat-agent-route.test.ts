@@ -6,6 +6,7 @@ const mockGetHermesChatHistory = vi.fn();
 const mockSaveHermesChatHistory = vi.fn();
 const mockClearHermesChatHistory = vi.fn();
 const mockSendChatMessageToHermes = vi.fn();
+const mockHandleStockQuerySkill = vi.fn();
 
 vi.mock('@/lib/auth-server', () => ({
     getSessionUser: () => mockGetSessionUser(),
@@ -20,6 +21,7 @@ vi.mock('@/lib/services/hermes', () => ({
     saveHermesChatHistory: (userId: string, msgs: any[]) => mockSaveHermesChatHistory(userId, msgs),
     clearHermesChatHistory: (userId: string) => mockClearHermesChatHistory(userId),
     sendChatMessageToHermes: (msg: string, history: any[]) => mockSendChatMessageToHermes(msg, history),
+    handleStockQuerySkill: (...args: any[]) => mockHandleStockQuerySkill(...args),
 }));
 
 vi.mock('@/lib/logger', () => ({
@@ -36,6 +38,7 @@ describe('API Route /api/chat-agent Unit Tests', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockRateLimit.mockResolvedValue({ success: true });
+        mockHandleStockQuerySkill.mockResolvedValue({ handled: false });
     });
 
     describe('GET /api/chat-agent', () => {
@@ -131,6 +134,41 @@ describe('API Route /api/chat-agent Unit Tests', () => {
                 expect.arrayContaining([
                     expect.objectContaining({ role: 'user', content: 'Cek stok Tuban' }),
                     mockAssistantMsg,
+                ])
+            );
+        });
+
+        it('delegates to stock query skill when skill handles the query', async () => {
+            mockGetSessionUser.mockResolvedValueOnce({ id: 'usr-123', nik: '12345' });
+            mockGetHermesChatHistory.mockResolvedValueOnce([]);
+
+            const mockSkillMsg = {
+                id: 'skill-1',
+                role: 'assistant',
+                content: 'Berikut data stok kabel di SO Gresik...',
+                createdAt: '2026-11-09T00:00:03Z',
+            };
+            mockHandleStockQuerySkill.mockResolvedValueOnce({
+                handled: true,
+                message: mockSkillMsg,
+            });
+
+            const req = new Request('http://localhost/api/chat-agent', {
+                method: 'POST',
+                body: JSON.stringify({ message: 'berapa stok kabel di gresik?' }),
+            });
+            const res = await POST(req);
+            expect(res.status).toBe(200);
+
+            const json = await res.json();
+            expect(json.success).toBe(true);
+            expect(json.message).toEqual(mockSkillMsg);
+            expect(mockSendChatMessageToHermes).not.toHaveBeenCalled();
+            expect(mockSaveHermesChatHistory).toHaveBeenCalledWith(
+                '12345',
+                expect.arrayContaining([
+                    expect.objectContaining({ role: 'user', content: 'berapa stok kabel di gresik?' }),
+                    mockSkillMsg,
                 ])
             );
         });

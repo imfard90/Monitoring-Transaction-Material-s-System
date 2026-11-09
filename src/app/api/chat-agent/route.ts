@@ -6,6 +6,7 @@ import { rateLimit } from '@/lib/rate-limit';
 import {
     clearHermesChatHistory,
     getHermesChatHistory,
+    handleStockQuerySkill,
     type HermesChatMessage,
     saveHermesChatHistory,
     sendChatMessageToHermes,
@@ -93,10 +94,18 @@ export async function POST(request: Request) {
             createdAt: new Date().toISOString(),
         };
 
-        // 2. Hubungi Hermes Agent
-        const assistantMessage = await sendChatMessageToHermes(userText, existingHistory);
+        // 2. Evaluasi Modular Skills terlebih dahulu (e.g. Skill Cek Stok MTMS)
+        let assistantMessage: HermesChatMessage;
+        const stockSkillResult = await handleStockQuerySkill(userText, existingHistory);
 
-        // 3. Simpan riwayat yang diperbarui ke Redis (otomatis perpanjang masa aktif 10 menit)
+        if (stockSkillResult.handled && stockSkillResult.message) {
+            assistantMessage = stockSkillResult.message;
+        } else {
+            // 3. Fallback: Hubungi Hermes Agent secara umum
+            assistantMessage = await sendChatMessageToHermes(userText, existingHistory);
+        }
+
+        // 4. Simpan riwayat yang diperbarui ke Redis (otomatis perpanjang masa aktif 10 menit)
         const updatedHistory = [...existingHistory, newUserMessage, assistantMessage];
         await saveHermesChatHistory(user.nik, updatedHistory);
 
