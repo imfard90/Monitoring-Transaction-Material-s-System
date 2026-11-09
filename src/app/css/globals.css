@@ -26,9 +26,9 @@
 :where(
     a,
     button,
-    input:not([cmdk-input]):not([data-floating-input]),
+    input:not([cmdk-input]):not([data-floating-input]):not([data-chat-input]),
     select,
-    textarea,
+    textarea:not([data-floating-input]):not([data-chat-input]),
     [tabindex]
 ):focus-visible {
     outline: 2px solid var(--color-primary, currentcolor);
@@ -40,8 +40,12 @@
 [cmdk-input]:focus-visible,
 [data-floating-input],
 [data-floating-input]:focus,
-[data-floating-input]:focus-visible {
+[data-floating-input]:focus-visible,
+[data-chat-input],
+[data-chat-input]:focus,
+[data-chat-input]:focus-visible {
     outline: none;
+    outline-offset: 0;
     box-shadow: none;
     border: none;
     background-color: transparent;

@@ -315,6 +315,7 @@ export function AgentChatPanel({ onBack }: AgentChatPanelProps) {
                     className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2.5 py-1.5 focus-within:border-primary/40 transition-colors duration-150"
                 >
                     <textarea
+                        data-chat-input
                         ref={inputRef}
                         rows={1}
                         value={input}
@@ -322,7 +323,8 @@ export function AgentChatPanel({ onBack }: AgentChatPanelProps) {
                         onKeyDown={handleKeyDown}
                         placeholder="Ketik pesan untuk MTMS Agent... (Enter untuk kirim)"
                         disabled={isLoading}
-                        className="flex-1 resize-none border-0 bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none focus:outline-none ring-0 focus:ring-0 shadow-none max-h-24 py-1 leading-normal"
+                        className="flex-1 resize-none border-0 bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 shadow-none max-h-24 py-1 leading-normal"
+                        style={{ outline: 'none', boxShadow: 'none' }}
                     />
 
                     <Button
