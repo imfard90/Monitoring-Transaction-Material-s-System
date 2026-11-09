@@ -15,7 +15,12 @@ import {
     scraperLogRepository,
 } from '@/lib/repositories/scraper-log.repository';
 import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
-import { asyncPool, decryptLensaPassword } from './lensa-crypto';
+import {
+    executeWithLensaFallback,
+    getActiveWarehousesWithLensaCandidates,
+    getWarehouseLensaCandidates,
+} from './lensa-credential-helper';
+import { asyncPool } from './lensa-crypto';
 import { toISODateString, type WOLensaScrapeOutcome } from './lensa-wo-types';
 
 /**
@@ -29,20 +34,14 @@ export async function executeWOLensaScraping(
 ): Promise<WOLensaScrapeOutcome> {
     const perpage = 100;
     try {
-        const whs = await db
-            .selectFrom('inventory.mas_wh')
-            .select(['id', 'name', 'pic_1', 'pic_2'])
-            .execute();
+        const whTasks = await getActiveWarehousesWithLensaCandidates();
 
-        const usersWithLensa = await db
-            .selectFrom('auth.user as u')
-            .where('u.lensa_acount', 'is not', null)
-            .select(['u.id', 'u.nik', 'u.lensa_acount'])
-            .execute();
-
-        const userByNik = new Map<string, (typeof usersWithLensa)[number]>();
-        for (const u of usersWithLensa) {
-            if (u.nik) userByNik.set(u.nik, u);
+        if (whTasks.length === 0) {
+            return {
+                success: false,
+                message:
+                    'Tidak ada warehouse dengan PIC Lensa yang valid untuk melakukan scraping.',
+            };
         }
 
         // Ambil header terkini dengan batas 10.000 untuk mencegah unbounded memory scan di RAM
@@ -55,71 +54,40 @@ export async function executeWOLensaScraping(
         const existingPemakaianIds = existingHeaders.map((h) => String(h.pemakaian_id));
 
         let totalInserted = 0;
-
-        const whTasks = whs
-            .map((w) => {
-                const pic1Nik = w.pic_1 ? String(w.pic_1).trim() : null;
-                const pic2Nik = w.pic_2 ? String(w.pic_2).trim() : null;
-                const pic1 = pic1Nik ? userByNik.get(pic1Nik) : undefined;
-                const pic2 = pic2Nik ? userByNik.get(pic2Nik) : undefined;
-                if (!pic1?.lensa_acount && !pic2?.lensa_acount) return null;
-                return {
-                    wh: w,
-                    pic1: pic1?.lensa_acount ? pic1 : undefined,
-                    pic2: pic2?.lensa_acount ? pic2 : undefined,
-                };
-            })
-            .filter((t): t is NonNullable<typeof t> => t !== null);
-
-        if (whTasks.length === 0) {
-            return {
-                success: false,
-                message:
-                    'Tidak ada warehouse dengan PIC Lensa yang valid untuk melakukan scraping.',
-            };
-        }
+        let totalUsersScraped = 0;
 
         const headerResults = await asyncPool(5, whTasks, async (task) => {
-            const candidates = [task.pic1, task.pic2].filter(Boolean) as NonNullable<
-                (typeof whTasks)[number]['pic1']
-            >[];
-            if (candidates.length === 0) return [];
-
-            for (const picUser of candidates) {
-                const lensesAcount = picUser.lensa_acount;
-                if (!lensesAcount?.username || !lensesAcount?.password) continue;
-
-                const customUsername = lensesAcount.username;
-                let customPassword = '';
-                try {
-                    customPassword = decryptLensaPassword(lensesAcount.password);
-                } catch (_e) {
-                    actionLogger.error(`Failed to decrypt password for user ${picUser.id}`);
-                    continue;
-                }
-
-                try {
-                    const newHeaders = await scrapeWOLensaHeaders(
-                        existingPemakaianIds,
-                        customUsername,
-                        customPassword,
-                        perpage
-                    );
-                    actionLogger.info(
-                        `[WO][${task.wh.name}] PIC ${customUsername} → ${newHeaders.length} headers`
-                    );
-                    return newHeaders;
-                } catch (e: unknown) {
-                    actionLogger.error(
-                        `[WO][${task.wh.name}] Failed scrape PIC ${customUsername}: ${
-                            e instanceof Error ? e.message : e
-                        } — trying fallback`
-                    );
-                }
+            try {
+                const newHeaders = await executeWithLensaFallback(
+                    task.candidates,
+                    async (creds) => {
+                        const headers = await scrapeWOLensaHeaders(
+                            existingPemakaianIds,
+                            creds.username,
+                            creds.password,
+                            perpage
+                        );
+                        actionLogger.info(
+                            `[WO][${task.warehouseName}] PIC ${creds.username} → ${headers.length} headers`
+                        );
+                        return headers.map((h) => ({
+                            ...h,
+                            scraped_by_username: creds.username,
+                            nama_gudang: h.nama_gudang || task.warehouseName,
+                        }));
+                    },
+                    `WO-Lensa[${task.warehouseName}]`
+                );
+                totalUsersScraped++;
+                return newHeaders;
+            } catch (e: unknown) {
+                actionLogger.error(
+                    `[WO][${task.warehouseName}] Seluruh PIC gagal: ${
+                        e instanceof Error ? e.message : e
+                    }`
+                );
+                return [];
             }
-
-            actionLogger.info(`[WO][${task.wh.name}] Semua PIC gagal.`);
-            return [];
         });
 
         const allNewHeaders = headerResults.flat();
@@ -242,8 +210,8 @@ export async function executeWOLensaScraping(
 
         const resumeResult =
             totalInserted > 0
-                ? `Sukses ${totalInserted} data WO baru`
-                : 'Selesai: Tidak ada data WO baru';
+                ? `Sukses ${totalInserted} data WO baru (${totalUsersScraped} akun)`
+                : `Selesai: Tidak ada data WO baru (${totalUsersScraped} akun)`;
 
         await scraperLogRepository
             .insertLog({
@@ -300,12 +268,7 @@ export async function syncMissingWOLensaDetails(): Promise<number> {
 
     const whs = await db
         .selectFrom('inventory.mas_wh')
-        .select(['name', 'pic_1', 'pic_2'])
-        .execute();
-    const usersWithLensa = await db
-        .selectFrom('auth.user as u')
-        .where('u.lensa_acount', 'is not', null)
-        .select(['u.nik', 'u.lensa_acount'])
+        .select(['id', 'name', 'pic_1', 'pic_2'])
         .execute();
 
     const groupedHeaders: Record<string, typeof headersMissingDetails> = {};
@@ -315,36 +278,14 @@ export async function syncMissingWOLensaDetails(): Promise<number> {
         groupedHeaders[gudang].push(h);
     }
 
-    const tasks = Object.keys(groupedHeaders)
-        .map((gudang) => {
-            const wh = findMatchingMasterWarehouse(gudang, whs);
-            if (!wh) return null;
-            const candidates: {
-                username: string;
-                password: string;
-                picNik: string;
-                source: 'pic1' | 'pic2';
-            }[] = [];
-            for (const [source, picNik] of [
-                ['pic1', wh.pic_1],
-                ['pic2', wh.pic_2],
-            ] as const) {
-                if (!picNik) continue;
-                const userObj = usersWithLensa.find((u) => u.nik === picNik);
-                if (userObj?.lensa_acount?.username && userObj?.lensa_acount?.password) {
-                    try {
-                        const pass = decryptLensaPassword(userObj.lensa_acount.password);
-                        if (pass) {
-                            candidates.push({
-                                username: userObj.lensa_acount.username,
-                                password: pass,
-                                picNik,
-                                source,
-                            });
-                        }
-                    } catch {}
-                }
-            }
+    const tasks = await Promise.all(
+        Object.keys(groupedHeaders).map(async (gudang) => {
+            const matchedWh = findMatchingMasterWarehouse(gudang, whs);
+            const candidates = await getWarehouseLensaCandidates({
+                warehouseId: matchedWh?.id,
+                warehouseName: gudang,
+                includeSystemFallback: false,
+            });
             if (candidates.length === 0) return null;
             return {
                 gudang,
@@ -352,39 +293,35 @@ export async function syncMissingWOLensaDetails(): Promise<number> {
                 headers: groupedHeaders[gudang],
             };
         })
-        .filter((t): t is NonNullable<typeof t> => !!t);
+    ).then((t) => t.filter((item): item is NonNullable<typeof item> => item !== null));
 
     let insertedDetailsCount = 0;
 
     const detailResults = await asyncPool(5, tasks, async (task) => {
         const { candidates, headers, gudang } = task;
-        for (let i = 0; i < candidates.length; i++) {
-            const creds = candidates[i];
-            try {
-                return await scrapeWOLensaDetails(
-                    headers.map((h) => ({
-                        id: Number(h.id),
-                        pemakaian_id: String(h.pemakaian_id),
-                        type: (h as { type?: string | null }).type || 'assurance',
-                    })),
-                    creds.username,
-                    creds.password
-                );
-            } catch (e: unknown) {
-                const msg = e instanceof Error ? e.message : String(e);
-                const isLast = i === candidates.length - 1;
-                actionLogger.warn(
-                    `[WO-Sync][${gudang}] Detail scrape via PIC ${creds.username} (${creds.source}) gagal: ${msg}${isLast ? '' : ' — mencoba fallback ke PIC berikutnya'}`
-                );
-                if (isLast) {
-                    actionLogger.error(
-                        `Failed to scrape details for WO gudang ${gudang}:`,
-                        e instanceof Error ? e : new Error(String(e))
+        try {
+            return await executeWithLensaFallback(
+                candidates,
+                async (creds) => {
+                    return await scrapeWOLensaDetails(
+                        headers.map((h) => ({
+                            id: Number(h.id),
+                            pemakaian_id: String(h.pemakaian_id),
+                            type: (h as { type?: string | null }).type || 'assurance',
+                        })),
+                        creds.username,
+                        creds.password
                     );
-                }
-            }
+                },
+                `WO-Lensa-Detail[${gudang}]`
+            );
+        } catch (e: unknown) {
+            actionLogger.error(
+                `Failed to scrape details for WO gudang ${gudang}:`,
+                e instanceof Error ? e : new Error(String(e))
+            );
+            return [];
         }
-        return [];
     });
 
     const allDetails = detailResults.flat();

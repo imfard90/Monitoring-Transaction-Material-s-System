@@ -8,6 +8,7 @@ function createChain() {
     const chain: any = {
         select: vi.fn(() => chain),
         where: vi.fn(() => chain),
+        orderBy: vi.fn(() => chain),
         execute: vi.fn(),
         executeTakeFirst: vi.fn(),
     };
@@ -36,9 +37,11 @@ vi.mock('@/lib/warehouse-helper', () => ({
     findMatchingMasterWarehouse: (...args: any[]) => mockFindMatchingMasterWarehouse(...args),
 }));
 
-const { getWarehouseLensaCandidates, executeWithLensaFallback } = await import(
-    '@/lib/services/lensa-credential-helper'
-);
+const {
+    getWarehouseLensaCandidates,
+    executeWithLensaFallback,
+    getActiveWarehousesWithLensaCandidates,
+} = await import('@/lib/services/lensa-credential-helper');
 
 describe('lensa-credential-helper Unit Tests', () => {
     beforeEach(() => {
@@ -225,6 +228,65 @@ describe('lensa-credential-helper Unit Tests', () => {
             expect(candidates).toHaveLength(1);
             expect(candidates[0].username).toBe('pic2_user');
             expect(candidates[0].source).toBe('pic2');
+        });
+    });
+
+    describe('getActiveWarehousesWithLensaCandidates', () => {
+        it('returns only warehouses that have valid Lensa credentials on PIC 1 or PIC 2', async () => {
+            const whChain = createChain();
+            whChain.execute.mockResolvedValue([
+                { id: 1, name: 'Gudang 1', pic_1: 'NIK_1', pic_2: null },
+                { id: 2, name: 'Gudang 2', pic_1: 'NIK_2', pic_2: 'NIK_3' },
+                { id: 3, name: 'Gudang 3 (Empty)', pic_1: null, pic_2: null },
+            ]);
+
+            const usersChain = createChain();
+            usersChain.execute.mockResolvedValue([
+                {
+                    id: 'u1',
+                    nik: 'NIK_1',
+                    lensa_acount: { username: 'pic1_g1', password: 'p1' },
+                },
+                {
+                    id: 'u2',
+                    nik: 'NIK_2',
+                    lensa_acount: { username: 'pic1_g2', password: 'p2' },
+                },
+                {
+                    id: 'u3',
+                    nik: 'NIK_3',
+                    lensa_acount: { username: 'pic2_g2', password: 'p3' },
+                },
+            ]);
+
+            mockDbSelectFrom
+                .mockReturnValueOnce(whChain)
+                .mockReturnValueOnce(usersChain);
+
+            mockDecryptLensaPassword.mockImplementation((p: string) => `dec_${p}`);
+
+            const tasks = await getActiveWarehousesWithLensaCandidates();
+
+            expect(tasks).toHaveLength(2);
+            expect(tasks[0].warehouseName).toBe('Gudang 1');
+            expect(tasks[0].candidates).toHaveLength(1);
+            expect(tasks[0].candidates[0].source).toBe('pic1');
+            expect(tasks[0].candidates[0].username).toBe('pic1_g1');
+
+            expect(tasks[1].warehouseName).toBe('Gudang 2');
+            expect(tasks[1].candidates).toHaveLength(2);
+            expect(tasks[1].candidates[0].source).toBe('pic1');
+            expect(tasks[1].candidates[1].source).toBe('pic2');
+        });
+
+        it('returns empty array when no warehouses have configured PICs', async () => {
+            const whChain = createChain();
+            whChain.execute.mockResolvedValue([]);
+
+            mockDbSelectFrom.mockReturnValueOnce(whChain);
+
+            const tasks = await getActiveWarehousesWithLensaCandidates();
+            expect(tasks).toEqual([]);
         });
     });
 

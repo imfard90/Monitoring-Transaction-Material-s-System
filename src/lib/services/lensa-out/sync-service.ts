@@ -6,7 +6,12 @@ import {
     scraperLogRepository,
 } from '@/lib/repositories/scraper-log.repository';
 import { findMatchingMasterWarehouse } from '@/lib/warehouse-helper';
-import { asyncPool, decryptLensaPassword } from '../lensa-crypto';
+import {
+    executeWithLensaFallback,
+    getActiveWarehousesWithLensaCandidates,
+    getWarehouseLensaCandidates,
+} from '../lensa-credential-helper';
+import { asyncPool } from '../lensa-crypto';
 import type { OutLensaScrapeOutcome } from './types';
 
 /**
@@ -18,19 +23,11 @@ export async function executeOutLensaScraping(
     action: ScraperAction = 'system'
 ): Promise<OutLensaScrapeOutcome> {
     try {
-        const users = await db
-            .selectFrom('auth.user')
-            .select(['id', 'lensa_acount'])
-            .where('lensa_acount', 'is not', null)
-            .execute();
+        const whTasks = await getActiveWarehousesWithLensaCandidates();
 
-        const validUsers = users.filter((u) => {
-            const lensesAcount = u.lensa_acount;
-            return Boolean(lensesAcount?.username && lensesAcount.password);
-        });
-
-        if (validUsers.length === 0) {
-            const errorMsg = 'Tidak ada user Lensa yang terdaftar dengan kredensial lengkap.';
+        if (whTasks.length === 0) {
+            const errorMsg =
+                'Tidak ada warehouse dengan PIC Lensa yang valid untuk melakukan scraping.';
             await scraperLogRepository
                 .insertLog({
                     scraper_type: 'out_lensa',
@@ -67,55 +64,50 @@ export async function executeOutLensaScraping(
             error?: string;
         }> = [];
 
-        // PHASE 1: SCRAPE HEADERS
-        const headerResults = await asyncPool(5, validUsers, async (u) => {
-            const lensesAcount = u.lensa_acount;
-            if (!lensesAcount) return [];
-            const customUsername = lensesAcount.username;
-            let customPassword = '';
-
+        // PHASE 1: SCRAPE HEADERS (Per Gudang via PIC 1 dengan Failback ke PIC 2)
+        const headerResults = await asyncPool(5, whTasks, async (task) => {
             try {
-                customPassword = decryptLensaPassword(lensesAcount.password);
-            } catch (_e) {
-                actionLogger.error(`Failed to decrypt password for user ${u.id}`);
-                accountResults.push({
-                    username: customUsername,
-                    phase: 'headers',
-                    status: 'skip',
-                    count: 0,
-                    error: 'decrypt_failed',
-                });
-                return [];
-            }
-
-            try {
-                const newHeaders = await scrapeLensaHeaders(
-                    existingHeaderIds,
-                    customUsername,
-                    customPassword,
-                    perpage
+                const newHeaders = await executeWithLensaFallback(
+                    task.candidates,
+                    async (creds) => {
+                        const headers = await scrapeLensaHeaders(
+                            existingHeaderIds,
+                            creds.username,
+                            creds.password,
+                            perpage
+                        );
+                        accountResults.push({
+                            username: creds.username,
+                            phase: 'headers',
+                            gudang: task.warehouseName,
+                            status: headers.length > 0 ? 'success' : 'no_data',
+                            count: headers.length,
+                        });
+                        return headers.map((h) => ({
+                            ...h,
+                            scraped_by_username: creds.username,
+                            nama_gudang: h.nama_gudang || task.warehouseName,
+                        }));
+                    },
+                    `Out-Lensa[${task.warehouseName}]`
                 );
-                accountResults.push({
-                    username: customUsername,
-                    phase: 'headers',
-                    status: newHeaders.length > 0 ? 'success' : 'no_data',
-                    count: newHeaders.length,
-                });
-                return newHeaders.map((h) => ({ ...h, scraped_by_username: customUsername }));
+                totalUsersScraped++;
+                return newHeaders;
             } catch (e: unknown) {
                 const msg = e instanceof Error ? e.message : String(e);
                 const isLoginErr =
                     msg.toLowerCase().includes('sesi') || msg.toLowerCase().includes('login');
                 accountResults.push({
-                    username: customUsername,
+                    username: task.candidates[0]?.username || 'UNKNOWN',
                     phase: 'headers',
+                    gudang: task.warehouseName,
                     status: isLoginErr ? 'login_fail' : 'scrape_fail',
                     count: 0,
                     error: msg,
                 });
                 actionLogger.error(
-                    `Failed to scrape headers for user ${customUsername}:`,
-                    new Error(msg)
+                    `Failed to scrape headers for gudang ${task.warehouseName}:`,
+                    e instanceof Error ? e : new Error(msg)
                 );
                 return [];
             }
@@ -204,12 +196,7 @@ export async function executeOutLensaScraping(
         if (headersMissingDetails.length > 0) {
             const whs = await db
                 .selectFrom('inventory.mas_wh')
-                .select(['name', 'pic_1', 'pic_2'])
-                .execute();
-            const usersWithLensa = await db
-                .selectFrom('auth.user as u')
-                .where('u.lensa_acount', 'is not', null)
-                .select(['u.nik', 'u.lensa_acount'])
+                .select(['id', 'name', 'pic_1', 'pic_2'])
                 .execute();
 
             const groupedHeaders: Record<string, any[]> = {};
@@ -219,36 +206,14 @@ export async function executeOutLensaScraping(
                 groupedHeaders[gudang].push(h);
             }
 
-            const userDetailTasks = Object.keys(groupedHeaders)
-                .map((gudang) => {
-                    const wh = findMatchingMasterWarehouse(gudang, whs);
-                    if (!wh) return null;
-                    const candidates: {
-                        username: string;
-                        password: string;
-                        picNik: string;
-                        source: 'pic1' | 'pic2';
-                    }[] = [];
-                    for (const [source, picNik] of [
-                        ['pic1', wh.pic_1],
-                        ['pic2', wh.pic_2],
-                    ] as const) {
-                        if (!picNik) continue;
-                        const userObj = usersWithLensa.find((u) => u.nik === picNik);
-                        if (userObj?.lensa_acount?.username && userObj?.lensa_acount?.password) {
-                            try {
-                                const pass = decryptLensaPassword(userObj.lensa_acount.password);
-                                if (pass) {
-                                    candidates.push({
-                                        username: userObj.lensa_acount.username,
-                                        password: pass,
-                                        picNik,
-                                        source,
-                                    });
-                                }
-                            } catch {}
-                        }
-                    }
+            const userDetailTasks = await Promise.all(
+                Object.keys(groupedHeaders).map(async (gudang) => {
+                    const matchedWh = findMatchingMasterWarehouse(gudang, whs);
+                    const candidates = await getWarehouseLensaCandidates({
+                        warehouseId: matchedWh?.id,
+                        warehouseName: gudang,
+                        includeSystemFallback: false,
+                    });
                     if (candidates.length === 0) return null;
                     return {
                         gudang,
@@ -256,53 +221,50 @@ export async function executeOutLensaScraping(
                         headers: groupedHeaders[gudang],
                     };
                 })
-                .filter((t): t is NonNullable<typeof t> => !!t);
+            ).then((t) => t.filter((item): item is NonNullable<typeof item> => item !== null));
 
             const detailResults = await asyncPool(5, userDetailTasks, async (task) => {
                 const { candidates, headers, gudang } = task;
-                for (let i = 0; i < candidates.length; i++) {
-                    const creds = candidates[i];
-                    try {
-                        const details = await scrapeLensaDetails(
-                            headers,
-                            creds.username,
-                            creds.password
-                        );
-                        totalUsersScraped++;
-                        accountResults.push({
-                            username: creds.username,
-                            phase: 'details',
-                            gudang,
-                            status: details.length > 0 ? 'success' : 'no_data',
-                            count: details.length,
-                        });
-                        return details;
-                    } catch (e: unknown) {
-                        const msg = e instanceof Error ? e.message : String(e);
-                        const isLast = i === candidates.length - 1;
-                        actionLogger.warn(
-                            `[Out-Lensa][${gudang}] Detail scrape via PIC ${creds.username} (${creds.source}) gagal: ${msg}${isLast ? '' : ' — mencoba fallback ke PIC berikutnya'}`
-                        );
-                        if (isLast) {
-                            const isLoginErr =
-                                msg.toLowerCase().includes('sesi') ||
-                                msg.toLowerCase().includes('login');
+                try {
+                    const details = await executeWithLensaFallback(
+                        candidates,
+                        async (creds) => {
+                            const d = await scrapeLensaDetails(
+                                headers,
+                                creds.username,
+                                creds.password
+                            );
                             accountResults.push({
                                 username: creds.username,
                                 phase: 'details',
                                 gudang,
-                                status: isLoginErr ? 'login_fail' : 'scrape_fail',
-                                count: 0,
-                                error: msg,
+                                status: d.length > 0 ? 'success' : 'no_data',
+                                count: d.length,
                             });
-                            actionLogger.error(
-                                `Failed to scrape details for gudang ${gudang}:`,
-                                new Error(msg)
-                            );
-                        }
-                    }
+                            return d;
+                        },
+                        `Out-Lensa-Detail[${gudang}]`
+                    );
+                    totalUsersScraped++;
+                    return details;
+                } catch (e: unknown) {
+                    const msg = e instanceof Error ? e.message : String(e);
+                    const isLoginErr =
+                        msg.toLowerCase().includes('sesi') || msg.toLowerCase().includes('login');
+                    accountResults.push({
+                        username: candidates[0]?.username || 'UNKNOWN',
+                        phase: 'details',
+                        gudang,
+                        status: isLoginErr ? 'login_fail' : 'scrape_fail',
+                        count: 0,
+                        error: msg,
+                    });
+                    actionLogger.error(
+                        `Failed to scrape details for gudang ${gudang}:`,
+                        e instanceof Error ? e : new Error(msg)
+                    );
+                    return [];
                 }
-                return [];
             });
 
             const allDetails = detailResults.flat();
@@ -339,11 +301,11 @@ export async function executeOutLensaScraping(
                 });
             }
         } else {
-            totalUsersScraped = validUsers.length;
+            totalUsersScraped = whTasks.length;
         }
 
         const summary = {
-            totalAccounts: validUsers.length,
+            totalAccounts: whTasks.length,
             headersInserted: totalInserted,
             usersScraped: totalUsersScraped,
             accountResults,

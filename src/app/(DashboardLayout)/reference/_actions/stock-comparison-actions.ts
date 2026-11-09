@@ -4,7 +4,7 @@
  * Logika terbagi ke:
  * - stock-comparison.types.ts: Definisi type & interface
  * - stock-comparison-queries.ts: Read queries (getTeknisiStockList, getStockComparison, getTeknisiList)
- * - stock-comparison-commands.ts: Scraping / write commands (getLiveStockComparison, resolveLensaCredentials)
+ * - stock-comparison-commands.ts: Scraping / write commands (getLiveStockComparison)
  */
 
 export * from './stock-comparison.types';

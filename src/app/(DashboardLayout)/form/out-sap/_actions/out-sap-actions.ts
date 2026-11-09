@@ -354,35 +354,6 @@ export async function resolveWarehouseLensaCredentials(
     return null;
 }
 
-/**
- * Fallback to any active Lensa user registered in the system (for Admin when warehouse is unset).
- */
-export async function resolveAnyActiveLensaCredentials(): Promise<{
-    username: string;
-    password: string;
-} | null> {
-    const anyUsers = await db
-        .selectFrom('auth.user')
-        .select([
-            sql<string | null>`lensa_acount->>'username'`.as('lensa_username'),
-            sql<string | null>`lensa_acount->>'password'`.as('lensa_password'),
-        ])
-        .where('lensa_acount', 'is not', null)
-        .where(sql`lensa_acount->>'username'`, 'is not', null)
-        .where(sql`lensa_acount->>'password'`, 'is not', null)
-        .execute();
-
-    for (const u of anyUsers) {
-        if (u.lensa_username && u.lensa_password) {
-            try {
-                const pass = decryptLensaPassword(u.lensa_password);
-                if (pass) return { username: u.lensa_username, password: pass };
-            } catch {}
-        }
-    }
-    return null;
-}
-
 export interface OutSapScrapedItem {
     id: string;
     designator_id: string;

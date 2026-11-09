@@ -14,7 +14,11 @@ import {
     type ScraperAction,
     scraperLogRepository,
 } from '@/lib/repositories/scraper-log.repository';
-import { asyncPool, decryptLensaPassword } from './lensa-crypto';
+import {
+    executeWithLensaFallback,
+    getActiveWarehousesWithLensaCandidates,
+} from './lensa-credential-helper';
+import { asyncPool } from './lensa-crypto';
 import { syncMissingWOLensaDetails } from './lensa-wo-sync-service';
 import { toISODateString, type WOLensaScrapeOutcome } from './lensa-wo-types';
 
@@ -34,27 +38,12 @@ export async function executeNightlyWOLensaScrapingByNik(
             '[WO-NIGHTLY] Memulai Nightly Deep Sweep WO Lensa berdasarkan NIK teknisi...'
         );
 
-        // 1. Ambil gudang master SO (id 1..5)
-        const whs = await db
-            .selectFrom('inventory.mas_wh')
-            .select(['id', 'name', 'pic_1', 'pic_2'])
-            .where('id', 'in', [1, 2, 3, 4, 5])
-            .orderBy('id', 'asc')
-            .execute();
+        // 1. Ambil task gudang operasional SO (id 1..5) beserta kandidat Lensa
+        const rawWhTasks = await getActiveWarehousesWithLensaCandidates({
+            warehouseIds: [1, 2, 3, 4, 5],
+        });
 
-        // 2. Ambil akun Lensa untuk para PIC
-        const usersWithLensa = await db
-            .selectFrom('auth.user as u')
-            .where('u.lensa_acount', 'is not', null)
-            .select(['u.id', 'u.nik', 'u.lensa_acount'])
-            .execute();
-
-        const userByNik = new Map<string, (typeof usersWithLensa)[number]>();
-        for (const u of usersWithLensa) {
-            if (u.nik) userByNik.set(u.nik, u);
-        }
-
-        // 3. Ambil NIK seluruh teknisi aktif per gudang
+        // 2. Ambil NIK seluruh teknisi aktif per gudang
         const activeTechs = await db
             .selectFrom('hr.technicians')
             .select(['nik', 'wh_id'])
@@ -74,7 +63,7 @@ export async function executeNightlyWOLensaScrapingByNik(
             techNiksByWhId.set(t.wh_id, list);
         }
 
-        // 4. Ambil daftar existing pemakaian_id (batas 10.000)
+        // 3. Ambil daftar existing pemakaian_id (batas 10.000)
         const existingHeaders = await db
             .selectFrom('inventory.wo_lensa_header')
             .select(['pemakaian_id'])
@@ -84,32 +73,18 @@ export async function executeNightlyWOLensaScrapingByNik(
         const existingPemakaianIds = existingHeaders.map((h) => String(h.pemakaian_id));
         const existingSet = new Set<string>(existingPemakaianIds);
 
-        // 5. Susun task per gudang (5 instances)
-        const whTasks = whs
-            .map((w) => {
-                const pic1Nik = w.pic_1 ? String(w.pic_1).trim() : null;
-                const pic2Nik = w.pic_2 ? String(w.pic_2).trim() : null;
-                const pic1 = pic1Nik ? userByNik.get(pic1Nik) : undefined;
-                const pic2 = pic2Nik ? userByNik.get(pic2Nik) : undefined;
-                const niks = techNiksByWhId.get(w.id) || [];
-
-                if (!pic1?.lensa_acount && !pic2?.lensa_acount) {
-                    actionLogger.warn(
-                        `[WO-NIGHTLY][${w.name}] Dilewati: Tidak ada PIC dengan akun Lensa valid.`
-                    );
-                    return null;
-                }
+        // 4. Susun task per gudang dengan daftar teknisi aktif
+        const whTasks = rawWhTasks
+            .map((task) => {
+                const niks = techNiksByWhId.get(task.warehouseId) || [];
                 if (niks.length === 0) {
                     actionLogger.warn(
-                        `[WO-NIGHTLY][${w.name}] Dilewati: Tidak ada teknisi aktif terdaftar.`
+                        `[WO-NIGHTLY][${task.warehouseName}] Dilewati: Tidak ada teknisi aktif terdaftar.`
                     );
                     return null;
                 }
-
                 return {
-                    wh: w,
-                    pic1: pic1?.lensa_acount ? pic1 : undefined,
-                    pic2: pic2?.lensa_acount ? pic2 : undefined,
+                    ...task,
                     niks,
                 };
             })
@@ -127,55 +102,38 @@ export async function executeNightlyWOLensaScrapingByNik(
             `[WO-NIGHTLY] Menjalankan scraping 5 instance gudang secara paralel untuk total ${activeTechs.length} teknisi aktif...`
         );
 
-        // 6. Jalankan scraping paralel 5 instance gudang
+        // 5. Jalankan scraping paralel 5 instance gudang dengan fallback terpadu
         const headerResults = await asyncPool(5, whTasks, async (task) => {
-            const candidates = [task.pic1, task.pic2].filter(Boolean) as NonNullable<
-                (typeof whTasks)[number]['pic1']
-            >[];
-            if (candidates.length === 0) return [];
-
-            for (const picUser of candidates) {
-                const lensaAcount = picUser.lensa_acount as Record<string, string> | null;
-                if (!lensaAcount?.username || !lensaAcount?.password) continue;
-
-                const customUsername = lensaAcount.username;
-                let customPassword = '';
-                try {
-                    customPassword = decryptLensaPassword(lensaAcount.password);
-                } catch (_e) {
-                    actionLogger.error(
-                        `[WO-NIGHTLY] Gagal dekripsi password Lensa untuk user ${picUser.id}`
-                    );
-                    continue;
-                }
-
-                try {
-                    actionLogger.info(
-                        `[WO-NIGHTLY][${task.wh.name}] Memulai sweep PIC ${customUsername} (${task.niks.length} teknisi)...`
-                    );
-                    const newHeaders = await scrapeWOLensaHeadersByNik(
-                        task.niks,
-                        existingPemakaianIds,
-                        customUsername,
-                        customPassword,
-                        100,
-                        3
-                    );
-                    actionLogger.info(
-                        `[WO-NIGHTLY][${task.wh.name}] Selesai PIC ${customUsername} → ${newHeaders.length} headers ditemukan.`
-                    );
-                    return newHeaders;
-                } catch (e: unknown) {
-                    actionLogger.error(
-                        `[WO-NIGHTLY][${task.wh.name}] Gagal scrape PIC ${customUsername}: ${
-                            e instanceof Error ? e.message : e
-                        } — mencoba fallback PIC berikutnya jika ada`
-                    );
-                }
+            try {
+                actionLogger.info(
+                    `[WO-NIGHTLY][${task.warehouseName}] Memulai sweep (${task.niks.length} teknisi)...`
+                );
+                return await executeWithLensaFallback(
+                    task.candidates,
+                    async (creds) => {
+                        const newHeaders = await scrapeWOLensaHeadersByNik(
+                            task.niks,
+                            existingPemakaianIds,
+                            creds.username,
+                            creds.password,
+                            100,
+                            3
+                        );
+                        actionLogger.info(
+                            `[WO-NIGHTLY][${task.warehouseName}] Selesai PIC ${creds.username} → ${newHeaders.length} headers ditemukan.`
+                        );
+                        return newHeaders;
+                    },
+                    `WO-NIGHTLY[${task.warehouseName}]`
+                );
+            } catch (e: unknown) {
+                actionLogger.error(
+                    `[WO-NIGHTLY][${task.warehouseName}] Seluruh PIC gagal: ${
+                        e instanceof Error ? e.message : e
+                    }`
+                );
+                return [];
             }
-
-            actionLogger.warn(`[WO-NIGHTLY][${task.wh.name}] Semua kandidat PIC gagal.`);
-            return [];
         });
 
         const allNewHeaders = headerResults.flat();

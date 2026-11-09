@@ -11,12 +11,120 @@ export interface LensaCredentialCandidate {
     source: 'pic1' | 'pic2' | 'user' | 'system';
 }
 
+export interface WarehouseLensaTask {
+    warehouseId: number;
+    warehouseName: string;
+    pic1Nik: string | null;
+    pic2Nik: string | null;
+    candidates: LensaCredentialCandidate[];
+}
+
 export interface ResolveLensaCandidatesParams {
     warehouseId?: number | null;
     warehouseName?: string | null;
     sessionNik?: string | null;
     userId?: string | null;
     includeSystemFallback?: boolean;
+}
+
+/**
+ * Mengambil seluruh gudang operasional beserta kandidat akun Lensa (PIC 1 lalu PIC 2).
+ * Digunakan secara terpadu oleh seluruh batch scraping / cronjob:
+ * - Out Lensa Header & Detail
+ * - WO Lensa Header & Detail
+ * - WO Lensa Nightly Scrape
+ * - Bulk Stock Scraper
+ */
+export async function getActiveWarehousesWithLensaCandidates(options?: {
+    warehouseIds?: number[];
+}): Promise<WarehouseLensaTask[]> {
+    let whQuery = db
+        .selectFrom('inventory.mas_wh')
+        .select(['id', 'name', 'pic_1', 'pic_2'])
+        .orderBy('id', 'asc');
+
+    if (options?.warehouseIds && options.warehouseIds.length > 0) {
+        whQuery = whQuery.where('id', 'in', options.warehouseIds);
+    } else {
+        whQuery = whQuery.where((eb) =>
+            eb.or([eb('pic_1', 'is not', null), eb('pic_2', 'is not', null)])
+        );
+    }
+
+    const whs = await whQuery.execute();
+    if (whs.length === 0) return [];
+
+    const usersWithLensa = await db
+        .selectFrom('auth.user as u')
+        .where('u.lensa_acount', 'is not', null)
+        .select(['u.id', 'u.nik', 'u.lensa_acount'])
+        .execute();
+
+    const userByNik = new Map<string, (typeof usersWithLensa)[number]>();
+    for (const u of usersWithLensa) {
+        if (u.nik) userByNik.set(u.nik.trim(), u);
+    }
+
+    const tasks: WarehouseLensaTask[] = [];
+
+    for (const w of whs) {
+        const pic1Nik = w.pic_1 ? String(w.pic_1).trim() : null;
+        const pic2Nik = w.pic_2 ? String(w.pic_2).trim() : null;
+
+        const candidates: LensaCredentialCandidate[] = [];
+        const seenUsernames = new Set<string>();
+
+        const addCandidate = (
+            userObj: (typeof usersWithLensa)[number] | undefined,
+            source: 'pic1' | 'pic2',
+            nik: string | null
+        ) => {
+            if (!userObj?.lensa_acount?.username || !userObj.lensa_acount.password) return;
+            const u = userObj.lensa_acount.username.trim();
+            if (!u || seenUsernames.has(u)) return;
+
+            try {
+                const pass = decryptLensaPassword(userObj.lensa_acount.password);
+                if (pass) {
+                    candidates.push({
+                        username: u,
+                        password: pass,
+                        picNik: nik || undefined,
+                        source,
+                    });
+                    seenUsernames.add(u);
+                }
+            } catch (err) {
+                actionLogger.warn(
+                    `[LensaCredentials] Gagal mendekripsi password Lensa untuk gudang ${w.name} (${source} - NIK: ${nik}):`,
+                    { error: err instanceof Error ? err.message : String(err) }
+                );
+            }
+        };
+
+        if (pic1Nik) {
+            addCandidate(userByNik.get(pic1Nik), 'pic1', pic1Nik);
+        }
+        if (pic2Nik) {
+            addCandidate(userByNik.get(pic2Nik), 'pic2', pic2Nik);
+        }
+
+        if (candidates.length > 0) {
+            tasks.push({
+                warehouseId: w.id,
+                warehouseName: w.name,
+                pic1Nik,
+                pic2Nik,
+                candidates,
+            });
+        } else {
+            actionLogger.warn(
+                `[LensaCredentials] Gudang "${w.name}" (id=${w.id}) dilewati: Tidak ada akun Lensa valid pada PIC 1 maupun PIC 2.`
+            );
+        }
+    }
+
+    return tasks;
 }
 
 /**
