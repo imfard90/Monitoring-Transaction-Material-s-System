@@ -16,8 +16,8 @@ export const supportChannels = {
     agentChat: {
         id: 'agent-chat',
         label: 'Agent Chat',
-        description: 'Percakapan langsung dengan Agent MTMS',
-        availability: 'coming-soon',
+        description: 'Percakapan langsung dengan Hermes Agent',
+        availability: 'available',
     },
 } as const;
 

@@ -330,7 +330,7 @@ describe('dashboard sidebar accessibility invariants', () => {
 });
 
 describe('floating support widget invariants', () => {
-    it('provides secure external support links and a clear coming-soon agent state', async () => {
+    it('provides secure external support links and interactive Hermes agent chat panel', async () => {
         const config = await readSrc('src/components/support/support.config.ts');
         const menu = await readSrc('src/components/support/SupportMenu.tsx');
         const agentPanel = await readSrc('src/components/support/AgentChatPanel.tsx');
@@ -341,9 +341,9 @@ describe('floating support widget invariants', () => {
         expect(config).toMatch(/https:\/\/t\.me\/imfard/);
         expect(menu.match(/target="_blank"/g)).toHaveLength(2);
         expect(menu.match(/rel="noopener noreferrer"/g)).toHaveLength(2);
-        expect(menu).toMatch(/Segera hadir/);
-        expect(agentPanel).toMatch(/role="status"/);
-        expect(agentPanel).toMatch(/segera tersedia/i);
+        expect(menu).toMatch(/Hermes Agent/);
+        expect(agentPanel).toMatch(/Hermes Agent/);
+        expect(agentPanel).toMatch(/api\/chat-agent/);
         expect(widget).toMatch(/aria-label="Buka kanal bantuan"/);
         expect(layout).toMatch(/<FloatingSupportWidget \/>/);
     });
