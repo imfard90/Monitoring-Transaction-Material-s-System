@@ -45,3 +45,4 @@ main().catch((err) => {
     console.error('Gagal menjalankan query kabel:', err);
     process.exit(1);
 });
+

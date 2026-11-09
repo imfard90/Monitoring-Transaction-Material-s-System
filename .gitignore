@@ -88,6 +88,11 @@ next-env.d.ts
 # Archive of old configurations (backed up)
 .archive/
 
+# Scratch scripts
+query-all-kabel.ts
+scratch/
+temp/
+
 # --------------------------------------------------
 # Deployment
 # --------------------------------------------------
