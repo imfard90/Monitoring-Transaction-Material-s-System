@@ -8,7 +8,7 @@
  */
 import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
-import { scrapeWOLensaHeadersByNik } from '@/lib/lensa-scraper/lensa-scraper';
+import { isRejectedWONumber, scrapeWOLensaHeadersByNik } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import {
     type ScraperAction,
@@ -138,7 +138,7 @@ export async function executeNightlyWOLensaScrapingByNik(
 
         const allNewHeaders = headerResults.flat();
         const filteredHeaders = allNewHeaders.filter(
-            (h) => !h.wo_number?.toUpperCase().includes('REJECTED')
+            (h) => !isRejectedWONumber(h.wo_number)
         );
 
         const uniqueHeadersMap = new Map<string, (typeof filteredHeaders)[number]>();

@@ -7,6 +7,7 @@
 import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
 import {
+    isRejectedWONumber,
     scrapeWOLensaDetails,
     searchSingleWOLensaHeader,
     type WOLensaHeader,
@@ -58,6 +59,18 @@ export async function scrapeSingleWODetailService(
                 ])
             )
             .executeTakeFirst();
+
+        // 1.1 Validasi awal: jika input atau header lokal terdeteksi REJECTED, tolak langsung
+        if (isRejectedWONumber(cleanInput) || isRejectedWONumber(header?.wo_number)) {
+            const rejectedWo = header?.wo_number ?? cleanInput;
+            actionLogger.warn(
+                `[scrapeSingleWODetailService] Input awal terdeteksi REJECTED: '${rejectedWo}'`
+            );
+            return {
+                success: false,
+                error: `Nomor WO '${rejectedWo}' berstatus REJECTED dan tidak dapat discrape ke dalam sistem MTMS.`,
+            };
+        }
 
         // 2. Ambil kandidat akun Lensa (PIC 1 -> fallback PIC 2 -> user -> system)
         const candidates = await getWarehouseLensaCandidates({
@@ -111,6 +124,16 @@ export async function scrapeSingleWODetailService(
                     currentPemakaianId = cleanInput;
                 }
 
+                // Cek awal jika header metadata dari Lensa sudah terdeteksi REJECTED, jangan lanjutkan scrape detail material
+                if (isRejectedWONumber(currentHeaderMeta?.wo_number)) {
+                    return {
+                        detail: undefined,
+                        headerMetadata: currentHeaderMeta,
+                        resolvedPemakaianId: currentPemakaianId,
+                        creds,
+                    };
+                }
+
                 let currentDetail:
                     | {
                           header_id: number;
@@ -161,6 +184,15 @@ export async function scrapeSingleWODetailService(
                     if (fallbackHeader?.pemakaian_id) {
                         currentHeaderMeta = fallbackHeader;
                         currentPemakaianId = fallbackHeader.pemakaian_id;
+
+                        if (isRejectedWONumber(fallbackHeader.wo_number)) {
+                            return {
+                                detail: undefined,
+                                headerMetadata: currentHeaderMeta,
+                                resolvedPemakaianId: currentPemakaianId,
+                                creds,
+                            };
+                        }
 
                         try {
                             const fallbackDetails = await scrapeWOLensaDetails(
@@ -234,6 +266,31 @@ export async function scrapeSingleWODetailService(
             } catch {
                 // Abaikan jika pencarian header metadata tambahan gagal, tetap simpan detail
             }
+        }
+
+        // 3. Validasi ketat REJECTED: jangan simpan WO berstatus REJECTED ke dalam database MTMS
+        const finalWoNumber = headerMetadata?.wo_number || header?.wo_number || cleanInput;
+        if (isRejectedWONumber(finalWoNumber)) {
+            actionLogger.warn(
+                `[scrapeSingleWODetailService] Menolak WO berstatus REJECTED: '${finalWoNumber}' (Pemakaian ID: ${resolvedPemakaianId})`
+            );
+
+            // Jika header sempat tersimpan di database lokal dari proses sebelumnya, bersihkan secara otomatis
+            if (header?.id) {
+                await db
+                    .deleteFrom('inventory.wo_lensa_list')
+                    .where('header_id', '=', header.id)
+                    .execute();
+                await db
+                    .deleteFrom('inventory.wo_lensa_header')
+                    .where('id', '=', header.id)
+                    .execute();
+            }
+
+            return {
+                success: false,
+                error: `Nomor WO '${finalWoNumber}' berstatus REJECTED di sistem Lensa dan tidak diperkenankan untuk discrape ke dalam referensi MTMS.`,
+            };
         }
 
         const rawMaterials: LensaDetailMaterial[] = detail?.materials || [];

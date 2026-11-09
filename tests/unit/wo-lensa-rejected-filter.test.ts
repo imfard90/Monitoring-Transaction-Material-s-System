@@ -1,13 +1,28 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-/** Simulates the REJECTED filter logic extracted from internalTriggerWOScraping Phase 1. */
+vi.mock('@/lib/redis', () => ({
+    redis: {},
+}));
+
+import { isRejectedWONumber } from '@/lib/lensa-scraper/lensa-wo-scraper';
+
+/** Simulates the REJECTED filter logic using isRejectedWONumber */
 function filterRejectedWOLHeaders(
     headers: Array<{ pemakaian_id: string; wo_number: string | null }>
 ) {
-    return headers.filter((h) => !h.wo_number?.toUpperCase().includes('REJECTED'));
+    return headers.filter((h) => !isRejectedWONumber(h.wo_number));
 }
 
 describe('WO Lensa Ref — REJECTED header filtering', () => {
+    it('isRejectedWONumber identifies rejected wo numbers in any case', () => {
+        expect(isRejectedWONumber('DGPS123-REJECTED-20261106')).toBe(true);
+        expect(isRejectedWONumber('WO-rejected-123')).toBe(true);
+        expect(isRejectedWONumber('Rejected WO 2026')).toBe(true);
+        expect(isRejectedWONumber('WO-NORMAL-123')).toBe(false);
+        expect(isRejectedWONumber(null)).toBe(false);
+        expect(isRejectedWONumber(undefined)).toBe(false);
+        expect(isRejectedWONumber('')).toBe(false);
+    });
     it('filters out headers where wo_number contains "REJECTED" (uppercase)', () => {
         const headers = [
             { pemakaian_id: 'WO-001', wo_number: 'WO-2025-001' },

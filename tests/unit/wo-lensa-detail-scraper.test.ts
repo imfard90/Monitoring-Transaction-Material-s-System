@@ -23,6 +23,7 @@ vi.mock('@/lib/lensa-scraper/lensa-scraper', () => ({
     scrapeWOLensaDetails: (...args: unknown[]) => mockScrapeWOLensaDetails(...args),
     scrapeWOLensaHeaders: vi.fn(),
     searchSingleWOLensaHeader: (...args: unknown[]) => mockSearchSingleWOLensaHeader(...args),
+    isRejectedWONumber: (wo?: string | null) => Boolean(wo?.toUpperCase().includes('REJECTED')),
 }));
 
 vi.mock('@/lib/repositories/scraper-log.repository', () => ({
@@ -431,6 +432,75 @@ describe('scrapeSingleWODetail Unit Tests', () => {
             expect(res.data?.nama_gudang).toBe('WH SUB TUBAN');
             expect(res.data?.nik_pemakai).toBe('19001234');
             expect(res.data?.materials).toHaveLength(1);
+        } finally {
+            process.env.LENSA_USERNAME = originalUser;
+            process.env.LENSA_PASSWORD = originalPass;
+        }
+    });
+
+    it('rejects scraping when input WO number contains REJECTED', async () => {
+        mockGetSessionUser.mockResolvedValue({
+            id: '1',
+            nik: 'ADM01',
+            role: 'Admin',
+            isStaff: false,
+        });
+
+        const res = await scrapeSingleWODetail('DGPS2611051302-REJECTED-20261106');
+        expect(res.success).toBe(false);
+        expect(res.error).toContain('REJECTED');
+        expect(mockScrapeWOLensaDetails).not.toHaveBeenCalled();
+    });
+
+    it('rejects scraping and cleans up when Lensa header search reveals REJECTED status', async () => {
+        const originalUser = process.env.LENSA_USERNAME;
+        const originalPass = process.env.LENSA_PASSWORD;
+        process.env.LENSA_USERNAME = 'test_user';
+        process.env.LENSA_PASSWORD = 'test_password';
+
+        try {
+            mockGetSessionUser.mockResolvedValue({
+                id: '1',
+                nik: 'ADM01',
+                role: 'Admin',
+                isStaff: false,
+            });
+
+            // Local DB lookup returns null initially
+            mockExecuteTakeFirst.mockResolvedValueOnce(null);
+
+            // Direct detail call returns materials
+            mockScrapeWOLensaDetails.mockResolvedValueOnce([
+                {
+                    id: 0,
+                    pemakaian_id: '100340964',
+                    materials: [
+                        {
+                            'ID MATERIAL': 'S-CLAMP',
+                            'NAMA MATERIAL': 'S-Clamp-Springer',
+                            SATUAN: 'Pcs',
+                            'QTY PEMAKAIAN': 2,
+                        },
+                    ],
+                },
+            ]);
+
+            // Lensa search returns header with REJECTED
+            mockSearchSingleWOLensaHeader.mockResolvedValueOnce({
+                pemakaian_id: '100340964',
+                wo_number: 'DGPS261105130255330310657-REJECTED-20261106152519',
+                nama_gudang: 'SO Tuban',
+                nik_pemakai: '16030091',
+                tanggal_update: '2026-11-06 15:25:19',
+                formatted_date: '2026-11-06',
+                type: 'assurance',
+                wbs: null,
+                gi_number: null,
+            });
+
+            const res = await scrapeSingleWODetail('100340964');
+            expect(res.success).toBe(false);
+            expect(res.error).toContain('REJECTED');
         } finally {
             process.env.LENSA_USERNAME = originalUser;
             process.env.LENSA_PASSWORD = originalPass;

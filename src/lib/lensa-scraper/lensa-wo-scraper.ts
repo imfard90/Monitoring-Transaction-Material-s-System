@@ -58,6 +58,15 @@ function allBeforeCutoff(items: Array<Record<string, unknown>>): boolean {
     return items.every((item) => isBeforeCutoff(item.tanggal_update?.toString() || null));
 }
 
+/**
+ * Mengecek apakah nomor WO Lensa berstatus REJECTED.
+ * Lensa menambahkan suffix/tag "-REJECTED-" pada nomor WO yang ditolak.
+ */
+export function isRejectedWONumber(woNumber?: string | null): boolean {
+    if (!woNumber) return false;
+    return woNumber.toUpperCase().includes('REJECTED');
+}
+
 function processItems(
     items: Array<Record<string, unknown>>,
     seenIds: Set<string>,
@@ -75,6 +84,12 @@ function processItems(
         found++;
 
         if (!isWithinCutoff(rawDate)) {
+            filtered++;
+            continue;
+        }
+
+        const woNumber = item.wo_number?.toString() || null;
+        if (isRejectedWONumber(woNumber)) {
             filtered++;
             continue;
         }
