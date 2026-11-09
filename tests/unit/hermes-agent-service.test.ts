@@ -141,7 +141,7 @@ Stok material tersedia di gudang.`;
             vi.stubGlobal('fetch', mockFetch);
 
             await expect(sendChatMessageToHermes('Halo')).rejects.toThrow(
-                'Layanan Hermes Agent di server sedang tidak aktif atau tidak dapat dijangkau.'
+                'Layanan MTMS Agent di server sedang tidak aktif atau tidak dapat dijangkau.'
             );
         });
     });

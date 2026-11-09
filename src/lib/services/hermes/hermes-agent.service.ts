@@ -85,7 +85,7 @@ export async function sendChatMessageToHermes(
 
         if (errMsg.toLowerCase().includes('aborted') || errMsg.toLowerCase().includes('timeout')) {
             throw new Error(
-                'Hermes Agent membutuhkan waktu terlalu lama untuk merespons (timeout). Silakan coba ajukan pertanyaan kembali.'
+                'MTMS Agent membutuhkan waktu terlalu lama untuk merespons (timeout). Silakan coba ajukan pertanyaan kembali.'
             );
         }
 
@@ -94,11 +94,11 @@ export async function sendChatMessageToHermes(
             errMsg.toLowerCase().includes('fetch failed')
         ) {
             throw new Error(
-                'Layanan Hermes Agent di server sedang tidak aktif atau tidak dapat dijangkau. Pastikan service agent pada server telah dijalankan.'
+                'Layanan MTMS Agent di server sedang tidak aktif atau tidak dapat dijangkau. Pastikan service agent pada server telah dijalankan.'
             );
         }
 
-        throw new Error(`Gagal menghubungi Hermes Agent: ${errMsg}`);
+        throw new Error(`Gagal menghubungi MTMS Agent: ${errMsg}`);
     }
 
     if (!response.ok) {
@@ -109,19 +109,19 @@ export async function sendChatMessageToHermes(
             { status: response.status }
         );
         throw new Error(
-            `Hermes Agent mengembalikan error (HTTP ${response.status}). Silakan coba beberapa saat lagi.`
+            `MTMS Agent mengembalikan error (HTTP ${response.status}). Silakan coba beberapa saat lagi.`
         );
     }
 
     const data = (await response.json()) as HermesChatCompletionResponse;
 
     if (data.error?.message) {
-        throw new Error(`Hermes Agent Error: ${data.error.message}`);
+        throw new Error(`MTMS Agent Error: ${data.error.message}`);
     }
 
     const firstChoice = data.choices?.[0];
     if (!firstChoice?.message) {
-        throw new Error('Hermes Agent tidak memberikan balasan pesan.');
+        throw new Error('MTMS Agent tidak memberikan balasan pesan.');
     }
 
     // Ambil konten, abaikan reasoning_content, lalu bersihkan tag <think>
@@ -130,7 +130,7 @@ export async function sendChatMessageToHermes(
 
     if (!sanitizedContent) {
         throw new Error(
-            'Balasan dari Hermes Agent kosong setelah penyaringan reasoning. Silakan ulangi pertanyaan.'
+            'Balasan dari MTMS Agent kosong setelah penyaringan reasoning. Silakan ulangi pertanyaan.'
         );
     }
 

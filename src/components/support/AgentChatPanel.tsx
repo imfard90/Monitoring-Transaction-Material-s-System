@@ -11,10 +11,10 @@ interface AgentChatPanelProps {
 }
 
 const INITIAL_WELCOME_MESSAGE: HermesChatMessage = {
-    id: 'hermes-welcome',
+    id: 'mtms-welcome',
     role: 'assistant',
     content:
-        'Halo! Saya **Hermes Agent**, asisten AI untuk Monitoring Transaction Material\'s System (MTMS).\nAda yang bisa saya bantu terkait operasional, transaksi material, atau panduan sistem ini?',
+        'Halo! Saya **MTMS Agent**, asisten AI untuk Monitoring Transaction Material\'s System (MTMS).\nAda yang bisa saya bantu terkait operasional, transaksi material, atau panduan sistem ini?',
     createdAt: new Date().toISOString(),
 };
 
@@ -111,7 +111,7 @@ export function AgentChatPanel({ onBack }: AgentChatPanelProps) {
 
             const data = await res.json();
             if (!res.ok || !data.success) {
-                throw new Error(data.error || 'Gagal menerima balasan dari Hermes Agent.');
+                throw new Error(data.error || 'Gagal menerima balasan dari MTMS Agent.');
             }
 
             if (data.messages && Array.isArray(data.messages)) {
@@ -159,29 +159,29 @@ export function AgentChatPanel({ onBack }: AgentChatPanelProps) {
             className="flex flex-col h-full overflow-hidden bg-background"
         >
             {/* Header Chat Panel */}
-            <header className="flex items-center justify-between border-b border-border px-3.5 py-2.5 bg-muted/40 shrink-0">
-                <div className="flex items-center gap-2">
+            <header className="flex items-center justify-between border-b border-border pl-3.5 pr-11 py-2.5 bg-muted/40 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
                     <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-7 rounded-lg text-muted-foreground hover:text-foreground"
+                        className="size-7 rounded-lg text-muted-foreground hover:text-foreground shrink-0"
                         onClick={onBack}
                         aria-label="Kembali ke menu kanal"
                     >
                         <ArrowLeft className="size-4" />
                     </Button>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                         <span className="relative flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                             <Bot className="size-4" />
                             <span className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-background" />
                         </span>
-                        <div>
+                        <div className="min-w-0">
                             <h3
                                 id="agent-chat-title"
-                                className="text-xs font-semibold leading-tight text-foreground flex items-center gap-1.5"
+                                className="text-xs font-semibold leading-tight text-foreground flex items-center gap-1.5 truncate"
                             >
-                                Hermes Agent
+                                MTMS Agent
                             </h3>
                             <p className="text-[10px] text-muted-foreground leading-none">
                                 Aktif · Sesi 10 mnt
@@ -194,7 +194,7 @@ export function AgentChatPanel({ onBack }: AgentChatPanelProps) {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="size-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+                    className="size-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
                     onClick={() => void handleClearChat()}
                     title="Mulai percakapan baru / bersihkan riwayat"
                     aria-label="Mulai percakapan baru"
@@ -282,7 +282,7 @@ export function AgentChatPanel({ onBack }: AgentChatPanelProps) {
                             <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
                             <span className="size-1.5 rounded-full bg-primary animate-bounce" />
                             <span className="text-[10px] ml-1.5 font-medium text-foreground/80">
-                                Hermes sedang berpikir...
+                                MTMS Agent sedang berpikir...
                             </span>
                         </div>
                     </div>
@@ -312,7 +312,7 @@ export function AgentChatPanel({ onBack }: AgentChatPanelProps) {
                         e.preventDefault();
                         void handleSend();
                     }}
-                    className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent transition-all"
+                    className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2.5 py-1.5"
                 >
                     <textarea
                         ref={inputRef}
@@ -320,7 +320,7 @@ export function AgentChatPanel({ onBack }: AgentChatPanelProps) {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Ketik pesan untuk Hermes... (Enter untuk kirim)"
+                        placeholder="Ketik pesan untuk MTMS Agent... (Enter untuk kirim)"
                         disabled={isLoading}
                         className="flex-1 resize-none bg-transparent text-xs text-foreground placeholder:text-muted-foreground focus:outline-none max-h-24 py-1 leading-normal"
                     />
