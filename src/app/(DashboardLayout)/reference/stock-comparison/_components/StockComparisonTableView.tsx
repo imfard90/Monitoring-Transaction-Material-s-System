@@ -25,17 +25,17 @@ import {
 import {
     checkBulkScrapingStatus,
     triggerManualStockScraping,
-} from '../../_actions/bulk-scraping-actions';
+} from '../_actions/bulk-scraping-actions';
 import type {
     StockComparisonResult,
     TeknisiStockListItem,
-} from '../../_actions/stock-comparison.types';
+} from '../_actions/stock-comparison.types';
 import {
     getLiveStockComparison,
     getStockComparison,
     getTeknisiList,
     getTeknisiStockList,
-} from '../../_actions/stock-comparison-actions';
+} from '../_actions/stock-comparison-actions';
 import { createStockComparisonColumns } from './StockComparisonColumns';
 import { StockComparisonDetailDialog } from './StockComparisonDetailDialog';
 import { StockComparisonLiveDialog } from './StockComparisonLiveDialog';

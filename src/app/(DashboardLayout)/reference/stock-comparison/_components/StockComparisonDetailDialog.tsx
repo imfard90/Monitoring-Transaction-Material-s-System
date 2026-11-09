@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import type {
     StockComparisonItem,
     StockComparisonResult,
-} from '../../_actions/stock-comparison.types';
+} from '../_actions/stock-comparison.types';
 
 const detailColumnHelper = createColumnHelper<StockComparisonItem>();
 

@@ -1,7 +1,7 @@
 import { headers } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getStockComparison } from '@/app/(DashboardLayout)/reference/_actions/stock-comparison-actions';
+import { getStockComparison } from '@/app/(DashboardLayout)/reference/stock-comparison/_actions/stock-comparison-actions';
 import { auth } from '@/lib/auth';
 import { actionLogger } from '@/lib/logger';
 

@@ -1,6 +1,6 @@
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
 import { getPageSessionUser } from '@/lib/auth-server';
-import { getTeknisiStockList } from '../_actions/stock-comparison-actions';
+import { getTeknisiStockList } from './_actions/stock-comparison-actions';
 import StockComparisonTableView from './_components/StockComparisonTableView';
 
 export const dynamic = 'force-dynamic';
