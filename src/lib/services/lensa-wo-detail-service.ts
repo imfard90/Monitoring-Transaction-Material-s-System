@@ -48,7 +48,7 @@ export async function scrapeSingleWODetailService(
             };
         }
 
-        // 1. Cek database lokal MTMS (berdasarkan pemakaian_id atau wo_number)
+        // 1. Cek database lokal MTMS (berdasarkan pemakaian_id atau wo_number, utamakan yang non-rejected)
         let header = await db
             .selectFrom('inventory.wo_lensa_header')
             .selectAll()
@@ -58,10 +58,38 @@ export async function scrapeSingleWODetailService(
                     sql<boolean>`UPPER(wo_number) = UPPER(${cleanInput})`,
                 ])
             )
+            .orderBy(
+                sql`CASE WHEN UPPER(wo_number) LIKE '%REJECTED%' THEN 1 ELSE 0 END`,
+                'asc'
+            )
+            .orderBy('id', 'desc')
             .executeTakeFirst();
 
-        // 1.1 Validasi awal: jika input atau header lokal terdeteksi REJECTED, tolak langsung
-        if (isRejectedWONumber(cleanInput) || isRejectedWONumber(header?.wo_number)) {
+        // 1.1 Jika header lokal berstatus REJECTED dan input bukan secara spesifik WO REJECTED,
+        // bersihkan header lokal yang usang agar sistem dapat mencari WO valid terkini di Lensa
+        if (header && isRejectedWONumber(header.wo_number)) {
+            if (isRejectedWONumber(cleanInput)) {
+                return {
+                    success: false,
+                    error: `Nomor WO '${header.wo_number}' berstatus REJECTED dan tidak dapat discrape ke dalam sistem MTMS.`,
+                };
+            }
+            actionLogger.warn(
+                `[scrapeSingleWODetailService] Menghapus header lokal berstatus REJECTED (ID ${header.id}) untuk mencari ulang WO valid di Lensa.`
+            );
+            await db
+                .deleteFrom('inventory.wo_lensa_list')
+                .where('header_id', '=', header.id)
+                .execute();
+            await db
+                .deleteFrom('inventory.wo_lensa_header')
+                .where('id', '=', header.id)
+                .execute();
+            header = undefined;
+        }
+
+        // 1.2 Validasi awal: jika input eksplisit adalah nomor WO REJECTED, tolak langsung
+        if (isRejectedWONumber(cleanInput)) {
             const rejectedWo = header?.wo_number ?? cleanInput;
             actionLogger.warn(
                 `[scrapeSingleWODetailService] Input awal terdeteksi REJECTED: '${rejectedWo}'`
@@ -220,6 +248,12 @@ export async function scrapeSingleWODetailService(
                     }
                 }
 
+                if (!currentPemakaianId && !currentDetail) {
+                    throw new Error(
+                        `Data WO '${cleanInput}' tidak ditemukan pada akun Lensa ${creds.username} (${creds.source}).`
+                    );
+                }
+
                 return {
                     detail: currentDetail,
                     headerMetadata: currentHeaderMeta,
@@ -257,7 +291,10 @@ export async function scrapeSingleWODetailService(
                         scrapeOutcome.creds.password
                     );
                 }
-                if (extraHeader) {
+                if (
+                    extraHeader &&
+                    (!isRejectedWONumber(extraHeader.wo_number) || !headerMetadata?.wo_number)
+                ) {
                     headerMetadata = {
                         ...headerMetadata,
                         ...extraHeader,

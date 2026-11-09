@@ -63,10 +63,11 @@ export async function executeNightlyWOLensaScrapingByNik(
             techNiksByWhId.set(t.wh_id, list);
         }
 
-        // 3. Ambil daftar existing pemakaian_id (batas 10.000)
+        // 3. Ambil daftar existing pemakaian_id non-rejected (batas 10.000)
         const existingHeaders = await db
             .selectFrom('inventory.wo_lensa_header')
             .select(['pemakaian_id'])
+            .where(sql<boolean>`UPPER(wo_number) NOT LIKE '%REJECTED%'`)
             .orderBy('created_at', 'desc')
             .limit(10000)
             .execute();

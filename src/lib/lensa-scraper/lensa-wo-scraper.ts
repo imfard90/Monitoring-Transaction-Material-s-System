@@ -163,9 +163,36 @@ async function scrapeDefaultEndpoint(
     );
 }
 
-export function getWOPrefixes(cutoffDate: Date = CUTOFF_DATE): string[] {
-    const yyMM = format(cutoffDate, 'yyMM');
-    return ['INC', 'SC', `DGPS${yyMM}`, `FMC${yyMM}`, 'PDA'];
+export function getWOPrefixes(
+    cutoffDate: Date = CUTOFF_DATE,
+    referenceDate?: Date
+): string[] {
+    const prefixes = new Set<string>();
+
+    // 1. Prefiks tiket statis umum
+    prefixes.add('INC');
+    prefixes.add('SC');
+    prefixes.add('PDA');
+
+    // 2. Daftar bulan dinamis dari cutoffDate hingga bulan berjalan
+    const start = new Date(cutoffDate.getFullYear(), cutoffDate.getMonth(), 1);
+    const endRef = referenceDate ?? new Date();
+    const end = start > endRef
+        ? start
+        : new Date(endRef.getFullYear(), endRef.getMonth(), 1);
+
+    const current = new Date(start);
+    while (current <= end) {
+        const ym = format(current, 'yyMM');
+        prefixes.add(ym); // Pencarian broad: menjaring seluruh jenis tiket (DGPS, FMC, AOi, AOk, PDAk, dll)
+        prefixes.add(`DGPS${ym}`);
+        prefixes.add(`FMC${ym}`);
+        prefixes.add(`AOi4${ym}`);
+        prefixes.add(`AOk4${ym}`);
+        current.setMonth(current.getMonth() + 1);
+    }
+
+    return Array.from(prefixes);
 }
 
 async function scrapePrefixEndpoint(
@@ -308,20 +335,19 @@ export async function scrapeWOLensaHeadersByNik(
 
                     processItems(items1, seenIds, newHeaders);
 
-                    // Ambil halaman berikutnya jika ada (cap 5 halaman per teknisi)
-                    // Hentikan jika semua item di halaman pertama sudah sebelum batas cutoff
-                    if (!allBeforeCutoff(items1)) {
-                        const maxPages = Math.min(lastPage, 5);
-                        for (let p = 2; p <= maxPages; p++) {
-                            const urlP = `${LENSA_URL}/teknisi/wo-data?page=${p}&perpage=${perpage}&search=${encodeURIComponent(
-                                nik
-                            )}&orderBy=tanggal_update&orderDirection=desc`;
-                            const respP = await fetchPageJSON(page, urlP, performLogin, safeGoto);
-                            const itemsP = respP?.data || [];
-                            if (itemsP.length === 0) break;
-                            processItems(itemsP, seenIds, newHeaders);
-                            if (allBeforeCutoff(itemsP)) break;
-                        }
+                    // Ambil halaman berikutnya jika ada (cap 10 halaman per teknisi)
+                    // CATATAN: DILARANG break berdasarkan allBeforeCutoff di sini karena Lensa mengurutkan
+                    // tanggal_update secara abjad string ("DD/MM/YYYY"), bukan tanggal kronologis.
+                    // Baris baru (misal 08/11/2026) dapat berada di halaman 6 setelah baris lama (28/08/2026) di halaman 2.
+                    const maxPages = Math.min(lastPage, 10);
+                    for (let p = 2; p <= maxPages; p++) {
+                        const urlP = `${LENSA_URL}/teknisi/wo-data?page=${p}&perpage=${perpage}&search=${encodeURIComponent(
+                            nik
+                        )}&orderBy=tanggal_update&orderDirection=desc`;
+                        const respP = await fetchPageJSON(page, urlP, performLogin, safeGoto);
+                        const itemsP = respP?.data || [];
+                        if (itemsP.length === 0) break;
+                        processItems(itemsP, seenIds, newHeaders);
                     }
 
                     success = true;
@@ -352,6 +378,69 @@ export async function scrapeWOLensaHeadersByNik(
     } finally {
         await context.close().catch(() => {});
     }
+}
+
+/**
+ * Memilih item WO Lensa terbaik dari hasil pencarian (API /teknisi/wo-data).
+ *
+ * Aturan prioritas:
+ * 1. Jika terdapat beberapa item dan sebagian berstatus REJECTED, dahulukan item yang TIDAK REJECTED
+ *    (karena Lensa mengurutkan berdasarkan tanggal_update desc, di mana record penolakan sering muncul lebih awal).
+ * 2. Di antara item yang tidak rejected, cari exact match (pemakaian_id atau wo_number).
+ * 3. Jika tidak ada exact match, cari substring/partial match.
+ * 4. Jika masih tidak ada, ambil item pertama dari kelompok non-rejected.
+ * 5. Hanya jika SELURUH item berstatus REJECTED, kembalikan item rejected (agar downstream dapat mengenali penolakan).
+ */
+export function selectBestCandidateWOLensaHeader(
+    items: Array<Record<string, unknown>>,
+    cleanQuery: string
+): Record<string, unknown> | null {
+    if (!items || items.length === 0) return null;
+
+    const normalizedQuery = cleanQuery.trim().toUpperCase();
+    const baseQuery = normalizedQuery.replace(/-REJECTED-.*$/i, '').trim();
+
+    // 1. Pisahkan item non-rejected dan rejected
+    const nonRejectedItems = items.filter(
+        (item) => !isRejectedWONumber(item.wo_number?.toString())
+    );
+
+    // Prioritaskan non-rejected jika tersedia
+    const candidateItems = nonRejectedItems.length > 0 ? nonRejectedItems : items;
+
+    if (nonRejectedItems.length > 0 && nonRejectedItems.length < items.length) {
+        actionLogger.info(
+            `[selectBestCandidateWOLensaHeader] Ditemukan ${items.length} hasil untuk '${cleanQuery}' (${nonRejectedItems.length} valid, ${items.length - nonRejectedItems.length} rejected). Memilih item yang tidak rejected.`
+        );
+    }
+
+    // 2. Exact match: pemakaian_id atau wo_number
+    const exactMatch = candidateItems.find((item) => {
+        const pId = String(item.pemakaian_id ?? '')
+            .trim()
+            .toUpperCase();
+        const woNo = String(item.wo_number ?? '')
+            .trim()
+            .toUpperCase();
+        return (
+            pId === normalizedQuery ||
+            woNo === normalizedQuery ||
+            (baseQuery !== '' && (woNo === baseQuery || pId === baseQuery))
+        );
+    });
+    if (exactMatch) return exactMatch;
+
+    // 3. Partial / substring match
+    const partialMatch = candidateItems.find((item) => {
+        const woNo = String(item.wo_number ?? '')
+            .trim()
+            .toUpperCase();
+        return baseQuery !== '' && (woNo.includes(baseQuery) || baseQuery.includes(woNo));
+    });
+    if (partialMatch) return partialMatch;
+
+    // 4. Default ke kandidat pertama dari kelompok terbaik
+    return candidateItems[0] ?? null;
 }
 
 /**
@@ -386,19 +475,9 @@ export async function searchSingleWOLensaHeader(
             return null;
         }
 
-        const normalizedQuery = cleanQuery.toUpperCase();
-        // Cari exact match terhadap wo_number atau pemakaian_id terlebih dahulu
-        const exactMatch = items.find((item) => {
-            const pId = String(item.pemakaian_id ?? '')
-                .trim()
-                .toUpperCase();
-            const woNo = String(item.wo_number ?? '')
-                .trim()
-                .toUpperCase();
-            return pId === normalizedQuery || woNo === normalizedQuery;
-        });
+        const target = selectBestCandidateWOLensaHeader(items, cleanQuery);
+        if (!target) return null;
 
-        const target = exactMatch || items[0];
         const pemakaianId = String(target.pemakaian_id ?? '').trim();
         if (!pemakaianId || pemakaianId === 'undefined') return null;
 

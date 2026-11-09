@@ -48,10 +48,11 @@ export async function executeWOLensaScraping(
             };
         }
 
-        // Ambil header terkini dengan batas 10.000 untuk mencegah unbounded memory scan di RAM
+        // Ambil header terkini non-rejected dengan batas 10.000 untuk mencegah unbounded memory scan di RAM
         const existingHeaders = await db
             .selectFrom('inventory.wo_lensa_header')
             .select(['pemakaian_id'])
+            .where(sql<boolean>`UPPER(wo_number) NOT LIKE '%REJECTED%'`)
             .orderBy('created_at', 'desc')
             .limit(10000)
             .execute();

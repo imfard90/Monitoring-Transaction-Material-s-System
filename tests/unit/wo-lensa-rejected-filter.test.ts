@@ -4,7 +4,10 @@ vi.mock('@/lib/redis', () => ({
     redis: {},
 }));
 
-import { isRejectedWONumber } from '@/lib/lensa-scraper/lensa-wo-scraper';
+import {
+    isRejectedWONumber,
+    selectBestCandidateWOLensaHeader,
+} from '@/lib/lensa-scraper/lensa-wo-scraper';
 
 /** Simulates the REJECTED filter logic using isRejectedWONumber */
 function filterRejectedWOLHeaders(
@@ -84,5 +87,59 @@ describe('WO Lensa Ref — REJECTED header filtering', () => {
 
     it('returns empty array for empty input', () => {
         expect(filterRejectedWOLHeaders([])).toHaveLength(0);
+    });
+});
+
+describe('WO Lensa Ref — selectBestCandidateWOLensaHeader (Reject Avoidance)', () => {
+    it('prioritizes valid non-rejected WO over rejected WO even if rejected appears first', () => {
+        const items = [
+            {
+                pemakaian_id: 100340964,
+                wo_number: 'DGPS261105130255330310657-AOi4261105010255738277820-REJECTED-20261106152519',
+                tanggal_update: '06/11/2026',
+            },
+            {
+                pemakaian_id: 100340971,
+                wo_number: 'DGPS261105130255330310657-AOi4261105010255738277820',
+                tanggal_update: '06/11/2026',
+            },
+        ];
+
+        // Pencarian dengan nomor insiden / WO
+        const candidate = selectBestCandidateWOLensaHeader(items, 'AOi4261105010255738277820');
+        expect(candidate).not.toBeNull();
+        expect(candidate?.pemakaian_id).toBe(100340971);
+        expect(isRejectedWONumber(String(candidate?.wo_number))).toBe(false);
+    });
+
+    it('correctly picks the sole non-rejected WO when multiple prior submissions were rejected (Tuban case: 5 reject, 1 valid)', () => {
+        const items = [
+            { pemakaian_id: 100359739, wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094714' },
+            { pemakaian_id: 100359740, wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094720' },
+            { pemakaian_id: 100359741, wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094726' },
+            { pemakaian_id: 100359742, wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094735' },
+            { pemakaian_id: 100359743, wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094752' },
+            { pemakaian_id: 100359744, wo_number: 'DGPS261107...-AOi4261107095410087f06590' },
+        ];
+
+        const candidate = selectBestCandidateWOLensaHeader(items, 'AOi4261107095410087f06590');
+        expect(candidate).not.toBeNull();
+        expect(candidate?.pemakaian_id).toBe(100359744);
+        expect(isRejectedWONumber(String(candidate?.wo_number))).toBe(false);
+    });
+
+    it('returns the rejected candidate when all results are rejected so downstream can identify rejection', () => {
+        const items = [
+            { pemakaian_id: 100359739, wo_number: 'WO-1-REJECTED' },
+            { pemakaian_id: 100359740, wo_number: 'WO-2-REJECTED' },
+        ];
+
+        const candidate = selectBestCandidateWOLensaHeader(items, 'WO-1-REJECTED');
+        expect(candidate).not.toBeNull();
+        expect(isRejectedWONumber(String(candidate?.wo_number))).toBe(true);
+    });
+
+    it('returns null on empty items list', () => {
+        expect(selectBestCandidateWOLensaHeader([], '12345')).toBeNull();
     });
 });
