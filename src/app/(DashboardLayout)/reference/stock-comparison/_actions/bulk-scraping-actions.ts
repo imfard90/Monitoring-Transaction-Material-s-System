@@ -5,6 +5,7 @@ import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
 import { bulkScrapeStockTeknisi } from '@/lib/services/bulk-stock-scraper';
 import { dispatchWorkerJob, isWorkerActive } from '@/lib/workers/worker-client';
+import { getCronRunningStatus } from '@/lib/services/cron-guard';
 
 export interface BulkScrapeJobResult {
     success: number;
@@ -26,6 +27,15 @@ export type BulkScrapeJobStatus =
 export async function triggerManualStockScraping(
     warehouseId?: number
 ): Promise<{ success: true; jobId: string } | { success: false; error: string }> {
+    // Guard against manual trigger if scheduled cron is active
+    const activeCron = await getCronRunningStatus();
+    if (activeCron) {
+        return {
+            success: false,
+            error: `Scraping terjadwal (${activeCron.label}) sedang berjalan. Silakan tunggu hingga selesai sebelum memulai scraping manual.`,
+        };
+    }
+
     const LOCK_KEY = 'lock:bulk_stock_scrape';
     const LOCK_TTL = 3600; // 1 jam TTL
 

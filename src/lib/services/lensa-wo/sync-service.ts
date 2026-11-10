@@ -315,7 +315,8 @@ export async function syncMissingWOLensaDetails(): Promise<number> {
                             type: (h as { type?: string | null }).type || 'assurance',
                         })),
                         creds.username,
-                        creds.password
+                        creds.password,
+                        5
                     );
                 },
                 `WO-Lensa-Detail[${gudang}]`

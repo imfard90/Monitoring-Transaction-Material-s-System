@@ -241,7 +241,8 @@ export async function executeOutLensaScraping(
                             const d = await scrapeLensaDetails(
                                 headers,
                                 creds.username,
-                                creds.password
+                                creds.password,
+                                5
                             );
                             accountResults.push({
                                 username: creds.username,

@@ -136,4 +136,62 @@ describe('lensa browser lifecycle', () => {
         // The sweeper keeps the 5 most recent contexts and closes the rest.
         expect(leakedContext.close).toHaveBeenCalled();
     });
+
+    it('coalesces multiple concurrent getBrowserInstance calls into a single launchServer call (anti-race)', async () => {
+        // Slow launchServer to simulate network/startup delay
+        mockLaunchServer.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    setTimeout(() => resolve(server), 50);
+                })
+        );
+
+        const { getBrowserInstance } = await import('@/lib/lensa-scraper/lensa-browser');
+
+        // 5 concurrent callers entering getBrowserInstance simultaneously
+        const [b1, b2, b3, b4, b5] = await Promise.all([
+            getBrowserInstance(),
+            getBrowserInstance(),
+            getBrowserInstance(),
+            getBrowserInstance(),
+            getBrowserInstance(),
+        ]);
+
+        // Exactly 1 launchServer invocation
+        expect(mockLaunchServer).toHaveBeenCalledTimes(1);
+        expect(b1).toBe(browser);
+        expect(b2).toBe(browser);
+        expect(b3).toBe(browser);
+        expect(b4).toBe(browser);
+        expect(b5).toBe(browser);
+    });
+
+    it('defers closeBrowser when there are active leases, and closes when force is true', async () => {
+        const {
+            getBrowserInstance,
+            closeBrowser,
+            acquireBrowserLease,
+            releaseBrowserLease,
+            getActiveOperationsCount,
+        } = await import('@/lib/lensa-scraper/lensa-browser');
+
+        await getBrowserInstance();
+
+        acquireBrowserLease();
+        expect(getActiveOperationsCount()).toBe(1);
+
+        // Non-forced close should be deferred
+        await closeBrowser(false);
+        expect(browser.close).not.toHaveBeenCalled();
+        expect(server.kill).not.toHaveBeenCalled();
+
+        // Release the lease
+        releaseBrowserLease();
+        expect(getActiveOperationsCount()).toBe(0);
+
+        // Forced close should immediately terminate
+        await closeBrowser(true);
+        expect(browser.close).toHaveBeenCalledTimes(1);
+        expect(server.kill).toHaveBeenCalledTimes(1);
+    });
 });

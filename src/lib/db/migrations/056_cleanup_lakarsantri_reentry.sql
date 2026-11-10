@@ -19,3 +19,4 @@ WHERE NOT EXISTS (
     SELECT 1 FROM inventory.mas_wh w
     WHERE LOWER(REPLACE(w.name, ' ', '')) = LOWER(REPLACE(inventory.wo_lensa_header.nama_gudang, ' ', ''))
 );
+

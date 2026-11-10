@@ -13,6 +13,7 @@ import {
     type WOLensaScrapeOutcome,
 } from '@/lib/services/lensa-wo-service';
 import { dispatchWorkerJob, isWorkerActive } from '@/lib/workers/worker-client';
+import { getCronRunningStatus } from '@/lib/services/cron-guard';
 
 export type { ScrapedWODetailMaterial, ScrapedWODetailResult };
 
@@ -35,6 +36,15 @@ export async function internalTriggerWOScraping(
 export async function triggerWOScraping(): Promise<
     { success: true; jobId: string } | { success: false; error: string }
 > {
+    // Guard against manual trigger if scheduled cron is active
+    const activeCron = await getCronRunningStatus();
+    if (activeCron) {
+        return {
+            success: false,
+            error: `Scraping terjadwal (${activeCron.label}) sedang berjalan. Silakan tunggu hingga selesai sebelum memulai scraping manual.`,
+        };
+    }
+
     const jobId = `wo_lensa_scrape_${Date.now()}`;
 
     // If standalone background worker is running, delegate execution to worker

@@ -7,6 +7,7 @@ import {
 } from '@/lib/google_ecosystem/sheets-stock-sync';
 import {
     closeBrowser,
+    getActiveOperationsCount,
     getLensaBrowserHealth,
     publishBrowserSnapshot,
 } from '@/lib/lensa-scraper/lensa-scraper';
@@ -15,6 +16,11 @@ import { redis } from '@/lib/redis';
 import { acquireLock } from '@/lib/redis-lock';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
 import { bulkScrapeStockTeknisi } from '@/lib/services/bulk-stock-scraper';
+import {
+    clearCronRunning,
+    getCronRunningStatus,
+    setCronRunning,
+} from '@/lib/services/cron-guard';
 import { executeOutLensaScraping } from '@/lib/services/lensa-out-service';
 import {
     executeNightlyWOLensaScrapingByNik,
@@ -123,6 +129,8 @@ const schedules = [
 ];
 
 const runScrapers = async (perpage: number) => {
+    isJobActive = true;
+    await setCronRunning('out_lensa', `Out & WO Lensa (perpage=${perpage})`);
     try {
         actionLogger.info(`[CRON] Running Lensa scrapers perpage=${perpage}...`);
         await executeOutLensaScraping(perpage, 'system');
@@ -136,7 +144,9 @@ const runScrapers = async (perpage: number) => {
             error instanceof Error ? error : new Error(String(error))
         );
     } finally {
+        await clearCronRunning();
         await closeBrowser().catch(() => {});
+        isJobActive = false;
     }
 };
 
@@ -170,6 +180,11 @@ const runBulkStockScraper = async (label: string, action: 'system' | 'manual' = 
         return;
     }
 
+    isJobActive = true;
+    if (action === 'system') {
+        await setCronRunning('bulk_stock', `Bulk Stock Teknisi (${label})`);
+    }
+
     try {
         actionLogger.info(`[CRON] Starting bulk technician stock scraping (${label})...`);
         const result = await bulkScrapeStockTeknisi();
@@ -199,8 +214,12 @@ const runBulkStockScraper = async (label: string, action: 'system' | 'manual' = 
                 actionLogger.warn('[CRON] Gagal mencatat log scraper_cronjob_log:', err);
             });
     } finally {
+        if (action === 'system') {
+            await clearCronRunning();
+        }
         await lock.release();
         await closeBrowser().catch(() => {});
+        isJobActive = false;
     }
 };
 
@@ -279,6 +298,11 @@ const runNightlyWOLensaNikScraper = async (action: 'system' | 'manual' = 'system
         return;
     }
 
+    isJobActive = true;
+    if (action === 'system') {
+        await setCronRunning('wo_lensa_nightly', 'Nightly WO Lensa Deep Sweep');
+    }
+
     try {
         actionLogger.info(
             '[CRON] Starting WO Lensa deep sweep by technician NIK (22:30 / 02:00 WIB)...'
@@ -291,8 +315,12 @@ const runNightlyWOLensaNikScraper = async (action: 'system' | 'manual' = 'system
             error instanceof Error ? error : new Error(String(error))
         );
     } finally {
+        if (action === 'system') {
+            await clearCronRunning();
+        }
         await lock.release();
         await closeBrowser().catch(() => {});
+        isJobActive = false;
     }
 };
 
@@ -336,6 +364,24 @@ void runWithRetry('STARTUP');
 // 4. Job Queue Processor (Manual Triggers from Web)
 // ----------------------------------------------------
 const handleWorkerJob = async (job: WorkerJob) => {
+    // Check if any scheduled cronjob is currently active
+    const activeCron = await getCronRunningStatus();
+    if (activeCron) {
+        actionLogger.warn(
+            `[MTMS-WORKER] Job ${job.id} ditolak karena cronjob sedang berjalan: ${activeCron.label}`
+        );
+        await redis.set(
+            `job:${job.id}`,
+            JSON.stringify({
+                status: 'error',
+                error: `Scraping manual dibatalkan karena cronjob (${activeCron.label}) sedang berjalan. Silakan coba lagi setelah cronjob selesai.`,
+            }),
+            'EX',
+            3600
+        );
+        return;
+    }
+
     isJobActive = true;
     actionLogger.info(`[MTMS-WORKER] Executing job: ${job.id} (${job.type})`);
 
@@ -528,12 +574,59 @@ const processQueue = async () => {
 void processQueue();
 
 // ----------------------------------------------------
-// 5. Graceful Shutdown
+// 5. Self-Healing Process Watchdog (Setiap 10 Menit)
+// ----------------------------------------------------
+const WATCHDOG_INTERVAL_MS = 10 * 60 * 1000;
+const runWatchdog = async () => {
+    try {
+        // Jangan lakukan apapun jika sedang ada job aktif atau cron berjalan
+        const activeCron = await getCronRunningStatus();
+        const health = getLensaBrowserHealth();
+        const activeOps = getActiveOperationsCount();
+
+        if (isJobActive || activeCron || activeOps > 0) {
+            actionLogger.info(
+                `[WATCHDOG] Sistem sedang aktif (job=${isJobActive}, cron=${activeCron?.label || 'none'}, ops=${activeOps}). Watchdog lewati.`
+            );
+            return;
+        }
+
+        // Jika sistem idle tapi di Linux ada orphan process atau browser disconnected
+        if (!health.connected && health.pid === null && process.platform === 'linux') {
+            const { exec } = await import('node:child_process');
+            exec('pgrep -f "chrome-headless|ms-playwright.*chrome" 2>/dev/null | wc -l', (err, stdout) => {
+                if (!err) {
+                    const count = parseInt(stdout.trim(), 10) || 0;
+                    if (count > 0) {
+                        actionLogger.warn(
+                            `[WATCHDOG] Ditemukan ${count} proses Chromium orphan saat sistem idle. Membersihkan...`
+                        );
+                        exec('pkill -f "chrome-headless|ms-playwright.*chrome" 2>/dev/null || true');
+                    }
+                }
+            });
+        }
+    } catch (watchdogErr) {
+        actionLogger.warn('[WATCHDOG] Error saat pemeriksaan watchdog:', {
+            error: watchdogErr instanceof Error ? watchdogErr.message : String(watchdogErr),
+        });
+    }
+};
+
+const watchdogInterval = setInterval(() => {
+    if (isRunning) {
+        void runWatchdog();
+    }
+}, WATCHDOG_INTERVAL_MS);
+
+// ----------------------------------------------------
+// 6. Graceful Shutdown
 // ----------------------------------------------------
 const gracefulShutdown = async (signal: string) => {
     actionLogger.info(`[MTMS-WORKER] Received ${signal}. Starting graceful shutdown...`);
     isRunning = false;
     clearInterval(heartbeatInterval);
+    clearInterval(watchdogInterval);
 
     try {
         // Wait up to 25 seconds if a job is currently active

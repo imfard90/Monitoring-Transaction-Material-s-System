@@ -35,6 +35,8 @@ export async function internalTriggerScraping(
     return executeOutLensaScraping(perpage, action);
 }
 
+import { getCronRunningStatus } from '@/lib/services/cron-guard';
+
 /**
  * Trigger background scraping Out Lensa.
  * Dispatches to standalone worker if active, or runs in-process fallback.
@@ -42,6 +44,15 @@ export async function internalTriggerScraping(
 export async function triggerScraping(): Promise<
     { success: true; jobId: string } | { success: false; error: string }
 > {
+    // Guard against manual trigger if scheduled cron is active
+    const activeCron = await getCronRunningStatus();
+    if (activeCron) {
+        return {
+            success: false,
+            error: `Scraping terjadwal (${activeCron.label}) sedang berjalan. Silakan tunggu hingga selesai sebelum memulai scraping manual.`,
+        };
+    }
+
     const LOCK_KEY = 'lock:out_lensa_scrape';
     const LOCK_TTL = 1800; // 30 menit
 

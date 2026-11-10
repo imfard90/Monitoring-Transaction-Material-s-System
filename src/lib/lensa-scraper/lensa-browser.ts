@@ -11,6 +11,14 @@ import { redis } from '../redis';
 let globalBrowser: Browser | null = null;
 let globalServer: BrowserServer | null = null;
 let browserLastLaunched = 0;
+let launchPromise: Promise<Browser> | null = null;
+
+// Active operations / leases counter to prevent closing browser during running processes
+let activeOperationsCount = 0;
+let idleCloseTimer: NodeJS.Timeout | null = null;
+
+// Idle timeout before automatically closing Chromium after all tasks finish (2 minutes)
+const BROWSER_IDLE_TIMEOUT_MS = 2 * 60 * 1000;
 
 // Refresh browser every 30 min to prevent memory bloat from accumulated state.
 // Contexts are closed per-scrape; this reaps the underlying Chromium process.
@@ -26,6 +34,95 @@ const BROWSER_MAX_AGE_MS = 30 * 60 * 1000;
  * headless Chrome processes.
  */
 const MAX_OPEN_CONTEXTS = 10;
+
+/**
+ * Recursively terminates a process and all its descendants (Zygote, renderers, utilities).
+ * Prevents orphan grandchildren processes from leaking in Linux/Unix environments.
+ */
+export async function killProcessTree(rootPid: number): Promise<void> {
+    if (!rootPid || rootPid <= 0) return;
+    if (process.platform !== 'linux' && process.platform !== 'darwin') {
+        try {
+            process.kill(rootPid, 'SIGKILL');
+        } catch {
+            // ignore if already exited
+        }
+        return;
+    }
+
+    try {
+        const { exec } = await import('node:child_process');
+        // Recursive shell function to kill all descendant child PIDs first, then the root
+        const script = `
+            reap_children() {
+                local parent=$1
+                local children=$(pgrep -P "$parent" 2>/dev/null)
+                for child in $children; do
+                    reap_children "$child"
+                    kill -9 "$child" 2>/dev/null || true
+                done
+            }
+            reap_children ${rootPid}
+            kill -9 ${rootPid} 2>/dev/null || true
+        `;
+        exec(script, () => {});
+    } catch {
+        try {
+            process.kill(rootPid, 'SIGKILL');
+        } catch {
+            // ignore
+        }
+    }
+}
+
+/**
+ * Tracks an active scraping operation lease. Cancels any scheduled idle shutdown.
+ */
+export function acquireBrowserLease(): void {
+    activeOperationsCount++;
+    if (idleCloseTimer) {
+        clearTimeout(idleCloseTimer);
+        idleCloseTimer = null;
+        actionLogger.info('[BROWSER] Operasi baru masuk, idle auto-close timer dibatalkan.');
+    }
+}
+
+/**
+ * Releases an active scraping operation lease. If no operations remain active,
+ * schedules an idle auto-close after BROWSER_IDLE_TIMEOUT_MS.
+ */
+export function releaseBrowserLease(): void {
+    activeOperationsCount = Math.max(0, activeOperationsCount - 1);
+    if (activeOperationsCount === 0 && globalBrowser?.isConnected()) {
+        scheduleIdleClose();
+    }
+}
+
+/**
+ * Returns current count of active scraping operations using the browser.
+ */
+export function getActiveOperationsCount(): number {
+    return activeOperationsCount;
+}
+
+function scheduleIdleClose(): void {
+    if (idleCloseTimer) {
+        clearTimeout(idleCloseTimer);
+    }
+    idleCloseTimer = setTimeout(async () => {
+        if (activeOperationsCount === 0 && (globalBrowser?.isConnected() || globalServer)) {
+            actionLogger.info(
+                `[BROWSER] Browser idle selama ${BROWSER_IDLE_TIMEOUT_MS / 1000} detik tanpa aktivitas. Menutup browser secara otomatis.`
+            );
+            await closeBrowser(true).catch(() => {});
+        }
+    }, BROWSER_IDLE_TIMEOUT_MS);
+
+    // Don't keep event loop alive if only this idle timer is remaining
+    if (idleCloseTimer && typeof idleCloseTimer.unref === 'function') {
+        idleCloseTimer.unref();
+    }
+}
 
 /**
  * Publishes the browser snapshot to Redis so the web process can report it.
@@ -57,7 +154,19 @@ export const publishBrowserSnapshot = async () => {
         });
 };
 
-export async function closeBrowser() {
+export async function closeBrowser(force = false) {
+    if (!force && activeOperationsCount > 0) {
+        actionLogger.info(
+            `[BROWSER] closeBrowser ditangguhkan karena masih ada ${activeOperationsCount} operasi aktif berjalan.`
+        );
+        return;
+    }
+
+    if (idleCloseTimer) {
+        clearTimeout(idleCloseTimer);
+        idleCloseTimer = null;
+    }
+
     const pid = globalServer?.process()?.pid ?? null;
     if (globalBrowser) {
         await globalBrowser.close().catch(() => {});
@@ -69,19 +178,12 @@ export async function closeBrowser() {
         await globalServer.kill().catch(() => {});
         globalServer = null;
     }
-    // On Linux/Unix, ensure any remaining child processes of Chromium are reaped
-    if (
-        typeof pid === 'number' &&
-        pid > 0 &&
-        (process.platform === 'linux' || process.platform === 'darwin')
-    ) {
-        try {
-            const { exec } = await import('node:child_process');
-            exec(`pkill -P ${pid} 2>/dev/null || true`);
-        } catch {
-            // ignore if child process reap fails
-        }
+
+    // On Linux/Unix, ensure any remaining child processes of Chromium (including Zygote & renderers) are reaped
+    if (typeof pid === 'number' && pid > 0) {
+        await killProcessTree(pid);
     }
+
     browserLastLaunched = 0;
     await redis.del(WORKER_BROWSER_KEY).catch(() => {});
     actionLogger.info(`[BROWSER] Browser ditutup (pid=${pid ?? 'unknown'}).`);
@@ -92,43 +194,67 @@ export async function getBrowserInstance(): Promise<Browser> {
     const isStale = browserLastLaunched > 0 && now - browserLastLaunched > BROWSER_MAX_AGE_MS;
     const needsReconnect = !globalBrowser?.isConnected() || isStale;
 
-    if (needsReconnect) {
-        await closeBrowser();
-        // `launchServer` (not `launch`) because only the server handle exposes the
-        // spawned Chromium PID. The PID is required to reap the process tree on
-        // shutdown — without it we would need a broad `pkill`, which would also
-        // kill Chromium instances owned by other services on the same host.
-        globalServer = await chromium.launchServer({
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--disable-background-networking',
-                '--disable-extensions',
-                '--disable-sync',
-                '--metrics-recording-only',
-                // Prevent Chromium from spawning a crash-handler / breakpad child
-                // process that survives the browser and shows up as an orphan.
-                '--disable-crash-reporter',
-                '--disable-breakpad',
-                '--no-first-run',
-                '--no-default-browser-check',
-            ],
-        });
-        globalBrowser = await chromium.connect(globalServer.wsEndpoint());
-        browserLastLaunched = now;
-        actionLogger.info(
-            `[BROWSER] Chromium baru dijalankan (pid=${globalServer.process()?.pid ?? 'unknown'}).`
-        );
+    if (!needsReconnect && globalBrowser) {
+        return globalBrowser;
     }
-    if (!globalBrowser) {
+
+    // Anti-race condition: if a browser launch is already in-flight, await the same promise
+    if (launchPromise) {
+        return launchPromise;
+    }
+
+    launchPromise = (async () => {
+        try {
+            await closeBrowser(true);
+            // `launchServer` (not `launch`) because only the server handle exposes the
+            // spawned Chromium PID. The PID is required to reap the process tree on
+            // shutdown — without it we would need a broad `pkill`, which would also
+            // kill Chromium instances owned by other services on the same host.
+            globalServer = await chromium.launchServer({
+                headless: true,
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--disable-background-networking',
+                    '--disable-extensions',
+                    '--disable-sync',
+                    '--metrics-recording-only',
+                    // Prevent Chromium from spawning a crash-handler / breakpad child
+                    // process that survives the browser and shows up as an orphan.
+                    '--disable-crash-reporter',
+                    '--disable-breakpad',
+                    '--no-first-run',
+                    '--no-default-browser-check',
+                    '--renderer-process-limit=4',
+                ],
+            });
+            globalBrowser = await chromium.connect(globalServer.wsEndpoint());
+            browserLastLaunched = Date.now();
+            actionLogger.info(
+                `[BROWSER] Chromium baru dijalankan (pid=${globalServer.process()?.pid ?? 'unknown'}).`
+            );
+
+            if (idleCloseTimer) {
+                clearTimeout(idleCloseTimer);
+                idleCloseTimer = null;
+            }
+
+            await publishBrowserSnapshot();
+            return globalBrowser;
+        } finally {
+            launchPromise = null;
+        }
+    })();
+
+    const browser = await launchPromise;
+    if (!browser) {
         throw new Error('Gagal menjalankan browser Chromium untuk scraping Lensa.');
     }
 
     // Leak detection: force-close contexts that outlived their scrape.
-    const contexts = globalBrowser.contexts();
+    const contexts = browser.contexts();
     if (contexts.length > MAX_OPEN_CONTEXTS) {
         actionLogger.warn(
             `[BROWSER-LEAK] ${contexts.length} contexts open (max ${MAX_OPEN_CONTEXTS}). Menutup yang tertinggal.`
@@ -136,9 +262,7 @@ export async function getBrowserInstance(): Promise<Browser> {
         await Promise.allSettled(contexts.slice(0, -5).map((ctx) => ctx.close()));
     }
 
-    await publishBrowserSnapshot();
-
-    return globalBrowser;
+    return browser;
 }
 
 // Graceful shutdown — Chromium headless process is reaped on SIGTERM/SIGINT.
@@ -161,6 +285,7 @@ export function getLensaBrowserHealth() {
         launchedAt: browserLastLaunched || null,
         pid: globalServer?.process()?.pid ?? null,
         contexts: globalBrowser?.contexts().length ?? 0,
+        activeOperations: activeOperationsCount,
         stale:
             browserLastLaunched > 0 ? Date.now() - browserLastLaunched > BROWSER_MAX_AGE_MS : true,
     };
@@ -205,115 +330,140 @@ export interface LensaResponse {
 }
 
 export async function setupContext(username: string, password: string) {
-    const browser = await getBrowserInstance();
-    const context = await browser.newContext();
-    const sessionKey = `lensa_session:${username}`;
-    const cachedCookies = await redis.get(sessionKey);
-    let isAuthenticated = false;
-
-    if (cachedCookies) {
-        try {
-            const cookies = JSON.parse(cachedCookies);
-            await context.addCookies(cookies);
-            isAuthenticated = true;
-        } catch (_parseErr) {
-            isAuthenticated = false;
-        }
-    }
-
-    const page = await context.newPage();
-
-    const safeGoto = async (url: string, retries = 2) => {
-        for (let i = 0; i <= retries; i++) {
-            try {
-                await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-                return;
-            } catch (error: unknown) {
-                if (i === retries) throw error;
-                actionLogger.info(`Nav to ${url} failed, retrying... (${i + 1}/${retries})`, {
-                    error: error instanceof Error ? error.message : String(error),
-                });
-                await page.waitForTimeout(1000 * (i + 1));
-            }
+    acquireBrowserLease();
+    let leaseReleased = false;
+    const releaseOnce = () => {
+        if (!leaseReleased) {
+            leaseReleased = true;
+            releaseBrowserLease();
         }
     };
 
-    const performLogin: LensaPerformLogin = async (targetPage?: Page) => {
-        // Cek apakah login untuk username ini sedang berjalan oleh worker lain
-        const activeLock = loginLocks.get(username);
-        if (activeLock) {
+    try {
+        const browser = await getBrowserInstance();
+        const context = await browser.newContext();
+
+        // Hook context.close to automatically release the operation lease
+        const originalClose = context.close.bind(context);
+        context.close = async () => {
             try {
-                await activeLock;
-                const freshCookies = await redis.get(sessionKey);
-                if (freshCookies) {
-                    await context.addCookies(JSON.parse(freshCookies));
-                    return;
-                }
-            } catch (_lockErr) {
-                // Jika login sebelumnya gagal, coba lagi secara mandiri
-            }
-        }
-
-        const executeLogin = (async () => {
-            let activePage: Page;
-            let shouldCloseActivePage = false;
-
-            // Prioritaskan targetPage jika aktif, lalu page context awal, atau buat page baru sementara jika sudah tertutup
-            if (targetPage && !targetPage.isClosed()) {
-                activePage = targetPage;
-            } else if (page.isClosed()) {
-                activePage = await context.newPage();
-                shouldCloseActivePage = true;
-            } else {
-                activePage = page;
-            }
-
-            try {
-                await activePage.goto(`${LENSA_URL}/login`, {
-                    waitUntil: 'domcontentloaded',
-                    timeout: 30000,
-                });
-                await activePage
-                    .waitForSelector('input[type="text"], input[name="username"]', {
-                        timeout: 15000,
-                    })
-                    .catch(() => null);
-                await activePage.fill('input[type="text"], input[name="username"]', username);
-                await activePage.fill('input[type="password"], input[name="password"]', password);
-                await activePage.click('button[type="submit"]');
-                await activePage.waitForURL('**/dashboard**', { timeout: 15000 }).catch(() => null);
-
-                if (activePage.url().includes('login')) {
-                    throw new Error(
-                        'Gagal login ke sistem Lensa (masih tertahan di halaman login).'
-                    );
-                }
-
-                const freshCookies = await context.cookies();
-                await redis.set(sessionKey, JSON.stringify(freshCookies), 'EX', SESSION_TTL);
+                await originalClose();
             } finally {
-                if (shouldCloseActivePage) {
-                    await activePage.close().catch(() => {});
-                }
-                loginLocks.delete(username);
+                releaseOnce();
             }
-        })();
+        };
 
-        loginLocks.set(username, executeLogin);
-        await executeLogin;
-    };
+        const sessionKey = `lensa_session:${username}`;
+        const cachedCookies = await redis.get(sessionKey);
+        let isAuthenticated = false;
 
-    if (!isAuthenticated) {
-        try {
-            await performLogin(page);
-        } catch (loginErr) {
-            await redis.del(sessionKey).catch(() => {});
-            await context.close().catch(() => {});
-            throw loginErr;
+        if (cachedCookies) {
+            try {
+                const cookies = JSON.parse(cachedCookies);
+                await context.addCookies(cookies);
+                isAuthenticated = true;
+            } catch (_parseErr) {
+                isAuthenticated = false;
+            }
         }
-    }
 
-    return { context, page, safeGoto, sessionKey, performLogin };
+        const page = await context.newPage();
+
+        const safeGoto = async (url: string, retries = 2) => {
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                    return;
+                } catch (error: unknown) {
+                    if (i === retries) throw error;
+                    actionLogger.info(`Nav to ${url} failed, retrying... (${i + 1}/${retries})`, {
+                        error: error instanceof Error ? error.message : String(error),
+                    });
+                    await page.waitForTimeout(1000 * (i + 1));
+                }
+            }
+        };
+
+        const performLogin: LensaPerformLogin = async (targetPage?: Page) => {
+            // Cek apakah login untuk username ini sedang berjalan oleh worker lain
+            const activeLock = loginLocks.get(username);
+            if (activeLock) {
+                try {
+                    await activeLock;
+                    const freshCookies = await redis.get(sessionKey);
+                    if (freshCookies) {
+                        await context.addCookies(JSON.parse(freshCookies));
+                        return;
+                    }
+                } catch (_lockErr) {
+                    // Jika login sebelumnya gagal, coba lagi secara mandiri
+                }
+            }
+
+            const executeLogin = (async () => {
+                let activePage: Page;
+                let shouldCloseActivePage = false;
+
+                // Prioritaskan targetPage jika aktif, lalu page context awal, atau buat page baru sementara jika sudah tertutup
+                if (targetPage && !targetPage.isClosed()) {
+                    activePage = targetPage;
+                } else if (page.isClosed()) {
+                    activePage = await context.newPage();
+                    shouldCloseActivePage = true;
+                } else {
+                    activePage = page;
+                }
+
+                try {
+                    await activePage.goto(`${LENSA_URL}/login`, {
+                        waitUntil: 'domcontentloaded',
+                        timeout: 30000,
+                    });
+                    await activePage
+                        .waitForSelector('input[type="text"], input[name="username"]', {
+                            timeout: 15000,
+                        })
+                        .catch(() => null);
+                    await activePage.fill('input[type="text"], input[name="username"]', username);
+                    await activePage.fill('input[type="password"], input[name="password"]', password);
+                    await activePage.click('button[type="submit"]');
+                    await activePage.waitForURL('**/dashboard**', { timeout: 15000 }).catch(() => null);
+
+                    if (activePage.url().includes('login')) {
+                        throw new Error(
+                            'Gagal login ke sistem Lensa (masih tertahan di halaman login).'
+                        );
+                    }
+
+                    const freshCookies = await context.cookies();
+                    await redis.set(sessionKey, JSON.stringify(freshCookies), 'EX', SESSION_TTL);
+                } finally {
+                    if (shouldCloseActivePage) {
+                        await activePage.close().catch(() => {});
+                    }
+                    loginLocks.delete(username);
+                }
+            })();
+
+            loginLocks.set(username, executeLogin);
+            await executeLogin;
+        };
+
+        if (!isAuthenticated) {
+            try {
+                await performLogin(page);
+            } catch (loginErr) {
+                await redis.del(sessionKey).catch(() => {});
+                await context.close().catch(() => {});
+                throw loginErr;
+            }
+        }
+
+        return { context, page, safeGoto, sessionKey, performLogin };
+    } catch (err) {
+        releaseOnce();
+        throw err;
+    }
 }
 
 /**

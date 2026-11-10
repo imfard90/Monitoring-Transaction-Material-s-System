@@ -412,7 +412,7 @@ export async function scrapeWOLensaDetails(
     headersToSync: { id: number; pemakaian_id: string; type?: string | null }[],
     customUsername?: string,
     customPassword?: string,
-    concurrency: number = 2
+    concurrency: number = 5
 ) {
     const username = customUsername || process.env.LENSA_USERNAME;
     const password = customPassword || process.env.LENSA_PASSWORD;

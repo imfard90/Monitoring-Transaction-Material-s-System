@@ -223,7 +223,7 @@ export async function scrapeLensaDetails(
     headersToScrape: { id: number; reservation_id: string }[],
     customUsername?: string,
     customPassword?: string,
-    concurrency: number = 2
+    concurrency: number = 5
 ) {
     const username = customUsername || process.env.LENSA_USERNAME;
     const password = customPassword || process.env.LENSA_PASSWORD;
