@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 function walk(dir: string): string[] {
-    let results: string[] = [];
+    const results: string[] = [];
     for (const f of readdirSync(dir)) {
         const full = join(dir, f);
         const stat = statSync(full);
@@ -95,3 +95,4 @@ describe('WCAG 2.1 & 2.2 AA Accessibility Guardrails', () => {
         }
     });
 });
+
