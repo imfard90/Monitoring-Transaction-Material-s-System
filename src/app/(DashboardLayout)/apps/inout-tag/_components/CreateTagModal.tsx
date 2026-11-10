@@ -315,7 +315,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <Label>Request ID</Label>
+                                <Label htmlFor="create_tag_request_id">Request ID</Label>
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -334,29 +334,38 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
                                 control={control}
                                 name="requestId"
                                 render={({ field }) => (
-                                    <Input placeholder="Contoh: REQ-2026-001" {...field} />
+                                    <Input
+                                        id="create_tag_request_id"
+                                        placeholder="Contoh: REQ-2026-001"
+                                        {...field}
+                                    />
                                 )}
                             />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Vendor</Label>
+                                <Label htmlFor="create_tag_vendor">Vendor</Label>
                                 <Controller
                                     control={control}
                                     name="vendorName"
                                     render={({ field }) => (
-                                        <Input placeholder="Swakelola" {...field} />
+                                        <Input
+                                            id="create_tag_vendor"
+                                            placeholder="Swakelola"
+                                            {...field}
+                                        />
                                     )}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Biaya (Rp)</Label>
+                                <Label htmlFor="create_tag_cost">Biaya (Rp)</Label>
                                 <Controller
                                     control={control}
                                     name="cost"
                                     render={({ field }) => (
                                         <Input
+                                            id="create_tag_cost"
                                             type="number"
                                             min="0"
                                             value={field.value ?? 0}
@@ -563,6 +572,8 @@ function MaterialRowItem({
                     render={({ field, fieldState }) => (
                         <div>
                             <Input
+                                id={`create_tag_item_qty_${index}`}
+                                aria-label={`Jumlah kuantitas baris ${index + 1}`}
                                 type="number"
                                 min="1"
                                 placeholder="0"
@@ -588,6 +599,7 @@ function MaterialRowItem({
                     type="button"
                     variant="ghost"
                     size="icon"
+                    aria-label="Hapus baris material"
                     className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={onRemove}
                 >

@@ -211,8 +211,11 @@ export function TechnicianExcludeDialog({
                             </div>
 
                             <div className="sm:col-span-2 space-y-1">
-                                <Label className="text-xs">Jumlah</Label>
+                                <Label htmlFor="exclude_qty_input" className="text-xs">
+                                    Jumlah
+                                </Label>
                                 <Input
+                                    id="exclude_qty_input"
                                     type="number"
                                     min="1"
                                     value={qtyInput}
@@ -323,6 +326,7 @@ export function TechnicianExcludeDialog({
                                                         type="button"
                                                         variant="ghost"
                                                         size="icon"
+                                                        aria-label="Hapus material yang dikecualikan"
                                                         onClick={() => handleRemoveItem(idx)}
                                                         disabled={isPending}
                                                         className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"

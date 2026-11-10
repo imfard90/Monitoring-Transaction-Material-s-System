@@ -155,6 +155,7 @@ export default function SetInstallNteClient({ snOptions }: Props) {
                                             >
                                                 <input
                                                     type="checkbox"
+                                                    aria-label={`Pilih serial number ${sn.serial_number}`}
                                                     checked={selectedSn.includes(
                                                         String(sn.serial_number)
                                                     )}

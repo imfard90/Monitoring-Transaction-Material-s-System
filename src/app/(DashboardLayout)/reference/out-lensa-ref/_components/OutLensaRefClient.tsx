@@ -13,7 +13,13 @@ import { WarehouseCombobox } from '@/app/components/shared/WarehouseCombobox';
 import { LensaScraperStatusBanner } from '@/components/domain/reference/LensaScraperStatusBanner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
@@ -538,6 +544,9 @@ export default function OutLensaRefClient({
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Detail Reservasi Material</DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Rincian data reservasi material Out Lensa Ref
+                        </DialogDescription>
                     </DialogHeader>
 
                     {selectedHeader && (

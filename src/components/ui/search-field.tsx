@@ -48,6 +48,10 @@ export function SearchField({
     return (
         <div className={cn('relative', wrapperClassName)}>
             <Input
+                aria-label={
+                    inputProps['aria-label'] ||
+                    (typeof placeholder === 'string' ? placeholder : 'Pencarian')
+                }
                 {...inputProps}
                 type={type}
                 placeholder={placeholder}

@@ -227,6 +227,7 @@ export const StockWarningTable = ({
                         />
                         <input
                             type="text"
+                            aria-label="Cari material"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Cari material..."

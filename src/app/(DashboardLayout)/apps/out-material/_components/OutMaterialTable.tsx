@@ -136,6 +136,7 @@ export default function OutMaterialTable({
                                     <Button
                                         variant="ghost"
                                         size="icon"
+                                        aria-label="Lihat detail pengeluaran"
                                         onClick={() => onViewDetail(row)}
                                         className="h-8 w-8 text-primary"
                                     >
@@ -290,6 +291,7 @@ export default function OutMaterialTable({
                                     <Button
                                         variant="outline"
                                         size="icon"
+                                        aria-label="Hapus semua filter"
                                         onClick={onClearFilters}
                                         className="bg-background shrink-0"
                                     >

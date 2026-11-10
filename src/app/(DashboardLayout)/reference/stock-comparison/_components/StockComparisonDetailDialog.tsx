@@ -4,7 +4,13 @@ import { format } from 'date-fns';
 import { useMemo } from 'react';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { createColumnHelper, getCoreRowModel, useReactTable } from '@/lib/table';
 import { cn } from '@/lib/utils';
@@ -301,6 +307,9 @@ export function StockComparisonDetailDialog({
             >
                 <DialogHeader>
                     <DialogTitle>Detail Cache Stok Teknisi</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Rincian perbandingan data stok fisik dan sistem teknisi
+                    </DialogDescription>
                 </DialogHeader>
 
                 {result && (

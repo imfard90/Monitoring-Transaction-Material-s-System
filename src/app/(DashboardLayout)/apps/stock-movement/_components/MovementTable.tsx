@@ -338,6 +338,7 @@ export default function MovementTable({
                                 <Button
                                     variant="outline"
                                     size="icon"
+                                    aria-label="Hapus semua filter"
                                     onClick={onClearFilters}
                                     className="bg-background ml-auto"
                                 >

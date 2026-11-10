@@ -72,6 +72,7 @@ function Search() {
                 />
 
                 <Input
+                    aria-label="Cari menu atau transaksi"
                     placeholder="Search...."
                     className="rounded-xl pl-10 pr-9"
                     required

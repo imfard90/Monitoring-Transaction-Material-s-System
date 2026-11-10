@@ -237,9 +237,10 @@ export default function UpdateTagModal({
 
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label>{idLabel}</Label>
+                            <Label htmlFor="update_tag_action_id">{idLabel}</Label>
                             {canUpdate ? (
                                 <Input
+                                    id="update_tag_action_id"
                                     placeholder={`Masukkan ${idLabel}...`}
                                     value={actionId}
                                     onChange={(e) => setActionId(e.target.value)}
@@ -297,6 +298,8 @@ export default function UpdateTagModal({
                                                     </span>
                                                 ) : (
                                                     <Input
+                                                        id={`update_tag_qty_${item.id}`}
+                                                        aria-label={`Jumlah kuantitas ${item.description || item.code}`}
                                                         type="number"
                                                         min="0"
                                                         className="h-8"
@@ -332,6 +335,7 @@ export default function UpdateTagModal({
                                     <Button
                                         variant="ghost"
                                         size="icon"
+                                        aria-label="Batalkan transaksi tag"
                                         className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                                         onClick={() => setIsCancelConfirmOpen(true)}
                                         disabled={

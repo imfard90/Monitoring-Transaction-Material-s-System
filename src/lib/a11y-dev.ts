@@ -13,23 +13,31 @@ export async function initA11yAuditor() {
         const ReactDOM = await import('react-dom');
         const axe = await import('@axe-core/react');
 
-        await axe.default(React.default, ReactDOM.default, 1000, {
-            rules: [
-                // Enforce WCAG 2.1 Level AA (default; explicit for clarity)
-                { id: 'color-contrast', enabled: true },
-                { id: 'label', enabled: true },
-                { id: 'button-name', enabled: true },
-                { id: 'link-name', enabled: true },
-                { id: 'image-alt', enabled: true },
-                { id: 'aria-required-attr', enabled: true },
-                { id: 'aria-valid-attr-value', enabled: true },
-                { id: 'aria-hidden-focus', enabled: true },
-                { id: 'landmark-one-main', enabled: true },
-                { id: 'region', enabled: true },
-                { id: 'bypass', enabled: true },
-                { id: 'focus-order-semantics', enabled: true },
-            ],
-        });
+        await axe.default(
+            React.default,
+            ReactDOM.default,
+            1000,
+            {
+                rules: [
+                    // Enforce WCAG 2.1 Level AA (default; explicit for clarity)
+                    { id: 'color-contrast', enabled: true },
+                    { id: 'label', enabled: true },
+                    { id: 'button-name', enabled: true },
+                    { id: 'link-name', enabled: true },
+                    { id: 'image-alt', enabled: true },
+                    { id: 'aria-required-attr', enabled: true },
+                    { id: 'aria-valid-attr-value', enabled: true },
+                    { id: 'aria-hidden-focus', enabled: true },
+                    { id: 'landmark-one-main', enabled: true },
+                    { id: 'region', enabled: true },
+                    { id: 'bypass', enabled: true },
+                    { id: 'focus-order-semantics', enabled: true },
+                ],
+            },
+            {
+                exclude: [['[data-sonner-toaster]']],
+            }
+        );
 
         // Suppress console noise; rely on browser DevTools Accessibility panel instead
         // biome-ignore lint/suspicious/noConsole: Dev-only accessibility auditor notification

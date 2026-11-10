@@ -44,9 +44,10 @@ export function OutSapHeaderFields({
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <StaggerItem className="space-y-2">
-                    <Label>Request ID</Label>
+                    <Label htmlFor="request_id">Request ID</Label>
                     <div className="flex gap-2">
                         <Input
+                            id="request_id"
                             value={formData.request_id}
                             onChange={(e) =>
                                 setFormData({
@@ -135,8 +136,9 @@ export function OutSapHeaderFields({
                 </StaggerItem>
 
                 <StaggerItem className="space-y-2">
-                    <Label>ID Reservasi *</Label>
+                    <Label htmlFor="id_reservasi">ID Reservasi *</Label>
                     <Input
+                        id="id_reservasi"
                         value={formData.id_reservasi}
                         onChange={(e) =>
                             setFormData((prev) => ({
@@ -149,8 +151,9 @@ export function OutSapHeaderFields({
                 </StaggerItem>
 
                 <StaggerItem className="space-y-2">
-                    <Label>Nomor SAP *</Label>
+                    <Label htmlFor="sap_number">Nomor SAP *</Label>
                     <Input
+                        id="sap_number"
                         value={formData.sap_number}
                         onChange={(e) =>
                             setFormData((prev) => ({ ...prev, sap_number: e.target.value }))

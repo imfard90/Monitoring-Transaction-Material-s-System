@@ -223,6 +223,8 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
 
                                     <div className="w-32 flex flex-col gap-1">
                                         <Input
+                                            id={`rekon_new_qty_${index}`}
+                                            aria-label={`Kuantitas baru untuk ${field.material_name}`}
                                             type="number"
                                             min="1"
                                             step="1"
@@ -244,6 +246,7 @@ export default function EditRekonModal({ isOpen, onClose, rowData }: EditRekonMo
                                             type="button"
                                             variant="ghost"
                                             size="icon"
+                                            aria-label="Hapus baris item"
                                             className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-1"
                                             onClick={() => remove(index)}
                                         >

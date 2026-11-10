@@ -18,7 +18,10 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, formPosition = 'right
     }, []);
 
     const illustrationPanel = (
-        <div className="hidden lg:flex lg:w-[65%] relative items-center justify-center bg-linear-to-br from-primary/10 via-primary/5 to-background dark:from-primary/20 dark:via-primary/10 dark:to-background overflow-hidden">
+        <aside
+            aria-label="Informasi dan Branding MTMS"
+            className="hidden lg:flex lg:w-[65%] relative items-center justify-center bg-linear-to-br from-primary/10 via-primary/5 to-background dark:from-primary/20 dark:via-primary/10 dark:to-background overflow-hidden"
+        >
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-30">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgb(148,163,184)_1px,transparent_0)] bg-[size:32px_32px]" />
@@ -65,7 +68,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, formPosition = 'right
                     🔒 Akses Terotentikasi & Tervalidasi
                 </div>
             </div>
-        </div>
+        </aside>
     );
 
     const formPanel = (

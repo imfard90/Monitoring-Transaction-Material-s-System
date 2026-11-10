@@ -164,8 +164,12 @@ export function OutSapMaterialList({
                                     </div>
 
                                     <div className="w-full sm:w-32 space-y-2">
-                                        <Label className="text-xs">Jumlah *</Label>
+                                        <Label htmlFor={`item_qty_${index}`} className="text-xs">
+                                            Jumlah *
+                                        </Label>
                                         <Input
+                                            id={`item_qty_${index}`}
+                                            aria-label={`Jumlah permintaan material baris ${index + 1}`}
                                             type="number"
                                             min="1"
                                             placeholder="0"
@@ -206,6 +210,7 @@ export function OutSapMaterialList({
                                         type="button"
                                         variant="ghost"
                                         size="icon"
+                                        aria-label="Hapus baris material SAP"
                                         onClick={() => handleRemoveItem(index)}
                                         disabled={isScraped}
                                         className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-2 sm:mt-0"

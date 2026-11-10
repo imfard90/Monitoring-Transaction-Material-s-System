@@ -149,9 +149,12 @@ export default function ReturnNteClient({ addressOptions, technicianOptions }: P
 
                     {/* SN Manual Input */}
                     <div className="flex flex-col gap-2">
-                        <Label>Serial Number ({selectedSn.length} SN)</Label>
+                        <Label htmlFor="return_sn_manual">
+                            Serial Number ({selectedSn.length} SN)
+                        </Label>
                         <div className="flex gap-2">
                             <Input
+                                id="return_sn_manual"
                                 placeholder="Masukkan Serial Number..."
                                 value={snManual}
                                 onChange={(e) => setSnManual(e.target.value)}

@@ -173,6 +173,7 @@ export default function HasilRekonTable({
                                     <Button
                                         variant="ghost"
                                         size="icon"
+                                        aria-label="Edit rekonsiliasi"
                                         className="h-8 w-8 text-primary hover:text-primary/80 hover:bg-primary/10"
                                         onClick={() => {
                                             if (onEditClick) onEditClick(info.row.original);

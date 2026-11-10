@@ -14,12 +14,14 @@ export default function Layout({
         <div className="flex w-full h-[100dvh] overflow-hidden">
             <PresenceHeartbeat />
             {/* Premium UI/UX: skip-to-content link for keyboard & screen-reader users (SKILL §2.3). */}
-            <a
-                href="#main-content"
-                className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
-            >
-                Lewati ke konten utama
-            </a>
+            <nav aria-label="Navigasi akses cepat">
+                <a
+                    href="#main-content"
+                    className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+                >
+                    Lewati ke konten utama
+                </a>
+            </nav>
             <div className="page-wrapper flex flex-1 min-w-0 w-full max-w-full overflow-hidden">
                 {/* Header/sidebar */}
                 <div className="xl:block hidden shrink-0">
@@ -41,7 +43,9 @@ export default function Layout({
                     >
                         {children}
                     </main>
-                    <FloatingSupportWidget />
+                    <aside aria-label="Bantuan dan Dukungan MTMS">
+                        <FloatingSupportWidget />
+                    </aside>
                 </div>
             </div>
         </div>

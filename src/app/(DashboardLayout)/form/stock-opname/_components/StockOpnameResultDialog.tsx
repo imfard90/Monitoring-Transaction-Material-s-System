@@ -181,6 +181,7 @@ export function StockOpnameResultDialog({
                         <div className="relative w-full sm:w-72">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
+                                aria-label="Cari kode atau nama material"
                                 placeholder="Cari kode atau nama material..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}

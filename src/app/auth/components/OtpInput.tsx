@@ -63,6 +63,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ length = 6, onComplete, disabled })
                 <Input
                     // biome-ignore lint/suspicious/noArrayIndexKey: OTP inputs have fixed length and order
                     key={i}
+                    aria-label={`Digit OTP ${i + 1} dari ${length}`}
                     ref={(el) => {
                         inputsRef.current[i] = el;
                     }}

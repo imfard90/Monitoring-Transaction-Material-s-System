@@ -238,12 +238,13 @@ export default function ReturnForm() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Catatan / Alasan</Label>
+                                <Label htmlFor="return_notes">Catatan / Alasan</Label>
                                 <Controller
                                     name="notes"
                                     control={control}
                                     render={({ field }) => (
                                         <Input
+                                            id="return_notes"
                                             {...field}
                                             value={field.value ?? ''}
                                             placeholder="Contoh: Sisa material instalasi"
@@ -281,6 +282,11 @@ export default function ReturnForm() {
                             <AnimatePresence mode="popLayout">
                                 {fields.map((fieldItem, index) => {
                                     const currentItem = watchedItems[index];
+                                    const matchedMaterial = availableItems.find(
+                                        (ai) =>
+                                            ai.sap_out_item_id.toString() ===
+                                            currentItem?.sap_out_item_id
+                                    );
                                     const maxReturn = currentItem?.maxReturn || 1;
 
                                     return (
@@ -346,12 +352,16 @@ export default function ReturnForm() {
                                             </div>
 
                                             <div className="w-full sm:w-36 space-y-2">
-                                                <Label>Jumlah Kembali</Label>
+                                                <Label htmlFor={`return_qty_${index}`}>
+                                                    Jumlah Kembali
+                                                </Label>
                                                 <Controller
                                                     name={`items.${index}.qty`}
                                                     control={control}
                                                     render={({ field }) => (
                                                         <Input
+                                                            id={`return_qty_${index}`}
+                                                            aria-label={`Jumlah kembali ${matchedMaterial?.material_name || `baris ${index + 1}`}`}
                                                             type="number"
                                                             min={1}
                                                             max={maxReturn}

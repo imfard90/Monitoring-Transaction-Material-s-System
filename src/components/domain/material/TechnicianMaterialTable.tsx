@@ -197,6 +197,8 @@ export function TechnicianMaterialTable({
                                     <TableCell className="py-1 px-2 text-center">
                                         {mode === 'input' ? (
                                             <Input
+                                                id={`qty_${m.sap_out_item_id}`}
+                                                aria-label={`Jumlah kuantitas untuk ${m.description || m.material_code || 'material'}`}
                                                 type="number"
                                                 min="0"
                                                 max={availableQty}

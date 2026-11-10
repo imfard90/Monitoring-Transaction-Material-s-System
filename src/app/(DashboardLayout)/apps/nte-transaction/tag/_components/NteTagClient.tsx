@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -215,6 +216,7 @@ export default function NteTagClient({
             <div className="flex items-center gap-3">
                 <div className="flex-1">
                     <Input
+                        aria-label="Cari ID Transaksi"
                         placeholder="Cari ID Transaksi..."
                         value={filterSearch}
                         onChange={(e) => setFilterSearch(e.target.value)}
@@ -351,6 +353,9 @@ export default function NteTagClient({
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Buat TAG WH-WH</DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Form pembuatan transaksi tag material warehouse ke warehouse
+                        </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={onSubmit} className="flex flex-col gap-4">
                         {/* Subtype info banner */}
@@ -587,12 +592,16 @@ export default function NteTagClient({
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Upload File SN (.txt)</DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Upload file text berisi daftar serial number NTE
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col gap-3">
                         <p className="text-sm text-muted-foreground">
                             Upload file .txt dengan 1 SN per baris.
                         </p>
                         <Input
+                            aria-label="Pilih file serial number TXT"
                             type="file"
                             accept=".txt"
                             onChange={(e) => {

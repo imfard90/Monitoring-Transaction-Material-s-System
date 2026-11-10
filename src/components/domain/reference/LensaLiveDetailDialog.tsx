@@ -153,6 +153,7 @@ export function LensaLiveDetailDialog({
 
                         {isManualInput ? (
                             <Input
+                                aria-label={idPlaceholder || 'Input ID'}
                                 placeholder={idPlaceholder}
                                 value={selectedId}
                                 onChange={(e) => onSelectId(e.target.value)}

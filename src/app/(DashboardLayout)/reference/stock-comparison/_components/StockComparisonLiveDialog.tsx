@@ -7,7 +7,13 @@ import { DataTable } from '@/app/components/shared/DataTable';
 import { SearchableSelect } from '@/app/components/shared/SearchableSelect';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { createColumnHelper, getCoreRowModel, useReactTable } from '@/lib/table';
@@ -324,6 +330,9 @@ export function StockComparisonLiveDialog({
             >
                 <DialogHeader>
                     <DialogTitle>Bandingkan Stok Realtime</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Proses pemindaian langsung data stok lensa teknisi
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4 pt-1">

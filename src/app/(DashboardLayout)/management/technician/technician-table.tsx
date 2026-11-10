@@ -165,6 +165,7 @@ export default function TechnicianTable({
                         <Button
                             variant="ghost"
                             size="icon"
+                            aria-label="Edit data teknisi"
                             className="h-8 w-8 text-primary hover:text-primary/80 hover:bg-primary/10"
                             title="Edit Teknisi"
                             onClick={() => {
@@ -178,6 +179,7 @@ export default function TechnicianTable({
                             <Button
                                 variant="ghost"
                                 size="icon"
+                                aria-label="Kelola pengecualian material lensa"
                                 className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-950/30"
                                 title="Kelola Exclude Lensa"
                                 onClick={() => {

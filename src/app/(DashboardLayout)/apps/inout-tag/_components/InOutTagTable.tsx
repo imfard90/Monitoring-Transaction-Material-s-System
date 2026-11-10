@@ -147,6 +147,7 @@ export default function InOutTagTable({
                                     <Button
                                         variant="ghost"
                                         size="icon"
+                                        aria-label="Lihat detail tag"
                                         onClick={() => onViewDetail(row)}
                                         className="h-8 w-8 text-primary"
                                     >
@@ -164,6 +165,7 @@ export default function InOutTagTable({
                                         <Button
                                             variant="ghost"
                                             size="icon"
+                                            aria-label="Perbarui tag"
                                             onClick={() => onUpdateClick(row)}
                                             className="h-8 w-8 text-primary hover:text-primary/80 hover:bg-primary/10"
                                         >
@@ -323,6 +325,7 @@ export default function InOutTagTable({
                                     <Button
                                         variant="outline"
                                         size="icon"
+                                        aria-label="Hapus semua filter"
                                         onClick={onClearFilters}
                                         className="bg-background shrink-0"
                                     >

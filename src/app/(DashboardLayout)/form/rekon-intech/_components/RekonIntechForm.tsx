@@ -288,8 +288,9 @@ export default function RekonIntechForm() {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Nomor WO *</Label>
+                                    <Label htmlFor="rekon_wo_number">Nomor WO *</Label>
                                     <Input
+                                        id="rekon_wo_number"
                                         value={globalWoNumber}
                                         onChange={(e) => setGlobalWoNumber(e.target.value)}
                                         className="h-10"
@@ -299,8 +300,9 @@ export default function RekonIntechForm() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Catatan</Label>
+                                    <Label htmlFor="rekon_notes">Catatan</Label>
                                     <Input
+                                        id="rekon_notes"
                                         value={globalNotes}
                                         onChange={(e) => setGlobalNotes(e.target.value)}
                                         className="h-10"

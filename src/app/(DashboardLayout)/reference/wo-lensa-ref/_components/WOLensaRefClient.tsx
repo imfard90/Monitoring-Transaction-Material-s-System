@@ -13,7 +13,13 @@ import { LensaScraperStatusBanner } from '@/components/domain/reference/LensaScr
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
@@ -550,6 +556,9 @@ export default function WOLensaRefClient({
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Detail Material WO Lensa</DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Rincian data pesanan kerja dan material WO Lensa Ref
+                        </DialogDescription>
                     </DialogHeader>
 
                     {selectedHeader && (
