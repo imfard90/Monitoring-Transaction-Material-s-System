@@ -425,7 +425,7 @@ export const SidebarWarehouseChampion = () => {
                                 </div>
                             ) : (
                                 <p className="py-3 text-center text-[11px] text-muted-foreground">
-                                    Belum ada transaksi hari ini.
+                                    Belum ada transaksi (30 hari terakhir).
                                 </p>
                             )}
                         </motion.div>
@@ -464,7 +464,7 @@ export const SidebarWarehouseChampion = () => {
                             </button>
                         </div>
                         <DialogDescription className="text-xs text-muted-foreground">
-                            Penilaian seimbang berdasarkan rata-rata 4 pilar: Performa Out Lensa HI,
+                            Penilaian seimbang berdasarkan rata-rata 4 pilar (30 hari terakhir): Performa Out Lensa,
                             Rekon Lensa, Intech Lensa vs MTMS, dan SLA Rekon (maksimal H+1).
                             {leaderboardData?.updatedAt && (
                                 <span className="block mt-0.5 text-[10px] text-muted-foreground/75 font-mono">

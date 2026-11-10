@@ -328,15 +328,31 @@ describe('getLensaWarehousePerformance', () => {
         ).toBe(true);
     });
 
-    it('limits Out Lensa HI metrics to headers dated today', async () => {
+    it('limits Out Lensa, Rekon Lensa, and SLA Rekon metrics to headers within the last 30 days', async () => {
         await getLensaWarehousePerformance();
 
         expect(mockWhereByTable).toHaveBeenCalledWith(
             'inventory.out_lensa_ref_header as olh',
             'olh.formatted_date',
-            '=',
+            '>=',
+            expect.objectContaining({
+                strings: expect.arrayContaining([expect.stringContaining('30 days')]),
+            })
+        );
+        expect(mockWhereByTable).toHaveBeenCalledWith(
+            'inventory.out_lensa_ref_header as olh',
+            'olh.formatted_date',
+            '<=',
             expect.objectContaining({
                 strings: expect.arrayContaining([expect.stringContaining('CURRENT_DATE')]),
+            })
+        );
+        expect(mockWhereByTable).toHaveBeenCalledWith(
+            'inventory.wo_lensa_header as wlh',
+            'wlh.formatted_date',
+            '>=',
+            expect.objectContaining({
+                strings: expect.arrayContaining([expect.stringContaining('30 days')]),
             })
         );
         expect(mockExecute).toHaveBeenCalledTimes(3);

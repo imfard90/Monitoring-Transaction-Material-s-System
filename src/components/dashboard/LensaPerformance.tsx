@@ -265,15 +265,15 @@ export function LensaPerformance() {
     return (
         <section aria-label="Performa Lensa" className="contents">
             <MetricCard
-                title="Performa Out Lensa HI"
-                description="Pengeluaran dan transaksi yang telah diproses SAP per gudang."
+                title="Performa Out Lensa"
+                description="Pengeluaran dan transaksi yang telah diproses SAP per gudang (30 hari terakhir)."
                 rows={metrics.outLensa}
                 isLoading={isLoading}
                 hasError={hasError}
             />
             <MetricCard
                 title="Performa Rekon Lensa"
-                description="WO Lensa yang sudah masuk ke Rekon Lensa per gudang."
+                description="WO Lensa yang sudah masuk ke Rekon Lensa per gudang (30 hari terakhir)."
                 rows={metrics.rekonLensa}
                 isLoading={isLoading}
                 hasError={hasError}

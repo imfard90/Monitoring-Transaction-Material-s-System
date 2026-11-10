@@ -56,7 +56,8 @@ export async function getLensaWarehousePerformance() {
                 sql<number>`COUNT(olh.id)`.as('total'),
                 sql<number>`COUNT(olh.id) FILTER (WHERE olh.sap_out_check IS TRUE)`.as('completed'),
             ])
-            .where('olh.formatted_date', '=', sql<Date>`CURRENT_DATE`)
+            .where('olh.formatted_date', '>=', sql<Date>`CURRENT_DATE - INTERVAL '30 days'`)
+            .where('olh.formatted_date', '<=', sql<Date>`CURRENT_DATE`)
             .groupBy(['wh.id', 'wh.name']);
 
         const rekonLensaQuery = db
@@ -74,6 +75,8 @@ export async function getLensaWarehousePerformance() {
                 sql<number>`COUNT(wlh.id)`.as('total'),
                 sql<number>`COUNT(wlh.id) FILTER (WHERE wlh.rekon_check IS TRUE)`.as('completed'),
             ])
+            .where('wlh.formatted_date', '>=', sql<Date>`CURRENT_DATE - INTERVAL '30 days'`)
+            .where('wlh.formatted_date', '<=', sql<Date>`CURRENT_DATE`)
             .groupBy(['wh.id', 'wh.name']);
 
         const slaRekonQuery = db
@@ -97,6 +100,8 @@ export async function getLensaWarehousePerformance() {
                 ),
             ])
             .where('wlh.rekon_check', '=', true)
+            .where('wlh.formatted_date', '>=', sql<Date>`CURRENT_DATE - INTERVAL '30 days'`)
+            .where('wlh.formatted_date', '<=', sql<Date>`CURRENT_DATE`)
             .groupBy(['wh.id', 'wh.name']);
 
         const [outLensa, rekonLensa, slaRekon] = await Promise.all([
