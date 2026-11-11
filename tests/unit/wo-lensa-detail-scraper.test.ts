@@ -265,7 +265,9 @@ describe('scrapeSingleWODetail Unit Tests', () => {
             expect(mockSearchSingleWOLensaHeader).toHaveBeenCalledWith(
                 'INC13579070',
                 'test_user',
-                'test_password'
+                'test_password',
+                undefined,
+                expect.any(Array)
             );
             expect(mockScrapeWOLensaDetails).toHaveBeenCalledWith(
                 expect.arrayContaining([
@@ -351,7 +353,9 @@ describe('scrapeSingleWODetail Unit Tests', () => {
             expect(mockSearchSingleWOLensaHeader).toHaveBeenCalledWith(
                 '554433',
                 'test_user',
-                'test_password'
+                'test_password',
+                '554433',
+                expect.any(Array)
             );
             expect(res.success).toBe(true);
             expect(res.data?.pemakaian_id).toBe('554433');
@@ -424,7 +428,9 @@ describe('scrapeSingleWODetail Unit Tests', () => {
             expect(mockSearchSingleWOLensaHeader).toHaveBeenCalledWith(
                 '1-95602227495',
                 'test_user',
-                'test_password'
+                'test_password',
+                undefined,
+                expect.any(Array)
             );
             expect(res.success).toBe(true);
             expect(res.data?.pemakaian_id).toBe('100257706');

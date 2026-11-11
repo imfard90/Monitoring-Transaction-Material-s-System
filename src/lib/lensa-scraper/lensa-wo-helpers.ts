@@ -120,19 +120,38 @@ export function getWOPrefixes(
  */
 export function selectBestCandidateWOLensaHeader(
     items: Array<Record<string, unknown>>,
-    cleanQuery: string
+    cleanQuery: string,
+    targetPemakaianId?: string
 ): Record<string, unknown> | null {
     if (!items || items.length === 0) return null;
 
     const normalizedQuery = cleanQuery.trim().toUpperCase();
     const baseQuery = normalizedQuery.replace(/-REJECTED-.*$/i, '').trim();
 
-    // 1. Pisahkan item non-rejected dan rejected
+    // 0. Jika targetPemakaianId diberikan, cari exact match pemakaian_id terlebih dahulu
+    // (Penting: baik berstatus REJECTED maupun non-rejected, agar status riil WO di Lensa terdeteksi!)
+    if (targetPemakaianId) {
+        const normTarget = targetPemakaianId.trim().toUpperCase();
+        const targetMatch = items.find(
+            (item) => String(item.pemakaian_id ?? '').trim().toUpperCase() === normTarget
+        );
+        if (targetMatch) return targetMatch;
+    }
+
+    // 1. Jika cleanQuery adalah numerik (pemakaian_id), cari exact match pemakaian_id di seluruh items
+    if (/^\d+$/.test(cleanQuery.trim())) {
+        const exactPemakaianMatch = items.find(
+            (item) => String(item.pemakaian_id ?? '').trim() === cleanQuery.trim()
+        );
+        if (exactPemakaianMatch) return exactPemakaianMatch;
+    }
+
+    // 2. Pisahkan item non-rejected dan rejected
     const nonRejectedItems = items.filter(
         (item) => !isRejectedWONumber(item.wo_number?.toString())
     );
 
-    // Prioritaskan non-rejected jika tersedia
+    // Prioritaskan non-rejected jika query umum (nomor WO / prefix)
     const candidateItems = nonRejectedItems.length > 0 ? nonRejectedItems : items;
 
     if (nonRejectedItems.length > 0 && nonRejectedItems.length < items.length) {
@@ -141,7 +160,7 @@ export function selectBestCandidateWOLensaHeader(
         );
     }
 
-    // 2. Exact match: pemakaian_id atau wo_number
+    // 3. Exact match: pemakaian_id atau wo_number
     const exactMatch = candidateItems.find((item) => {
         const pId = String(item.pemakaian_id ?? '')
             .trim()
@@ -157,7 +176,7 @@ export function selectBestCandidateWOLensaHeader(
     });
     if (exactMatch) return exactMatch;
 
-    // 3. Partial / substring match
+    // 4. Partial / substring match
     const partialMatch = candidateItems.find((item) => {
         const woNo = String(item.wo_number ?? '')
             .trim()
@@ -173,6 +192,6 @@ export function selectBestCandidateWOLensaHeader(
     });
     if (partialMatch) return partialMatch;
 
-    // 4. Default: kandidat pertama
+    // 5. Default: kandidat pertama
     return candidateItems[0] ?? null;
 }

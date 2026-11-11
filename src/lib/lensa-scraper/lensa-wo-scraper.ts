@@ -46,6 +46,13 @@ export interface WOLensaHeader {
     wo_number: string | null;
 }
 
+export interface RejectedWOLensaItem {
+    pemakaian_id: string;
+    wo_number: string | null;
+    nama_gudang?: string | null;
+    nik_pemakai?: string | null;
+}
+
 const MAX_PAGES_DEFAULT = 50;
 const MAX_PAGES_PREFIX = 50;
 const CONSECUTIVE_STOP_THRESHOLD = 2;
@@ -53,14 +60,16 @@ const CONSECUTIVE_STOP_THRESHOLD = 2;
 function processItems(
     items: Array<Record<string, unknown>>,
     seenIds: Set<string>,
-    results: WOLensaHeader[]
-): { found: number; added: number; filtered: number } {
+    results: WOLensaHeader[],
+    rejectedResults?: RejectedWOLensaItem[]
+): { found: number; added: number; filtered: number; rejected: number } {
     let found = 0;
     let added = 0;
     let filtered = 0;
+    let rejected = 0;
 
     for (const item of items) {
-        const pemakaianId = String(item.pemakaian_id ?? '');
+        const pemakaianId = String(item.pemakaian_id ?? '').trim();
         if (!pemakaianId || pemakaianId === 'undefined') continue;
 
         const rawDate = item.tanggal_update?.toString() || null;
@@ -74,6 +83,15 @@ function processItems(
         const woNumber = item.wo_number?.toString() || null;
         if (isRejectedWONumber(woNumber)) {
             filtered++;
+            rejected++;
+            if (rejectedResults) {
+                rejectedResults.push({
+                    pemakaian_id: pemakaianId,
+                    wo_number: woNumber,
+                    nama_gudang: item.nama_gudang?.toString() || null,
+                    nik_pemakai: item.nik_pemakai?.toString() || null,
+                });
+            }
             continue;
         }
 
@@ -101,7 +119,7 @@ function processItems(
         });
     }
 
-    return { found, added, filtered };
+    return { found, added, filtered, rejected };
 }
 
 async function scrapeDefaultEndpoint(
@@ -110,7 +128,8 @@ async function scrapeDefaultEndpoint(
     safeGoto: LensaSafeGoto,
     perpage: number,
     seenIds: Set<string>,
-    results: WOLensaHeader[]
+    results: WOLensaHeader[],
+    rejectedResults?: RejectedWOLensaItem[]
 ): Promise<void> {
     const url1 = `${LENSA_URL}/teknisi/wo-data?page=1&perpage=${perpage}&search=&orderBy=gi_number&orderDirection=desc`;
     actionLogger.info('  [Default] Fetching page 1 (adaptive multi-page)...');
@@ -120,7 +139,7 @@ async function scrapeDefaultEndpoint(
     const lastPage = resp1?.pagination?.last_page ?? 1;
     let pagesFetched = 1;
 
-    const stats1 = processItems(items1, seenIds, results);
+    const stats1 = processItems(items1, seenIds, results, rejectedResults);
     actionLogger.info(
         `   [Default] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (cutoff=${format(CUTOFF_DATE, 'yyyy-MM-dd')})`
     );
@@ -136,7 +155,7 @@ async function scrapeDefaultEndpoint(
         const items = resp?.data || [];
         pagesFetched++;
 
-        processItems(items, seenIds, results);
+        processItems(items, seenIds, results, rejectedResults);
 
         if (allBeforeCutoff(items)) {
             consecutiveBelowCutoff++;
@@ -160,7 +179,8 @@ async function scrapePrefixEndpoint(
     perpage: number,
     prefix: string,
     seenIds: Set<string>,
-    results: WOLensaHeader[]
+    results: WOLensaHeader[],
+    rejectedResults?: RejectedWOLensaItem[]
 ): Promise<void> {
     const url1 = `${LENSA_URL}/teknisi/wo-data?page=1&perpage=${perpage}&search=${prefix}&orderBy=tanggal_update&orderDirection=asc`;
     actionLogger.info(`  [${prefix}] Fetching page 1...`);
@@ -170,7 +190,7 @@ async function scrapePrefixEndpoint(
     const lastPage = resp1?.pagination?.last_page ?? 1;
     let pagesFetched = 1;
 
-    const stats1 = processItems(items1, seenIds, results);
+    const stats1 = processItems(items1, seenIds, results, rejectedResults);
     actionLogger.info(
         `   [${prefix}] page 1: items=${items1.length} found=${stats1.found} added=${stats1.added} filtered=${stats1.filtered} (cutoff=${format(CUTOFF_DATE, 'yyyy-MM-dd')})`
     );
@@ -183,7 +203,7 @@ async function scrapePrefixEndpoint(
         const items = resp?.data || [];
         pagesFetched++;
 
-        processItems(items, seenIds, results);
+        processItems(items, seenIds, results, rejectedResults);
 
         if (items.length === 0) break;
     }
@@ -210,7 +230,8 @@ export async function scrapeWOLensaHeaders(
     customUsername?: string,
     customPassword?: string,
     perpage: number = 100,
-    _fullLoop: boolean = false
+    _fullLoop: boolean = false,
+    rejectedResults?: RejectedWOLensaItem[]
 ): Promise<WOLensaHeader[]> {
     const username = customUsername || process.env.LENSA_USERNAME;
     const password = customPassword || process.env.LENSA_PASSWORD;
@@ -222,7 +243,15 @@ export async function scrapeWOLensaHeaders(
         const newHeaders: WOLensaHeader[] = [];
         const seenIds = new Set<string>(existingPemakaianIds);
 
-        await scrapeDefaultEndpoint(page, performLogin, safeGoto, perpage, seenIds, newHeaders);
+        await scrapeDefaultEndpoint(
+            page,
+            performLogin,
+            safeGoto,
+            perpage,
+            seenIds,
+            newHeaders,
+            rejectedResults
+        );
 
         for (const prefix of getWOPrefixes(CUTOFF_DATE)) {
             await scrapePrefixEndpoint(
@@ -232,7 +261,8 @@ export async function scrapeWOLensaHeaders(
                 perpage,
                 prefix,
                 seenIds,
-                newHeaders
+                newHeaders,
+                rejectedResults
             );
         }
 
@@ -260,7 +290,8 @@ export async function scrapeWOLensaHeadersByNik(
     customUsername?: string,
     customPassword?: string,
     perpage: number = 100,
-    retryLimit: number = 3
+    retryLimit: number = 3,
+    rejectedResults?: RejectedWOLensaItem[]
 ): Promise<WOLensaHeader[]> {
     const username = customUsername || process.env.LENSA_USERNAME;
     const password = customPassword || process.env.LENSA_PASSWORD;
@@ -291,7 +322,7 @@ export async function scrapeWOLensaHeadersByNik(
                     const items1 = resp1?.data || [];
                     const lastPage = resp1?.pagination?.last_page ?? 1;
 
-                    processItems(items1, seenIds, newHeaders);
+                    processItems(items1, seenIds, newHeaders, rejectedResults);
 
                     // Ambil halaman berikutnya jika ada (cap 10 halaman per teknisi)
                     // CATATAN: DILARANG break berdasarkan allBeforeCutoff di sini karena Lensa mengurutkan
@@ -305,7 +336,7 @@ export async function scrapeWOLensaHeadersByNik(
                         const respP = await fetchPageJSON(page, urlP, performLogin, safeGoto);
                         const itemsP = respP?.data || [];
                         if (itemsP.length === 0) break;
-                        processItems(itemsP, seenIds, newHeaders);
+                        processItems(itemsP, seenIds, newHeaders, rejectedResults);
                     }
 
                     success = true;
@@ -346,7 +377,9 @@ export async function scrapeWOLensaHeadersByNik(
 export async function searchSingleWOLensaHeader(
     query: string,
     customUsername?: string,
-    customPassword?: string
+    customPassword?: string,
+    targetPemakaianId?: string,
+    rejectedResults?: RejectedWOLensaItem[]
 ): Promise<WOLensaHeader | null> {
     const username = customUsername || process.env.LENSA_USERNAME;
     const password = customPassword || process.env.LENSA_PASSWORD;
@@ -371,7 +404,22 @@ export async function searchSingleWOLensaHeader(
             return null;
         }
 
-        const target = selectBestCandidateWOLensaHeader(items, cleanQuery);
+        // Tangkap seluruh item REJECTED dari hasil pencarian jika array koleksi diberikan
+        if (rejectedResults) {
+            for (const item of items) {
+                const woNo = item.wo_number?.toString() || null;
+                if (isRejectedWONumber(woNo) && item.pemakaian_id) {
+                    rejectedResults.push({
+                        pemakaian_id: String(item.pemakaian_id),
+                        wo_number: woNo,
+                        nama_gudang: item.nama_gudang?.toString() || null,
+                        nik_pemakai: item.nik_pemakai?.toString() || null,
+                    });
+                }
+            }
+        }
+
+        const target = selectBestCandidateWOLensaHeader(items, cleanQuery, targetPemakaianId);
         if (!target) return null;
 
         const pemakaianId = String(target.pemakaian_id ?? '').trim();

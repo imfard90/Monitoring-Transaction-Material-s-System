@@ -134,6 +134,46 @@ describe('WO Lensa Ref — selectBestCandidateWOLensaHeader (Reject Avoidance)',
         expect(isRejectedWONumber(String(candidate?.wo_number))).toBe(true);
     });
 
+    it('returns the exact candidate matching targetPemakaianId even if rejected so downstream can roll it back', () => {
+        const items = [
+            {
+                pemakaian_id: 100369772,
+                wo_number: 'DGPS2611...-AOi4...-REJECTED-20261110135239',
+            },
+            {
+                pemakaian_id: 100383876,
+                wo_number: 'DGPS2611...-AOi4...',
+            },
+        ];
+
+        const candidate = selectBestCandidateWOLensaHeader(
+            items,
+            'AOi4...',
+            '100369772'
+        );
+        expect(candidate).not.toBeNull();
+        expect(candidate?.pemakaian_id).toBe(100369772);
+        expect(isRejectedWONumber(String(candidate?.wo_number))).toBe(true);
+    });
+
+    it('returns the exact candidate when cleanQuery is a numeric pemakaian_id even if rejected', () => {
+        const items = [
+            {
+                pemakaian_id: 100369772,
+                wo_number: 'DGPS2611...-AOi4...-REJECTED-20261110135239',
+            },
+            {
+                pemakaian_id: 100383876,
+                wo_number: 'DGPS2611...-AOi4...',
+            },
+        ];
+
+        const candidate = selectBestCandidateWOLensaHeader(items, '100369772');
+        expect(candidate).not.toBeNull();
+        expect(candidate?.pemakaian_id).toBe(100369772);
+        expect(isRejectedWONumber(String(candidate?.wo_number))).toBe(true);
+    });
+
     it('returns null on empty items list', () => {
         expect(selectBestCandidateWOLensaHeader([], '12345')).toBeNull();
     });

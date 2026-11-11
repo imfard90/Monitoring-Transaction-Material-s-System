@@ -305,7 +305,7 @@ export const createStoredProcedureRepository = (dbClient: Kysely<DB> | Transacti
     },
 
     /**
-     * Flag WO Lensa as reconciled
+     * Flag WO Lensa as reconciled (matches strictly on pemakaian_id and wo_number)
      */
     markWoLensaReconciled: async (pemakaianId: string, woNumber?: string): Promise<void> => {
         const cleanPemakaianId = pemakaianId.trim();
@@ -314,7 +314,7 @@ export const createStoredProcedureRepository = (dbClient: Kysely<DB> | Transacti
 
         if (cleanPemakaianId && cleanWoNumber) {
             query = query.where((eb) =>
-                eb.or([
+                eb.and([
                     eb(sql`CAST(pemakaian_id AS VARCHAR)`, '=', cleanPemakaianId),
                     eb('wo_number', '=', cleanWoNumber),
                 ])
@@ -328,6 +328,22 @@ export const createStoredProcedureRepository = (dbClient: Kysely<DB> | Transacti
         }
 
         await query.execute();
+    },
+
+    /**
+     * Rollback reconciled WO Lensa (restore intech in sap_out_items, reset sap_out_header to intech,
+     * insert stock_movement audit trail, and delete rekon & wo records)
+     */
+    rollbackReconciledWOLensa: async (
+        pemakaianId: string,
+        notes?: string,
+        createdBy?: string
+    ): Promise<void> => {
+        await sql`CALL inventory.sp_rollback_rekon_lensa_by_pemakaian(
+            ${pemakaianId},
+            ${notes ?? null},
+            ${createdBy ?? 'system'}
+        )`.execute(dbClient);
     },
 });
 

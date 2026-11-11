@@ -9,6 +9,7 @@ import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
 import {
     isRejectedWONumber,
+    type RejectedWOLensaItem,
     scrapeWOLensaDetails,
     scrapeWOLensaHeaders,
 } from '@/lib/lensa-scraper/lensa-scraper';
@@ -25,6 +26,7 @@ import {
     getWarehouseLensaCandidates,
 } from '../lensa-credential-helper';
 import { asyncPool } from '../lensa-crypto';
+import { processRejectedWOLensaItems } from './rollback-service';
 import { toISODateString, type WOLensaScrapeOutcome } from './types';
 
 /**
@@ -60,18 +62,25 @@ export async function executeWOLensaScraping(
 
         let totalInserted = 0;
         let totalUsersScraped = 0;
+        const allRejectedHeaders: RejectedWOLensaItem[] = [];
 
         const headerResults = await asyncPool(5, whTasks, async (task) => {
             try {
                 const newHeaders = await executeWithLensaFallback(
                     task.candidates,
                     async (creds) => {
+                        const taskRejected: RejectedWOLensaItem[] = [];
                         const headers = await scrapeWOLensaHeaders(
                             existingPemakaianIds,
                             creds.username,
                             creds.password,
-                            perpage
+                            perpage,
+                            false,
+                            taskRejected
                         );
+                        if (taskRejected.length > 0) {
+                            allRejectedHeaders.push(...taskRejected);
+                        }
                         actionLogger.info(
                             `[WO][${task.warehouseName}] PIC ${creds.username} → ${headers.length} headers`
                         );
@@ -94,6 +103,14 @@ export async function executeWOLensaScraping(
                 return [];
             }
         });
+
+        // 1. Rollback & bersihkan data lokal jika ada pemakaian_id yang berubah REJECTED di Lensa
+        if (allRejectedHeaders.length > 0) {
+            actionLogger.info(
+                `[syncWOLensa] Memproses ${allRejectedHeaders.length} WO berstatus REJECTED yang terdeteksi dari Lensa...`
+            );
+            await processRejectedWOLensaItems(allRejectedHeaders, 'sync-service');
+        }
 
         const allNewHeaders = headerResults.flat();
 
@@ -137,35 +154,21 @@ export async function executeWOLensaScraping(
             const pemakaianIds = deduplicatedHeaders
                 .map((h) => (h.pemakaian_id ? String(h.pemakaian_id).trim() : ''))
                 .filter(Boolean);
-            const woNumbers = deduplicatedHeaders
-                .map((h) => (h.wo_number ? String(h.wo_number).trim() : ''))
-                .filter(Boolean);
 
-            const matchedPemakaianIds = new Set<string>();
-            const matchedWoNumbers = new Set<string>();
+            const matchedPairs = new Set<string>();
 
-            if (pemakaianIds.length > 0 || woNumbers.length > 0) {
-                let rekonQuery = db
+            if (pemakaianIds.length > 0) {
+                const existingRekon = await db
                     .selectFrom('inventory.rekon_used_header')
-                    .select(['id_pemakaian', 'wo_number']);
+                    .select(['id_pemakaian', 'wo_number'])
+                    .where('id_pemakaian', 'in', pemakaianIds)
+                    .execute();
 
-                if (pemakaianIds.length > 0 && woNumbers.length > 0) {
-                    rekonQuery = rekonQuery.where((eb) =>
-                        eb.or([
-                            eb('id_pemakaian', 'in', pemakaianIds),
-                            eb('wo_number', 'in', woNumbers),
-                        ])
-                    );
-                } else if (pemakaianIds.length > 0) {
-                    rekonQuery = rekonQuery.where('id_pemakaian', 'in', pemakaianIds);
-                } else {
-                    rekonQuery = rekonQuery.where('wo_number', 'in', woNumbers);
-                }
-
-                const existingRekon = await rekonQuery.execute();
                 for (const r of existingRekon) {
-                    if (r.id_pemakaian?.trim()) matchedPemakaianIds.add(r.id_pemakaian.trim());
-                    if (r.wo_number?.trim()) matchedWoNumbers.add(r.wo_number.trim());
+                    const pIdTrim = r.id_pemakaian?.trim();
+                    if (pIdTrim) {
+                        matchedPairs.add(`${pIdTrim}:::${r.wo_number?.trim() || ''}`);
+                    }
                 }
             }
 
@@ -174,8 +177,8 @@ export async function executeWOLensaScraping(
                     const pId = h.pemakaian_id ? String(h.pemakaian_id).trim() : '';
                     const wo = h.wo_number ? String(h.wo_number).trim() : '';
                     const isRekonCheck =
-                        (Boolean(pId) && matchedPemakaianIds.has(pId)) ||
-                        (Boolean(wo) && matchedWoNumbers.has(wo));
+                        Boolean(pId) &&
+                        (matchedPairs.has(`${pId}:::${wo}`) || matchedPairs.has(`${pId}:::`));
 
                     await trx
                         .insertInto('inventory.wo_lensa_header')

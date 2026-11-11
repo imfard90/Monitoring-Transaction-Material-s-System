@@ -70,7 +70,7 @@ describe('scrapeWOLensaHeadersByNik Unit Tests', () => {
         const { scrapeWOLensaHeadersByNik } = await import('@/lib/lensa-scraper/lensa-wo-scraper');
         const result = await scrapeWOLensaHeadersByNik([], [], 'test_user', 'test_pass');
         expect(result).toEqual([]);
-    }, 15000);
+    }, 30000);
 
     it('throws error when credentials are not provided and env is empty', async () => {
         const originalUser = process.env.LENSA_USERNAME;

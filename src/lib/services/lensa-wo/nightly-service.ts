@@ -8,7 +8,11 @@
  */
 import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
-import { isRejectedWONumber, scrapeWOLensaHeadersByNik } from '@/lib/lensa-scraper/lensa-scraper';
+import {
+    isRejectedWONumber,
+    type RejectedWOLensaItem,
+    scrapeWOLensaHeadersByNik,
+} from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import {
     type ScraperAction,
@@ -20,6 +24,7 @@ import {
     getActiveWarehousesWithLensaCandidates,
 } from '../lensa-credential-helper';
 import { asyncPool } from '../lensa-crypto';
+import { processRejectedWOLensaItems } from './rollback-service';
 import { syncMissingWOLensaDetails } from './sync-service';
 import { toISODateString, type WOLensaScrapeOutcome } from './types';
 
@@ -105,6 +110,7 @@ export async function executeNightlyWOLensaScrapingByNik(
         );
 
         // 5. Jalankan scraping paralel 5 instance gudang dengan fallback terpadu
+        const allRejectedHeaders: RejectedWOLensaItem[] = [];
         const headerResults = await asyncPool(5, whTasks, async (task) => {
             try {
                 actionLogger.info(
@@ -113,14 +119,19 @@ export async function executeNightlyWOLensaScrapingByNik(
                 return await executeWithLensaFallback(
                     task.candidates,
                     async (creds) => {
+                        const taskRejected: RejectedWOLensaItem[] = [];
                         const newHeaders = await scrapeWOLensaHeadersByNik(
                             task.niks,
                             existingPemakaianIds,
                             creds.username,
                             creds.password,
                             100,
-                            3
+                            3,
+                            taskRejected
                         );
+                        if (taskRejected.length > 0) {
+                            allRejectedHeaders.push(...taskRejected);
+                        }
                         actionLogger.info(
                             `[WO-NIGHTLY][${task.warehouseName}] Selesai PIC ${creds.username} → ${newHeaders.length} headers ditemukan.`
                         );
@@ -137,6 +148,14 @@ export async function executeNightlyWOLensaScrapingByNik(
                 return [];
             }
         });
+
+        // 6. Rollback & bersihkan data lokal jika ada pemakaian_id yang berubah REJECTED di Lensa
+        if (allRejectedHeaders.length > 0) {
+            actionLogger.info(
+                `[WO-NIGHTLY] Memproses ${allRejectedHeaders.length} WO berstatus REJECTED yang terdeteksi dari Lensa...`
+            );
+            await processRejectedWOLensaItems(allRejectedHeaders, 'nightly-service');
+        }
 
         const allNewHeaders = headerResults.flat();
         const filteredHeaders = allNewHeaders.filter(
@@ -182,35 +201,21 @@ export async function executeNightlyWOLensaScrapingByNik(
             const pemakaianIds = deduplicatedHeaders
                 .map((h) => (h.pemakaian_id ? String(h.pemakaian_id).trim() : ''))
                 .filter(Boolean);
-            const woNumbers = deduplicatedHeaders
-                .map((h) => (h.wo_number ? String(h.wo_number).trim() : ''))
-                .filter(Boolean);
 
-            const matchedPemakaianIds = new Set<string>();
-            const matchedWoNumbers = new Set<string>();
+            const matchedPairs = new Set<string>();
 
-            if (pemakaianIds.length > 0 || woNumbers.length > 0) {
-                let rekonQuery = db
+            if (pemakaianIds.length > 0) {
+                const existingRekon = await db
                     .selectFrom('inventory.rekon_used_header')
-                    .select(['id_pemakaian', 'wo_number']);
+                    .select(['id_pemakaian', 'wo_number'])
+                    .where('id_pemakaian', 'in', pemakaianIds)
+                    .execute();
 
-                if (pemakaianIds.length > 0 && woNumbers.length > 0) {
-                    rekonQuery = rekonQuery.where((eb) =>
-                        eb.or([
-                            eb('id_pemakaian', 'in', pemakaianIds),
-                            eb('wo_number', 'in', woNumbers),
-                        ])
-                    );
-                } else if (pemakaianIds.length > 0) {
-                    rekonQuery = rekonQuery.where('id_pemakaian', 'in', pemakaianIds);
-                } else {
-                    rekonQuery = rekonQuery.where('wo_number', 'in', woNumbers);
-                }
-
-                const existingRekon = await rekonQuery.execute();
                 for (const r of existingRekon) {
-                    if (r.id_pemakaian?.trim()) matchedPemakaianIds.add(r.id_pemakaian.trim());
-                    if (r.wo_number?.trim()) matchedWoNumbers.add(r.wo_number.trim());
+                    const pIdTrim = r.id_pemakaian?.trim();
+                    if (pIdTrim) {
+                        matchedPairs.add(`${pIdTrim}:::${r.wo_number?.trim() || ''}`);
+                    }
                 }
             }
 
@@ -219,8 +224,8 @@ export async function executeNightlyWOLensaScrapingByNik(
                     const pId = h.pemakaian_id ? String(h.pemakaian_id).trim() : '';
                     const wo = h.wo_number ? String(h.wo_number).trim() : '';
                     const isRekonCheck =
-                        (Boolean(pId) && matchedPemakaianIds.has(pId)) ||
-                        (Boolean(wo) && matchedWoNumbers.has(wo));
+                        Boolean(pId) &&
+                        (matchedPairs.has(`${pId}:::${wo}`) || matchedPairs.has(`${pId}:::`));
 
                     const isNew = !existingSet.has(pId);
 

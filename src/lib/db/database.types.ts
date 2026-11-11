@@ -16,6 +16,7 @@ export type InventoryEnumStatus = 'cancel' | 'closed' | 'in_transit' | 'requeste
 
 export type InventoryEnumStockMovement =
     | 'adjustment'
+    | 'material_return_rekon'
     | 'material_used'
     | 'opening_balance'
     | 'receive'

@@ -11,6 +11,7 @@ export type InoutTagStatus = 'requested' | 'in_transit' | 'closed' | 'cancel';
 export type TransactionAction = 'request' | 'send' | 'accept';
 export type StockMovementType =
     | 'adjustment'
+    | 'material_return_rekon'
     | 'material_used'
     | 'opening_balance'
     | 'receive'

@@ -8,6 +8,7 @@ import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
 import {
     isRejectedWONumber,
+    type RejectedWOLensaItem,
     scrapeWOLensaDetails,
     searchSingleWOLensaHeader,
     type WOLensaHeader,
@@ -18,6 +19,7 @@ import {
     executeWithLensaFallback,
     getWarehouseLensaCandidates,
 } from '../lensa-credential-helper';
+import { handleRejectedWOPemakaian, processRejectedWOLensaItems } from './rollback-service';
 import {
     type LensaDetailMaterial,
     type ScrapedWODetailMaterial,
@@ -66,7 +68,7 @@ export async function scrapeSingleWODetailService(
             .executeTakeFirst();
 
         // 1.1 Jika header lokal berstatus REJECTED dan input bukan secara spesifik WO REJECTED,
-        // bersihkan header lokal yang usang agar sistem dapat mencari WO valid terkini di Lensa
+        // lakukan rollback & bersihkan data lokal agar sistem dapat mencari WO valid terkini di Lensa
         if (header && isRejectedWONumber(header.wo_number)) {
             if (isRejectedWONumber(cleanInput)) {
                 return {
@@ -75,16 +77,13 @@ export async function scrapeSingleWODetailService(
                 };
             }
             actionLogger.warn(
-                `[scrapeSingleWODetailService] Menghapus header lokal berstatus REJECTED (ID ${header.id}) untuk mencari ulang WO valid di Lensa.`
+                `[scrapeSingleWODetailService] Menjalankan rollback & pembersihan header lokal REJECTED (ID ${header.id}, Pemakaian: ${header.pemakaian_id}).`
             );
-            await db
-                .deleteFrom('inventory.wo_lensa_list')
-                .where('header_id', '=', header.id)
-                .execute();
-            await db
-                .deleteFrom('inventory.wo_lensa_header')
-                .where('id', '=', header.id)
-                .execute();
+            await handleRejectedWOPemakaian({
+                pemakaianId: String(header.pemakaian_id),
+                woNumber: header.wo_number,
+                actor: sessionNik,
+            });
             header = undefined;
         }
 
@@ -138,18 +137,40 @@ export async function scrapeSingleWODetailService(
                 let currentHeaderMeta = headerMetadata;
                 let currentPemakaianId = resolvedPemakaianId;
 
-                if (!currentPemakaianId && !isNumeric) {
+                // Selalu verifikasi header metadata terkini di Lensa (untuk mendeteksi status REJECTED terbaru, GI number, dan WBS)
+                // Catatan: Jika input numerik (pemakaian_id) belum tersimpan di DB, endpoint pencarian Lensa tidak mendukung filter pemakaian_id.
+                // Jika nomor WO tersedia dari database lokal, gunakan nomor WO untuk verifikasi status mutakhir di Lensa.
+                const lookupQuery = isNumeric
+                    ? (header?.wo_number ?? null)
+                    : cleanInput;
+                const targetPemakaianId =
+                    currentPemakaianId || (isNumeric ? cleanInput : undefined);
+
+                const rejectedInSearch: RejectedWOLensaItem[] = [];
+
+                if (lookupQuery) {
                     const searchedHeader = await searchSingleWOLensaHeader(
-                        cleanInput,
+                        lookupQuery,
                         creds.username,
-                        creds.password
+                        creds.password,
+                        targetPemakaianId,
+                        rejectedInSearch
                     );
                     if (searchedHeader) {
                         currentHeaderMeta = searchedHeader;
-                        currentPemakaianId = searchedHeader.pemakaian_id;
+                        if (!currentPemakaianId) {
+                            currentPemakaianId = searchedHeader.pemakaian_id;
+                        }
+                    } else if (!currentPemakaianId && isNumeric) {
+                        currentPemakaianId = cleanInput;
                     }
                 } else if (!currentPemakaianId && isNumeric) {
                     currentPemakaianId = cleanInput;
+                }
+
+                // Jika terdeteksi item rejected pada hasil pencarian Lensa, proses rollback segera
+                if (rejectedInSearch.length > 0) {
+                    await processRejectedWOLensaItems(rejectedInSearch, 'detail-service');
                 }
 
                 // Cek awal jika header metadata dari Lensa sudah terdeteksi REJECTED, jangan lanjutkan scrape detail material
@@ -203,11 +224,20 @@ export async function scrapeSingleWODetailService(
                     actionLogger.info(
                         `[scrapeSingleWODetailService] Running fallback search header on Lensa for '${cleanInput}' via ${creds.username}...`
                     );
+                    const fallbackQuery =
+                        isNumeric && header?.wo_number ? header.wo_number : cleanInput;
+                    const fallbackRejected: RejectedWOLensaItem[] = [];
                     const fallbackHeader = await searchSingleWOLensaHeader(
-                        cleanInput,
+                        fallbackQuery,
                         creds.username,
-                        creds.password
+                        creds.password,
+                        targetPemakaianId,
+                        fallbackRejected
                     );
+
+                    if (fallbackRejected.length > 0) {
+                        await processRejectedWOLensaItems(fallbackRejected, 'detail-service');
+                    }
 
                     if (fallbackHeader?.pemakaian_id) {
                         currentHeaderMeta = fallbackHeader;
@@ -279,17 +309,30 @@ export async function scrapeSingleWODetailService(
         // ambil metadata header lengkap dari Lensa agar database terisi informasi yang utuh
         if (resolvedPemakaianId && (!headerMetadata?.wo_number || !headerMetadata?.nik_pemakai)) {
             try {
+                const extraQuery =
+                    isNumeric && header?.wo_number ? header.wo_number : cleanInput;
+                const extraRejected: RejectedWOLensaItem[] = [];
                 let extraHeader = await searchSingleWOLensaHeader(
-                    resolvedPemakaianId,
+                    extraQuery,
                     scrapeOutcome.creds.username,
-                    scrapeOutcome.creds.password
+                    scrapeOutcome.creds.password,
+                    resolvedPemakaianId,
+                    extraRejected
                 );
-                if (!extraHeader && cleanInput !== resolvedPemakaianId) {
+                if (extraRejected.length > 0) {
+                    await processRejectedWOLensaItems(extraRejected, 'detail-service');
+                }
+                if (!extraHeader && cleanInput !== extraQuery) {
                     extraHeader = await searchSingleWOLensaHeader(
                         cleanInput,
                         scrapeOutcome.creds.username,
-                        scrapeOutcome.creds.password
+                        scrapeOutcome.creds.password,
+                        resolvedPemakaianId,
+                        extraRejected
                     );
+                    if (extraRejected.length > 0) {
+                        await processRejectedWOLensaItems(extraRejected, 'detail-service');
+                    }
                 }
                 if (
                     extraHeader &&
@@ -312,8 +355,14 @@ export async function scrapeSingleWODetailService(
                 `[scrapeSingleWODetailService] Menolak WO berstatus REJECTED: '${finalWoNumber}' (Pemakaian ID: ${resolvedPemakaianId})`
             );
 
-            // Jika header sempat tersimpan di database lokal dari proses sebelumnya, bersihkan secara otomatis
-            if (header?.id) {
+            // Jika pemakaian sempat tercatat di MTMS (dan mungkin direkon), lakukan rollback secara otomatis
+            if (resolvedPemakaianId) {
+                await handleRejectedWOPemakaian({
+                    pemakaianId: String(resolvedPemakaianId),
+                    woNumber: finalWoNumber,
+                    actor: sessionNik,
+                });
+            } else if (header?.id) {
                 await db
                     .deleteFrom('inventory.wo_lensa_list')
                     .where('header_id', '=', header.id)
@@ -379,17 +428,16 @@ export async function scrapeSingleWODetailService(
                 const pId = resolvedPemakaianId as string;
                 const wo = headerMetadata?.wo_number ? String(headerMetadata.wo_number).trim() : '';
 
-                // Cek status rekon_check terhadap inventory.rekon_used_header
+                // Cek status rekon_check terhadap inventory.rekon_used_header (pencocokan ketat pemakaian_id + wo_number)
                 let isRekonCheck = false;
-                if (pId || wo) {
+                if (pId) {
                     const rekonMatch = await trx
                         .selectFrom('inventory.rekon_used_header')
                         .select(['id'])
                         .where((eb) => {
-                            const conditions = [];
-                            if (pId) conditions.push(eb('id_pemakaian', '=', pId));
+                            const conditions = [eb('id_pemakaian', '=', pId)];
                             if (wo) conditions.push(eb('wo_number', '=', wo));
-                            return eb.or(conditions);
+                            return eb.and(conditions);
                         })
                         .limit(1)
                         .executeTakeFirst();

@@ -198,51 +198,34 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             };
         }
 
-        // Sync rekon_check for any unflagged headers on the current page via dual-matching
+        // Sync rekon_check for any unflagged headers on the current page via strict matching (pemakaian_id + wo_number)
         const unflaggedHeaders = headers.filter((h) => !h.rekon_check);
         if (unflaggedHeaders.length > 0) {
             const pIds = unflaggedHeaders
                 .map((h) => (h.pemakaian_id ? String(h.pemakaian_id).trim() : ''))
                 .filter(Boolean);
-            const woNums = unflaggedHeaders
-                .map((h) => (h.wo_number ? String(h.wo_number).trim() : ''))
-                .filter(Boolean);
 
-            if (pIds.length > 0 || woNums.length > 0) {
-                let rekonQuery = db
+            if (pIds.length > 0) {
+                const matchedRekons = await db
                     .selectFrom('inventory.rekon_used_header')
-                    .select(['id_pemakaian', 'wo_number']);
+                    .select(['id_pemakaian', 'wo_number'])
+                    .where('id_pemakaian', 'in', pIds)
+                    .execute();
 
-                if (pIds.length > 0 && woNums.length > 0) {
-                    rekonQuery = rekonQuery.where((eb) =>
-                        eb.or([eb('id_pemakaian', 'in', pIds), eb('wo_number', 'in', woNums)])
-                    );
-                } else if (pIds.length > 0) {
-                    rekonQuery = rekonQuery.where('id_pemakaian', 'in', pIds);
-                } else {
-                    rekonQuery = rekonQuery.where('wo_number', 'in', woNums);
-                }
-
-                const matchedRekons = await rekonQuery.execute();
                 if (matchedRekons.length > 0) {
-                    const matchedPIds = new Set(
-                        matchedRekons
-                            .map((r) => r.id_pemakaian?.trim())
-                            .filter((n): n is string => Boolean(n))
-                    );
-                    const matchedWos = new Set(
-                        matchedRekons
-                            .map((r) => r.wo_number?.trim())
-                            .filter((n): n is string => Boolean(n))
+                    const matchedPairs = new Set(
+                        matchedRekons.map(
+                            (r) => `${r.id_pemakaian?.trim() || ''}:::${r.wo_number?.trim() || ''}`
+                        )
                     );
 
                     const idsToUpdate = unflaggedHeaders
                         .filter((h) => {
                             const pId = h.pemakaian_id ? String(h.pemakaian_id).trim() : '';
                             const wo = h.wo_number ? String(h.wo_number).trim() : '';
-                            const isPIdMatch = pId ? matchedPIds.has(pId) : false;
-                            const isWoMatch = wo ? matchedWos.has(wo) : false;
-                            return isPIdMatch || isWoMatch;
+                            return pId
+                                ? matchedPairs.has(`${pId}:::${wo}`) || matchedPairs.has(`${pId}:::`)
+                                : false;
                         })
                         .map((h) => h.id);
 
@@ -257,6 +240,49 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
                             if (idsToUpdate.includes(h.id)) {
                                 h.rekon_check = true;
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Self-heal any false-positive rekon_check on the current page (e.g. from previous looser matching)
+        const flaggedHeaders = headers.filter((h) => h.rekon_check);
+        if (flaggedHeaders.length > 0) {
+            const flaggedPIds = flaggedHeaders
+                .map((h) => (h.pemakaian_id ? String(h.pemakaian_id).trim() : ''))
+                .filter(Boolean);
+
+            if (flaggedPIds.length > 0) {
+                const activeRekons = await db
+                    .selectFrom('inventory.rekon_used_header')
+                    .select(['id_pemakaian'])
+                    .where('id_pemakaian', 'in', flaggedPIds)
+                    .execute();
+
+                const validPIds = new Set(
+                    activeRekons
+                        .map((r) => r.id_pemakaian?.trim())
+                        .filter((n): n is string => Boolean(n))
+                );
+
+                const idsToUncheck = flaggedHeaders
+                    .filter((h) => {
+                        const pId = h.pemakaian_id ? String(h.pemakaian_id).trim() : '';
+                        return pId && !validPIds.has(pId);
+                    })
+                    .map((h) => h.id);
+
+                if (idsToUncheck.length > 0) {
+                    await db
+                        .updateTable('inventory.wo_lensa_header')
+                        .set({ rekon_check: false })
+                        .where('id', 'in', idsToUncheck)
+                        .execute();
+
+                    for (const h of headers) {
+                        if (idsToUncheck.includes(h.id)) {
+                            h.rekon_check = false;
                         }
                     }
                 }

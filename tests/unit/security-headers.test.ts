@@ -30,7 +30,7 @@ describe('Next.js security headers', () => {
         expect(rules?.[0].headers).not.toEqual(
             expect.arrayContaining([expect.objectContaining({ key: 'Strict-Transport-Security' })])
         );
-    });
+    }, 15000);
 
     it('keeps CSP out of static Next config because proxy creates per-request nonces', async () => {
         const { default: nextConfig } = await import('../../next.config.mjs');

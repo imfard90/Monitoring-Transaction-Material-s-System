@@ -11,6 +11,12 @@
 export { scrapeSingleWODetailService } from './detail-service';
 export { executeNightlyWOLensaScrapingByNik } from './nightly-service';
 export {
+    handleRejectedWOPemakaian,
+    processRejectedWOLensaItems,
+    type RejectedWOPemakaianParams,
+    type RollbackResult,
+} from './rollback-service';
+export {
     executeWOLensaScraping,
     syncMissingWOLensaDetails,
 } from './sync-service';
