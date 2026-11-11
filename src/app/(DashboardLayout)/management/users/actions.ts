@@ -4,7 +4,7 @@ import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { getSessionUser, requireManagementAccess } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
-import { getPresenceIndexKey, hasActivePresence } from '@/lib/presence';
+import { batchGetUsersOnlineStatus } from '@/lib/presence';
 import { redis } from '@/lib/redis';
 
 /**
@@ -45,24 +45,10 @@ export async function getSidebarUserAccess(): Promise<SidebarUserAccess> {
     }
 }
 
-async function isUserOnline(nik: string): Promise<boolean> {
-    const indexMarker = await redis.get(getPresenceIndexKey(nik));
-
-    if (indexMarker !== '1') return false;
-
-    const keys: string[] = [];
-    let cursor = '0';
-    const pattern = `presence:user:${encodeURIComponent(nik)}:*`;
-
-    do {
-        const [nextCursor, batch] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
-        cursor = nextCursor;
-        keys.push(...batch);
-    } while (cursor !== '0');
-
-    if (keys.length === 0) return false;
-    const sessions = await redis.mget(keys);
-    return hasActivePresence(indexMarker, sessions);
+export async function isUserOnline(nik: string): Promise<boolean> {
+    await requireManagementAccess();
+    const statusMap = await batchGetUsersOnlineStatus(redis, [nik]);
+    return statusMap.get(nik) ?? false;
 }
 
 export async function getUsers() {
@@ -87,23 +73,16 @@ export async function getUsers() {
         .orderBy('auth.user.name', 'asc')
         .execute();
 
-    const usersWithPresence = users.map((u) => ({
-        ...u,
-        is_online: false,
+    // Batch-query Redis presence for all users in a single roundtrip (O(1) network calls)
+    const validNiks = users
+        .map((u) => u.nik)
+        .filter((nik): nik is string => Boolean(nik));
+    const onlineMap = await batchGetUsersOnlineStatus(redis, validNiks);
+
+    return users.map((user) => ({
+        ...user,
+        is_online: user.nik ? (onlineMap.get(user.nik) ?? false) : false,
     }));
-
-    // Check the per-user session keys; any live heartbeat means online.
-    if (usersWithPresence.length > 0) {
-        const onlineStatuses = await Promise.all(
-            usersWithPresence.map((user) => (user.nik ? isUserOnline(user.nik) : false))
-        );
-
-        usersWithPresence.forEach((user, index) => {
-            user.is_online = onlineStatuses[index] ?? false;
-        });
-    }
-
-    return usersWithPresence;
 }
 
 export async function toggleUserStatus(userId: string, isActive: boolean) {

@@ -34,6 +34,11 @@ export interface RedisPresenceClient {
         exec: () => Promise<unknown>;
     };
     set: (key: string, value: string, mode: 'EX', ttlSeconds: number) => Promise<unknown>;
+    get?: (key: string) => Promise<string | null>;
+    mget?: {
+        (keys: string[]): Promise<(string | null)[]>;
+        (...keys: string[]): Promise<(string | null)[]>;
+    };
     del: (...keys: string[]) => Promise<unknown>;
     scan?: (
         cursor: string,
@@ -110,3 +115,78 @@ export async function clearUserPresence(
         // Silently handle Redis errors
     }
 }
+
+/**
+ * Batch-fetch the online status for a list of user NIKs in a single Redis roundtrip.
+ * Returns a Map where key is NIK and value is true (online) or false (offline).
+ */
+export async function batchGetUsersOnlineStatus(
+    redisClient: RedisPresenceClient,
+    niks: string[]
+): Promise<Map<string, boolean>> {
+    const result = new Map<string, boolean>();
+    const validNiks = Array.from(new Set(niks.filter(Boolean)));
+    if (validNiks.length === 0) return result;
+
+    try {
+        const indexKeys = validNiks.map(getPresenceIndexKey);
+        let markers: (string | null)[] = [];
+
+        if (typeof redisClient.mget === 'function') {
+            markers = await redisClient.mget(indexKeys);
+        } else if (typeof redisClient.get === 'function') {
+            markers = await Promise.all(
+                indexKeys.map(async (key) => {
+                    const val = await redisClient.get?.(key);
+                    return val ?? null;
+                })
+            );
+        }
+
+        validNiks.forEach((nik, i) => {
+            result.set(nik, markers[i] === '1');
+        });
+    } catch {
+        // Return false for all on Redis error to fail safely
+        validNiks.forEach((nik) => {
+            result.set(nik, false);
+        });
+    }
+
+    return result;
+}
+
+/**
+ * Count the total number of distinct active online users using non-blocking SCAN on index keys.
+ * This avoids the blocking O(N) KEYS command and avoids overcounting multiple sessions per user.
+ */
+export async function countActiveOnlineUsers(
+    redisClient: RedisPresenceClient
+): Promise<number> {
+    try {
+        if (typeof redisClient.scan !== 'function') {
+            return 0;
+        }
+        let cursor = '0';
+        const uniqueKeys = new Set<string>();
+        do {
+            const [nextCursor, keys] = await redisClient.scan(
+                cursor,
+                'MATCH',
+                `${PRESENCE_INDEX_PREFIX}*`,
+                'COUNT',
+                200
+            );
+            cursor = nextCursor || '0';
+            if (Array.isArray(keys)) {
+                for (const key of keys) {
+                    uniqueKeys.add(key);
+                }
+            }
+        } while (cursor !== '0');
+        return uniqueKeys.size;
+    } catch {
+        return 0;
+    }
+}
+

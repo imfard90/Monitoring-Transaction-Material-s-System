@@ -7,6 +7,7 @@ import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 import { canAccessWarehouse, resolveWarehouseScope, warehouseScopeCacheKey } from '@/lib/policies';
+import { countActiveOnlineUsers } from '@/lib/presence';
 
 export async function getWarehouses() {
     const user = await getSessionUser();
@@ -138,11 +139,10 @@ export async function getDashboardKpis() {
             stockIntechRp: 0,
         };
 
-        // 0. Online Users
+        // 0. Online Users (non-blocking SCAN on distinct presence index keys)
         try {
             const { redis } = await import('@/lib/redis');
-            const keys = await redis.keys('presence:user:*');
-            data.onlineUsers = keys.length;
+            data.onlineUsers = await countActiveOnlineUsers(redis);
         } catch (e) {
             actionLogger.error(
                 'Failed to get online users count',

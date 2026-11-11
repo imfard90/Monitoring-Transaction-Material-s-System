@@ -1146,6 +1146,22 @@ export interface InventoryRekonUsedList {
     create_at: Generated<Timestamp | null>;
 }
 
+export interface InventoryWoLensaHeaderArchive extends inventory_wo_lensa_header {
+    archived_at: Generated<Timestamp>;
+}
+
+export interface InventoryWoLensaListArchive extends inventory_wo_lensa_list {
+    archived_at: Generated<Timestamp>;
+}
+
+export interface InventoryOutLensaRefHeaderArchive extends InventoryOutLensaRefHeader {
+    archived_at: Generated<Timestamp>;
+}
+
+export interface InventoryOutLensaRefListArchive extends InventoryOutLensaRefList {
+    archived_at: Generated<Timestamp>;
+}
+
 export interface DB {
     'inventory.wo_lensa_header': inventory_wo_lensa_header;
     'inventory.wo_lensa_list': inventory_wo_lensa_list;
@@ -1228,4 +1244,8 @@ export interface DB {
     'inventory.rekon_used_list': InventoryRekonUsedList;
     'inventory.scraper_cronjob_log': InventoryScraperCronjobLog;
     'inventory.stock_policy_log': InventoryStockPolicyLog;
+    'inventory.wo_lensa_header_archive': InventoryWoLensaHeaderArchive;
+    'inventory.wo_lensa_list_archive': InventoryWoLensaListArchive;
+    'inventory.out_lensa_ref_header_archive': InventoryOutLensaRefHeaderArchive;
+    'inventory.out_lensa_ref_list_archive': InventoryOutLensaRefListArchive;
 }
