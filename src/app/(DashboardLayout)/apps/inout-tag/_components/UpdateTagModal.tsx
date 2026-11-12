@@ -23,6 +23,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
+import { MfaModal } from '@/components/auth/mfa-modal';
+import { verifyTotpForSensitiveAction } from '@/lib/security/mfa-actions';
 import { acceptReturnTag, cancelTag, updateTag } from '../_actions/tag-actions';
 
 interface UpdateTagModalProps {
@@ -112,6 +114,7 @@ export default function UpdateTagModal({
     const [actionId, setActionId] = useState('');
     const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
     const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
+    const [isMfaModalOpen, setIsMfaModalOpen] = useState(false);
     const [cancelNotes, setCancelNotes] = useState('');
 
     useEffect(() => {
@@ -384,13 +387,16 @@ export default function UpdateTagModal({
                 }}
                 title="Batalkan Transaksi Tag"
                 description="Apakah Anda yakin ingin membatalkan transaksi tag ini? Tindakan ini tidak dapat dibatalkan dan wajib menyertakan alasan untuk audit trail."
-                confirmText="Batalkan Transaksi"
+                confirmText="Lanjutkan Pembatalan"
                 cancelText="Kembali"
                 variant="destructive"
                 loading={cancelMutation.isPending}
                 confirmDisabled={cancelNotes.trim().length < 5}
                 icon={<Ban size={16} />}
-                onConfirm={() => cancelMutation.mutate(cancelNotes.trim())}
+                onConfirm={() => {
+                    setIsCancelConfirmOpen(false);
+                    setIsMfaModalOpen(true);
+                }}
             >
                 <div className="space-y-4 text-sm">
                     <div className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl">
@@ -434,10 +440,29 @@ export default function UpdateTagModal({
                     <p className="text-muted-foreground text-xs leading-relaxed">
                         Status transaksi akan diubah menjadi{' '}
                         <strong className="text-foreground">cancel</strong> dan catatan pembatalan
-                        akan disimpan permanen dalam database.
+                        akan disimpan permanen dalam database setelah verifikasi OTP Authenticator.
                     </p>
                 </div>
             </ConfirmDialog>
+
+            <MfaModal
+                isOpen={isMfaModalOpen}
+                onClose={() => setIsMfaModalOpen(false)}
+                mode="verify"
+                title="Otorisasi Pembatalan Transaksi"
+                description={`Masukkan 6-digit kode OTP Authenticator Anda untuk mengotorisasi pembatalan transaksi ${row?.id_trx || ''}.`}
+                confirmText="Verifikasi & Batalkan"
+                onVerify={async (code) => {
+                    return await verifyTotpForSensitiveAction(
+                        code,
+                        `Pembatalan Transaksi Tag ${row?.id_trx || ''}`
+                    );
+                }}
+                onSuccess={() => {
+                    setIsMfaModalOpen(false);
+                    cancelMutation.mutate(cancelNotes.trim());
+                }}
+            />
         </>
     );
 }

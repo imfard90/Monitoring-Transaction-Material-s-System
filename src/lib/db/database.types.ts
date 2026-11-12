@@ -87,7 +87,48 @@ export interface AuthUser {
     lensa_acount?: LensaAccount | null;
     api_key?: string | null;
     appr_api?: Generated<boolean>;
+    twoFactorEnabled?: boolean | null;
     updatedAt: Generated<Timestamp>;
+}
+
+export interface AuthTwoFactor {
+    id: string;
+    secret: string;
+    backupCodes: string;
+    userId: string;
+    verified: Generated<boolean | null>;
+    failedVerificationCount: Generated<number | null>;
+    lockedUntil: Timestamp | null;
+    createdAt: Generated<Timestamp>;
+}
+
+export interface AuthUserTrustedDevices {
+    id: string;
+    user_id: string;
+    device_name: string;
+    device_fingerprint: string;
+    user_agent: string | null;
+    ip_address: string | null;
+    last_used_at: Generated<Timestamp>;
+    created_at: Generated<Timestamp>;
+    is_revoked: Generated<boolean>;
+    revoked_at: Timestamp | null;
+    revoked_by: string | null;
+}
+
+export interface AuthAuthAuditLogs {
+    id: Generated<Int8>;
+    user_id: string | null;
+    nik: string | null;
+    event_type: string;
+    status: string;
+    ip_address: string | null;
+    user_agent: string | null;
+    device_name: string | null;
+    device_fingerprint: string | null;
+    reason: string | null;
+    metadata: Json | null;
+    created_at: Generated<Timestamp>;
 }
 
 export interface AuthUserMfaDevices {
@@ -1170,6 +1211,9 @@ export interface DB {
     'auth.user': AuthUser;
     'auth.user_mfa_devices': AuthUserMfaDevices;
     'auth.verification': AuthVerification;
+    'auth.twoFactor': AuthTwoFactor;
+    'auth.user_trusted_devices': AuthUserTrustedDevices;
+    'auth.auth_audit_logs': AuthAuthAuditLogs;
     'commerce.customer': CommerceCustomer;
     'commerce.eviden_mattam_tiang': CommerceEvidenMattamTiang;
     'commerce.khs_headers': CommerceKhsHeaders;

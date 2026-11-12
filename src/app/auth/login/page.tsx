@@ -16,8 +16,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { FloatingInput } from '@/components/ui/floating-input';
 import { Label } from '@/components/ui/label';
 import { ModalDialog } from '@/components/ui/modal-dialog';
+import { MfaModal } from '@/components/auth/mfa-modal';
 
 import { authClient } from '@/lib/auth-client';
+import { getClientDeviceFingerprint } from '@/lib/security/client-fingerprint';
+import { checkDeviceAction } from '@/lib/security/mfa-actions';
 
 const LoginSchema = z.object({
     email: z.string().min(1, 'Email wajib diisi').email('Email tidak valid'),
@@ -39,6 +42,10 @@ const LoginForm = () => {
     const [isRevoking, setIsRevoking] = useState(false);
     const [turnstileToken, setTurnstileToken] = useState<string>('');
     const [turnstileError, setTurnstileError] = useState<string | null>(null);
+    const [mfaModalOpen, setMfaModalOpen] = useState(false);
+    const [mfaMode, setMfaMode] = useState<'verify' | 'setup'>('verify');
+    const [totpUri, setTotpUri] = useState<string>('');
+    const [isMfaPending, setIsMfaPending] = useState(false);
 
     const {
         register,
@@ -63,16 +70,21 @@ const LoginForm = () => {
     }, [searchParams]);
 
     // Jika user sudah memiliki sesi valid aktif di database/server, alihkan ke dashboard utama
-    // KECUALI jika diarahkan ke halaman login karena logout, sesi expired, atau idle
+    // KECUALI jika diarahkan ke halaman login karena logout, sesi expired, idle, atau sedang proses MFA
     useEffect(() => {
         const reason = searchParams.get('reason');
         if (reason === 'idle' || reason === 'expired') {
             return;
         }
-        if (!isSessionPending && session?.user) {
+        if (isMfaPending || mfaModalOpen) {
+            return;
+        }
+        const userTwoFactor = (session?.user as { twoFactorEnabled?: boolean } | undefined)
+            ?.twoFactorEnabled;
+        if (!isSessionPending && session?.user && userTwoFactor === true) {
             router.replace('/');
         }
-    }, [isSessionPending, session, router, searchParams]);
+    }, [isSessionPending, session, router, searchParams, isMfaPending, mfaModalOpen]);
 
     const handleTurnstileToken = useCallback((token: string) => {
         setTurnstileToken(token);
@@ -139,6 +151,7 @@ const LoginForm = () => {
             }
 
             // 2. Lanjut ke otentikasi Better Auth
+            setIsMfaPending(true);
             const result = await authClient.signIn.email({
                 email: data.email,
                 password: data.password,
@@ -147,6 +160,7 @@ const LoginForm = () => {
             });
 
             if (result.error) {
+                setIsMfaPending(false);
                 if (result.error.code === 'EMAIL_NOT_VERIFIED') {
                     setErrorMsg({
                         type: 'warning',
@@ -161,11 +175,94 @@ const LoginForm = () => {
                 return;
             }
 
-            toast.success('Berhasil masuk');
-            window.location.href = '/';
+            await handleAuthSuccess(data, result);
         } catch (_err) {
+            setIsMfaPending(false);
             setErrorMsg({ type: 'error', text: 'Terjadi kesalahan sistem, silakan coba lagi' });
         }
+    };
+
+    const handleAuthSuccess = async (
+        data: LoginFormValues,
+        result: {
+            data?: {
+                twoFactorRedirect?: boolean;
+                user?: { twoFactorEnabled?: boolean | null };
+            } | null;
+        }
+    ) => {
+        // 1. If twoFactorRedirect is true, user is already enrolled -> open verify modal
+        if (result?.data?.twoFactorRedirect) {
+            setMfaMode('verify');
+            setMfaModalOpen(true);
+            return;
+        }
+
+        // 2. If user already has twoFactorEnabled: true in user record
+        if (result?.data?.user?.twoFactorEnabled) {
+            setMfaMode('verify');
+            setMfaModalOpen(true);
+            return;
+        }
+
+        // 3. Strict enterprise policy: all users mandatory MFA!
+        // If not enrolled yet, initialize TOTP setup immediately
+        try {
+            const enableRes = await authClient.twoFactor.enable({
+                password: data.password,
+                issuer: 'MTMS',
+            });
+
+            if (enableRes.error) {
+                setIsMfaPending(false);
+                setErrorMsg({
+                    type: 'error',
+                    text:
+                        'Gagal inisialisasi MFA Authenticator: ' +
+                        (enableRes.error.message || 'Error'),
+                });
+                await authClient.signOut();
+                return;
+            }
+
+            if (
+                enableRes.data &&
+                'totpURI' in enableRes.data &&
+                enableRes.data.totpURI
+            ) {
+                setTotpUri(enableRes.data.totpURI);
+                setMfaMode('setup');
+                setMfaModalOpen(true);
+                return;
+            }
+        } catch (_e) {
+            setIsMfaPending(false);
+            setErrorMsg({ type: 'error', text: 'Gagal inisialisasi MFA Authenticator.' });
+            await authClient.signOut();
+            return;
+        }
+
+        // 4. Fallback: enforce device check
+        const fp = await getClientDeviceFingerprint();
+        const devCheck = await checkDeviceAction({
+            deviceFingerprint: fp.fingerprint,
+            deviceName: fp.deviceName,
+        });
+
+        if (!devCheck.success) {
+            setIsMfaPending(false);
+            setErrorMsg({
+                type: 'error',
+                text:
+                    devCheck.error ||
+                    'Batas maksimal 3 perangkat telah tercapai. Silakan hubungi Administrator.',
+            });
+            await authClient.signOut();
+            return;
+        }
+
+        toast.success('Berhasil masuk');
+        window.location.href = '/';
     };
 
     const handleRevokeAndLogin = async () => {
@@ -188,6 +285,7 @@ const LoginForm = () => {
                 return;
             }
 
+            setIsMfaPending(true);
             const result = await authClient.signIn.email({
                 email: pendingLogin.email,
                 password: pendingLogin.password,
@@ -196,6 +294,7 @@ const LoginForm = () => {
             });
 
             if (result.error) {
+                setIsMfaPending(false);
                 if (result.error.code === 'EMAIL_NOT_VERIFIED') {
                     setErrorMsg({
                         type: 'warning',
@@ -210,9 +309,9 @@ const LoginForm = () => {
                 return;
             }
 
-            toast.success('Sesi lama telah diputuskan. Berhasil masuk');
-            window.location.href = '/';
+            await handleAuthSuccess(pendingLogin, result);
         } catch (_err) {
+            setIsMfaPending(false);
             setErrorMsg({ type: 'error', text: 'Gagal memutuskan sesi lama' });
         } finally {
             setIsRevoking(false);
@@ -367,6 +466,63 @@ const LoginForm = () => {
                     </Button>
                 </div>
             </ModalDialog>
+
+            <MfaModal
+                isOpen={mfaModalOpen}
+                onClose={async () => {
+                    setMfaModalOpen(false);
+                    setIsMfaPending(false);
+                    await authClient.signOut();
+                    setErrorMsg({
+                        type: 'warning',
+                        text: 'Verifikasi MFA dibatalkan. Silakan masuk kembali.',
+                    });
+                }}
+                mode={mfaMode}
+                totpUri={totpUri}
+                onVerify={async (code) => {
+                    const verifyRes = await authClient.twoFactor.verifyTotp({
+                        code,
+                    });
+
+                    if (verifyRes.error) {
+                        return {
+                            success: false,
+                            error:
+                                verifyRes.error.message ||
+                                'Kode OTP tidak valid atau telah kadaluarsa.',
+                        };
+                    }
+
+                    // OTP verification passed! Enforce 3-device limit policy
+                    const fp = await getClientDeviceFingerprint();
+                    const devCheck = await checkDeviceAction({
+                        deviceFingerprint: fp.fingerprint,
+                        deviceName: fp.deviceName,
+                    });
+
+                    if (!devCheck.success) {
+                        await authClient.signOut();
+                        return {
+                            success: false,
+                            error:
+                                devCheck.error ||
+                                'Batas maksimal 3 perangkat telah tercapai. Silakan hubungi Administrator.',
+                        };
+                    }
+
+                    return { success: true };
+                }}
+                onSuccess={() => {
+                    setMfaModalOpen(false);
+                    toast.success(
+                        mfaMode === 'setup'
+                            ? 'MFA Authenticator berhasil diaktifkan. Selamat datang di MTMS!'
+                            : 'Verifikasi berhasil. Selamat datang di MTMS!'
+                    );
+                    window.location.href = '/';
+                }}
+            />
         </AuthLayout>
     );
 };

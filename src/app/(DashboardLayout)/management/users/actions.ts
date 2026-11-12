@@ -2,10 +2,23 @@
 
 import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { getSessionUser, requireManagementAccess } from '@/lib/auth-server';
-import { db } from '@/lib/db/db';
+import { db, pool } from '@/lib/db/db';
 import { batchGetUsersOnlineStatus } from '@/lib/presence';
 import { redis } from '@/lib/redis';
+import { logAuthEvent } from '@/lib/security/auth-audit.service';
+import {
+    listUserDevices,
+    resetAllUserDevices,
+    revokeUserDevice,
+} from '@/lib/security/trusted-device.service';
+
+const userIdSchema = z.string().min(1).max(64);
+const revokeDeviceSchema = z.object({
+    userId: z.string().min(1).max(64),
+    deviceId: z.string().min(1).max(64),
+});
 
 /**
  * Cek apakah user adalah Staff (untuk menyembunyikan menu di sidebar).
@@ -66,9 +79,11 @@ export async function getUsers() {
             'auth.user.nik',
             'auth.user.is_active',
             'auth.user.appr_api',
+            'auth.user.twoFactorEnabled',
             sql<boolean>`(auth.user.api_key IS NOT NULL)`.as('has_api_key'),
             sql<Record<string, unknown>>`auth.user.lensa_acount`.as('lensa_acount'),
             'hr.levels.level_name as role',
+            sql<number>`COALESCE((SELECT COUNT(*)::int FROM auth.user_trusted_devices utd WHERE utd.user_id = auth.user.id AND utd.is_revoked = false), 0)`.as('active_devices_count'),
         ])
         .orderBy('auth.user.name', 'asc')
         .execute();
@@ -81,17 +96,86 @@ export async function getUsers() {
 
     return users.map((user) => ({
         ...user,
+        twoFactorEnabled: user.twoFactorEnabled === true,
+        active_devices_count: Number(user.active_devices_count || 0),
         is_online: user.nik ? (onlineMap.get(user.nik) ?? false) : false,
     }));
 }
 
+export async function getUserDevices(userId: string) {
+    await requireManagementAccess();
+    const parsed = userIdSchema.safeParse(userId);
+    if (!parsed.success) return [];
+    return await listUserDevices(parsed.data);
+}
+
+export async function revokeDeviceByAdmin(userId: string, deviceId: string) {
+    const admin = await requireManagementAccess();
+    const parsed = revokeDeviceSchema.safeParse({ userId, deviceId });
+    if (!parsed.success) return { success: false, error: 'Parameter tidak valid' };
+    const success = await revokeUserDevice(parsed.data.userId, parsed.data.deviceId, admin.nik);
+    revalidatePath('/management/users');
+    return { success };
+}
+
+export async function resetUserMfa(userId: string) {
+    const admin = await requireManagementAccess();
+    const parsed = userIdSchema.safeParse(userId);
+    if (!parsed.success) return { success: false, error: 'User ID tidak valid' };
+    const validUserId = parsed.data;
+
+    // 1. Disable twoFactorEnabled on user
+    await db
+        .updateTable('auth.user')
+        .set({ twoFactorEnabled: false })
+        .where('id', '=', validUserId)
+        .execute();
+
+    // 2. Delete TOTP credentials from auth.twoFactor
+    await sql`DELETE FROM auth."twoFactor" WHERE "userId" = ${validUserId}`.execute(db);
+
+    // 3. Revoke all devices in auth.user_trusted_devices
+    await resetAllUserDevices(validUserId, admin.nik);
+
+    // 4. Invalidate user sessions so they must re-login and setup MFA
+    try {
+        const prevSessionsKey = `active-sessions-${validUserId}`;
+        const prevTokensRaw = await redis.get(prevSessionsKey);
+        if (prevTokensRaw) {
+            try {
+                const prevTokens: Array<{ token: string }> = JSON.parse(prevTokensRaw);
+                const keys = prevTokens.map((t) => t.token).filter(Boolean);
+                if (keys.length > 0) await redis.del(...keys);
+            } catch {}
+            await redis.del(prevSessionsKey);
+        }
+        await pool.query('DELETE FROM auth.session WHERE "userId" = $1', [validUserId]);
+    } catch {
+        // non-blocking
+    }
+
+    // 5. Audit log
+    await logAuthEvent({
+        userId: validUserId,
+        eventType: 'MFA_RESET_BY_ADMIN',
+        status: 'SUCCESS',
+        reason: `MFA dan seluruh perangkat di-reset oleh Admin ${admin.nik}`,
+        metadata: { adminNik: admin.nik },
+    });
+
+    revalidatePath('/management/users');
+    return { success: true };
+}
+
 export async function toggleUserStatus(userId: string, isActive: boolean) {
     await requireManagementAccess();
+    const parsed = userIdSchema.safeParse(userId);
+    if (!parsed.success) return;
 
     await db
         .updateTable('auth.user')
         .set({ is_active: isActive })
-        .where('id', '=', userId)
+        .where('id', '=', parsed.data)
         .execute();
 
     revalidatePath('/management/users');
@@ -99,18 +183,20 @@ export async function toggleUserStatus(userId: string, isActive: boolean) {
 
 export async function deleteUser(userId: string) {
     await requireManagementAccess();
+    const parsed = userIdSchema.safeParse(userId);
+    if (!parsed.success) return;
 
-    // Usually you want to also delete sessions/accounts, but better-auth might handle this if ON DELETE CASCADE is set.
-    // We'll delete from auth.user
-    await db.deleteFrom('auth.user').where('id', '=', userId).execute();
+    await db.deleteFrom('auth.user').where('id', '=', parsed.data).execute();
 
     revalidatePath('/management/users');
 }
 
 export async function toggleUserApiApproval(userId: string, apprApi: boolean) {
     await requireManagementAccess();
+    const parsed = userIdSchema.safeParse(userId);
+    if (!parsed.success) return;
 
-    await db.updateTable('auth.user').set({ appr_api: apprApi }).where('id', '=', userId).execute();
+    await db.updateTable('auth.user').set({ appr_api: apprApi }).where('id', '=', parsed.data).execute();
 
     revalidatePath('/management/users');
 }

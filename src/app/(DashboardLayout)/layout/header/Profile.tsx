@@ -114,7 +114,7 @@ const Profile = () => {
                                     const { logoutUser } = await import(
                                         '@/app/auth/login/_actions/login-actions'
                                     );
-                                    await logoutUser();
+                                    await logoutUser('LOGOUT_MANUAL');
                                 } catch {
                                     // Silently continue
                                 }

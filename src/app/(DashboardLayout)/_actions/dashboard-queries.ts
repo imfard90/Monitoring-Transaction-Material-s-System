@@ -2,16 +2,16 @@
 
 import { sql } from 'kysely';
 import { z } from 'zod';
-import { getSessionUser } from '@/lib/auth-server';
+import { getSessionUser, type SessionUser } from '@/lib/auth-server';
 import { encryptedCache } from '@/lib/cache/encryptedCache';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 import { canAccessWarehouse, resolveWarehouseScope, warehouseScopeCacheKey } from '@/lib/policies';
 import { countActiveOnlineUsers } from '@/lib/presence';
 
-export async function getWarehouses() {
-    const user = await getSessionUser();
+export async function getWarehouses(currentUser?: SessionUser) {
     try {
+        const user = currentUser ?? (await getSessionUser());
         let query = db
             .selectFrom('inventory.mas_wh')
             .select(['id', 'name', 'branch'])
@@ -25,11 +25,11 @@ export async function getWarehouses() {
 
         return { success: true, data };
     } catch (error: unknown) {
-        actionLogger.error(
+        actionLogger.warn(
             'Failed to fetch warehouses:',
             error instanceof Error ? error : new Error(String(error))
         );
-        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        return { success: false, data: [] };
     }
 }
 

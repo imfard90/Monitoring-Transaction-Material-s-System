@@ -15,7 +15,7 @@ const USER_ACTIVITY_EVENTS = [
 async function signOutAndRedirect(router: ReturnType<typeof useRouter>): Promise<void> {
     try {
         const { logoutUser } = await import('@/app/auth/login/_actions/login-actions');
-        await logoutUser();
+        await logoutUser('LOGOUT_TIMEOUT');
     } catch {
         // Silently continue if logout action fails
     }

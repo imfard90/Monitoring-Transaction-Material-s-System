@@ -1,6 +1,7 @@
 'use server';
 
 import { sql } from 'kysely';
+import { headers } from 'next/headers';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
@@ -8,6 +9,7 @@ import { actionLogger } from '@/lib/logger';
 import { clearUserPresence, getPresenceIndexKey } from '@/lib/presence';
 import { rateLimit } from '@/lib/rate-limit';
 import { redis } from '@/lib/redis';
+import { logAuthEvent } from '@/lib/security/auth-audit.service';
 
 const emailSchema = z.string().email();
 
@@ -155,13 +157,56 @@ export async function revokeAllUserSessions(email: string) {
 }
 
 /**
- * Clear current user's presence upon explicit sign-out or idle timeout.
+ * Clear current user's presence upon explicit sign-out or idle timeout
+ * and write an audit log event.
  */
-export async function logoutUser() {
+export async function logoutUser(
+    reason: 'LOGOUT_MANUAL' | 'LOGOUT_TIMEOUT' = 'LOGOUT_MANUAL'
+) {
     try {
         const session = await getSessionUser();
         if (session.nik) {
             await clearUserPresence(redis, session.nik);
+
+            let ipAddress: string | null = null;
+            let userAgent: string | null = null;
+            try {
+                const reqHeaders = await headers();
+                ipAddress =
+                    reqHeaders.get('cf-connecting-ip') ||
+                    reqHeaders.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                    reqHeaders.get('x-real-ip');
+                userAgent = reqHeaders.get('user-agent');
+            } catch {
+                // Ignore headers error in test / non-request environments
+            }
+
+            let userId: string | null = session.userId ?? null;
+            if (!userId) {
+                try {
+                    const dbUser = await db
+                        .selectFrom('auth.user')
+                        .select('id')
+                        .where('nik', '=', session.nik)
+                        .executeTakeFirst();
+                    userId = dbUser?.id ?? null;
+                } catch {
+                    // Ignore DB lookup error
+                }
+            }
+
+            await logAuthEvent({
+                userId,
+                nik: session.nik,
+                eventType: reason,
+                status: 'SUCCESS',
+                reason:
+                    reason === 'LOGOUT_MANUAL'
+                        ? 'Pengguna keluar secara manual'
+                        : 'Sesi diakhiri karena batas waktu idle terlewati',
+                ipAddress,
+                userAgent,
+            });
         }
     } catch {
         // Silently ignore if session is already invalid

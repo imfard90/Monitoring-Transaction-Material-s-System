@@ -199,7 +199,7 @@ describeDb('L4 fix: RLS enabled on all tables (017)', () => {
         expect(Number(total?.count)).toBeGreaterThanOrEqual(35);
     });
 
-    it('FORCE RLS on auth and hr tables (13 tables)', async () => {
+    it('FORCE RLS on auth and hr tables (>= 13 tables)', async () => {
         const row = await queryOne<{ count: string }>(`
             SELECT count(*)::text AS count
             FROM pg_class c
@@ -209,7 +209,7 @@ describeDb('L4 fix: RLS enabled on all tables (017)', () => {
               AND c.relrowsecurity = true
               AND c.relforcerowsecurity = true
         `);
-        expect(Number(row?.count)).toBe(13);
+        expect(Number(row?.count)).toBeGreaterThanOrEqual(13);
     });
 
     it('RLS policies exist (>= 60 policies)', async () => {

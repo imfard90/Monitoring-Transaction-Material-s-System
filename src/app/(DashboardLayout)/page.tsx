@@ -58,7 +58,7 @@ function KpiSkeleton() {
 export default async function Page() {
     const user = await getPageSessionUser();
     const warehouseResult = await import('./_actions/dashboard-actions').then(({ getWarehouses }) =>
-        getWarehouses()
+        getWarehouses(user)
     );
     const isStaff = user.isStaff;
     const warehouses =

@@ -1,12 +1,13 @@
 import { render } from '@react-email/render';
 import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
-import { captcha } from 'better-auth/plugins';
+import { captcha, twoFactor } from 'better-auth/plugins';
 import { Pool } from 'pg';
 import { Resend } from 'resend';
 import { ResetPasswordEmail } from './emails/reset-password-email';
 import { VerificationEmail } from './emails/verification-email';
 import { redis } from './redis';
+import { logAuthEvent } from './security/auth-audit.service';
 import { enforceAbsoluteSessionLifetime } from './session-lifetime';
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder_secret');
@@ -90,13 +91,17 @@ export const auth = betterAuth({
         },
     },
     plugins: [
-        nextCookies(),
+        twoFactor({
+            issuer: 'MTMS',
+            twoFactorTable: 'auth.twoFactor',
+        }),
         captcha({
             provider: 'cloudflare-turnstile',
             secretKey: process.env.TURNSTILE_SECRET_KEY ?? '',
             endpoints: ['/sign-in/email', '/sign-up/email'],
             allowedHostnames: ['mtms-app.credea.biz.id', 'localhost', '127.0.0.1'],
         }),
+        nextCookies(),
     ],
     user: {
         modelName: 'auth.user',
@@ -114,6 +119,11 @@ export const auth = betterAuth({
                 required: false,
             },
             appr_api: {
+                type: 'boolean',
+                required: false,
+                defaultValue: false,
+            },
+            twoFactorEnabled: {
                 type: 'boolean',
                 required: false,
                 defaultValue: false,
@@ -138,12 +148,19 @@ export const auth = betterAuth({
                 before: async (session) => {
                     if (session.userId) {
                         const result = await pool.query(
-                            'SELECT is_active FROM auth."user" WHERE id = $1',
+                            'SELECT is_active, nik FROM auth."user" WHERE id = $1',
                             [session.userId]
                         );
                         const row = result.rows[0];
                         // If is_active is null, false, or anything other than true, block it
                         if (row && row.is_active !== true) {
+                            await logAuthEvent({
+                                userId: session.userId,
+                                nik: row?.nik,
+                                eventType: 'LOGIN_BLOCKED_INACTIVE',
+                                status: 'BLOCKED',
+                                reason: 'Akun dinonaktifkan oleh administrator',
+                            });
                             throw new Error(
                                 'Akun Anda tidak aktif. Silakan hubungi administrator untuk mengaktifkan akun.'
                             );
@@ -169,14 +186,39 @@ export const auth = betterAuth({
                                 }
                                 await redis.del(prevSessionsKey);
                             }
-                            await pool.query('DELETE FROM auth.session WHERE "userId" = $1', [
+                            const delResult = await pool.query('DELETE FROM auth.session WHERE "userId" = $1', [
                                 session.userId,
                             ]);
+                            if ((delResult.rowCount ?? 0) > 0) {
+                                await logAuthEvent({
+                                    userId: session.userId,
+                                    nik: row?.nik,
+                                    eventType: 'LOGOUT_FORCE_KICK',
+                                    status: 'SUCCESS',
+                                    reason: 'Sesi sebelumnya diakhiri karena login baru terdeteksi (single-session policy)',
+                                });
+                            }
                         } catch {
                             // Silently continue if session revocation encountered an issue
                         }
                     }
                     return { data: enforceAbsoluteSessionLifetime(session) };
+                },
+                after: async (session) => {
+                    if (session.userId) {
+                        try {
+                            const res = await pool.query('SELECT nik FROM auth."user" WHERE id = $1', [session.userId]);
+                            await logAuthEvent({
+                                userId: session.userId,
+                                nik: res.rows[0]?.nik,
+                                eventType: 'LOGIN_SUCCESS',
+                                status: 'SUCCESS',
+                                reason: 'Autentikasi sesi berhasil dibuat',
+                            });
+                        } catch {
+                            // Non-blocking
+                        }
+                    }
                 },
             },
         },

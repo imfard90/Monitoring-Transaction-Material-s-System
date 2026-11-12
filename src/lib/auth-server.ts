@@ -48,6 +48,7 @@ export async function getSessionNik(): Promise<string> {
 }
 
 export type SessionUser = AuthorizationUser & {
+    userId?: string;
     branchId: number | null;
     branchName: string | null;
 };
@@ -65,8 +66,9 @@ export async function getSessionUser(): Promise<SessionUser> {
             headers: await headers(),
         });
 
-        const user = session?.user as { nik?: string } | undefined;
+        const user = session?.user as { id?: string; nik?: string } | undefined;
         const nik: string = user?.nik ?? '';
+        const userId: string | undefined = user?.id;
 
         if (!nik) {
             throw errors.auth();
@@ -88,6 +90,7 @@ export async function getSessionUser(): Promise<SessionUser> {
         const l1Cached = sessionMetaLru.get(cacheKey) as SessionMetaData | undefined;
         if (l1Cached) {
             return {
+                userId,
                 nik,
                 ...l1Cached,
             };
@@ -107,6 +110,7 @@ export async function getSessionUser(): Promise<SessionUser> {
         if (cachedMeta) {
             sessionMetaLru.set(cacheKey, cachedMeta, { ttl: 30 * 1000 });
             return {
+                userId,
                 nik,
                 ...cachedMeta,
             };
@@ -153,6 +157,7 @@ export async function getSessionUser(): Promise<SessionUser> {
         sessionMetaLru.set(cacheKey, sessionMeta, { ttl: 30 * 1000 });
 
         return {
+            userId,
             nik,
             ...sessionMeta,
         };
