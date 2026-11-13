@@ -198,7 +198,7 @@ export function MfaModal({
             open={isOpen}
             onOpenChange={(open) => !open && allowCancel && !isSuccessState && onClose()}
         >
-            <DialogContent className="max-w-[420px] p-6 sm:rounded-2xl border-border/80 bg-background/95 backdrop-blur-md shadow-2xl transition-all duration-300">
+            <DialogContent className="max-w-[360px] sm:max-w-[370px] p-5 sm:p-5.5 sm:rounded-2xl border-border/80 bg-background/95 backdrop-blur-md shadow-2xl transition-all duration-300">
                 <AnimatePresence mode="wait">
                     {isSuccessState ? (
                         <motion.div
