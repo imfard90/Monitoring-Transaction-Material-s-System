@@ -1,5 +1,6 @@
 'use client';
 
+import '@/lib/icons/register-icons';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Toaster } from 'sonner';

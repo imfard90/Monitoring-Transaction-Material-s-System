@@ -19,6 +19,7 @@
     "test:coverage": "vitest run --coverage",
     "migrate": "tsx run-migration.ts",
     "worker": "tsx src/workers/scraper-worker.ts",
+    "icons:bundle": "node scripts/bundle-icons.mjs",
     "mcp:google-sheets": "tsx src/lib/google_ecosystem/google-sheets-mcp.ts"
   },
   "dependencies": {
