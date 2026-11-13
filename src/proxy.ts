@@ -8,7 +8,7 @@ function createEnforcedCsp(nonce: string): string {
         "style-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
         "img-src 'self' data: blob: https:",
         "font-src 'self' data:",
-        "connect-src 'self' https://challenges.cloudflare.com",
+        "connect-src 'self' https://challenges.cloudflare.com https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com",
         'frame-src https://challenges.cloudflare.com',
         'report-uri /api/csp-report',
         "object-src 'none'",

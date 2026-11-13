@@ -276,6 +276,7 @@ pg_restore -U mtms_user -h 127.0.0.1 -d mtms -c -v /var/backups/mtms/backup_pre_
 | Error `Redis connection to 127.0.0.1:6379 failed` | Service Redis tidak berjalan atau firewall memblokir port | Jalankan `sudo systemctl status redis-server` dan `sudo systemctl start redis-server`. |
 | Error `current transaction is aborted` pada proses transaksi | Exception database belum di-rollback pada koneksi Kysely | Pastikan stored procedure dan migrasi 040 terbaru sudah terpasang. |
 | Penggunaan RAM `mtms-worker` melonjak | Playwright context tidak ditutup saat scraping selesai | Worker sudah dilengkapi `max_memory_restart: '4G'` dan auto-restart berkala. Periksa juga timeout halaman di `lensa-scraper/`. |
+| Icon antarmuka tidak muncul / error `connect-src` CSP | Browser memblokir pengambilan data icon dari `api.iconify.design` | Pastikan `connect-src` di `src/proxy.ts` mengizinkan `https://api.iconify.design` dan mirror resminya (lihat [ADR-005](./adr/005-csp-enforcement-and-iconify-bundling.md)). |
 
 ---
 *Dokumen ini disusun sebagai pedoman implementasi resmi MTMS.*

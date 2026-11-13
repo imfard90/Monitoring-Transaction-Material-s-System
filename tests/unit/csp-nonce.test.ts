@@ -59,6 +59,7 @@ describe('CSP Nonce Generation and Next.js Parser Compatibility', () => {
         expect(csp).toContain("script-src 'self' 'nonce-");
         expect(csp).toContain('https://challenges.cloudflare.com');
         expect(csp).toContain("connect-src 'self' https://challenges.cloudflare.com");
+        expect(csp).toContain('https://api.iconify.design');
         expect(csp).toContain('frame-src https://challenges.cloudflare.com');
         expect(csp).toContain("frame-ancestors 'none'");
     });
