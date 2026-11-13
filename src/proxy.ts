@@ -54,7 +54,10 @@ export async function proxy(request: NextRequest) {
     const nextResponse = () => {
         const response = NextResponse.next({ request: { headers: requestHeaders } });
         response.headers.set('Content-Security-Policy', csp);
-        response.headers.set('Cache-Control', 'private, no-store');
+        response.headers.set(
+            'Cache-Control',
+            'private, no-cache, no-store, max-age=0, must-revalidate'
+        );
         return response;
     };
 
@@ -92,7 +95,10 @@ export async function proxy(request: NextRequest) {
     if (!hasSessionCookie) {
         const response = NextResponse.redirect(getRedirectUrl('/auth/login', request));
         response.headers.set('Content-Security-Policy', csp);
-        response.headers.set('Cache-Control', 'private, no-store');
+        response.headers.set(
+            'Cache-Control',
+            'private, no-cache, no-store, max-age=0, must-revalidate'
+        );
         return response;
     }
 

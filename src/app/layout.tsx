@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import type React from 'react';
 import './css/globals.css';
@@ -6,6 +7,8 @@ import ServiceWorkerRegister from '@/app/components/service-worker/ServiceWorker
 import { WebVitalsReporter } from '@/components/analytics/WebVitalsReporter';
 import { A11yAuditor } from '@/components/a11y/A11yAuditor';
 import { Providers } from './providers';
+
+export const dynamic = 'force-dynamic';
 
 const plusJakarta = Plus_Jakarta_Sans({
     subsets: ['latin'],
@@ -26,7 +29,8 @@ export const metadata: Metadata = {
     },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+    await headers();
     return (
         <html lang="id" data-scroll-behavior="smooth" suppressHydrationWarning>
             <head>

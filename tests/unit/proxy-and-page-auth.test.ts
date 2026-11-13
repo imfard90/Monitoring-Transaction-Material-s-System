@@ -167,7 +167,8 @@ describe('proxy authentication and reverse proxy redirect handling', () => {
         expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
         expect(res.headers.get('Content-Security-Policy')).toContain("base-uri 'self'");
         expect(res.headers.get('Content-Security-Policy-Report-Only')).toBeNull();
-        expect(res.headers.get('Cache-Control')).toBe('private, no-store');
+        expect(res.headers.get('Cache-Control')).toContain('no-store');
+        expect(res.headers.get('Cache-Control')).toContain('private');
     });
 
     it('sets Content-Security-Policy (enforce) on unauthenticated redirect response', async () => {
@@ -183,7 +184,8 @@ describe('proxy authentication and reverse proxy redirect handling', () => {
         expect(res.status).toBe(307);
         expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
         expect(res.headers.get('Content-Security-Policy-Report-Only')).toBeNull();
-        expect(res.headers.get('Cache-Control')).toBe('private, no-store');
+        expect(res.headers.get('Cache-Control')).toContain('no-store');
+        expect(res.headers.get('Cache-Control')).toContain('private');
     });
 });
 
