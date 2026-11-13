@@ -6,6 +6,8 @@ tools:
   - view_file
   - grep_search
   - find_by_name
+  - mcp__postgres__query
+  - mcp__github__search_code
 ---
 
 ## Prompt Defense Baseline

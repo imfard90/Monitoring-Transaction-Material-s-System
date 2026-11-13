@@ -25,6 +25,14 @@ Safe, reversible database schema changes for production systems.
 4. **Test migrations against production-sized data** — a migration that works on 100 rows may lock on 10M
 5. **Migrations are immutable once deployed** — never edit a migration that has run in production
 
+## MCP PostgreSQL Verification Workflow
+
+Do not create one-off scripts to verify schema states. Prioritize the **PostgreSQL MCP server** (`postgres__query` / `mcp__postgres__query`):
+
+1. **Pre-Migration Verification**: Query current column types, foreign keys, and constraints via MCP before writing migration files.
+2. **Execute Migration**: Run `pnpm migrate` (invoking `run-migration.ts`). Never execute DDL directly via MCP.
+3. **Post-Migration Verification**: Query `schema_migrations` table and verify newly added columns/indexes via MCP to confirm successful execution.
+
 ## Migration Safety Checklist
 
 Before applying any migration:

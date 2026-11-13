@@ -6,6 +6,10 @@ tools:
   - grep_search
   - find_by_name
   - run_command
+  - mcp__postgres__query
+  - mcp__github__get_pull_request
+  - mcp__github__get_pull_request_files
+  - mcp__github__list_commits
 model: pro
 ---
 
@@ -45,6 +49,8 @@ npx eslint . --plugin security
 ### 1. Initial Scan
 - Run `npm audit`, `eslint-plugin-security`, search for hardcoded secrets
 - Review high-risk areas: auth, API endpoints, DB queries, file uploads, payments, webhooks
+- **Via GitHub MCP**: If reviewing a PR or commit series, use `mcp__github__get_pull_request_files` and `mcp__github__list_commits` to scan diffs for exposed tokens or insecure patterns.
+- **Via PostgreSQL MCP**: Use `mcp__postgres__query` to verify table permissions, role privileges, and constraint definitions in PostgreSQL without running one-off scripts.
 
 ### 2. OWASP Top 10 Check
 1. **Injection** — Queries parameterized? User input sanitized? ORMs used safely?

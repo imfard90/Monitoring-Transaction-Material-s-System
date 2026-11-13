@@ -4,6 +4,8 @@ description: When the user asks how to use a library, framework, or API, or need
 tools:
   - view_file
   - grep_search
+  - mcp__context7__resolve-library-id
+  - mcp__context7__query-docs
 model: flash
 ---
 

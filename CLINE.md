@@ -169,11 +169,16 @@ Discover current profiles from the files in `.agents/agents/`; do not maintain a
 
 ## 🗄️ Database & MCP Servers
 
-**Mandatory MCP Usage**: MTMS database schema already exists. **ALWAYS use the active PostgreSQL MCP server** for database operations instead of writing ad-hoc Node scripts.
+**Mandatory MCP Usage**: MTMS integrates MCP servers for PostgreSQL, Filesystem, Context7, MTMS Google Sheets, and GitHub. **ALWAYS use active MCP servers** for database queries and GitHub operations instead of writing ad-hoc Node scripts or manual curl commands. See [docs/MCP.md](file:///Users/imfard90/Documents/project/Monitoring Transaction Material's System (MTMS)/docs/MCP.md) for full server capabilities.
 
 ### MCP Server Configuration
 
-Postgres MCP configuration is local to the developer at `~/.cline/data/settings/cline_mcp_settings.json` and is not committed. Keep connection strings and credentials out of repository documentation, logs, and chat. Use the already-configured `postgres__query` tool for read-only queries; do not assume it permits writes or add a second server configuration here.
+MCP configurations are local to the developer at `~/.cline/data/settings/cline_mcp_settings.json` (Cline) and `~/.gemini/config/mcp_config.json` (Antigravity/Gemini) and are not committed. Keep connection strings, tokens, and credentials out of repository documentation, logs, and chat. Run `./scripts/setup/setup-cline-mcp.sh` to generate or sync configurations automatically from `.env`.
+
+- **PostgreSQL (`postgres`)**: Use the `postgres__query` tool for read-only queries; do not assume it permits writes or add a second server configuration here.
+- **GitHub (`github`)**: Use `github__*` tools (`get_pull_request`, `list_pull_requests`, `get_pull_request_files`, `list_commits`, `search_code`, `list_issues`, `create_pull_request_review`, etc.) for repository operations, PR review, and commit verification. Requires `GITHUB_PERSONAL_ACCESS_TOKEN` in `.env`.
+- **Google Sheets (`mtms-google-sheets`)**: Use `mtms-google-sheets__*` for read-only external warehouse data sync.
+- **Context7 (`context7`)**: Use `context7__*` for up-to-date framework documentation lookups.
 
 ### MCP vs. Scripts: When to Use Which
 

@@ -50,12 +50,16 @@ Success Criteria: [what would answer the question]
 
 ### 2. Search Primary Sources First
 
-**Tools:** Context7 (library docs), GitHub source, official docs, RFCs.
+**Tools:** Context7 MCP (official library docs), GitHub MCP (upstream source inspection), RFCs.
 
 ```bash
-# Example: Context7 for library docs
+# Example: Context7 MCP for library docs
 context7__resolve-library-id { libraryName: "next.js", query: "server actions" }
 context7__query-docs { libraryId: "/vercel/next.js", query: "server actions mutation" }
+
+# Example: GitHub MCP for upstream source code inspection
+github__search_code { q: "export function createHash repo:nodejs/node" }
+github__get_file_contents { owner: "vercel", repo: "next.js", path: "packages/next/package.json" }
 ```
 
 **Search patterns:**

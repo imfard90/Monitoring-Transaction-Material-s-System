@@ -8,6 +8,8 @@ tools:
   - run_command
   - grep_search
   - find_by_name
+  - mcp__context7__resolve-library-id
+  - mcp__context7__query-docs
 model: pro
 ---
 

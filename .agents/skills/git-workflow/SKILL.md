@@ -279,6 +279,50 @@ Closes #123
 - [ ] Are there security concerns?
 - [ ] Is the commit history clean (squashed if needed)?
 
+---
+
+## GitHub MCP Integration
+
+In MTMS, AI agents interact directly with GitHub via the **GitHub Model Context Protocol (MCP) Server** (`@modelcontextprotocol/server-github`), eliminating the need for ad-hoc scripts or manual browser interactions.
+
+### MCP Tools Reference
+
+| Action | MCP Tool | Purpose |
+|---|---|---|
+| **Inspect PR** | `github__get_pull_request` | Fetch title, body, state, base/head branches, author |
+| **Inspect Changed Files** | `github__get_pull_request_files` | List changed files with additions, deletions, patch diff |
+| **Check CI Status** | `github__get_pull_request_status` | Retrieve status checks and commit statuses |
+| **Review PR** | `github__create_pull_request_review` | Submit formal review (`APPROVE`, `REQUEST_CHANGES`, `COMMENT`) |
+| **Comment on PR/Issue** | `github__add_issue_comment` | Post markdown feedback or discussion replies |
+| **List Open PRs** | `github__list_pull_requests` | Filter by `state: "open"`, `sort: "updated"` |
+| **List Commits** | `github__list_commits` | Inspect commit history on remote branch |
+| **Search Code** | `github__search_code` | Search repository for symbols, usages, or patterns |
+| **Search Issues** | `github__search_issues` | Find related bug reports or feature requests |
+| **Create PR** | `github__create_pull_request` | Open a new PR from feature branch to base |
+
+### Agent Workflow: Reviewing a PR via MCP
+
+1. **Fetch PR Context**:
+   Call `github__get_pull_request` with `owner`, `repo`, and `pull_number`.
+2. **Retrieve Changed Files**:
+   Call `github__get_pull_request_files` to inspect each changed file, diff patch, and scope.
+3. **Analyze Implementation & Tests**:
+   Correlate changed implementation against tests. If behavioral tests are missing, flag them.
+4. **Submit Review Feedback**:
+   Call `github__create_pull_request_review` or `github__add_issue_comment` with structured, actionable feedback (referencing specific files and lines).
+
+### Agent Workflow: Creating a PR via MCP
+
+1. Ensure all local tests pass (`pnpm tsc --noEmit`, `pnpm test:unit`, `pnpm lint`).
+2. Push branch to remote: `git push -u origin feature/<name>`.
+3. Call `github__create_pull_request` with:
+   - `owner`: repository owner
+   - `repo`: repository name
+   - `title`: Conventional commit title format (`feat(scope): description`)
+   - `head`: current feature branch
+   - `base`: `main`
+   - `body`: Markdown formatted using the PR Description Template above.
+
 **For Authors:**
 
 - [ ] Self-review completed before requesting review

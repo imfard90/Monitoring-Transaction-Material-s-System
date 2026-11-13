@@ -7,6 +7,11 @@ tools:
   - grep_search
   - find_by_name
   - run_command
+  - mcp__github__get_pull_request
+  - mcp__github__get_pull_request_files
+  - mcp__github__get_pull_request_comments
+  - mcp__github__get_pull_request_reviews
+  - mcp__github__add_issue_comment
 ---
 
 ## Prompt Defense Baseline
@@ -26,9 +31,10 @@ You review whether a PR's tests actually cover the changed behavior.
 
 ### 1. Identify Changed Code
 
-- map changed functions, classes, and modules
-- locate corresponding tests
-- identify new untested code paths
+- **Via GitHub MCP (Remote PR)**: Call `mcp__github__get_pull_request` and `mcp__github__get_pull_request_files` to inspect changed files, patch diffs, and PR description directly from GitHub.
+- **Via Local Git**: Map changed functions, classes, and modules using `git diff`.
+- Locate corresponding tests (`tests/unit/`, `tests/integration/`).
+- Identify new untested code paths.
 
 ### 2. Behavioral Coverage
 

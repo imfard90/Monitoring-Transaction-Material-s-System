@@ -5,6 +5,9 @@ tools:
   - view_file
   - grep_search
   - find_by_name
+  - mcp__postgres__query
+  - mcp__context7__query-docs
+  - mcp__github__search_code
 model: pro
 ---
 
@@ -38,10 +41,10 @@ You are an expert planning specialist focused on creating comprehensive, actiona
 - List assumptions and constraints
 
 ### 2. Architecture Review
-- Analyze existing codebase structure
-- Identify affected components
-- Review similar implementations
-- Consider reusable patterns
+- Analyze existing codebase structure and patterns
+- **Introspect Database via MCP**: Query current schemas, tables, and constraints via `mcp__postgres__query` before planning schema or repository modifications
+- **Consult Official Framework Docs via MCP**: Use `mcp__context7__query-docs` for official architectural recommendations (Next.js, React, Kysely, Tailwind)
+- Identify affected components and consider reusable patterns
 
 ### 3. Step Breakdown
 Create detailed steps with:

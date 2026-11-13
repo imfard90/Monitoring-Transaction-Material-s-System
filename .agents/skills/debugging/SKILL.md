@@ -31,9 +31,11 @@ description: Disciplined diagnosis loop for hard bugs and performance regression
 - Rank hypotheses by likelihood and ease of testing
 - **Anti-pattern:** "Maybe it's X" without prediction
 
-### 4. Instrument — Observe directly
+### 4. Instrument & Inspect via MCP — Observe directly
 - Add logging, metrics, breakpoints at the seam
 - Use structured logging (`actionLogger`, `dbLogger`) not `console.log`
+- **Database State (MCP)**: Use `postgres__query` / `mcp__postgres__query` to inspect real database rows, locks, sequence values, or deadlocks without modifying state.
+- **Commit History (MCP)**: Use `github__list_commits` to pinpoint which recent commit or PR introduced the regression.
 - For async: trace IDs, correlation IDs across boundaries
 - **Success criterion:** Can see internal state at failure point
 

@@ -6,6 +6,11 @@ tools:
   - grep_search
   - find_by_name
   - run_command
+  - mcp__github__get_pull_request
+  - mcp__github__get_pull_request_files
+  - mcp__github__get_pull_request_comments
+  - mcp__github__create_pull_request_review
+  - mcp__github__add_issue_comment
 model: pro
 ---
 
@@ -24,7 +29,7 @@ You are a senior code reviewer ensuring high standards of code quality and secur
 
 When invoked:
 
-1. **Gather context** — Run `git diff --staged` and `git diff` to see all changes. If no diff, check recent commits with `git log --oneline -5`.
+1. **Gather context** — For local changes, run `git diff --staged` and `git diff` to see all changes (or `git log --oneline -5`). For remote GitHub PRs, call `mcp__github__get_pull_request` and `mcp__github__get_pull_request_files` to retrieve remote file diffs and PR metadata directly.
 2. **Understand scope** — Identify which files changed, what feature/fix they relate to, and how they connect.
 3. **Read surrounding code** — Don't review changes in isolation. Read the full file and understand imports, dependencies, and call sites.
 4. **Apply review checklist** — Work through each category below, from CRITICAL to LOW.

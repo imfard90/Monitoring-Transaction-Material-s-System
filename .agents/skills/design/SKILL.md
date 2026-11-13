@@ -302,7 +302,7 @@ python3 --version || python --version
 
 ```bash
 export GEMINI_API_KEY="your-key"  # https://aistudio.google.com/apikey
-pip install google-genai pillow
+pip install "google-genai>=0.1.1" "pillow>=10.0.0"
 ```
 
 > **Note for Windows:** Use `python` instead of `pip` where needed (e.g., `python -m pip install ...`).

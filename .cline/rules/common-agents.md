@@ -37,14 +37,24 @@ When multiple skills apply, process skills come first:
 
 When tackling distinct phases of development, apply relevant profile guidance and skills directly; profiles are not dispatched agents:
 
-| Guidance profile (not dispatched) | Associated Skills & Tools | When to Apply |
-|----------------|---------------------------|---------------|
-| **Planner / Architect** | `clean-architecture`, `domain-driven-design` | Complex features, refactoring, database design |
-| **Code Reviewer** | `coding-standards`, `code-complete`, `/review` | Reviewing modified code before commits |
-| **Security Reviewer** | `security-review`, `mtms-security-guide`, `/security` | Auth changes, API keys, endpoints, DB access |
+| Guidance profile (not dispatched) | Associated Skills & Primary MCP Tools | When to Apply |
+|---|---|---|
+| **Planner / Architect** | `clean-architecture`, `domain-driven-design` • **MCP**: `postgres__query`, `context7__query-docs` | Complex features, refactoring, database design |
+| **Code Reviewer** | `coding-standards`, `git-workflow`, `/review` • **MCP**: `github__get_pull_request`, `github__get_pull_request_files`, `github__create_pull_request_review` | Reviewing modified code and PRs before commits |
+| **Security Reviewer** | `security-review`, `mtms-security-guide`, `/security` • **MCP**: `postgres__query`, `github__list_commits` | Auth changes, API keys, endpoints, DB access |
+| **Documentation Specialist** | `research`, `docs-lookup` • **MCP**: `context7__resolve-library-id`, `context7__query-docs`, `github__search_code` | Authoritative documentation lookups, external APIs |
+| **Database Specialist**| `postgres-patterns`, `database-migrations`, `/db-check` • **MCP**: `postgres__query` | Stored procedures, Kysely queries, schemas |
+| **Integration Specialist** | `google-sheets` • **MCP**: `mtms-google-sheets__list_sheets`, `mtms-google-sheets__read_sheet_range` | External warehouse sheet sync & verification |
 | **TDD / Test Guide** | `tdd-workflow`, `react-testing`, Vitest | Writing unit tests, reproducing bugs |
 | **UI/UX Designer** | `ui-ux-pro-max`, `design-system`, `motion-patterns` | Frontend layouts, forms, tables, accessibility |
-| **Database Specialist**| `postgres-patterns`, `database-migrations`, `/db-check` | Stored procedures, Kysely queries, schemas |
+
+### Mandatory MCP Alignment Policy
+
+All priority skills and agents **MUST** utilize active MCP servers for domain operations:
+1. **Database Operations**: ALWAYS use `postgres__query` for introspection and query analysis. Never create ad-hoc node scripts. Schema changes must use migrations (`pnpm migrate`), and inventory mutations must use stored procedures via repositories.
+2. **GitHub Operations**: ALWAYS use `github__*` MCP tools (`get_pull_request`, `get_pull_request_files`, `list_commits`, `search_code`, `create_pull_request_review`) for PR analysis, commit tracking, and remote code search. Never parse web pages or run ad-hoc cURL commands.
+3. **Library & Framework Documentation**: ALWAYS use `context7__*` MCP tools (`resolve-library-id`, `query-docs`) for authoritative documentation (Next.js, Tailwind, Kysely, TanStack Table) instead of guessing from training data.
+4. **Google Sheets Operations**: ALWAYS use `mtms-google-sheets__*` MCP tools (`list_sheets`, `read_sheet_range`) for developer inspection of synced external warehouse spreadsheets.
 
 ## Immediate Role Activation
 
@@ -65,35 +75,31 @@ When solving complex architectural or security problems:
 
 ---
 
-## MTMS MCP: PostgreSQL Database Access
+## MTMS MCP: Server Infrastructure
 
-MTMS provides an **MCP (Model Context Protocol) server for PostgreSQL** that agents use to query the database directly without writing ad-hoc Node scripts.
+MTMS utilizes Model Context Protocol (MCP) servers to provide secure, direct tooling for agents across databases, external frameworks, and version control. See `docs/MCP.md` for complete architecture and tool definitions.
 
-### How to Access
+### 1. PostgreSQL MCP Server (`postgres`)
 
-Use the **`postgres__query`** tool exposed by the configured Postgres MCP server. The local MCP server key is `postgres`; tool names use the `postgres__` prefix.
+- **Tool**: `postgres__query`
+- **Purpose**: Read-only database introspection, table structure inspection, index analysis, and data preview.
+- **Rules**: Strictly read-only; no writes via MCP. No ad-hoc query scripts.
 
-### MCP vs. Scripts: When to Use Which
+### 2. GitHub MCP Server (`github`)
 
-| Task | Tool |
-|---|---|
-| Read-only introspection (table structure, data preview, health checks) | **MCP `postgres__query`** tool — preferred |
-| Read-only query with custom SQL | **MCP `postgres__query`** tool |
-| Explicitly approved data fixes | Reviewed script via `src/lib/db/execute.ts`; verify target/rollback, never bypass inventory procedures |
-| Running migrations | `pnpm migrate` (invokes `run-migration.ts`) |
+MTMS integrates `@modelcontextprotocol/server-github` to allow agents to interact with GitHub directly using the developer's `GITHUB_PERSONAL_ACCESS_TOKEN`.
 
-### MCP Rules
-
-- **Read-only**: The MCP `postgres` server is for read-only queries. Never attempt DB writes through MCP. Use reviewed migrations for schema changes and the approved write path only for explicitly authorized data fixes.
-- **No ad-hoc scripts**: Do NOT create one-off Node scripts to query the DB. Use the MCP tool directly.
-- **Query templates**: See `.cline/workflows/db-check.md` for standard introspection queries (table structure, index analysis, foreign key mapping).
+- **Tools Exposed (26 tools)**:
+  - **Pull Requests**: `get_pull_request`, `list_pull_requests`, `get_pull_request_files`, `get_pull_request_status`, `create_pull_request`, `create_pull_request_review`, `merge_pull_request`, `update_pull_request_branch`, `get_pull_request_comments`, `get_pull_request_reviews`
+  - **Issues & Comments**: `get_issue`, `list_issues`, `create_issue`, `update_issue`, `add_issue_comment`, `search_issues`
+  - **Repository & Commits**: `list_commits`, `create_branch`, `search_repositories`, `fork_repository`, `create_repository`
+  - **Code & Content**: `search_code`, `search_users`, `get_file_contents`, `create_or_update_file`, `push_files`
+- **Usage Rules**:
+  - Read-only tools (`get_*`, `list_*`, `search_*`) are in Cline's `alwaysAllow` for fast context gathering.
+  - Write/mutation tools (`create_pull_request`, `merge_pull_request`, `create_issue`, `push_files`, `create_pull_request_review`) require developer confirmation before execution.
+  - Never log or commit personal access tokens. Tokens are managed in `.env` and synced via `./scripts/setup/setup-cline-mcp.sh`.
 
 ### Verification
 
-To confirm MCP is working:
-
-```
-/db-check
-```
-
-This workflow runs a health check query and confirms the MCP connection. If it fails, inspect the local MCP configuration at `~/.cline/data/settings/cline_mcp_settings.json` without copying or logging connection strings or credentials.
+- **Database MCP**: Confirm with `/db-check`.
+- **GitHub MCP**: Run `./scripts/setup/setup-cline-mcp.sh` to test GitHub API authentication and generate configuration files.

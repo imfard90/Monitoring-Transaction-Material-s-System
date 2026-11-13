@@ -29,3 +29,4 @@ Gunakan format `NNN-judul-keputusan.md` (contoh: `001-inventory-mutation-via-sp-
 | [ADR-003](./003-agent-skills-adoption.md) | 2026-10-22 | Agent Skills Adoption from External Repositories | Accepted |
 | [ADR-004](./004-codebase-memory-mcp.md) | 2026-10-22 | Codebase Memory MCP Adoption | Accepted |
 | [ADR-005](./005-csp-enforcement-and-iconify-bundling.md) | 2026-11-13 | CSP Enforcement dan Strategi Penanganan Iconify API | Accepted |
+| [ADR-006](./006-github-mcp-integration.md) | 2026-11-14 | Integrasi GitHub Model Context Protocol (MCP) Server | Accepted |

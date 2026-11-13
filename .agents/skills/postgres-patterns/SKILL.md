@@ -17,6 +17,28 @@ Quick reference for PostgreSQL best practices. For detailed guidance, use the `d
 - Implementing Row Level Security
 - Setting up connection pooling
 
+## MCP PostgreSQL Priority Tooling
+
+In MTMS, **ALWAYS prioritize using the PostgreSQL MCP server** (`postgres__query` / `mcp__postgres__query`) for introspection and schema verification instead of writing ad-hoc Node scripts:
+
+- **Inspecting Table Columns**:
+  ```sql
+  SELECT column_name, data_type, is_nullable, column_default
+  FROM information_schema.columns
+  WHERE table_schema = 'inventory' AND table_name = 'wo_lensa_header'
+  ORDER BY ordinal_position;
+  ```
+- **Checking Existing Indexes**:
+  ```sql
+  SELECT indexname, indexdef FROM pg_indexes
+  WHERE schemaname = 'inventory' AND tablename = 'wo_lensa_header';
+  ```
+- **Analyzing Query Plans**:
+  ```sql
+  EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM inventory.mas_wh WHERE is_active = true;
+  ```
+- **Rule**: Strictly read-only introspection. Never execute database writes through MCP. Schema changes must go through tracked migrations (`pnpm migrate`), and inventory mutations must use stored procedures via repositories.
+
 ## Quick Reference
 
 ### Index Cheat Sheet

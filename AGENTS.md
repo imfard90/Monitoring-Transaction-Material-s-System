@@ -60,6 +60,15 @@
   - Sukses: Gunakan `apiSuccessResponse(data, meta)` dari `@/lib/api-response` (`{ data: [...], meta: { total, timestamp } }`) dengan header `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate`.
   - Error: Gunakan `problemResponse({ status, title, detail, ... })` dari `@/lib/api-response` berstandar RFC 9457 `application/problem+json`.
 
+### 1.7 Pemanfaatan MCP Server (P1)
+
+- **Prioritas MCP Aktif**: Agen wajib memprioritaskan server MCP yang tersedia sesuai domain tugasnya:
+  - **Database Introspection (`postgres`)**: Wajib gunakan `postgres__query` / `mcp__postgres__query` untuk memeriksa skema, indeks, struktur tabel, dan rencana query (`EXPLAIN`). Dilarang membuat skrip ad-hoc node/cURL untuk membaca database.
+  - **Operasi GitHub (`github`)**: Wajib gunakan tool MCP GitHub (`get_pull_request`, `get_pull_request_files`, `list_commits`, `search_code`, `create_pull_request_review`, dll.) untuk analisis PR, penelusuran riwayat commit, dan pencarian kode remote tanpa scraping manual.
+  - **Dokumentasi Framework (`context7`)**: Wajib gunakan `resolve-library-id` dan `query-docs` untuk mencari dokumentasi resmi dan termutakhir pustaka (Next.js, React, Tailwind, Kysely, TanStack Table) daripada menebak dari data latih.
+  - **Sinkronisasi Google Sheets (`mtms-google-sheets`)**: Wajib gunakan `list_sheets` dan `read_sheet_range` untuk introspeksi data spreadsheet eksternal secara read-only.
+- **Prinsip Least Privilege**: Server MCP database dan Google Sheets bersifat strictly read-only. Tool mutasi pada GitHub MCP wajib meminta persetujuan pengguna sebelum dijalankan. Kredensial MCP (PAT, password DB) tidak boleh dicatat dalam chat/log atau di-commit ke Git.
+
 ## 2. Alur Kerja Wajib
 
 Sebelum menyatakan tugas selesai, pastikan:
@@ -79,7 +88,6 @@ Sebelum menyatakan tugas selesai, pastikan:
 13. **Dashboard queries** — semua query list/dashboard harus punya `.limit()` + `.orderBy()` eksplisit (P2-P1).
 - **Tanggal Lensa Ref** — query untuk `inventory.wo_lensa_header` (WO Lensa Ref) dan `inventory.out_lensa_ref_header` (Out Lensa Ref) wajib menggunakan kolom `formatted_date` sebagai sumber tanggal; jangan mengganti dengan timestamp atau kolom tanggal lain tanpa verifikasi skema dan kebutuhan bisnis. Sebelum menambahkan/mengubah filter tanggal seperti “hari ini”, rentang tanggal, atau zona waktu, verifikasi dulu tipe kolom, nilai/data aktual, dan arti tanggal bisnis. Jangan mengasumsikan bahwa `formatted_date = CURRENT_DATE` sesuai untuk semua query; pertahankan filter yang diminta secara spesifik.
 14. **Logging redaction** — redact field spesifik (`password`, `token`, `authorization`, `*.secret`, `cookies`), bukan seluruh `err`/`stack` (P3-Q2).
-14. **Logging redaction** — redact field spesifik (`password`, `token`, `authorization`, `*.secret`, `cookies`), bukan seluruh `err`/`stack` (P3-Q2).
 15. **Server logging** — tidak ada `console.*` di server code; gunakan `actionLogger`/`securityLogger`/`dbLogger`/`cacheLogger` dari `lib/logger.ts` (P3-Q3).
 16. **Encryption keys** — gunakan `crypto.createHash('sha256').digest()` untuk derive 32-byte key dari env secret, bukan `slice(0,32)` (P3-S6).
 17. **HR reference data** — gunakan `hrRepository` (`lib/repositories/hr.repository.ts`) untuk query `getTechnicians`/`getBranches`/`getTechnicianByNik`/`getMitras`; jangan duplikat query di server action (P3-M3).
@@ -88,6 +96,7 @@ Sebelum menyatakan tugas selesai, pastikan:
 20. **Environment template** — `.env.example` wajib di-commit sebagai template; `.env` tidak boleh di-commit (P3-S5).
 21. **reactStrictMode** — `true` di `next.config.mjs` (P3-Q4).
 22. **External REST API endpoints** — route handler di `src/app/api/v1/*` wajib menerapkan autentikasi bearer key SHA-256, rate limiting 5 menit atomik per-user via Redis, validasi gate `appr_api`, RFC 9457 Problem Details error envelope, dan metadata success envelope (§1.6).
+23. **MCP Tooling Priority** — Utamakan penggunaan MCP aktif (`postgres`, `github`, `context7`, `mtms-google-sheets`) untuk tugas domain terkait sebelum menulis skrip baru atau berspekulasi (§1.7).
 
 
 ## 3. Aturan Kode Spesifik

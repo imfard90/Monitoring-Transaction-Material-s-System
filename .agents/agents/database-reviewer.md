@@ -6,6 +6,7 @@ tools:
   - grep_search
   - find_by_name
   - run_command
+  - mcp__postgres__query
 model: pro
 ---
 

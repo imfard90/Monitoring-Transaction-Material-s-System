@@ -22,7 +22,8 @@ Review the requested scope and acceptance criteria first. Keep the review focuse
    If errors are found, report them and distinguish pre-existing failures from regressions. Do not present the review as clean when required checks fail. Continue source inspection only if useful to diagnose findings, clearly marking the review/checks incomplete.
 
 2. Determine review scope:
-   - If argument provided: review specified file/directory
+   - If argument provided as PR number (e.g. `#12` or `12`): use GitHub MCP tool `mcp__github__get_pull_request_files` and `mcp__github__get_pull_request` to fetch remote changed files.
+   - If argument provided as file/directory: review specified file/directory
    - Otherwise: review recently modified files (`git diff --name-only HEAD`)
 
 3. **Invoke `two-axis-code-review` skill** for the diff scope. Run both axes in parallel. Report findings side by side using the skill's format.
