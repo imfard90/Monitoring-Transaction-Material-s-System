@@ -199,7 +199,8 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
     }, [api, isHovered]);
 
     return (
-        <div
+        <section
+            aria-label="Ringkasan KPI"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             className="w-full"
@@ -263,6 +264,6 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
                     })}
                 </CarouselContent>
             </Carousel>
-        </div>
+        </section>
     );
 }

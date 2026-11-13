@@ -2,8 +2,8 @@
 
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { Globe, Laptop, Loader2, ShieldOff, Smartphone, Trash2 } from 'lucide-react';
-import React, { useEffect, useState, useTransition } from 'react';
+import { Globe, Laptop, Loader2, ShieldOff, Smartphone } from 'lucide-react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { type UserItem } from '../user-table';
+import type { UserItem } from '../user-table';
 import { getUserDevices, revokeDeviceByAdmin } from '../actions';
 
 interface DeviceRecord {
@@ -43,17 +43,17 @@ export function UserDevicesDialog({ user, isOpen, onClose, onRefresh }: UserDevi
     const [isLoading, setIsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
 
-    const fetchDevices = async (userId: string) => {
+    const fetchDevices = useCallback(async (userId: string) => {
         setIsLoading(true);
         try {
             const data = await getUserDevices(userId);
             setDevices(data as DeviceRecord[]);
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal memuat daftar perangkat.');
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         if (isOpen && user?.id) {
@@ -61,7 +61,7 @@ export function UserDevicesDialog({ user, isOpen, onClose, onRefresh }: UserDevi
         } else {
             setDevices([]);
         }
-    }, [isOpen, user?.id]);
+    }, [isOpen, user?.id, fetchDevices]);
 
     const handleRevoke = (deviceId?: string) => {
         if (!user || !deviceId) return;
@@ -75,7 +75,7 @@ export function UserDevicesDialog({ user, isOpen, onClose, onRefresh }: UserDevi
                 } else {
                     toast.error('Gagal mencabut akses perangkat.');
                 }
-            } catch (err) {
+            } catch (_err) {
                 toast.error('Terjadi kesalahan saat mencabut perangkat.');
             }
         });

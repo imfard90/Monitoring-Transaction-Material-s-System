@@ -2,7 +2,6 @@
 
 import { Icon } from '@iconify/react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import SimpleBar from 'simplebar-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -28,7 +27,6 @@ interface ProfileUser {
 }
 
 const Profile = () => {
-    const _router = useRouter();
     const { data: session } = authClient.useSession();
     const user = session?.user as ProfileUser | undefined;
 

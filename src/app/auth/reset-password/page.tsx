@@ -2,7 +2,7 @@
 
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import AuthCard from '@/app/auth/components/AuthCard';
@@ -14,7 +14,6 @@ import { authClient } from '@/lib/auth-client';
 
 function ResetPasswordForm() {
     const searchParams = useSearchParams();
-    const _router = useRouter();
     const token = searchParams.get('token');
 
     const [isValidating, setIsValidating] = useState(true);

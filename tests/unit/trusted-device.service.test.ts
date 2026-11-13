@@ -3,7 +3,6 @@ import { db } from '@/lib/db/db';
 import * as authAuditModule from '@/lib/security/auth-audit.service';
 import {
     checkAndRegisterDevice,
-    MAX_TRUSTED_DEVICES_PER_USER,
     parseDeviceName,
     resetAllUserDevices,
     revokeUserDevice,

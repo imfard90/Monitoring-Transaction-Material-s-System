@@ -19,6 +19,7 @@
       "*.js",
       "*.json",
       "!public/**/*.min.*",
+      "!public/**/*.svg",
       "!**/.agents",
       "!**/.archive",
       "!**/_archive",

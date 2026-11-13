@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import { db } from '@/lib/db/db';
 import { securityLogger } from '@/lib/logger';
 import { logAuthEvent } from './auth-audit.service';

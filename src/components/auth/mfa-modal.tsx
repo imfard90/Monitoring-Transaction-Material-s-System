@@ -346,6 +346,7 @@ export function MfaModal({
                                     >
                                         <div className="relative p-2.5 rounded-xl bg-white border border-border/80 shadow-md">
                                             {qrDataUrl ? (
+                                                /* biome-ignore lint/performance/noImgElement: runtime dynamic QR data URL */
                                                 <img
                                                     src={qrDataUrl}
                                                     alt="TOTP QR Code"

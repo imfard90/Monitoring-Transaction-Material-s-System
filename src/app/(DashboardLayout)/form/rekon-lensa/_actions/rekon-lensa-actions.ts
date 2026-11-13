@@ -283,10 +283,6 @@ export async function submitRekonLensa(
 
                     for (const woNumber in woGroups) {
                         const woItems = woGroups[woNumber];
-                        const uniqueSaps = Array.from(
-                            new Set(woItems.map((i) => i.sap_number).filter(Boolean))
-                        );
-                        const _sapString = uniqueSaps.join('-');
                         const pemakaianId = woItems[0].pemakaian_id;
 
                         const repo = createInventoryRepository(trx);
@@ -294,14 +290,6 @@ export async function submitRekonLensa(
                         const generatedIdTrx = `TRX-USED-LENSA-${data.nik}-${pemakaianId}-${yymm}${sequence}`;
 
                         const first = woItems[0];
-                        const _materialsJson = JSON.stringify(
-                            woItems.map((item) => ({
-                                out_sap: item.sap_number,
-                                designator_id: item.designator_id.toString(), // SP expects code, wait, designator_id is number in schema but SP expects code?
-                                qty: item.qty,
-                                unit_price: 0, // Not provided in payload
-                            }))
-                        );
 
                         // Wait, the SP expects designator_id as VARCHAR (code). Let's fetch codes first.
                         const designatorIds = Array.from(

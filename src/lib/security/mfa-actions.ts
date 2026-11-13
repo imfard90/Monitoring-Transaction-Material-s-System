@@ -178,7 +178,7 @@ export async function verifyTotpForSensitiveAction(code: string, purpose: string
         });
 
         return { success: true };
-    } catch (error) {
+    } catch (_error) {
         if (sessionUser) {
             await logAuthEvent({
                 userId: sessionUser.id,

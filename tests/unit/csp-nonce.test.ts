@@ -19,9 +19,9 @@ describe('CSP Nonce Generation and Next.js Parser Compatibility', () => {
         expect(cspResponseHeader).toBeTruthy();
 
         // Extract nonce using official Next.js App Router regex / parser
-        const extractedNonce = getScriptNonceFromHeader(cspResponseHeader!);
+        const extractedNonce = getScriptNonceFromHeader(cspResponseHeader ?? '');
         expect(extractedNonce).toBeDefined();
-        expect(extractedNonce!.length).toBeGreaterThan(16);
+        expect(extractedNonce?.length).toBeGreaterThan(16);
 
         // Ensure CSP header includes the nonce directive
         expect(cspResponseHeader).toContain(`'nonce-${extractedNonce}'`);
@@ -40,8 +40,8 @@ describe('CSP Nonce Generation and Next.js Parser Compatibility', () => {
         const res1 = await proxy(req1);
         const res2 = await proxy(req2);
 
-        const csp1 = res1.headers.get('Content-Security-Policy')!;
-        const csp2 = res2.headers.get('Content-Security-Policy')!;
+        const csp1 = res1.headers.get('Content-Security-Policy') ?? '';
+        const csp2 = res2.headers.get('Content-Security-Policy') ?? '';
 
         const nonce1 = getScriptNonceFromHeader(csp1);
         const nonce2 = getScriptNonceFromHeader(csp2);
@@ -54,7 +54,7 @@ describe('CSP Nonce Generation and Next.js Parser Compatibility', () => {
     it('preserves Cloudflare Turnstile in script-src, connect-src, and frame-src', async () => {
         const req = new NextRequest('http://127.0.0.1:8000/auth/login');
         const res = await proxy(req);
-        const csp = res.headers.get('Content-Security-Policy')!;
+        const csp = res.headers.get('Content-Security-Policy') ?? '';
 
         expect(csp).toContain("script-src 'self' 'nonce-");
         expect(csp).toContain('https://challenges.cloudflare.com');
@@ -69,7 +69,7 @@ describe('CSP Nonce Generation and Next.js Parser Compatibility', () => {
         const res = await proxy(req);
 
         expect(res.status).toBe(307);
-        const csp = res.headers.get('Content-Security-Policy')!;
+        const csp = res.headers.get('Content-Security-Policy') ?? '';
         const nonce = getScriptNonceFromHeader(csp);
         expect(nonce).toBeDefined();
         expect(res.headers.get('Cache-Control')).toContain('no-store');
