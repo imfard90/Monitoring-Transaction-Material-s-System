@@ -18,6 +18,14 @@ vi.mock('@/lib/auth-server', () => ({
     getSessionUser: () => mockGetSessionUser(),
 }));
 
+vi.mock('@/lib/auth', () => ({
+    auth: {
+        api: {
+            getSession: vi.fn().mockResolvedValue(null),
+        },
+    },
+}));
+
 vi.mock('@/lib/lensa-scraper/lensa-scraper', () => ({
     scrapeLensaDetails: (...args: unknown[]) => mockScrapeLensaDetails(...args),
     scrapeLensaHeaders: vi.fn(),
@@ -46,6 +54,7 @@ vi.mock('@/lib/logger', () => ({
 const mockTransactionExecute = vi.fn();
 
 vi.mock('@/lib/db/db', () => ({
+    pool: { query: vi.fn(), connect: vi.fn(), on: vi.fn(), end: vi.fn() },
     db: {
         selectFrom: vi.fn(() => ({
             select: vi.fn().mockReturnThis(),

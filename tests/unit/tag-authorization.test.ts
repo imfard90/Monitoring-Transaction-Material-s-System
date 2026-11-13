@@ -54,6 +54,14 @@ vi.mock('@/lib/logger', () => ({
     actionLogger: {
         error: vi.fn(),
     },
+    securityLogger: {
+        warn: vi.fn(),
+    },
+}));
+
+const mockRateLimit = vi.fn().mockResolvedValue({ success: true });
+vi.mock('@/lib/rate-limit', () => ({
+    rateLimit: (...args: unknown[]) => mockRateLimit(...args),
 }));
 
 const { updateTag, cancelTag } = await import(
@@ -254,5 +262,20 @@ describe('cancelTag validation and authorization', () => {
         const call = mockSqlCalls.at(-1);
         expect(call?.strings.join('?')).toContain('CALL inventory.sp_cancel_inout_tag');
         expect(call?.values).toEqual([101, 'inout', 'Salah input alokasi gudang tujuan', 'ADM001']);
+    });
+
+    it('blocks cancellation when rate limit is exceeded', async () => {
+        mockGetSessionUser.mockResolvedValue({
+            nik: 'ADM001',
+            role: 'Administrator',
+            warehouseIds: [],
+            isStaff: false,
+        });
+        mockRateLimit.mockResolvedValueOnce({ success: false, remaining: 0, reset: 60 });
+
+        const result = await cancelTag(101, 'Salah input alokasi gudang tujuan', 'inout');
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Terlalu banyak permintaan pembatalan tag');
+        expect(mockSqlExecute).not.toHaveBeenCalled();
     });
 });

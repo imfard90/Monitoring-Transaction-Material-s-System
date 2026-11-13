@@ -7,6 +7,7 @@ import { invalidateLiveStockCache, invalidateNotificationCache } from '@/lib/cac
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 import { canAccessWarehouse, canCancelInOutTag, canUpdateInOutTag } from '@/lib/policies';
+import { rateLimit } from '@/lib/rate-limit';
 import { inventoryRepository } from '@/lib/repositories';
 import { checkAndStoreIdempotency } from '@/lib/security/idempotency';
 
@@ -272,6 +273,14 @@ export async function cancelTag(headerId: number, notes: string, type?: string) 
 
     try {
         const user = await getSessionUser();
+
+        const rate = await rateLimit(`cancel_tag:${user.nik}`, 10, 60);
+        if (!rate.success) {
+            return {
+                success: false,
+                error: 'Terlalu banyak permintaan pembatalan tag. Silakan tunggu 1 menit.',
+            };
+        }
 
         if (user.isStaff) {
             if (type === 'return') {

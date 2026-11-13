@@ -2,8 +2,8 @@ import { render } from '@react-email/render';
 import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
 import { captcha, twoFactor } from 'better-auth/plugins';
-import { Pool } from 'pg';
 import { Resend } from 'resend';
+import { pool } from '@/lib/db/db';
 import { ResetPasswordEmail } from './emails/reset-password-email';
 import { VerificationEmail } from './emails/verification-email';
 import { redis } from './redis';
@@ -12,10 +12,6 @@ import { recordSessionBaseline } from './security/session-anomaly.service';
 import { enforceAbsoluteSessionLifetime } from './session-lifetime';
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder_secret');
-
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-});
 
 export const auth = betterAuth({
     baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',

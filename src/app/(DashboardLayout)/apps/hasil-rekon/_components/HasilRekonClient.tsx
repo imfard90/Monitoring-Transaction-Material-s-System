@@ -210,52 +210,50 @@ export default function HasilRekonClient({
 
             // Format kolom sesuai kebutuhan:
             // [Timestamp,TRX ID,SAP Number,Warehouse,NIK,Type,WO Number,Material Code,Description,Qty]
-            const headers = [
-                'Timestamp',
-                'TRX ID',
-                'SAP Number',
-                'Warehouse',
-                'NIK',
-                'Type',
-                'WO Number',
-                'Material Code',
-                'Description',
-                'Qty',
+            const ExcelJS = await import('exceljs');
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Hasil Rekon');
+
+            worksheet.columns = [
+                { header: 'Timestamp', key: 'timestamp', width: 22 },
+                { header: 'TRX ID', key: 'trx_id', width: 26 },
+                { header: 'SAP Number', key: 'sap_number', width: 18 },
+                { header: 'Warehouse', key: 'warehouse', width: 22 },
+                { header: 'NIK', key: 'nik', width: 14 },
+                { header: 'Type', key: 'type', width: 12 },
+                { header: 'WO Number', key: 'wo_number', width: 24 },
+                { header: 'Material Code', key: 'material_code', width: 18 },
+                { header: 'Description', key: 'description', width: 34 },
+                { header: 'Qty', key: 'qty', width: 12 },
             ];
 
-            const rows = result.data.map((item) => [
-                item.created_at ? format(new Date(item.created_at), 'yyyy-MM-dd HH:mm:ss') : '-',
-                item.trx_id || '-',
-                item.sap_number || '-',
-                item.warehouse_name || '-',
-                item.nik || '-',
-                (item.type || '-').toUpperCase(),
-                item.workorder || '-',
-                item.material_code || '-',
-                item.material_name || '-',
-                Number(item.qty ?? 0),
-            ]);
+            for (const item of result.data) {
+                worksheet.addRow({
+                    timestamp: item.created_at ? format(new Date(item.created_at), 'yyyy-MM-dd HH:mm:ss') : '-',
+                    trx_id: item.trx_id || '-',
+                    sap_number: item.sap_number || '-',
+                    warehouse: item.warehouse_name || '-',
+                    nik: item.nik || '-',
+                    type: (item.type || '-').toUpperCase(),
+                    wo_number: item.workorder || '-',
+                    material_code: item.material_code || '-',
+                    description: item.material_name || '-',
+                    qty: Number(item.qty ?? 0),
+                });
+            }
 
-            const XLSX = await import('xlsx');
-            const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-            worksheet['!cols'] = [
-                { wch: 20 }, // Timestamp
-                { wch: 26 }, // TRX ID
-                { wch: 18 }, // SAP Number
-                { wch: 22 }, // Warehouse
-                { wch: 14 }, // NIK
-                { wch: 10 }, // Type
-                { wch: 24 }, // WO Number
-                { wch: 18 }, // Material Code
-                { wch: 34 }, // Description
-                { wch: 10 }, // Qty
-            ];
-
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Hasil Rekon');
-
-            const fileName = `Hasil_Rekon_${year}_${String(month).padStart(2, '0')}.xlsx`;
-            XLSX.writeFile(workbook, fileName);
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Hasil_Rekon_${year}_${String(month).padStart(2, '0')}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
 
             toast.success(
                 `Berhasil mengekspor ${result.data.length} baris data hasil rekon (${periodLabel}).`

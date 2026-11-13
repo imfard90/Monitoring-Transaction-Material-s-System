@@ -3,19 +3,35 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, Mail, Send } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import AuthCard from '@/app/auth/components/AuthCard';
 import AuthLayout from '@/app/auth/components/AuthLayout';
+import TurnstileWidget from '@/app/auth/components/TurnstileWidget';
 import { Button } from '@/components/ui/button';
 import { FloatingInput } from '@/components/ui/floating-input';
-import { authClient } from '@/lib/auth-client';
+import { requestPasswordResetAction } from './_actions/forgot-password-actions';
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [turnstileToken, setTurnstileToken] = useState<string>('');
+
+    const handleTurnstileToken = useCallback((token: string) => {
+        setTurnstileToken(token);
+        setError(null);
+    }, []);
+
+    const handleTurnstileExpire = useCallback(() => {
+        setTurnstileToken('');
+    }, []);
+
+    const handleTurnstileError = useCallback(() => {
+        setTurnstileToken('');
+        setError('Verifikasi keamanan gagal dimuat. Silakan muat ulang halaman.');
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -26,25 +42,22 @@ export default function ForgotPasswordPage() {
             return;
         }
 
+        if (!turnstileToken) {
+            setError('Mohon selesaikan verifikasi keamanan (CAPTCHA) terlebih dahulu.');
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
 
         try {
-            // Better Auth's client type does not yet expose `requestPasswordReset`
-            // for the email provider, so the method is declared explicitly here.
-            const passwordResetClient = authClient as unknown as {
-                requestPasswordReset: (input: {
-                    email: string;
-                    redirectTo: string;
-                }) => Promise<{ error: { message?: string } | null }>;
-            };
-            const result = await passwordResetClient.requestPasswordReset({
+            const result = await requestPasswordResetAction({
                 email,
-                redirectTo: '/auth/reset-password',
+                turnstileToken,
             });
 
-            if (result.error) {
-                throw new Error(result.error.message || 'Gagal mengirim email reset');
+            if (!result.success && result.error) {
+                throw new Error(result.error);
             }
 
             setIsSubmitted(true);
@@ -115,10 +128,18 @@ export default function ForgotPasswordPage() {
                         </p>
                     </div>
 
+                    <div className="flex justify-center my-2 min-h-16">
+                        <TurnstileWidget
+                            onToken={handleTurnstileToken}
+                            onExpire={handleTurnstileExpire}
+                            onError={handleTurnstileError}
+                        />
+                    </div>
+
                     <Button
                         type="submit"
                         className="w-full h-12 text-sm sm:text-base font-semibold tracking-wide rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.99] relative overflow-hidden group"
-                        disabled={isLoading}
+                        disabled={isLoading || !turnstileToken}
                     >
                         {isLoading ? (
                             <div className="flex items-center justify-center w-full h-full relative">

@@ -153,6 +153,38 @@ describe('proxy authentication and reverse proxy redirect handling', () => {
             )
         ).toBe(true);
     });
+
+    it('sets Content-Security-Policy (enforce) and Cache-Control headers on responses', async () => {
+        const req = new NextRequest('http://127.0.0.1:8000/auth/login', {
+            headers: {
+                host: '127.0.0.1:8000',
+                'x-forwarded-host': 'mtms-app.credea.biz.id',
+                'x-forwarded-proto': 'https',
+            },
+        });
+
+        const res = await proxy(req);
+        expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
+        expect(res.headers.get('Content-Security-Policy')).toContain("base-uri 'self'");
+        expect(res.headers.get('Content-Security-Policy-Report-Only')).toBeNull();
+        expect(res.headers.get('Cache-Control')).toBe('private, no-store');
+    });
+
+    it('sets Content-Security-Policy (enforce) on unauthenticated redirect response', async () => {
+        const req = new NextRequest('http://127.0.0.1:8000/protected-dashboard', {
+            headers: {
+                host: '127.0.0.1:8000',
+                'x-forwarded-host': 'mtms-app.credea.biz.id',
+                'x-forwarded-proto': 'https',
+            },
+        });
+
+        const res = await proxy(req);
+        expect(res.status).toBe(307);
+        expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
+        expect(res.headers.get('Content-Security-Policy-Report-Only')).toBeNull();
+        expect(res.headers.get('Cache-Control')).toBe('private, no-store');
+    });
 });
 
 describe('getPageSessionUser helper', () => {

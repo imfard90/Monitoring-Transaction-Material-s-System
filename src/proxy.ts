@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-function createReportOnlyCsp(nonce: string): string {
+function createEnforcedCsp(nonce: string): string {
     const isDevelopment = process.env.NODE_ENV === 'development';
     return [
         "default-src 'self'",
@@ -46,14 +46,14 @@ export async function proxy(request: NextRequest) {
     }
 
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-    const csp = createReportOnlyCsp(nonce);
+    const csp = createEnforcedCsp(nonce);
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-nonce', nonce);
-    requestHeaders.set('Content-Security-Policy-Report-Only', csp);
+    requestHeaders.set('Content-Security-Policy', csp);
 
     const nextResponse = () => {
         const response = NextResponse.next({ request: { headers: requestHeaders } });
-        response.headers.set('Content-Security-Policy-Report-Only', csp);
+        response.headers.set('Content-Security-Policy', csp);
         response.headers.set('Cache-Control', 'private, no-store');
         return response;
     };
@@ -91,7 +91,7 @@ export async function proxy(request: NextRequest) {
     // Jika belum login dan mencoba mengakses route terproteksi selain auth (misal '/')
     if (!hasSessionCookie) {
         const response = NextResponse.redirect(getRedirectUrl('/auth/login', request));
-        response.headers.set('Content-Security-Policy-Report-Only', csp);
+        response.headers.set('Content-Security-Policy', csp);
         response.headers.set('Cache-Control', 'private, no-store');
         return response;
     }

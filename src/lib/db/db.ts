@@ -5,9 +5,11 @@ import type { DB } from './database.types';
 
 const poolConfig: PoolConfig = {
     connectionString: process.env.DATABASE_URL,
-    max: Number(process.env.DATABASE_POOL_MAX) || 10,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    max: Number(process.env.DATABASE_POOL_MAX) || 20,
+    min: 2,
+    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 3000,
+    statement_timeout: 15000,
 };
 
 declare global {
