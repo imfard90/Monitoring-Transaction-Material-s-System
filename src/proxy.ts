@@ -75,8 +75,13 @@ export async function proxy(request: NextRequest) {
     // saat getPageSessionUser() melempar AuthenticationError dan me-redirect ke /auth/login.
     if (isAuthRoute) {
         const response = nextResponse();
-        // Jika diarahkan karena sesi expired/invalid, bersihkan cookie basi dari browser
-        if (request.nextUrl.searchParams.get('reason') === 'expired') {
+        // Jika diarahkan karena sesi expired/invalid/anomali, bersihkan cookie basi dari browser
+        const reasonParam = request.nextUrl.searchParams.get('reason');
+        if (
+            reasonParam === 'expired' ||
+            reasonParam === 'anomaly' ||
+            reasonParam === 'hijack_prevented'
+        ) {
             response.cookies.delete('better-auth.session_token');
             response.cookies.delete('__Secure-better-auth.session_token');
         }

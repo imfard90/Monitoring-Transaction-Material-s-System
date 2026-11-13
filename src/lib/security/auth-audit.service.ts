@@ -14,7 +14,10 @@ export type AuthEventType =
     | 'MFA_VERIFY_FAILED'
     | 'MFA_RESET_BY_ADMIN'
     | 'DEVICE_REGISTERED'
-    | 'DEVICE_REVOKED';
+    | 'DEVICE_REVOKED'
+    | 'SESSION_HIJACK_DETECTED'
+    | 'SESSION_IMPOSSIBLE_TRAVEL'
+    | 'SESSION_ANOMALY_FLAGGED';
 
 export type AuthEventStatus = 'SUCCESS' | 'FAILED' | 'BLOCKED';
 

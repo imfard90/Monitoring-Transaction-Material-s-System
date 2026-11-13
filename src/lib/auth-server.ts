@@ -13,6 +13,7 @@ import {
 } from '@/lib/policies';
 import { touchUserPresence } from '@/lib/presence';
 import { redis } from '@/lib/redis';
+import { validateSessionIntegrity } from '@/lib/security/session-anomaly.service';
 
 /**
  * Read a property off an unknown error value without widening to `any`.
@@ -31,13 +32,28 @@ function getErrorProp(error: unknown, prop: string): unknown {
  */
 export async function getSessionNik(): Promise<string> {
     try {
+        const reqHeaders = await headers();
         const session = await auth.api.getSession({
-            headers: await headers(),
+            headers: reqHeaders,
         });
-        const nik = (session?.user as { nik?: string } | undefined)?.nik;
+        const user = session?.user as { id?: string; nik?: string } | undefined;
+        const nik = user?.nik;
         if (!nik) {
             throw errors.auth();
         }
+
+        if (session?.session?.id && user?.id) {
+            await validateSessionIntegrity(
+                {
+                    id: session.session.id,
+                    userId: user.id,
+                    token: session.session.token,
+                    user: { nik },
+                },
+                reqHeaders
+            );
+        }
+
         void touchUserPresence(redis, nik, session?.session?.id);
         return nik;
     } catch (e: unknown) {
@@ -62,8 +78,9 @@ export type SessionUser = AuthorizationUser & {
  */
 export async function getSessionUser(): Promise<SessionUser> {
     try {
+        const reqHeaders = await headers();
         const session = await auth.api.getSession({
-            headers: await headers(),
+            headers: reqHeaders,
         });
 
         const user = session?.user as { id?: string; nik?: string } | undefined;
@@ -72,6 +89,19 @@ export async function getSessionUser(): Promise<SessionUser> {
 
         if (!nik) {
             throw errors.auth();
+        }
+
+        // Validate session integrity against baseline (Flag Odd Jumps anomaly guard)
+        if (session?.session?.id && userId) {
+            await validateSessionIntegrity(
+                {
+                    id: session.session.id,
+                    userId,
+                    token: session.session.token,
+                    user: { nik },
+                },
+                reqHeaders
+            );
         }
 
         // Passively refresh presence for both Staff and Non-Staff on activity

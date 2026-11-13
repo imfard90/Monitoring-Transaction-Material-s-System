@@ -66,14 +66,27 @@ const LoginForm = () => {
             toast.info('Anda telah logout otomatis setelah 1 jam tanpa aktivitas.');
         } else if (reason === 'expired') {
             toast.info('Sesi Anda telah berakhir. Silakan masuk kembali.');
+        } else if (reason === 'anomaly' || reason === 'hijack_prevented') {
+            toast.error(
+                'Sesi Anda dihentikan demi keamanan karena terdeteksi aktivitas dari perangkat atau lokasi berbeda.'
+            );
+            setErrorMsg({
+                type: 'error',
+                text: 'Sesi sebelumnya dihentikan secara otomatis oleh sistem keamanan MTMS karena terdeteksi anomali perangkat atau lokasi. Silakan masuk kembali.',
+            });
         }
     }, [searchParams]);
 
     // Jika user sudah memiliki sesi valid aktif di database/server, alihkan ke dashboard utama
-    // KECUALI jika diarahkan ke halaman login karena logout, sesi expired, idle, atau sedang proses MFA
+    // KECUALI jika diarahkan ke halaman login karena logout, sesi expired, idle, anomali, atau sedang proses MFA
     useEffect(() => {
         const reason = searchParams.get('reason');
-        if (reason === 'idle' || reason === 'expired') {
+        if (
+            reason === 'idle' ||
+            reason === 'expired' ||
+            reason === 'anomaly' ||
+            reason === 'hijack_prevented'
+        ) {
             return;
         }
         if (isMfaPending || mfaModalOpen) {

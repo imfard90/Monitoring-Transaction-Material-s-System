@@ -8,6 +8,7 @@ import { ResetPasswordEmail } from './emails/reset-password-email';
 import { VerificationEmail } from './emails/verification-email';
 import { redis } from './redis';
 import { logAuthEvent } from './security/auth-audit.service';
+import { recordSessionBaseline } from './security/session-anomaly.service';
 import { enforceAbsoluteSessionLifetime } from './session-lifetime';
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder_secret');
@@ -208,13 +209,28 @@ export const auth = betterAuth({
                     if (session.userId) {
                         try {
                             const res = await pool.query('SELECT nik FROM auth."user" WHERE id = $1', [session.userId]);
+                            const userNik = res.rows[0]?.nik;
                             await logAuthEvent({
                                 userId: session.userId,
-                                nik: res.rows[0]?.nik,
+                                nik: userNik,
                                 eventType: 'LOGIN_SUCCESS',
                                 status: 'SUCCESS',
                                 reason: 'Autentikasi sesi berhasil dibuat',
                             });
+
+                            if (session.id) {
+                                try {
+                                    const { headers } = await import('next/headers');
+                                    const reqHeaders = await headers();
+                                    await recordSessionBaseline(session.id, {
+                                        userId: session.userId,
+                                        nik: userNik ?? '',
+                                        headers: reqHeaders,
+                                    });
+                                } catch {
+                                    // Non-blocking in non-request environments
+                                }
+                            }
                         } catch {
                             // Non-blocking
                         }
