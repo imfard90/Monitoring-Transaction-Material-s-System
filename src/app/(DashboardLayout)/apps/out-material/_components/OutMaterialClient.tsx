@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { Card } from '@/components/ui/card';
@@ -9,8 +10,11 @@ import { useDebouncedCallback } from '@/hooks/use-debounce';
 import { useTableFilterNavigation } from '@/hooks/use-table-filters';
 import type { OutMaterialRow } from '@/lib/types/inventory';
 import OutMaterialCards from './OutMaterialCards';
-import OutMaterialDetailModal from './OutMaterialDetailModal';
 import OutMaterialTable from './OutMaterialTable';
+
+const OutMaterialDetailModal = dynamic(() => import('./OutMaterialDetailModal'), {
+    ssr: false,
+});
 
 interface OutMaterialClientProps {
     initialData: OutMaterialRow[];

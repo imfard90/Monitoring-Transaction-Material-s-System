@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { LoaderCircle, Scale } from 'lucide-react';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -37,8 +38,14 @@ import {
     getTeknisiStockList,
 } from '../_actions/stock-comparison-actions';
 import { createStockComparisonColumns } from './StockComparisonColumns';
-import { StockComparisonDetailDialog } from './StockComparisonDetailDialog';
-import { StockComparisonLiveDialog } from './StockComparisonLiveDialog';
+const StockComparisonDetailDialog = dynamic(
+    () => import('./StockComparisonDetailDialog').then((mod) => mod.StockComparisonDetailDialog),
+    { ssr: false }
+);
+const StockComparisonLiveDialog = dynamic(
+    () => import('./StockComparisonLiveDialog').then((mod) => mod.StockComparisonLiveDialog),
+    { ssr: false }
+);
 
 interface StockComparisonTableViewProps {
     initialData: TeknisiStockListItem[];

@@ -1,7 +1,6 @@
 'use client';
 
-import { IconBuildingWarehouse } from '@tabler/icons-react';
-import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronsUpDown, ChevronUp, Warehouse } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
@@ -268,7 +267,7 @@ export function StockTable({
                                     className="h-7 w-7 text-muted-foreground hover:bg-primary/10 hover:text-primary"
                                     onClick={() => setSelectedItem(row)}
                                 >
-                                    <IconBuildingWarehouse className="h-4 w-4" aria-hidden="true" />
+                                    <Warehouse className="h-4 w-4" aria-hidden="true" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="top">

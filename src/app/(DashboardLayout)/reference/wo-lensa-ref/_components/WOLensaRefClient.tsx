@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { format } from 'date-fns';
 import { Eye, FileSearch, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -37,7 +38,10 @@ import {
     triggerWOScraping,
     type WOPemakaianOption,
 } from '../_actions/wo-lensa-actions';
-import { WOLensaLiveDetailDialog } from './WOLensaLiveDetailDialog';
+const WOLensaLiveDetailDialog = dynamic(
+    () => import('./WOLensaLiveDetailDialog').then((mod) => mod.WOLensaLiveDetailDialog),
+    { ssr: false }
+);
 
 export interface WOLensaHeader {
     id: number | string;

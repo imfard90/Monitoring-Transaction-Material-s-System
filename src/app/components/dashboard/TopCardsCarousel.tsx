@@ -1,13 +1,17 @@
 'use client';
 
 import { Icon } from '@iconify/react';
-import Link from 'next/link';
-import { Autoplay } from 'swiper/modules';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import 'swiper/css';
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { getDashboardKpis } from '@/app/(DashboardLayout)/_actions/dashboard-actions';
 import { Card } from '@/components/ui/card';
+import {
+    Carousel,
+    type CarouselApi,
+    CarouselContent,
+    CarouselItem,
+} from '@/components/ui/carousel';
 import { useNumberCounter } from '@/hooks/use-number-counter';
 import { queryKeys } from '@/lib/query-keys';
 
@@ -177,91 +181,88 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
         ),
     };
 
+    const [api, setApi] = useState<CarouselApi>();
+    const [isHovered, setIsHovered] = useState(false);
+
+    useEffect(() => {
+        if (!api || isHovered) return;
+        const prefersReducedMotion =
+            typeof window !== 'undefined' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReducedMotion) return;
+
+        const timer = setInterval(() => {
+            api.scrollNext();
+        }, 4000);
+
+        return () => clearInterval(timer);
+    }, [api, isHovered]);
+
     return (
-        <div>
-            <Swiper
-                slidesPerView={6}
-                spaceBetween={24}
-                loop={true}
-                freeMode={true}
-                grabCursor={true}
-                speed={5000}
-                autoplay={{
-                    delay: 0,
-                    disableOnInteraction: false,
-                    pauseOnMouseEnter: true,
+        <div
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="w-full"
+        >
+            <Carousel
+                opts={{
+                    loop: true,
+                    align: 'start',
                 }}
-                modules={[Autoplay]}
-                breakpoints={{
-                    0: {
-                        slidesPerView: 1,
-                        spaceBetween: 10,
-                    },
-                    640: {
-                        slidesPerView: 2,
-                        spaceBetween: 14,
-                    },
-                    768: {
-                        slidesPerView: 3,
-                        spaceBetween: 16,
-                    },
-                    1030: {
-                        slidesPerView: 4,
-                        spaceBetween: 16,
-                    },
-                    1200: {
-                        slidesPerView: 6,
-                        spaceBetween: 20,
-                    },
-                }}
-                className="mySwiper"
+                setApi={setApi}
+                className="w-full"
             >
-                {kpiConfig.map((item) => {
-                    const rawValue = kpis[item.key as KpiKey] ?? 0;
-                    const { full } = formatKpiDisplay(item.key, rawValue);
-                    const { AnimatedNumber } = counters[item.key as KpiKey];
+                <CarouselContent className="-ml-3">
+                    {kpiConfig.map((item) => {
+                        const rawValue = kpis[item.key as KpiKey] ?? 0;
+                        const { full } = formatKpiDisplay(item.key, rawValue);
+                        const { AnimatedNumber } = counters[item.key as KpiKey];
 
-                    return (
-                        <SwiperSlide key={item.key} className="py-1">
-                            <Link href={item.url} className="block group">
-                                <Card
-                                    className={`relative overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 motion-reduce:transition-none ${item.bgcolor} w-full border border-white/20 dark:border-white/5 py-3.5 px-4 group-hover:-translate-y-0.5 motion-reduce:group-hover:translate-y-0`}
-                                >
-                                    {/* Decorative gradient blob */}
-                                    <div
-                                        className="absolute -right-6 -top-6 w-20 h-20 bg-white/20 dark:bg-white/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500 motion-reduce:transition-none"
-                                        aria-hidden="true"
-                                    />
-
-                                    <div className="relative z-10 flex items-center gap-3 min-w-0">
+                        return (
+                            <CarouselItem
+                                key={item.key}
+                                className="pl-3 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/6 py-1"
+                            >
+                                <Link href={item.url} className="block group">
+                                    <Card
+                                        className={`relative overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 motion-reduce:transition-none ${item.bgcolor} w-full border border-white/20 dark:border-white/5 py-3.5 px-4 group-hover:-translate-y-0.5 motion-reduce:group-hover:translate-y-0`}
+                                    >
+                                        {/* Decorative gradient blob */}
                                         <div
-                                            className={`rounded-xl p-2.5 shrink-0 bg-white/60 dark:bg-black/25 backdrop-blur-sm shadow-xs border border-white/40 dark:border-white/10 group-hover:scale-105 transition-transform duration-300 motion-reduce:transition-none`}
-                                        >
-                                            <Icon
-                                                icon={item.icon}
-                                                width={24}
-                                                height={24}
-                                                className={item.iconColor}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col min-w-0">
-                                            <p className="text-xs text-muted-foreground font-medium mb-0.5 truncate">
-                                                {item.title}
-                                            </p>
-                                            <p
-                                                title={full}
-                                                className={`text-lg sm:text-xl font-bold tracking-tight tabular-nums truncate ${item.iconColor}`}
+                                            className="absolute -right-6 -top-6 w-20 h-20 bg-white/20 dark:bg-white/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500 motion-reduce:transition-none"
+                                            aria-hidden="true"
+                                        />
+
+                                        <div className="relative z-10 flex items-center gap-3 min-w-0">
+                                            <div
+                                                className={`rounded-xl p-2.5 shrink-0 bg-white/60 dark:bg-black/25 backdrop-blur-sm shadow-xs border border-white/40 dark:border-white/10 group-hover:scale-105 transition-transform duration-300 motion-reduce:transition-none`}
                                             >
-                                                <AnimatedNumber />
-                                            </p>
+                                                <Icon
+                                                    icon={item.icon}
+                                                    width={24}
+                                                    height={24}
+                                                    className={item.iconColor}
+                                                />
+                                            </div>
+                                            <div className="flex flex-col min-w-0">
+                                                <p className="text-xs text-muted-foreground font-medium mb-0.5 truncate">
+                                                    {item.title}
+                                                </p>
+                                                <p
+                                                    title={full}
+                                                    className={`text-lg sm:text-xl font-bold tracking-tight tabular-nums truncate ${item.iconColor}`}
+                                                >
+                                                    <AnimatedNumber />
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                </Card>
-                            </Link>
-                        </SwiperSlide>
-                    );
-                })}
-            </Swiper>
+                                    </Card>
+                                </Link>
+                            </CarouselItem>
+                        );
+                    })}
+                </CarouselContent>
+            </Carousel>
         </div>
     );
 }

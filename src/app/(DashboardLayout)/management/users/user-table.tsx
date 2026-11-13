@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { ShieldAlert, ShieldCheck, Smartphone, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState, useTransition } from 'react';
@@ -26,7 +27,10 @@ import {
     toggleUserApiApproval,
     toggleUserStatus,
 } from './actions';
-import { UserDevicesDialog } from './_components/user-devices-dialog';
+const UserDevicesDialog = dynamic(
+    () => import('./_components/user-devices-dialog').then((mod) => mod.UserDevicesDialog),
+    { ssr: false }
+);
 
 export interface UserItem {
     id: string;

@@ -12,7 +12,3 @@
     transition: transform 0.2s;
 }
 
-.mySwiper .swiper-wrapper {
-    transition-timing-function: linear;
-    margin: 0 auto;
-}

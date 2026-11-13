@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { PackageMinus, Pencil, Plus } from 'lucide-react';
 import { useCallback, useMemo, useState, useTransition } from 'react';
@@ -24,8 +25,14 @@ import {
     useReactTable,
 } from '@/lib/table';
 import { toggleTechnicianStatus } from './actions';
-import { TechnicianDialog } from './technician-dialog';
-import { TechnicianExcludeDialog } from './technician-exclude-dialog';
+const TechnicianDialog = dynamic(
+    () => import('./technician-dialog').then((mod) => mod.TechnicianDialog),
+    { ssr: false }
+);
+const TechnicianExcludeDialog = dynamic(
+    () => import('./technician-exclude-dialog').then((mod) => mod.TechnicianExcludeDialog),
+    { ssr: false }
+);
 
 export interface TechnicianItem {
     id: string | number;

@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { format } from 'date-fns';
 import { CheckCircle2, Eye, FileSearch, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -37,7 +38,10 @@ import {
     scrapeSingleOutLensaDetail,
     triggerScraping,
 } from '../_actions/out-lensa-actions';
-import { OutLensaLiveDetailDialog } from './OutLensaLiveDetailDialog';
+const OutLensaLiveDetailDialog = dynamic(
+    () => import('./OutLensaLiveDetailDialog').then((mod) => mod.OutLensaLiveDetailDialog),
+    { ssr: false }
+);
 
 export interface OutLensaHeader {
     id: string;

@@ -65,9 +65,10 @@ const nextConfig = {
         optimizePackageImports: [
             '@iconify/react',
             'lucide-react',
-            '@tabler/icons-react',
             'date-fns',
-            'lodash',
+            '@tanstack/react-query',
+            '@tanstack/react-table',
+            'framer-motion',
         ],
     },
 };

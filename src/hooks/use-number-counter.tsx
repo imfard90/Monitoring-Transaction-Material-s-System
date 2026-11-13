@@ -1,15 +1,11 @@
-import { type SpringValue, animated, useSpring } from '@react-spring/web';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
- * Animated counter using React Spring.
+ * Animated counter using native requestAnimationFrame.
  *
  * Respects `prefers-reduced-motion` by snapping instantly to the target value.
- * Smoothly interpolates numbers for sighted users with motion enabled.
- *
- * Returns the spring value and the animated component. Use the component to
- * render the counter with automatic formatting.
+ * Smoothly interpolates numbers with 60fps/120fps precision and zero external libraries.
  *
  * @example
  * const { AnimatedNumber } = useNumberCounter(kpis.requestTag, (n) => n.toLocaleString('id-ID'));
@@ -19,29 +15,58 @@ export function useNumberCounter(
     value: number,
     formatter?: (n: number) => string
 ): {
-    spring: SpringValue<number>;
     AnimatedNumber: () => React.ReactElement;
 } {
-    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+    const [displayValue, setDisplayValue] = useState(value);
+    const prevValueRef = useRef(value);
 
     useEffect(() => {
-        const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-        setPrefersReducedMotion(mediaQuery.matches);
-        const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-        mediaQuery.addEventListener('change', handler);
-        return () => mediaQuery.removeEventListener('change', handler);
-    }, []);
+        if (typeof window === 'undefined') {
+            setDisplayValue(value);
+            return;
+        }
 
-    const spring = useSpring({
-        number: value,
-        config: prefersReducedMotion ? { duration: 0 } : { tension: 170, friction: 26 },
-    });
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReducedMotion) {
+            setDisplayValue(value);
+            prevValueRef.current = value;
+            return;
+        }
 
-    const AnimatedNumber = () => (
-        <animated.span>
-            {spring.number.to((n) => (formatter ? formatter(n) : Math.floor(n).toString()))}
-        </animated.span>
-    );
+        const startValue = prevValueRef.current;
+        const targetValue = value;
+        const duration = 600; // ms
+        const startTime = performance.now();
 
-    return { spring: spring.number, AnimatedNumber };
+        let animFrameId: number;
+
+        const updateNumber = (currentTime: number) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease-out cubic: 1 - (1 - progress)^3
+            const easeOutProgress = 1 - (1 - progress) ** 3;
+            const current = startValue + (targetValue - startValue) * easeOutProgress;
+
+            setDisplayValue(current);
+
+            if (progress < 1) {
+                animFrameId = requestAnimationFrame(updateNumber);
+            } else {
+                prevValueRef.current = targetValue;
+            }
+        };
+
+        animFrameId = requestAnimationFrame(updateNumber);
+
+        return () => {
+            cancelAnimationFrame(animFrameId);
+        };
+    }, [value]);
+
+    const formattedText = formatter ? formatter(displayValue) : Math.floor(displayValue).toString();
+
+    const AnimatedNumber = () => <span>{formattedText}</span>;
+
+    return { AnimatedNumber };
 }
+

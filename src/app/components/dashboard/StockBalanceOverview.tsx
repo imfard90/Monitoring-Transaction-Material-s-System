@@ -1,6 +1,6 @@
 'use client';
 
-import { IconBuildingWarehouse, IconRefresh } from '@tabler/icons-react';
+import { RefreshCw, Warehouse } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import React, { useState } from 'react';
@@ -255,7 +255,7 @@ export default function StockBalanceOverview() {    const [searchQuery, setSearc
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <span className="inline-flex cursor-default">
-                                <IconBuildingWarehouse
+                                <Warehouse
                                     className="h-4 w-4 text-muted-foreground"
                                     aria-hidden="true"
                                 />
@@ -277,7 +277,7 @@ export default function StockBalanceOverview() {    const [searchQuery, setSearc
                                     disabled={syncMutation.isPending}
                                     onClick={() => syncMutation.mutate()}
                                 >
-                                    <IconRefresh
+                                    <RefreshCw
                                         className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`}
                                         aria-hidden="true"
                                     />
@@ -314,7 +314,7 @@ export default function StockBalanceOverview() {    const [searchQuery, setSearc
                                         })
                                     }
                                 >
-                                    <IconBuildingWarehouse className="h-4 w-4" aria-hidden="true" />
+                                    <Warehouse className="h-4 w-4" aria-hidden="true" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="top">
