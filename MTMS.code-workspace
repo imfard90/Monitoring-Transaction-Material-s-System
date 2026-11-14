@@ -2,6 +2,12 @@
     "folders": [
         {
             "path": "."
+        },
+        {
+            "path": "../../Zoom/endStateV3"
+        },
+        {
+            "path": "../gresikV2"
         }
     ]
 }

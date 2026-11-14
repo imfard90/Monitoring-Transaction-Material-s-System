@@ -10,3 +10,8 @@ export {
     type ScraperType,
     scraperLogRepository,
 } from './scraper-log.repository';
+export {
+    createKproRepository,
+    type KproRepository,
+    kproRepository,
+} from './kpro.repository';

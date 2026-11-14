@@ -103,6 +103,7 @@ export const authLogger = createLoggerWithLevels(baseLogger.child({ module: 'aut
 export const securityLogger = createLoggerWithLevels(baseLogger.child({ module: 'security' }));
 export const cacheLogger = createLoggerWithLevels(baseLogger.child({ module: 'cache' }));
 export const actionLogger = createLoggerWithLevels(baseLogger.child({ module: 'action' }));
+export const kproLogger = createLoggerWithLevels(baseLogger.child({ module: 'kpro' }));
 
 // Convenience functions
 export const debug = (...args: Parameters<typeof logger.debug>) => logger.debug(...args);

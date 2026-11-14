@@ -38,5 +38,24 @@ module.exports = {
                 WORKER_ROLE: 'scraper-cron',
             },
         },
+        {
+            name: 'mtms-kpro',
+            script: 'src/workers/kpro-worker.ts',
+            node_args: '--import tsx',
+            instances: 1, // Dedicated worker wajib 1 instance (fork)
+            exec_mode: 'fork',
+            autorestart: true,
+            watch: false,
+            max_memory_restart: '2G', // Headroom RAM untuk Playwright login & parsing
+            kill_timeout: 30000,
+            env: {
+                NODE_ENV: 'development',
+                WORKER_ROLE: 'kpro-sync',
+            },
+            env_production: {
+                NODE_ENV: 'production',
+                WORKER_ROLE: 'kpro-sync',
+            },
+        },
     ],
 };

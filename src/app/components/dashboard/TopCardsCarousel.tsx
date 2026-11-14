@@ -186,7 +186,7 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
         return (
             <div
                 key={`${item.key}-${index}`}
-                className="w-[215px] sm:w-[235px] shrink-0 py-1"
+                className="w-53.75 sm:w-58.75 shrink-0 py-1"
                 aria-hidden={isDuplicate ? 'true' : undefined}
             >
                 <Link
