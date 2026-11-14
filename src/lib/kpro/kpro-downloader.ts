@@ -8,18 +8,22 @@ import type { KproCookie } from './kpro-types';
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Menyusun URL download export data fulfillment endstate per witel.
+ * Menyusun URL download export data fulfillment endstate per witel dan tipe PSB (CREATE atau PDA).
  * CATATAN PENTING: K-PRO backend memerlukan karakter literal '+' pada parameter witel
  * (misal 'witel=JATIM+BARAT'), bukan '%2B' yang dihasilkan standar URLSearchParams.
  */
-export function buildWitelDownloadUrl(witel: string, start: string, end: string): string {
+export function buildWitelDownloadUrl(
+    witel: string,
+    psb: 'CREATE' | 'PDA' = 'CREATE',
+    start: string = '',
+    end: string = ''
+): string {
     const params = new URLSearchParams({
         reg: 'REGIONAL 3',
-        datel: 'ALL',
         start,
         end,
-        psb: 'CREATE',
-        product: 'INDIHOME',
+        psb,
+        product: KPRO_CONFIG.product,
         teritory: 'TELKOM_BARU',
         reseller: 'ALL',
         tbg: 'ALL',
@@ -35,7 +39,7 @@ export function buildWitelDownloadUrl(witel: string, start: string, end: string)
 }
 
 /**
- * Mengunduh file laporan K-PRO untuk satu witel tertentu dengan mekanisme:
+ * Mengunduh file laporan K-PRO untuk satu witel dan jenis PSB tertentu dengan mekanisme:
  * 1. Retry bertahap (hingga maxDownloadAttempts) jika jaringan timeout / server sibuk.
  * 2. Auto-recovery sesi: jika cookie hangus di tengah jalan, langsung trigger login ulang
  *    dan ulangi download secara transparan.
@@ -43,8 +47,9 @@ export function buildWitelDownloadUrl(witel: string, start: string, end: string)
 export async function downloadWitelFile(
     initialCookies: KproCookie[],
     witel: string,
-    start: string,
-    end: string,
+    psb: 'CREATE' | 'PDA' = 'CREATE',
+    start: string = '',
+    end: string = '',
     destDir: string = KPRO_CONFIG.tempDir
 ): Promise<{ filePath: string; fileSize: number }> {
     await fs.mkdir(destDir, { recursive: true });
@@ -55,13 +60,13 @@ export async function downloadWitelFile(
     for (let attempt = 1; attempt <= KPRO_CONFIG.retry.maxDownloadAttempts; attempt++) {
         const safeWitelName = witel.replace(/\+/g, '_');
         const timestamp = Date.now();
-        const filePath = path.join(destDir, `kpro_${safeWitelName}_${timestamp}.html`);
+        const filePath = path.join(destDir, `kpro_${safeWitelName}_${psb}_${timestamp}.html`);
 
-        const url = buildWitelDownloadUrl(witel, start, end);
+        const url = buildWitelDownloadUrl(witel, psb, start, end);
         const cookieHeader = activeCookies.map((c) => `${c.name}=${c.value}`).join('; ');
 
         kproLogger.info(
-            `[KPRO-DOWNLOAD] Downloading ${witel} (attempt ${attempt}/${KPRO_CONFIG.retry.maxDownloadAttempts}, ${start} to ${end})...`
+            `[KPRO-DOWNLOAD] Downloading ${witel} (PSB: ${psb}, attempt ${attempt}/${KPRO_CONFIG.retry.maxDownloadAttempts}, ${start} to ${end})...`
         );
         const t0 = Date.now();
 
@@ -107,14 +112,14 @@ export async function downloadWitelFile(
             const fileSize = fileBuffer.byteLength;
 
             kproLogger.info(
-                `[KPRO-DOWNLOAD] ${witel}: Success! ${(fileSize / (1024 * 1024)).toFixed(2)} MB in ${elapsedSec}s -> ${path.basename(filePath)}`
+                `[KPRO-DOWNLOAD] ${witel} (${psb}): Success! ${(fileSize / (1024 * 1024)).toFixed(2)} MB in ${elapsedSec}s -> ${path.basename(filePath)}`
             );
 
             return { filePath, fileSize };
         } catch (err) {
             lastError = err instanceof Error ? err : new Error(String(err));
             kproLogger.warn(
-                `[KPRO-DOWNLOAD] Attempt ${attempt} failed for ${witel}: ${lastError.message}`
+                `[KPRO-DOWNLOAD] Attempt ${attempt} failed for ${witel} (${psb}): ${lastError.message}`
             );
 
             // Bersihkan file parsial jika sempat dibuat

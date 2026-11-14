@@ -79,8 +79,13 @@ async function triggerSync(triggerType: string, isRetry = false): Promise<void> 
             );
         } else {
             kproLogger.warn(`[MTMS-KPRO] <<< K-PRO Sync ended with status: ${result.error}`);
-            // Auto retry 1x setelah 60 detik jika gagal dan bukan karena lock
-            if (!isRetry && !result.error?.includes('lock') && !isShuttingDown) {
+            // Jangan lakukan auto-retry jika kendala adalah koneksi jaringan/intranet terputus
+            if (result.error?.includes('NETWORK_UNREACHABLE')) {
+                kproLogger.warn(
+                    '[MTMS-KPRO] Kendala jaringan intranet K-PRO terputus. Menunggu jadwal berikutnya tanpa auto-retry (perlu perbaikan VPN/jaringan).'
+                );
+            } else if (!isRetry && !result.error?.includes('lock') && !isShuttingDown) {
+                // Auto retry 1x setelah 60 detik jika gagal dan bukan karena lock / jaringan
                 kproLogger.info('[MTMS-KPRO] Scheduling automatic sync retry in 60s...');
                 setTimeout(() => {
                     void triggerSync(triggerType, true);
@@ -88,11 +93,17 @@ async function triggerSync(triggerType: string, isRetry = false): Promise<void> 
             }
         }
     } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
         kproLogger.error(
             '[MTMS-KPRO] <<< Unhandled error during K-PRO sync',
-            err instanceof Error ? err : new Error(String(err))
+            err instanceof Error ? err : new Error(errorMsg)
         );
-        if (!isRetry && !isShuttingDown) {
+        // Jangan auto-retry jika error jaringan intranet
+        if (errorMsg.includes('NETWORK_UNREACHABLE') || errorMsg.includes('KproNetworkError')) {
+            kproLogger.warn(
+                '[MTMS-KPRO] Kendala jaringan intranet K-PRO terputus. Menunggu jadwal berikutnya tanpa auto-retry.'
+            );
+        } else if (!isRetry && !isShuttingDown) {
             kproLogger.info(
                 '[MTMS-KPRO] Scheduling automatic sync retry in 60s after error...'
             );

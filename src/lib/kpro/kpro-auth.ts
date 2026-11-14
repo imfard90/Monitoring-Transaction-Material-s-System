@@ -57,21 +57,43 @@ export async function reapZombieChromiumProcesses(): Promise<void> {
     }
 }
 
+export class KproNetworkError extends Error {
+    readonly isNetworkIssue = true;
+    constructor(message: string) {
+        super(message);
+        this.name = 'KproNetworkError';
+    }
+}
+
 /**
  * Memeriksa apakah server intranet K-PRO dapat dijangkau.
+ * Jika throwOnError = true dan jaringan terputus, lemparkan KproNetworkError agar
+ * sinkronisasi langsung dihentikan tanpa loop retry (karena membutuhkan perbaikan koneksi fisik/VPN).
  */
-export async function checkIntranetConnection(): Promise<boolean> {
+export async function checkIntranetConnection(throwOnError = false): Promise<boolean> {
     try {
         const res = await fetch(KPRO_CONFIG.urls.intranetCheck, {
             method: 'GET',
             headers: { 'User-Agent': 'Mozilla/5.0' },
             signal: AbortSignal.timeout(KPRO_CONFIG.timeouts.intranetCheckMs),
         });
-        return res.status === 200;
+        if (res.status === 200) {
+            return true;
+        }
+        if (throwOnError) {
+            throw new KproNetworkError(
+                `Server K-PRO merespon status ${res.status} ${res.statusText} pada pengecekan intranet`
+            );
+        }
+        return false;
     } catch (err) {
-        kproLogger.warn('[KPRO-AUTH] Intranet check failed', {
-            error: err instanceof Error ? err.message : String(err),
-        });
+        const msg = err instanceof Error ? err.message : String(err);
+        kproLogger.warn('[KPRO-AUTH] Intranet check failed', { error: msg });
+        if (throwOnError) {
+            throw new KproNetworkError(
+                `Koneksi Intranet K-PRO tidak dapat dijangkau (${msg}). Diperlukan perbaikan jaringan (VPN/LAN) sebelum sinkronisasi dapat berjalan.`
+            );
+        }
         return false;
     }
 }
@@ -352,8 +374,13 @@ async function performSingleLoginAttempt(): Promise<KproCookie[]> {
 
 /**
  * Melakukan proses login otomatis ke K-PRO via Playwright dengan mekanisme RETRY hingga maxLoginAttempts.
+ * Memastikan koneksi intranet aktif terlebih dahulu; jika offline, proses langsung digagalkan
+ * tanpa retry untuk menghindari pemborosan siklus.
  */
 export async function loginAndGetCookies(): Promise<KproCookie[]> {
+    // 1. Cek koneksi intranet terlebih dahulu (fail-fast jika jaringan mati)
+    await checkIntranetConnection(true);
+
     kproLogger.info('[KPRO-AUTH] Starting Playwright login process...');
     let lastError: Error | null = null;
 
@@ -393,6 +420,11 @@ export async function loginAndGetCookies(): Promise<KproCookie[]> {
 
             return cookies;
         } catch (err) {
+            // Jika error adalah kendala jaringan intranet, jangan retry
+            if (err instanceof KproNetworkError) {
+                throw err;
+            }
+
             lastError = err instanceof Error ? err : new Error(String(err));
             kproLogger.warn(`[KPRO-AUTH] Login attempt ${attempt} failed: ${lastError.message}`);
 

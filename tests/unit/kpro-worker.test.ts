@@ -15,14 +15,25 @@ import { parseKproHtmlFile } from '@/lib/kpro/kpro-parser';
 import { createKproRepository } from '@/lib/repositories/kpro.repository';
 
 describe('K-PRO Downloader URL Builder', () => {
-    it('should build download URL preserving literal + in witel parameter', () => {
-        const url = buildWitelDownloadUrl('JATIM+BARAT', '2026-10-15', '2026-11-14');
+    it('should build download URL preserving literal + in witel parameter with psb=CREATE', () => {
+        const url = buildWitelDownloadUrl('JATIM+BARAT', 'CREATE', '2026-10-15', '2026-11-14');
 
         expect(url).toContain('witel=JATIM+BARAT');
         expect(url).not.toContain('witel=JATIM%2BBARAT');
+        expect(url).toContain('psb=CREATE');
+        expect(url).toContain('product=ALL');
+        expect(url).toContain('kolom=COMPWORK');
         expect(url).toContain('start=2026-10-15');
         expect(url).toContain('end=2026-11-14');
-        expect(url).toContain('kolom=TOTAL');
+    });
+
+    it('should build download URL for psb=PDA', () => {
+        const url = buildWitelDownloadUrl('SURAMADU', 'PDA', '2026-10-15', '2026-11-14');
+
+        expect(url).toContain('witel=SURAMADU');
+        expect(url).toContain('psb=PDA');
+        expect(url).toContain('product=ALL');
+        expect(url).toContain('kolom=COMPWORK');
     });
 });
 

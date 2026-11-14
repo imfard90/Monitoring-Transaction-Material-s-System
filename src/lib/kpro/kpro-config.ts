@@ -14,7 +14,7 @@ export const KPRO_CONFIG = {
         data:
             process.env.KPRO_DATA_URL ||
             process.env.DATA_URL ||
-            'https://kpro.telkom.co.id/kpro/newteknisi/excelfulendstate?kolom=TOTAL&in_manja=BUKAN',
+            'https://kpro.telkom.co.id/kpro/newteknisi/excelfulendstate?kolom=COMPWORK&in_manja=BUKAN',
         webOtp:
             process.env.KPRO_WEB_OTP_URL ||
             process.env.WEB_OTP_URL ||
@@ -25,6 +25,8 @@ export const KPRO_CONFIG = {
         ? process.env.KPRO_WITELS.split(',')
         : ['SURAMADU', 'JATIM+BARAT', 'JATIM+TIMUR']
     ).map((w) => w.trim()),
+    psbTypes: ['CREATE', 'PDA'] as const,
+    product: 'ALL',
     cronSchedules: [
         '30 0 * * *', // 00:30
         '0 5 * * *', // 05:00
