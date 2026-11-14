@@ -143,6 +143,8 @@ describe('K-PRO HTML Table Parser', () => {
             expect(rec1.latitude_ins).toBe(-7.155);
             expect(rec1.longitude_ins).toBe(112.655);
             expect(rec1.datecreated).toBeInstanceOf(Date);
+            // Tanggal diparse dengan offset WIB (+07:00), sehingga 12:00:00 WIB tersimpan sebagai 05:00:00 UTC
+            expect(rec1.statusdate?.toISOString()).toBe('2026-11-01T05:00:00.000Z');
             // Non-numeric string 'ODP-GSK-FBJ/40' in float field must be normalized to null without throwing
             expect(rec1.long_inst_ut).toBeNull();
 

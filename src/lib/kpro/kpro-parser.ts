@@ -30,16 +30,31 @@ function parseSafeFloat(val: string | undefined | null): number | null {
 
 /**
  * Parsing tanggal secara aman ke objek Date.
- * Format umum dari K-PRO adalah "YYYY-MM-DD HH:mm:ss" atau "YYYY-MM-DD".
+ * Format umum dari K-PRO adalah "YYYY-MM-DD HH:mm:ss" atau "YYYY-MM-DD" dalam zona waktu WIB (UTC+7).
+ * Menyematkan offset '+07:00' secara eksplisit agar Date parsing konsisten di environment apapun (UTC/lokal)
+ * dan tidak mengalami pergeseran +7 jam (date jumping ke hari esok).
  */
 function parseSafeDate(val: string | undefined | null): Date | null {
     if (!val) return null;
     const trimmed = val.trim();
     if (!trimmed || trimmed === '-' || trimmed.toLowerCase() === 'null') return null;
 
-    // Ubah "YYYY-MM-DD HH:mm:ss" menjadi format ISO yang ramah Date constructor
-    const isoString =
-        trimmed.includes(' ') && !trimmed.includes('T') ? trimmed.replace(' ', 'T') : trimmed;
+    // Jika sudah memiliki penanda timezone (misal ISO dengan +07:00, +00:00, atau Z), langsung parse
+    if (trimmed.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+        const parsed = new Date(trimmed);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    // Format "YYYY-MM-DD HH:mm:ss" atau "YYYY-MM-DD"
+    // Konversi ke format ISO dengan offset WIB (+07:00)
+    let isoString: string;
+    if (trimmed.includes(' ')) {
+        isoString = `${trimmed.replace(' ', 'T')}+07:00`;
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        isoString = `${trimmed}T00:00:00+07:00`;
+    } else {
+        isoString = trimmed;
+    }
 
     const parsed = new Date(isoString);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
