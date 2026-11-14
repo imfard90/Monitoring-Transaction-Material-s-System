@@ -438,3 +438,37 @@ input[type="time"] {
         animation-duration: 0.01ms !important;
     }
 }
+
+/* ============================================================================
+   KPI Top Cards Infinite Marquee Animation
+   ========================================================================= */
+
+@keyframes kpi-marquee-scroll {
+    0% {
+        transform: translate3d(0, 0, 0);
+    }
+    100% {
+        transform: translate3d(-50%, 0, 0);
+    }
+}
+
+.animate-kpi-marquee {
+    display: flex;
+    width: max-content;
+    animation: kpi-marquee-scroll 55s linear infinite;
+    will-change: transform;
+}
+
+.animate-kpi-marquee:hover,
+.animate-kpi-marquee:focus-within {
+    animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-kpi-marquee {
+        /* biome-ignore lint/complexity/noImportantStyles: disable animation for reduced motion */
+        animation: none !important;
+        /* biome-ignore lint/complexity/noImportantStyles: reset transform for reduced motion */
+        transform: none !important;
+    }
+}
