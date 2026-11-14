@@ -11,6 +11,8 @@ import { DataTablePagination } from '@/app/components/shared/DataTablePagination
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { StaggerContainer } from '@/components/ui/motion/stagger-container';
+import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { SearchField } from '@/components/ui/search-field';
 import {
     Select,
@@ -284,44 +286,27 @@ export default function KproRefClient({
 
     return (
         <TooltipProvider>
-            <div className="flex flex-col gap-5 w-full min-w-0">
-                {/* Header Information Card */}
-                <Card className="border border-border/80 shadow-xs">
-                    <CardHeader className="pb-3">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <StaggerContainer className="flex flex-col gap-4 w-full min-w-0 max-w-full">
+                <StaggerItem className="w-full min-w-0 max-w-full">
+                    <Card className="border-border shadow-sm flex flex-col w-full min-w-0 max-w-full overflow-hidden">
+                        <CardHeader className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-4 shrink-0">
                             <div>
-                                <CardTitle className="text-lg md:text-xl font-bold flex items-center gap-2">
+                                <CardTitle className="text-xl font-bold flex items-center gap-2">
                                     <Database className="h-5 w-5 text-primary" />
-                                    Data Referensi K-Pro
+                                    Daftar Ref K-Pro
                                 </CardTitle>
-                                <CardDescription className="text-xs md:text-sm mt-1">
-                                    Monitoring transaksi fulfillment endstate K-PRO (status COMPWORK).
+                                <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                                    Data referensi fulfillment endstate K-PRO (status COMPWORK).
                                 </CardDescription>
                             </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="lightPrimary" className="text-xs">
-                                    District: LAMONGAN
-                                </Badge>
-                                <Badge variant="outline" className="text-xs">
-                                    90 Hari Terakhir
-                                </Badge>
-                                {lastUpdate?.lastUpdatedAt && (
-                                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                                        <RefreshCw className="h-3 w-3" />
-                                        Update:{' '}
-                                        {format(new Date(lastUpdate.lastUpdatedAt), 'dd/MM HH:mm')}
-                                    </Badge>
-                                )}
-                            </div>
-                        </div>
-                    </CardHeader>
-
-                    {/* Filter & Search Bar */}
-                    <CardContent className="pt-0">
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                                {/* Filter Dropdown Datel Baru */}
-                                <div className="w-full sm:w-56 shrink-0">
+                            <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+                                <SearchField
+                                    value={searchVal}
+                                    onValueChange={handleSearchChange}
+                                    placeholder="Cari WONUM, SC, STO, Layanan, Paket..."
+                                    wrapperClassName="w-full sm:w-[240px]"
+                                />
+                                <div className="w-full sm:w-[170px]">
                                     <Select value={selectedDatel} onValueChange={handleDatelChange}>
                                         <SelectTrigger className="w-full text-xs h-9">
                                             <SelectValue placeholder="Semua Datel" />
@@ -336,47 +321,56 @@ export default function KproRefClient({
                                         </SelectContent>
                                     </Select>
                                 </div>
+                            </div>
+                        </CardHeader>
 
-                                {/* Search Field */}
-                                <div className="flex-1 min-w-[200px] max-w-md">
-                                    <SearchField
-                                        value={searchVal}
-                                        onValueChange={handleSearchChange}
-                                        placeholder="Cari WONUM, SC Order, STO, Paket..."
-                                        className="h-9 text-xs"
-                                    />
+                        <CardContent className="flex flex-col gap-3.5 w-full min-w-0 max-w-full">
+                            {/* Status info bar */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Badge variant="lightPrimary" className="text-xs">
+                                        District: LAMONGAN
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                        90 Hari Terakhir
+                                    </Badge>
+                                    {lastUpdate?.lastUpdatedAt && (
+                                        <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                            <RefreshCw className="h-3 w-3" />
+                                            Update: {format(new Date(lastUpdate.lastUpdatedAt), 'dd/MM HH:mm')}
+                                        </Badge>
+                                    )}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                    Total: <span className="font-semibold text-foreground">{pagination?.total?.toLocaleString('id-ID') ?? 0}</span> data
                                 </div>
                             </div>
 
-                            {/* Status Total Record */}
-                            <div className="text-xs text-muted-foreground whitespace-nowrap text-right shrink-0">
-                                Total: <span className="font-semibold text-foreground">{pagination?.total?.toLocaleString('id-ID') ?? 0}</span> data
+                            {/* Error Banner jika ada */}
+                            {error && (
+                                <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                                    {error}
+                                </div>
+                            )}
+
+                            {/* Data Table */}
+                            <div className="flex flex-col gap-1.5 w-full min-w-0 max-w-full">
+                                <DataTable
+                                    table={table}
+                                    isLoading={isPending}
+                                    emptyMessage="Tidak ada data."
+                                    className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-[620px]"
+                                />
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
 
-                {/* Error Banner jika ada */}
-                {error && (
-                    <div className="p-4 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                        {error}
-                    </div>
-                )}
-
-                {/* Data Table */}
-                <div className="flex flex-col gap-3">
-                    <DataTable
-                        table={table}
-                        isLoading={isPending}
-                        emptyMessage="Tidak ada data referensi K-PRO yang cocok dengan filter."
-                    />
-
-                    {/* Pagination */}
-                    {pagination && pagination.total > 0 && (
-                        <DataTablePagination table={table} />
-                    )}
-                </div>
-            </div>
+                            {/* Pagination */}
+                            <div className="shrink-0 w-full min-w-0 max-w-full">
+                                <DataTablePagination table={table} />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </StaggerItem>
+            </StaggerContainer>
         </TooltipProvider>
     );
 }
