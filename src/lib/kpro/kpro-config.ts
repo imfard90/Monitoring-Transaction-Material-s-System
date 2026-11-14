@@ -43,9 +43,10 @@ export const KPRO_CONFIG = {
         heartbeat: 'kpro:worker:heartbeat',
     },
     timeouts: {
-        intranetCheckMs: 5000,
-        defaultMs: 30000,
-        downloadMs: 180000, // 3 minutes for large exports
+        intranetCheckMs: 10000,
+        defaultMs: 300000, // 5 menit
+        loginTimeoutMs: 300000, // 5 menit (sesuai instruksi pengguna)
+        downloadMs: 300000, // 5 menit untuk unduhan data besar
         lockTtlSeconds: 3600, // 1 hour max lock duration
         heartbeatTtlSeconds: 60,
         cookieCacheTtlSeconds: 12 * 3600, // 12 hours
@@ -55,7 +56,7 @@ export const KPRO_CONFIG = {
         loginRetryDelayMs: 5000,
         maxDownloadAttempts: 3,
         downloadRetryDelayMs: 3000,
-        otpMaxPollAttempts: 5,
-        otpPollIntervalMs: 2500,
+        otpMaxPollAttempts: 60, // 60x polling * 5s = 300s (5 menit)
+        otpPollIntervalMs: 5000, // 5 detik per poll
     },
 } as const;

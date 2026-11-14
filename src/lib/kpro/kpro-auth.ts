@@ -77,24 +77,63 @@ export async function checkIntranetConnection(): Promise<boolean> {
 }
 
 /**
- * Mengambil token 6 digit OTP dari endpoint web Google Apps Script dengan mekanisme polling/retry.
+ * Mengambil snapshot nilai OTP terakhir tanpa loop (untuk pembanding apakah token sudah berganti).
  */
-export async function fetchOtpFromWebService(): Promise<string> {
-    let lastError: Error | null = null;
+export async function getLatestOtpSnapshot(): Promise<string | null> {
+    try {
+        const res = await fetch(`${KPRO_CONFIG.urls.webOtp}?action=getOTP`, {
+            method: 'GET',
+            signal: AbortSignal.timeout(15000),
+        });
+        if (res.ok) {
+            const otp = (await res.text()).trim();
+            if (/^\d{6}$/.test(otp)) {
+                return otp;
+            }
+        }
+    } catch {}
+    return null;
+}
 
-    for (let attempt = 1; attempt <= KPRO_CONFIG.retry.otpMaxPollAttempts; attempt++) {
+/**
+ * Mengambil token 6 digit OTP dari endpoint web Google Apps Script dengan mekanisme polling
+ * hingga batas waktu 5 menit (60x percobaan dengan interval 5 detik).
+ * Jika diberikan `previousOtp`, fungsi akan menunggu hingga token yang baru tiba dari Telegram.
+ */
+export async function fetchOtpFromWebService(previousOtp?: string | null): Promise<string> {
+    let lastError: Error | null = null;
+    const maxAttempts = KPRO_CONFIG.retry.otpMaxPollAttempts;
+    const pollIntervalMs = KPRO_CONFIG.retry.otpPollIntervalMs;
+
+    kproLogger.info(
+        `[KPRO-AUTH] Starting OTP polling (timeout 5 minutes, previous token: ${previousOtp ?? 'none'})...`
+    );
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
             const res = await fetch(`${KPRO_CONFIG.urls.webOtp}?action=getOTP`, {
                 method: 'GET',
-                signal: AbortSignal.timeout(KPRO_CONFIG.timeouts.defaultMs),
+                signal: AbortSignal.timeout(20000),
             });
 
             if (res.ok) {
                 const otp = (await res.text()).trim();
                 if (/^\d{6}$/.test(otp)) {
-                    return otp;
+                    // Jika token masih sama persis dengan token sebelum login dibuka,
+                    // tunggu beberapa detik agar Telegram bot sempat meng-update Google Apps Script.
+                    if (previousOtp && otp === previousOtp && attempt <= 20) {
+                        kproLogger.info(
+                            `[KPRO-AUTH] OTP from web (${otp}) is still previous token. Waiting for fresh token from Telegram (attempt ${attempt}/${maxAttempts})...`
+                        );
+                    } else {
+                        kproLogger.info(
+                            `[KPRO-AUTH] Valid fresh OTP captured on attempt ${attempt}: ${otp}`
+                        );
+                        return otp;
+                    }
+                } else {
+                    lastError = new Error(`Invalid OTP format received: "${otp}"`);
                 }
-                lastError = new Error(`Invalid OTP format received: "${otp}"`);
             } else {
                 lastError = new Error(`HTTP error ${res.status}: ${res.statusText}`);
             }
@@ -102,17 +141,14 @@ export async function fetchOtpFromWebService(): Promise<string> {
             lastError = err instanceof Error ? err : new Error(String(err));
         }
 
-        if (attempt < KPRO_CONFIG.retry.otpMaxPollAttempts) {
-            kproLogger.info(
-                `[KPRO-AUTH] Polling OTP attempt ${attempt}/${KPRO_CONFIG.retry.otpMaxPollAttempts} waiting ${KPRO_CONFIG.retry.otpPollIntervalMs}ms...`
-            );
-            await sleep(KPRO_CONFIG.retry.otpPollIntervalMs);
+        if (attempt < maxAttempts) {
+            await sleep(pollIntervalMs);
         }
     }
 
     throw (
         lastError ||
-        new Error('Failed to retrieve valid 6-digit OTP from web service after polling')
+        new Error('Failed to retrieve valid 6-digit OTP from web service after 5 minutes')
     );
 }
 
@@ -133,7 +169,7 @@ export async function checkCookiesValidity(cookies: KproCookie[]): Promise<boole
                 'User-Agent':
                     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             },
-            signal: AbortSignal.timeout(KPRO_CONFIG.timeouts.defaultMs),
+            signal: AbortSignal.timeout(30000),
         });
 
         if (!res.ok) {
@@ -161,7 +197,7 @@ export async function clearCachedCookies(): Promise<void> {
 
 /**
  * Eksekusi satu kali percobaan login Playwright.
- * Menggunakan launchServer agar memiliki akses ke process PID untuk mematikan seluruh subproses Zygote/renderer.
+ * Timeout navigasi dan elemen disetel ke 5 menit (300,000 ms) sesuai arahan pengguna.
  */
 async function performSingleLoginAttempt(): Promise<KproCookie[]> {
     let server: BrowserServer | null = null;
@@ -199,45 +235,81 @@ async function performSingleLoginAttempt(): Promise<KproCookie[]> {
         });
 
         const page = await context.newPage();
-        kproLogger.info(`[KPRO-AUTH] Navigating to ${KPRO_CONFIG.urls.login}`);
 
+        // Terapkan batas timeout 5 menit (300.000 ms) pada seluruh aksi halaman
+        const timeout5Min = KPRO_CONFIG.timeouts.loginTimeoutMs; // 300000 ms
+        page.setDefaultTimeout(timeout5Min);
+        page.setDefaultNavigationTimeout(timeout5Min);
+
+        // Ambil snapshot token sebelum halaman login dibuka
+        const previousOtp = await getLatestOtpSnapshot();
+        kproLogger.info(`[KPRO-AUTH] Snapshot OTP sebelum login: ${previousOtp ?? 'tidak ada'}`);
+
+        kproLogger.info(
+            `[KPRO-AUTH] Navigating to login URL: ${KPRO_CONFIG.urls.login} (timeout: 5 menit)...`
+        );
         await page.goto(KPRO_CONFIG.urls.login, {
             waitUntil: 'commit',
-            timeout: 60000,
+            timeout: timeout5Min,
         });
 
+        kproLogger.info('[KPRO-AUTH] Waiting for input[name="verifikasi"] (timeout: 5 menit)...');
         const otpInput = page.locator('input[name="verifikasi"]');
-        await otpInput.waitFor({ state: 'visible', timeout: 60000 });
+        await otpInput.waitFor({ state: 'visible', timeout: timeout5Min });
 
-        // Jeda waktu awal agar K-PRO selesai mengirimkan OTP ke Telegram
-        kproLogger.info('[KPRO-AUTH] Waiting 6 seconds for K-PRO OTP dispatch...');
-        await sleep(6000);
+        // Berikan jeda awal 5 detik agar K-PRO selesai memicu pengiriman OTP ke Telegram
+        kproLogger.info(
+            '[KPRO-AUTH] Form verifikasi siap. Menunggu 5 detik pengiriman OTP K-PRO...'
+        );
+        await sleep(5000);
 
-        const otp = await fetchOtpFromWebService();
-        kproLogger.info(`[KPRO-AUTH] Submitting OTP: ${otp}`);
+        // Ambil OTP baru via polling (timeout hingga 5 menit)
+        const otp = await fetchOtpFromWebService(previousOtp);
+        kproLogger.info(`[KPRO-AUTH] Mengisi kode OTP: ${otp} dan menekan tombol verifikasi...`);
 
         await otpInput.fill(otp);
         await page.locator('button[type="submit"]').click({ noWaitAfter: true });
 
-        // Tunggu transisi atau cek alert kesalahan
-        await sleep(4000);
-        const errorAlert = page.locator('div.alert.alert-danger');
-        if ((await errorAlert.count()) > 0) {
-            const errText = await errorAlert.first().innerText();
-            throw new Error(`Login rejected by K-PRO: ${errText.trim()}`);
-        }
+        // Tunggu hingga berhasil masuk dashboard atau muncul alert error (timeout 5 menit)
+        kproLogger.info(
+            '[KPRO-AUTH] Menunggu verifikasi sesi masuk ke Dashboard (timeout: 5 menit)...'
+        );
 
-        // Buka dashboard untuk memastikan sesi terkonfirmasi
-        await page.goto(KPRO_CONFIG.urls.dashboard, {
-            waitUntil: 'commit',
-            timeout: 60000,
-        });
+        await Promise.race([
+            // Kondisi A: Berhasil redirect ke Dashboard
+            page.waitForFunction(
+                () =>
+                    document.title.includes('K-PRO | Dashboard') ||
+                    window.location.href.includes('/provi/index'),
+                null,
+                { timeout: timeout5Min }
+            ),
+            // Kondisi B: Muncul alert gagal / ditolak
+            (async () => {
+                await sleep(3000);
+                const alertEl = page.locator('div.alert.alert-danger');
+                if ((await alertEl.count()) > 0) {
+                    const errText = await alertEl.first().innerText();
+                    throw new Error(`Login ditolak oleh K-PRO: ${errText.trim()}`);
+                }
+                // Jika tidak ada alert, tahan agar Promise.race dipimpin oleh kondisi A
+                await new Promise(() => {});
+            })(),
+        ]);
 
-        await sleep(2000);
-        const pageTitle = await page.title();
-        if (!pageTitle.includes('K-PRO | Dashboard')) {
-            kproLogger.warn(`[KPRO-AUTH] Page title was "${pageTitle}", waiting 3s...`);
-            await sleep(3000);
+        // Pastikan mendarat di dashboard
+        const currentUrl = page.url();
+        const currentTitle = await page.title();
+        kproLogger.info(
+            `[KPRO-AUTH] Berhasil sampai di Dashboard! URL: ${currentUrl}, Title: "${currentTitle}"`
+        );
+
+        if (!currentTitle.includes('K-PRO | Dashboard')) {
+            await page.goto(KPRO_CONFIG.urls.dashboard, {
+                waitUntil: 'commit',
+                timeout: timeout5Min,
+            });
+            await sleep(2000);
         }
 
         const rawCookies = await context.cookies();
@@ -253,8 +325,12 @@ async function performSingleLoginAttempt(): Promise<KproCookie[]> {
         }));
 
         if (cookies.length === 0) {
-            throw new Error('Login succeeded but no cookies were returned');
+            throw new Error('Login berhasil tetapi tidak ada cookie yang tersimpan');
         }
+
+        kproLogger.info(
+            `[KPRO-AUTH] Berhasil mengekstrak ${cookies.length} cookie sesi: ${cookies.map((c) => c.name).join(', ')}`
+        );
 
         return cookies;
     } finally {
