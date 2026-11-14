@@ -199,6 +199,14 @@ const SidebarContent: MenuItem[] = [
                 url: '/reference/stock-comparison',
                 isPro: false,
             },
+            {
+                id: 'ref-kpro-ref',
+                name: 'K-Pro Ref',
+                icon: 'solar:database-linear',
+                iconActive: 'solar:database-bold',
+                url: '/reference/kpro-ref',
+                isPro: false,
+            },
         ],
     },
 ];
