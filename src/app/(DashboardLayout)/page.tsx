@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getPageSessionUser } from '@/lib/auth-server';
 import { Footer } from '../components/dashboard/Footer';
 import { IntechAgingPanel } from '../components/dashboard/IntechAgingPanel';
+import { KproRekonAnalyticsPanel } from '../components/dashboard/KproRekonAnalyticsPanel';
 import OutMaterialLineChart from '../components/dashboard/OutMaterialLineChart';
 import { ProductPerformance } from '../components/dashboard/ProductPerformance';
 import ProfileWelcome from '../components/dashboard/ProfileWelcome';
@@ -108,7 +109,12 @@ export default async function Page() {
                     </div>
                 </StaggerItem>
 
-                {/* Baris 4: Stock Value Donut & Out Material Line Chart */}
+                {/* Baris 4: Analisis Kepatuhan Rekon K-PRO (Materialized View OLAP) */}
+                <StaggerItem className="col-span-12">
+                    <KproRekonAnalyticsPanel />
+                </StaggerItem>
+
+                {/* Baris 5: Stock Value Donut & Out Material Line Chart */}
                 <StaggerItem className="col-span-12">
                     <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 items-stretch">
                         <div className="lg:col-span-3 min-w-0 flex">
