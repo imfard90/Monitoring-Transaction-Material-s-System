@@ -22,6 +22,14 @@ export interface KproRekonDistrictRollup {
     persentase_rekon: number;
 }
 
+export interface KproRekonDatelRollup {
+    datel_baru: string;
+    total_orders: number;
+    total_rekon_lensa: number;
+    total_belum_rekon: number;
+    persentase_rekon: number;
+}
+
 export interface KproRekonDailyTrend {
     tgl: string;
     total_orders: number;
@@ -39,8 +47,13 @@ export interface AnalyticsRepository {
     getKproRekonDistrictRollup(params?: {
         days?: number;
     }): Promise<KproRekonDistrictRollup[]>;
+    getKproRekonDatelRollup(params?: {
+        district?: string;
+        days?: number;
+    }): Promise<KproRekonDatelRollup[]>;
     getKproRekonDailyTrend(params?: {
         district?: string;
+        datel?: string;
         days?: number;
     }): Promise<KproRekonDailyTrend[]>;
     refreshAnalyticsMViews(): Promise<{ durationMs: number }>;
@@ -127,10 +140,50 @@ export function createAnalyticsRepository(customPool?: Pool): AnalyticsRepositor
         },
 
         /**
+         * Mengambil rollup ringkasan performa per Datel Baru / Gudang untuk suatu distrik
+         */
+        async getKproRekonDatelRollup(params?: {
+            district?: string;
+            days?: number;
+        }): Promise<KproRekonDatelRollup[]> {
+            const pool = getPool();
+            const days = params?.days ?? 30;
+            const district = params?.district ?? 'LAMONGAN';
+            const conditions: string[] = ['tgl >= CURRENT_DATE - ($1 || \' days\')::interval'];
+            const values: unknown[] = [days];
+            let paramIdx = 2;
+
+            if (district && district !== 'all') {
+                conditions.push(`district_tif = $${paramIdx++}`);
+                values.push(district);
+            }
+
+            const query = `
+                SELECT 
+                    datel_baru,
+                    SUM(total_orders)::int AS total_orders,
+                    SUM(total_rekon_lensa)::int AS total_rekon_lensa,
+                    SUM(total_belum_rekon)::int AS total_belum_rekon,
+                    ROUND(
+                        (SUM(total_rekon_lensa)::numeric / NULLIF(SUM(total_orders), 0)) * 100, 
+                        2
+                    ) AS persentase_rekon
+                FROM analytics.mv_kpro_rekon_summary
+                WHERE ${conditions.join(' AND ')}
+                GROUP BY datel_baru
+                ORDER BY total_orders DESC;
+            `;
+
+            const res = await pool.query<KproRekonDatelRollup>(query, values);
+            return res.rows;
+        },
+
+        /**
          * Mengambil tren harian (timeseries) untuk grafik visualisasi
          */
         async getKproRekonDailyTrend(params?: {
             district?: string;
+            datel?: string;
             days?: number;
         }): Promise<KproRekonDailyTrend[]> {
             const pool = getPool();
@@ -142,6 +195,11 @@ export function createAnalyticsRepository(customPool?: Pool): AnalyticsRepositor
             if (params?.district && params.district !== 'all') {
                 conditions.push(`district_tif = $${paramIdx++}`);
                 values.push(params.district);
+            }
+
+            if (params?.datel && params.datel !== 'all') {
+                conditions.push(`datel_baru = $${paramIdx++}`);
+                values.push(params.datel);
             }
 
             const query = `

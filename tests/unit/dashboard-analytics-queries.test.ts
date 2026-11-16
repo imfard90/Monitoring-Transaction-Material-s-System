@@ -6,13 +6,13 @@ const {
     mockGetSessionUser,
     mockCacheGet,
     mockCacheSet,
-    mockGetKproRekonDistrictRollup,
+    mockGetKproRekonDatelRollup,
     mockGetKproRekonDailyTrend,
 } = vi.hoisted(() => ({
     mockGetSessionUser: vi.fn(),
     mockCacheGet: vi.fn(),
     mockCacheSet: vi.fn(),
-    mockGetKproRekonDistrictRollup: vi.fn(),
+    mockGetKproRekonDatelRollup: vi.fn(),
     mockGetKproRekonDailyTrend: vi.fn(),
 }));
 
@@ -37,7 +37,7 @@ vi.mock('@/lib/logger', () => ({
 
 vi.mock('@/lib/repositories', () => ({
     analyticsRepository: {
-        getKproRekonDistrictRollup: (params: unknown) => mockGetKproRekonDistrictRollup(params),
+        getKproRekonDatelRollup: (params: unknown) => mockGetKproRekonDatelRollup(params),
         getKproRekonDailyTrend: (params: unknown) => mockGetKproRekonDailyTrend(params),
     },
 }));
@@ -58,21 +58,21 @@ describe('getKproRekonAnalytics Action', () => {
         mockCacheSet.mockResolvedValue(undefined);
     });
 
-    it('returns calculated summary, district rollup, and daily trend for all districts', async () => {
+    it('returns calculated summary, warehouse rollup, and daily trend for all warehouses in Lamongan', async () => {
         const mockRollup = [
             {
-                district_tif: 'LAMONGAN',
+                datel_baru: 'GRESIK',
                 total_orders: 100,
-                total_rekon_lensa: 80,
-                total_belum_rekon: 20,
-                persentase_rekon: 80,
+                total_rekon_lensa: 95,
+                total_belum_rekon: 5,
+                persentase_rekon: 95,
             },
             {
-                district_tif: 'SURAMADU',
+                datel_baru: 'BJNEGORO',
                 total_orders: 50,
-                total_rekon_lensa: 0,
-                total_belum_rekon: 50,
-                persentase_rekon: 0,
+                total_rekon_lensa: 48,
+                total_belum_rekon: 2,
+                persentase_rekon: 96,
             },
         ];
 
@@ -80,103 +80,126 @@ describe('getKproRekonAnalytics Action', () => {
             {
                 tgl: '2026-11-01',
                 total_orders: 50,
-                total_rekon_lensa: 30,
-                total_belum_rekon: 20,
-                persentase_rekon: 60,
+                total_rekon_lensa: 48,
+                total_belum_rekon: 2,
+                persentase_rekon: 96,
             },
             {
                 tgl: '2026-11-02',
                 total_orders: 100,
-                total_rekon_lensa: 50,
-                total_belum_rekon: 50,
-                persentase_rekon: 50,
+                total_rekon_lensa: 95,
+                total_belum_rekon: 5,
+                persentase_rekon: 95,
             },
         ];
 
-        mockGetKproRekonDistrictRollup.mockResolvedValue(mockRollup);
+        mockGetKproRekonDatelRollup.mockResolvedValue(mockRollup);
         mockGetKproRekonDailyTrend.mockResolvedValue(mockTrend);
 
-        const res = await getKproRekonAnalytics({ days: 30, district: 'all' });
+        const res = await getKproRekonAnalytics({ days: 30, warehouse: 'all' });
 
         expect(res.success).toBe(true);
         expect(res.data).toBeDefined();
+        expect(res.data?.district).toBe('LAMONGAN');
         expect(res.data?.summary).toEqual({
             totalOrders: 150,
-            totalRekonLensa: 80,
-            totalBelumRekon: 70,
-            persentaseRekon: 53.33,
+            totalRekonLensa: 143,
+            totalBelumRekon: 7,
+            persentaseRekon: 95.33,
         });
-        expect(res.data?.districts).toEqual(['LAMONGAN', 'SURAMADU']);
-        expect(res.data?.districtRollup).toEqual(mockRollup);
+        expect(res.data?.warehouseRollup).toEqual([
+            {
+                datel: 'GRESIK',
+                warehouseName: 'SO Gresik',
+                total_orders: 100,
+                total_rekon_lensa: 95,
+                total_belum_rekon: 5,
+                persentase_rekon: 95,
+            },
+            {
+                datel: 'BJNEGORO',
+                warehouseName: 'SO Bojonegoro',
+                total_orders: 50,
+                total_rekon_lensa: 48,
+                total_belum_rekon: 2,
+                persentase_rekon: 96,
+            },
+        ]);
+        expect(res.data?.warehouses).toEqual([
+            { datel: 'GRESIK', name: 'SO Gresik' },
+            { datel: 'BJNEGORO', name: 'SO Bojonegoro' },
+        ]);
         expect(res.data?.dailyTrend).toEqual(mockTrend);
 
         // Verifikasi cache set dipanggil dengan TTL 300s
         expect(mockCacheSet).toHaveBeenCalledWith(
             'analytics',
             expect.objectContaining({ summary: expect.any(Object) }),
-            'kpro_rekon_30_all',
+            'kpro_rekon_lamongan_30_all',
             300
         );
     });
 
-    it('filters summary by specific district when requested', async () => {
+    it('filters summary and daily trend by specific warehouse when requested', async () => {
         const mockRollup = [
             {
-                district_tif: 'LAMONGAN',
+                datel_baru: 'GRESIK',
                 total_orders: 100,
-                total_rekon_lensa: 90,
-                total_belum_rekon: 10,
-                persentase_rekon: 90,
+                total_rekon_lensa: 95,
+                total_belum_rekon: 5,
+                persentase_rekon: 95,
             },
             {
-                district_tif: 'SURAMADU',
+                datel_baru: 'BJNEGORO',
                 total_orders: 50,
-                total_rekon_lensa: 10,
-                total_belum_rekon: 40,
-                persentase_rekon: 20,
+                total_rekon_lensa: 48,
+                total_belum_rekon: 2,
+                persentase_rekon: 96,
             },
         ];
 
-        mockGetKproRekonDistrictRollup.mockResolvedValue(mockRollup);
+        mockGetKproRekonDatelRollup.mockResolvedValue(mockRollup);
         mockGetKproRekonDailyTrend.mockResolvedValue([]);
 
-        const res = await getKproRekonAnalytics({ days: 14, district: 'LAMONGAN' });
+        const res = await getKproRekonAnalytics({ days: 14, warehouse: 'GRESIK' });
 
         expect(res.success).toBe(true);
         expect(res.data?.summary).toEqual({
             totalOrders: 100,
-            totalRekonLensa: 90,
-            totalBelumRekon: 10,
-            persentaseRekon: 90,
+            totalRekonLensa: 95,
+            totalBelumRekon: 5,
+            persentaseRekon: 95,
         });
         expect(mockGetKproRekonDailyTrend).toHaveBeenCalledWith({
             district: 'LAMONGAN',
+            datel: 'GRESIK',
             days: 14,
         });
     });
 
     it('returns cached data if cache is warm', async () => {
         const cachedData = {
+            district: 'LAMONGAN',
             summary: {
                 totalOrders: 200,
-                totalRekonLensa: 150,
-                totalBelumRekon: 50,
-                persentaseRekon: 75,
+                totalRekonLensa: 190,
+                totalBelumRekon: 10,
+                persentaseRekon: 95,
             },
-            districtRollup: [],
+            warehouseRollup: [],
             dailyTrend: [],
-            districts: ['LAMONGAN'],
-            selectedDistrict: 'all',
+            warehouses: [{ datel: 'GRESIK', name: 'SO Gresik' }],
+            selectedWarehouse: 'all',
             selectedDays: 30,
         };
 
         mockCacheGet.mockResolvedValue(cachedData);
 
-        const res = await getKproRekonAnalytics({ days: 30, district: 'all' });
+        const res = await getKproRekonAnalytics({ days: 30, warehouse: 'all' });
 
         expect(res.success).toBe(true);
         expect(res.data).toEqual(cachedData);
-        expect(mockGetKproRekonDistrictRollup).not.toHaveBeenCalled();
+        expect(mockGetKproRekonDatelRollup).not.toHaveBeenCalled();
         expect(mockGetKproRekonDailyTrend).not.toHaveBeenCalled();
     });
 
@@ -187,7 +210,7 @@ describe('getKproRekonAnalytics Action', () => {
     });
 
     it('returns error result when repository throws', async () => {
-        mockGetKproRekonDistrictRollup.mockRejectedValue(new Error('Database timeout'));
+        mockGetKproRekonDatelRollup.mockRejectedValue(new Error('Database timeout'));
 
         const res = await getKproRekonAnalytics();
 

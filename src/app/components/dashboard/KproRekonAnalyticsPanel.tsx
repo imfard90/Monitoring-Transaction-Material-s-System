@@ -27,37 +27,47 @@ import { queryKeys } from '@/lib/query-keys';
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 const defaultData: KproRekonAnalyticsData = {
+    district: 'LAMONGAN',
     summary: {
         totalOrders: 0,
         totalRekonLensa: 0,
         totalBelumRekon: 0,
         persentaseRekon: 0,
     },
-    districtRollup: [],
+    warehouseRollup: [],
     dailyTrend: [],
-    districts: [],
-    selectedDistrict: 'all',
+    warehouses: [],
+    selectedWarehouse: 'all',
     selectedDays: 30,
 };
 
 export const KproRekonAnalyticsPanel: React.FC = () => {
     const [selectedDays, setSelectedDays] = useState<number>(30);
-    const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
+    const [selectedWarehouse, setSelectedWarehouse] = useState<string>('all');
     const chartId = useId();
 
     const { data = defaultData, isLoading } = useQuery<KproRekonAnalyticsData>({
-        queryKey: queryKeys.dashboard.kproRekon(selectedDays, selectedDistrict),
+        queryKey: queryKeys.dashboard.kproRekon(selectedDays, selectedWarehouse),
         queryFn: async () => {
             const res = await getKproRekonAnalytics({
                 days: selectedDays,
-                district: selectedDistrict,
+                warehouse: selectedWarehouse,
             });
             return res.success && res.data ? res.data : defaultData;
         },
         staleTime: 60 * 1000,
     });
 
-    const { summary, districtRollup, dailyTrend, districts } = data;
+    const { summary, warehouseRollup, dailyTrend, warehouses } = data;
+
+    // Label Gudang yang sedang aktif
+    const activeWarehouseLabel = useMemo(() => {
+        if (selectedWarehouse === 'all') return 'Semua Gudang';
+        const found = warehouses.find(
+            (w) => w.datel.toUpperCase() === selectedWarehouse.toUpperCase()
+        );
+        return found ? found.name : selectedWarehouse;
+    }, [selectedWarehouse, warehouses]);
 
     // Series untuk Grafik Combo (Column: Orders & Rekon, Line: % Kepatuhan)
     const chartCategories = useMemo(() => {
@@ -210,8 +220,14 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">
                             <h2 className="text-base font-semibold text-foreground tracking-tight">
-                                Analisis Kepatuhan Rekon K-PRO
+                                Kepatuhan Rekon K-PRO
                             </h2>
+                            <Badge
+                                variant="outline"
+                                className="text-[10px] h-5 px-1.5 font-medium border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/5"
+                            >
+                                Distrik Lamongan
+                            </Badge>
                             <Badge
                                 variant="outline"
                                 className="text-[10px] h-5 px-1.5 font-normal border-primary/30 text-primary bg-primary/5"
@@ -250,35 +266,35 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                         </SelectContent>
                     </Select>
 
-                    {/* Filter Distrik */}
+                    {/* Filter Gudang (Datel Baru) */}
                     <Select
-                        value={selectedDistrict}
-                        onValueChange={(val) => setSelectedDistrict(val)}
+                        value={selectedWarehouse}
+                        onValueChange={(val) => setSelectedWarehouse(val)}
                     >
-                        <SelectTrigger className="h-8 text-xs w-36 border-border/80">
-                            <SelectValue placeholder="Semua Distrik" />
+                        <SelectTrigger className="h-8 text-xs w-44 border-border/80">
+                            <SelectValue placeholder="Semua Gudang" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all" className="text-xs">
-                                Semua Distrik
+                                Semua Gudang
                             </SelectItem>
-                            {districts.map((d) => (
-                                <SelectItem key={d} value={d} className="text-xs">
-                                    {d}
+                            {warehouses.map((w) => (
+                                <SelectItem key={w.datel} value={w.datel} className="text-xs">
+                                    {w.name} ({w.datel})
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
 
-                    {/* Tombol Tautan ke Data K-PRO Reference */}
+                    {/* Tombol Tautan ke Referensi Tabel K-PRO */}
                     <Button
                         variant="outline"
                         size="sm"
                         className="h-8 text-xs gap-1 border-border/80 hover:border-primary/50 hover:bg-primary/5"
                         asChild
                     >
-                        <Link href="/reference/data-kpro-ref">
-                            <span>Tabel K-PRO</span>
+                        <Link href="/reference/kpro-ref">
+                            <span>Tabel K-PRO Ref</span>
                             <Icon icon="solar:arrow-right-linear" width={14} />
                         </Link>
                     </Button>
@@ -306,8 +322,8 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                             </span>
                             <span className="text-[10px] text-muted-foreground">order</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground mt-0.5">
-                            {selectedDistrict === 'all' ? 'Seluruh Distrik' : selectedDistrict}
+                        <span className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                            {activeWarehouseLabel}
                         </span>
                     </div>
 
@@ -384,7 +400,7 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                 </div>
             )}
 
-            {/* Main Content: Chart (Left) + District Leaderboard (Right) */}
+            {/* Main Content: Chart (Left) + Warehouse Leaderboard (Right) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
                 {/* Tren Harian (7 Cols) */}
                 <div className="lg:col-span-7 flex flex-col rounded-xl border border-border/70 p-3 sm:p-4 bg-muted/10">
@@ -392,8 +408,7 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                         <div className="flex items-center gap-1.5">
                             <Icon icon="solar:graph-bold" width={16} className="text-primary" />
                             <h3 className="text-xs font-semibold text-foreground">
-                                Tren Harian Order vs Rekon (
-                                {selectedDistrict === 'all' ? 'Semua Distrik' : selectedDistrict})
+                                Tren Harian Order vs Rekon ({activeWarehouseLabel})
                             </h3>
                         </div>
                         <span className="text-[10px] font-mono text-muted-foreground">
@@ -421,17 +436,17 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                     </div>
                 </div>
 
-                {/* District Leaderboard (5 Cols) */}
+                {/* Warehouse Leaderboard (5 Cols) */}
                 <div className="lg:col-span-5 flex flex-col rounded-xl border border-border/70 p-3 sm:p-4 bg-muted/10">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-1.5">
                             <Icon icon="solar:ranking-bold" width={16} className="text-primary" />
                             <h3 className="text-xs font-semibold text-foreground">
-                                Peringkat Distrik ({selectedDays} Hari)
+                                Peringkat Gudang ({selectedDays} Hari)
                             </h3>
                         </div>
                         <span className="text-[10px] text-muted-foreground">
-                            Klik distrik untuk filter
+                            Klik gudang untuk filter
                         </span>
                     </div>
 
@@ -440,22 +455,22 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                             Array.from({ length: 5 }).map((_, i) => (
                                 <Skeleton key={`skel-row-${i}`} className="h-11 rounded-lg" />
                             ))
-                        ) : districtRollup.length === 0 ? (
+                        ) : warehouseRollup.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-muted-foreground text-xs gap-2">
                                 <Icon icon="solar:inbox-line-linear" width={28} />
-                                <span>Tidak ada data distrik</span>
+                                <span>Tidak ada data gudang</span>
                             </div>
                         ) : (
-                            districtRollup.map((row) => {
-                                const isSelected = selectedDistrict === row.district_tif;
+                            warehouseRollup.map((row) => {
+                                const isSelected = selectedWarehouse.toUpperCase() === row.datel.toUpperCase();
                                 const pct = Number(row.persentase_rekon);
                                 return (
                                     <button
                                         type="button"
-                                        key={row.district_tif}
+                                        key={row.datel}
                                         onClick={() =>
-                                            setSelectedDistrict(
-                                                isSelected ? 'all' : row.district_tif
+                                            setSelectedWarehouse(
+                                                isSelected ? 'all' : row.datel
                                             )
                                         }
                                         className={`flex flex-col p-2.5 rounded-lg border text-left transition-all ${
@@ -466,7 +481,10 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                                     >
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                                                {row.district_tif}
+                                                {row.warehouseName}
+                                                <span className="text-[10px] text-muted-foreground font-mono">
+                                                    ({row.datel})
+                                                </span>
                                                 {isSelected && (
                                                     <span className="text-[9px] px-1 py-0.2 rounded bg-primary text-primary-foreground font-semibold">
                                                         Aktif
@@ -517,7 +535,7 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
             <div className="flex items-center justify-between text-[10px] text-muted-foreground/80 pt-1 border-t border-border/40">
                 <span className="flex items-center gap-1">
                     <Icon icon="solar:database-bold" width={11} className="text-primary/70" />
-                    Sumber: Materialized View <code className="font-mono text-foreground/80">analytics.mv_kpro_rekon_summary</code> (Sinkronisasi berkala per jam)
+                    Sumber: Materialized View <code className="font-mono text-foreground/80">analytics.mv_kpro_rekon_summary</code> (Distrik Lamongan)
                 </span>
                 <span>Response query &lt; 1ms (OLAP Data Mart)</span>
             </div>

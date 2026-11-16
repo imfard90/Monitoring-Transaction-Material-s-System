@@ -70,7 +70,30 @@ describe('Analytics Repository Unit Tests', () => {
         expect(mockQuery.mock.calls[0][0]).toContain('GROUP BY district_tif');
     });
 
-    it('should query daily trend timeseries data', async () => {
+    it('should query datel rollup KPI for a district correctly', async () => {
+        const mockDatelRollup = [
+            {
+                datel_baru: 'GRESIK',
+                total_orders: 953,
+                total_rekon_lensa: 907,
+                total_belum_rekon: 46,
+                persentase_rekon: 95.17,
+            },
+        ];
+
+        const mockQuery = vi.fn().mockResolvedValue({ rows: mockDatelRollup });
+        const mockPool = { query: mockQuery } as unknown as Pool;
+
+        const repo = createAnalyticsRepository(mockPool);
+        const result = await repo.getKproRekonDatelRollup({ district: 'LAMONGAN', days: 30 });
+
+        expect(result).toEqual(mockDatelRollup);
+        expect(mockQuery).toHaveBeenCalledTimes(1);
+        expect(mockQuery.mock.calls[0][1]).toEqual([30, 'LAMONGAN']);
+        expect(mockQuery.mock.calls[0][0]).toContain('GROUP BY datel_baru');
+    });
+
+    it('should query daily trend timeseries data with district and datel', async () => {
         const mockTrend = [
             {
                 tgl: '2026-11-13',
@@ -92,11 +115,17 @@ describe('Analytics Repository Unit Tests', () => {
         const mockPool = { query: mockQuery } as unknown as Pool;
 
         const repo = createAnalyticsRepository(mockPool);
-        const result = await repo.getKproRekonDailyTrend({ district: 'LAMONGAN', days: 14 });
+        const result = await repo.getKproRekonDailyTrend({
+            district: 'LAMONGAN',
+            datel: 'GRESIK',
+            days: 14,
+        });
 
         expect(result).toEqual(mockTrend);
         expect(mockQuery).toHaveBeenCalledTimes(1);
-        expect(mockQuery.mock.calls[0][1]).toEqual([14, 'LAMONGAN']);
+        expect(mockQuery.mock.calls[0][1]).toEqual([14, 'LAMONGAN', 'GRESIK']);
+        expect(mockQuery.mock.calls[0][0]).toContain('district_tif = $2');
+        expect(mockQuery.mock.calls[0][0]).toContain('datel_baru = $3');
         expect(mockQuery.mock.calls[0][0]).toContain('ORDER BY tgl ASC');
     });
 

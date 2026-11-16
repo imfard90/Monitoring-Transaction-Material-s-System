@@ -7,9 +7,18 @@ import { errors } from '@/lib/errors';
 import { actionLogger } from '@/lib/logger';
 import { analyticsRepository } from '@/lib/repositories';
 
+// Pemetaan Datel Baru K-PRO ke Nama Gudang Fisik MTMS (Branch Lamongan)
+const DATEL_WAREHOUSE_MAP: Record<string, string> = {
+    GRESIK: 'SO Gresik',
+    BJNEGORO: 'SO Bojonegoro',
+    'SBY UTARA': 'SO Karangpilang',
+    LAMONGAN: 'SO Lamongan',
+    TUBAN: 'SO Tuban',
+};
+
 const getKproRekonAnalyticsSchema = z.object({
     days: z.number().int().min(1).max(365).default(30),
-    district: z.string().trim().default('all'),
+    warehouse: z.string().trim().default('all'),
 });
 
 export interface KproRekonSummaryMetrics {
@@ -19,15 +28,19 @@ export interface KproRekonSummaryMetrics {
     persentaseRekon: number;
 }
 
+export interface KproRekonWarehouseItem {
+    datel: string;
+    warehouseName: string;
+    total_orders: number;
+    total_rekon_lensa: number;
+    total_belum_rekon: number;
+    persentase_rekon: number;
+}
+
 export interface KproRekonAnalyticsData {
+    district: string;
     summary: KproRekonSummaryMetrics;
-    districtRollup: Array<{
-        district_tif: string;
-        total_orders: number;
-        total_rekon_lensa: number;
-        total_belum_rekon: number;
-        persentase_rekon: number;
-    }>;
+    warehouseRollup: KproRekonWarehouseItem[];
     dailyTrend: Array<{
         tgl: string;
         total_orders: number;
@@ -35,18 +48,18 @@ export interface KproRekonAnalyticsData {
         total_belum_rekon: number;
         persentase_rekon: number;
     }>;
-    districts: string[];
-    selectedDistrict: string;
+    warehouses: Array<{ datel: string; name: string }>;
+    selectedWarehouse: string;
     selectedDays: number;
 }
 
 /**
  * Server action untuk mengambil data analitik agregasi K-PRO vs Rekon Lensa
- * bersumber dari Materialized View analytics.mv_kpro_rekon_summary
+ * Khusus cakupan operasional MTMS (District Lamongan) per gudang/datel.
  */
 export async function getKproRekonAnalytics(inputParams?: {
     days?: number;
-    district?: string;
+    warehouse?: string;
 }): Promise<{ success: boolean; data?: KproRekonAnalyticsData; error?: string }> {
     const user = await getSessionUser();
     if (!user) {
@@ -61,43 +74,57 @@ export async function getKproRekonAnalytics(inputParams?: {
         return { success: false, error: 'Parameter filter analitik tidak valid' };
     }
 
-    const { days, district } = parsed.data;
+    const { days, warehouse } = parsed.data;
+    const districtScope = 'LAMONGAN';
 
     try {
-        const cacheKey = `kpro_rekon_${days}_${district.toLowerCase()}`;
+        const cacheKey = `kpro_rekon_lamongan_${days}_${warehouse.toLowerCase()}`;
         const cached = await encryptedCache.getGeneral<KproRekonAnalyticsData>('analytics', cacheKey);
         if (cached) {
             return { success: true, data: cached };
         }
 
-        // 1. Ambil rollup semua distrik untuk tabel pemeringkatan & list distrik
-        const districtRollup = await analyticsRepository.getKproRekonDistrictRollup({ days });
-
-        // 2. Ambil tren harian (opsional terfilter distrik)
-        const dailyTrend = await analyticsRepository.getKproRekonDailyTrend({
-            district: district === 'all' ? undefined : district,
+        // 1. Ambil rollup performa per datel/gudang untuk Distrik Lamongan
+        const datelRollupRaw = await analyticsRepository.getKproRekonDatelRollup({
+            district: districtScope,
             days,
         });
 
-        // 3. Hitung ringkasan metrik KPI
+        const warehouseRollup: KproRekonWarehouseItem[] = datelRollupRaw.map((row) => ({
+            datel: row.datel_baru,
+            warehouseName: DATEL_WAREHOUSE_MAP[row.datel_baru.toUpperCase()] ?? row.datel_baru,
+            total_orders: Number(row.total_orders),
+            total_rekon_lensa: Number(row.total_rekon_lensa),
+            total_belum_rekon: Number(row.total_belum_rekon),
+            persentase_rekon: Number(row.persentase_rekon),
+        }));
+
+        // 2. Ambil tren harian untuk Distrik Lamongan (opsional terfilter gudang tertentu)
+        const dailyTrend = await analyticsRepository.getKproRekonDailyTrend({
+            district: districtScope,
+            datel: warehouse === 'all' ? undefined : warehouse,
+            days,
+        });
+
+        // 3. Hitung ringkasan metrik KPI untuk Distrik Lamongan / Gudang terpilih
         let totalOrders = 0;
         let totalRekonLensa = 0;
         let totalBelumRekon = 0;
 
-        if (district === 'all') {
-            for (const row of districtRollup) {
-                totalOrders += Number(row.total_orders);
-                totalRekonLensa += Number(row.total_rekon_lensa);
-                totalBelumRekon += Number(row.total_belum_rekon);
+        if (warehouse === 'all') {
+            for (const item of warehouseRollup) {
+                totalOrders += item.total_orders;
+                totalRekonLensa += item.total_rekon_lensa;
+                totalBelumRekon += item.total_belum_rekon;
             }
         } else {
-            const matched = districtRollup.find(
-                (d) => d.district_tif.toUpperCase() === district.toUpperCase()
+            const matched = warehouseRollup.find(
+                (w) => w.datel.toUpperCase() === warehouse.toUpperCase()
             );
             if (matched) {
-                totalOrders = Number(matched.total_orders);
-                totalRekonLensa = Number(matched.total_rekon_lensa);
-                totalBelumRekon = Number(matched.total_belum_rekon);
+                totalOrders = matched.total_orders;
+                totalRekonLensa = matched.total_rekon_lensa;
+                totalBelumRekon = matched.total_belum_rekon;
             }
         }
 
@@ -113,16 +140,18 @@ export async function getKproRekonAnalytics(inputParams?: {
             persentaseRekon,
         };
 
-        const districts = districtRollup
-            .map((d) => d.district_tif)
-            .filter(Boolean);
+        const warehouseList = warehouseRollup.map((w) => ({
+            datel: w.datel,
+            name: w.warehouseName,
+        }));
 
         const resultData: KproRekonAnalyticsData = {
+            district: districtScope,
             summary,
-            districtRollup,
+            warehouseRollup,
             dailyTrend,
-            districts,
-            selectedDistrict: district,
+            warehouses: warehouseList,
+            selectedWarehouse: warehouse,
             selectedDays: days,
         };
 

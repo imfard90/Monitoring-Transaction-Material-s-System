@@ -112,12 +112,12 @@ export const queryKeys = {
         rekonSla: (warehouseId?: string) =>
             [...queryKeys.dashboard.all, 'rekon-sla', warehouseId ?? 'all'] as const,
         productPerformance: () => [...queryKeys.dashboard.all, 'product-performance'] as const,
-        kproRekon: (days?: number, district?: string) =>
+        kproRekon: (days?: number, warehouse?: string) =>
             [
                 ...queryKeys.dashboard.all,
                 'kpro-rekon',
                 days ?? 30,
-                district ?? 'all',
+                warehouse ?? 'all',
             ] as const,
     },
 
