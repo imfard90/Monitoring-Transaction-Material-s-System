@@ -15,3 +15,11 @@ export {
     type KproRepository,
     kproRepository,
 } from './kpro.repository';
+export {
+    createAnalyticsRepository,
+    type AnalyticsRepository,
+    type KproRekonSummaryRow,
+    type KproRekonDistrictRollup,
+    type KproRekonDailyTrend,
+    analyticsRepository,
+} from './analytics.repository';
