@@ -35,19 +35,19 @@ function getMetricStyling(percentage: number) {
     if (percentage < 50) {
         return {
             barColor: 'bg-rose-500',
-            badgeClass: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+            badgeClass: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20',
         };
     }
     if (percentage < 95) {
         return {
             barColor: 'bg-amber-500',
-            badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+            badgeClass: 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/20',
         };
     }
     return {
         barColor: 'bg-emerald-500',
         badgeClass:
-            'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+            'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
     };
 }
 
@@ -155,7 +155,7 @@ function MetricCard({
             </div>
 
             {/* Content List */}
-            <div className="relative z-10 mt-3 space-y-3 max-h-[280px] overflow-y-auto pr-1">
+            <div className="relative z-10 mt-3 space-y-3 max-h-70 overflow-y-auto pr-1">
                 {isLoading ? (
                     <div className="space-y-3 py-1" role="status" aria-label={`Memuat ${title}`}>
                         {['lensa-skel-1', 'lensa-skel-2', 'lensa-skel-3'].map((skelId) => (

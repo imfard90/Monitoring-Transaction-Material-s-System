@@ -322,7 +322,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                 {/* Tier < 7 Hari */}
                 <div className="flex items-center justify-between p-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
                     <div className="flex flex-col min-w-0">
-                        <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                        <span className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                             {'< 7 Hari (Normal)'}
                         </span>
@@ -333,7 +333,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                             <span className="text-[10px] text-muted-foreground">transaksi</span>
                         </div>
                     </div>
-                    <span className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
+                    <span className="text-xs font-mono font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-500/15 px-1.5 py-0.5 rounded-md">
                         {data.tiers[0]?.percentage}%
                     </span>
                 </div>
@@ -341,7 +341,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                 {/* Tier 7 - 14 Hari */}
                 <div className="flex items-center justify-between p-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5">
                     <div className="flex flex-col min-w-0">
-                        <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                        <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
                             <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
                             7–14 Hari (Waspada)
                         </span>
@@ -352,7 +352,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                             <span className="text-[10px] text-muted-foreground">transaksi</span>
                         </div>
                     </div>
-                    <span className="text-xs font-mono font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md">
+                    <span className="text-xs font-mono font-bold text-amber-800 dark:text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded-md">
                         {data.tiers[1]?.percentage}%
                     </span>
                 </div>
@@ -360,7 +360,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                 {/* Tier > 14 Hari */}
                 <div className="flex items-center justify-between p-2.5 rounded-lg border border-rose-500/20 bg-rose-500/5">
                     <div className="flex flex-col min-w-0">
-                        <span className="text-[11px] font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                        <span className="text-[11px] font-semibold text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
                             <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
                             {'> 14 Hari (Kritis)'}
                         </span>
@@ -371,7 +371,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                             <span className="text-[10px] text-muted-foreground">transaksi</span>
                         </div>
                     </div>
-                    <span className="text-xs font-mono font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded-md">
+                    <span className="text-xs font-mono font-bold text-rose-800 dark:text-rose-300 bg-rose-500/15 px-1.5 py-0.5 rounded-md">
                         {data.tiers[2]?.percentage}%
                     </span>
                 </div>

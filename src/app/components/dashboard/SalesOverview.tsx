@@ -205,10 +205,10 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
                             variant="outline"
                             className={`text-[10px] uppercase font-mono px-1.5 py-0 ${
                                 rekonRatio >= 85
-                                    ? 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+                                    ? 'border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10'
                                     : rekonRatio >= 60
-                                      ? 'border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10'
-                                      : 'border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-500/10'
+                                      ? 'border-amber-500/30 text-amber-800 dark:text-amber-300 bg-amber-500/10'
+                                      : 'border-rose-500/30 text-rose-700 dark:text-rose-300 bg-rose-500/10'
                             }`}
                         >
                             Rasio Rekon: {rekonRatio}%
@@ -317,7 +317,7 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
                 </div>
                 <div className="flex items-center justify-end gap-1.5">
                     <span className="text-[11px] text-muted-foreground">Gap Terbuka:</span>
-                    <span className="font-mono font-bold text-amber-600 dark:text-amber-400 tabular-nums">
+                    <span className="font-mono font-bold text-amber-800 dark:text-amber-300 tabular-nums">
                         {gapTerbuka.toLocaleString('id-ID')}
                     </span>
                 </div>

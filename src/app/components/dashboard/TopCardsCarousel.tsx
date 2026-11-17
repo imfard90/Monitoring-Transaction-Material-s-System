@@ -247,7 +247,7 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
             className="w-full relative overflow-hidden py-1"
         >
             {/* Edge fade mask for seamless entry and exit visual */}
-            <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_20px,black_calc(100%-20px),transparent)]">
+            <div className="relative w-full overflow-hidden mask-[linear-gradient(to_right,transparent,black_20px,black_calc(100%-20px),transparent)]">
                 <div className="animate-kpi-marquee flex gap-3.5 sm:gap-4 pr-3.5 sm:pr-4">
                     {kpiConfig.map((item, idx) => renderCard(item, idx, false))}
                     {kpiConfig.map((item, idx) => renderCard(item, idx + 9, true))}

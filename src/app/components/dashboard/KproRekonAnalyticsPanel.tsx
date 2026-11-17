@@ -225,9 +225,9 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
 
     // Rasio warna badge kepatuhan keseluruhan
     const complianceBadgeColor = useMemo(() => {
-        if (summary.persentaseRekon >= 80) return 'text-emerald-600 bg-emerald-500/10 border-emerald-500/30';
-        if (summary.persentaseRekon >= 50) return 'text-amber-600 bg-amber-500/10 border-amber-500/30';
-        return 'text-rose-600 bg-rose-500/10 border-rose-500/30';
+        if (summary.persentaseRekon >= 80) return 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/30';
+        if (summary.persentaseRekon >= 50) return 'text-amber-800 dark:text-amber-300 bg-amber-500/10 border-amber-500/30';
+        return 'text-rose-700 dark:text-rose-300 bg-rose-500/10 border-rose-500/30';
     }, [summary.persentaseRekon]);
 
     return (
@@ -356,8 +356,8 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
 
                     {/* Card 2: Sudah Rekon */}
                     <div className="p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex flex-col justify-between">
-                        <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
-                            <span className="text-[11px] font-medium">Tervalidasi Rekon Lensa</span>
+                        <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-300">
+                            <span className="text-[11px] font-semibold">Tervalidasi Rekon Lensa</span>
                             <Icon icon="solar:check-circle-bold-duotone" width={16} />
                         </div>
                         <div className="mt-1.5 flex items-baseline gap-1">
@@ -366,15 +366,15 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                             </span>
                             <span className="text-[10px] text-muted-foreground">order</span>
                         </div>
-                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5 font-medium">
+                        <span className="text-[10px] text-emerald-700 dark:text-emerald-300 mt-0.5 font-medium">
                             Terekonsiliasi material
                         </span>
                     </div>
 
                     {/* Card 3: Belum Rekon */}
                     <div className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 flex flex-col justify-between">
-                        <div className="flex items-center justify-between text-amber-600 dark:text-amber-400">
-                            <span className="text-[11px] font-medium">Belum Terekon</span>
+                        <div className="flex items-center justify-between text-amber-800 dark:text-amber-300">
+                            <span className="text-[11px] font-semibold">Belum Terekon</span>
                             <Icon icon="solar:clock-circle-bold-duotone" width={16} />
                         </div>
                         <div className="mt-1.5 flex items-baseline gap-1">
@@ -528,10 +528,10 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                                                 <span
                                                     className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded ${
                                                         pct >= 80
-                                                            ? 'text-emerald-600 bg-emerald-500/10'
+                                                            ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10'
                                                             : pct >= 50
-                                                              ? 'text-amber-600 bg-amber-500/10'
-                                                              : 'text-rose-600 bg-rose-500/10'
+                                                              ? 'text-amber-800 dark:text-amber-300 bg-amber-500/10'
+                                                              : 'text-rose-700 dark:text-rose-300 bg-rose-500/10'
                                                     }`}
                                                 >
                                                     {pct}%

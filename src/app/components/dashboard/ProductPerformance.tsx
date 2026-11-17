@@ -40,15 +40,15 @@ export const ProductPerformance = () => {    const { data: warehouseData = [], i
 
             let barColor = 'bg-emerald-500';
             let badgeClass =
-                'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+                'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20';
 
             if (percentage < 50) {
                 barColor = 'bg-rose-500';
-                badgeClass = 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
+                badgeClass = 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20';
             } else if (percentage < 95) {
                 barColor = 'bg-amber-500';
                 badgeClass =
-                    'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+                    'bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/20';
             }
 
             return {
@@ -140,7 +140,7 @@ export const ProductPerformance = () => {    const { data: warehouseData = [], i
                                                 className={cn(
                                                     'inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold shrink-0 border',
                                                     isGold
-                                                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                                        ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30'
                                                         : isSilver
                                                           ? 'bg-slate-400/15 text-slate-600 dark:text-slate-300 border-slate-400/30'
                                                           : isBronze

@@ -192,7 +192,7 @@ export const StockRunoutForecast: React.FC<{
             {/* Header */}
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-2.5 pb-2.5 border-b border-border/60">
                 <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
+                    <div className="p-2 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20 shrink-0">
                         <Icon icon="solar:battery-charge-minimalistic-bold-duotone" width={20} />
                     </div>
                     <div>
@@ -203,7 +203,7 @@ export const StockRunoutForecast: React.FC<{
                             {criticalCount > 0 && (
                                 <Badge
                                     variant="outline"
-                                    className="text-[10px] uppercase font-mono px-1.5 py-0 border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-500/10"
+                                    className="text-[10px] uppercase font-mono px-1.5 py-0 border-rose-500/30 text-rose-800 dark:text-rose-300 bg-rose-500/10"
                                 >
                                     {criticalCount} Kritis
                                 </Badge>

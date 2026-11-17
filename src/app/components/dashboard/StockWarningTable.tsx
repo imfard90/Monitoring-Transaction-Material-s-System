@@ -139,8 +139,8 @@ export const StockWarningTable = ({
                                     className={cn(
                                         'text-[11px] font-semibold tracking-tight transition-colors',
                                         deficitCount > 0
-                                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-                                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                            ? 'bg-rose-500/10 text-rose-800 dark:text-rose-300 border-rose-500/20'
+                                            : 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/20'
                                     )}
                                 >
                                     {deficitCount > 0 ? (
@@ -407,7 +407,7 @@ export const StockWarningTable = ({
                                             )}
                                         >
                                             {/* Warehouse Name */}
-                                            <TableCell className="py-2.5 font-medium text-xs text-muted-foreground whitespace-nowrap">
+                                            <TableCell className="py-2.5 font-medium text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
                                                 {w.warehouse_name || '-'}
                                             </TableCell>
 
@@ -419,7 +419,7 @@ export const StockWarningTable = ({
                                                     </span>
                                                     {w.material_name && (
                                                         <span
-                                                            className="text-[11px] text-muted-foreground truncate max-w-45 sm:max-w-60"
+                                                            className="text-[11px] text-slate-600 dark:text-slate-400 truncate max-w-45 sm:max-w-60"
                                                             title={w.material_name}
                                                         >
                                                             {w.material_name}
@@ -435,7 +435,7 @@ export const StockWarningTable = ({
                                                         {Number(w.average_demand_weekly).toFixed(1)}{' '}
                                                         / mgg
                                                     </span>
-                                                    <span className="text-[10px] text-muted-foreground">
+                                                    <span className="text-[10px] text-slate-600 dark:text-slate-400">
                                                         LT: {w.lead_time_weeks} mg • SS:{' '}
                                                         {Number(w.safety_stock_pct).toFixed(0)}%
                                                     </span>
@@ -448,7 +448,7 @@ export const StockWarningTable = ({
                                                     <span className="text-xs font-semibold text-foreground">
                                                         {w.min_qty.toLocaleString('id-ID')}
                                                     </span>
-                                                    <span className="text-[10px] text-muted-foreground">
+                                                    <span className="text-[10px] text-slate-600 dark:text-slate-400">
                                                         {w.material_unit || 'unit'}
                                                     </span>
                                                 </div>
@@ -461,8 +461,8 @@ export const StockWarningTable = ({
                                                         className={cn(
                                                             'text-xs font-bold',
                                                             isWarning
-                                                                ? 'text-rose-600 dark:text-rose-400'
-                                                                : 'text-emerald-600 dark:text-emerald-400'
+                                                                ? 'text-rose-700 dark:text-rose-300'
+                                                                : 'text-emerald-700 dark:text-emerald-300'
                                                         )}
                                                     >
                                                         {w.qty_stock.toLocaleString('id-ID')}
@@ -491,7 +491,7 @@ export const StockWarningTable = ({
                                             {/* Deficit Amount */}
                                             <TableCell className="py-2.5 text-right whitespace-nowrap">
                                                 {isWarning ? (
-                                                    <span className="inline-flex items-center gap-0.5 font-mono text-xs font-bold text-rose-600 dark:text-rose-400">
+                                                    <span className="inline-flex items-center gap-0.5 font-mono text-xs font-bold text-rose-700 dark:text-rose-300">
                                                         -{w.deficit.toLocaleString('id-ID')}
                                                     </span>
                                                 ) : (
@@ -506,14 +506,14 @@ export const StockWarningTable = ({
                                                 {isWarning ? (
                                                     <Badge
                                                         variant="outline"
-                                                        className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 text-[11px] font-semibold"
+                                                        className="bg-rose-500/10 text-rose-800 dark:text-rose-300 border-rose-500/20 text-[11px] font-semibold"
                                                     >
                                                         Defisit
                                                     </Badge>
                                                 ) : (
                                                     <Badge
                                                         variant="outline"
-                                                        className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[11px] font-semibold"
+                                                        className="bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/20 text-[11px] font-semibold"
                                                     >
                                                         Aman
                                                     </Badge>
