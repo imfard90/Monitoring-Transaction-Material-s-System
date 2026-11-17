@@ -17,14 +17,14 @@ export function createStockComparisonColumns(onShowCached: (nik: string) => void
             size: 110,
             cell: (info) => info.getValue() || '—',
         }),
-        columnHelper.accessor('service_area', {
-            header: 'Service Area',
-            size: 140,
-            cell: (info) => info.getValue() || '—',
-        }),
         columnHelper.accessor('warehouse_name', {
             header: 'Gudang',
             size: 160,
+            cell: (info) => info.getValue() || '—',
+        }),
+        columnHelper.accessor('service_area', {
+            header: 'Service Area',
+            size: 140,
             cell: (info) => info.getValue() || '—',
         }),
         columnHelper.accessor('nik', {

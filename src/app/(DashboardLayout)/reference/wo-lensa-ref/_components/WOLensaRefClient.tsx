@@ -52,6 +52,7 @@ export interface WOLensaHeader {
     wo_number: string | null;
     nik_pemakai: string | null;
     nama_gudang: string | null;
+    service_area?: string | null;
     gi_number: string | null;
     wbs: string | null;
     rekon_check: boolean | null;
@@ -326,6 +327,11 @@ export default function WOLensaRefClient({
             header: 'Gudang',
             size: 160,
             cell: (info) => toCanonicalWarehouseName(info.getValue()) || '-',
+        }),
+        columnHelper.accessor('service_area', {
+            header: 'Service Area',
+            size: 130,
+            cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('type', {
             header: () => <div className="text-center">Tipe</div>,

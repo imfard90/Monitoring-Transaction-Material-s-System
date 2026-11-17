@@ -37,6 +37,7 @@ vi.mock('@/lib/db/db', () => ({
                 };
             }
             const countQuery = {
+                leftJoin: vi.fn().mockReturnThis(),
                 where: vi.fn().mockReturnThis(),
                 executeTakeFirst: mockCountExecuteTakeFirst,
             };

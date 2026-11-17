@@ -49,6 +49,7 @@ export interface OutLensaHeader {
     tgl_entry: string | null;
     formatted_date: string | Date | null;
     nama_gudang: string | null;
+    service_area?: string | null;
     gi_number: string | null;
     status_proses: string | null;
     nik_pemakai: string | null;
@@ -322,6 +323,11 @@ export default function OutLensaRefClient({
             header: 'Gudang',
             size: 180,
             cell: (info) => toCanonicalWarehouseName(info.getValue()) || '-',
+        }),
+        columnHelper.accessor('service_area', {
+            header: 'Service Area',
+            size: 130,
+            cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('nik_pemakai', {
             header: 'NIK Pemakai',

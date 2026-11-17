@@ -20,6 +20,7 @@ export interface OutLensaHeader {
     tgl_entry: string | null;
     formatted_date: string | Date | null;
     nama_gudang: string | null;
+    service_area?: string | null;
     gi_number: string | null;
     status_proses: string | null;
     nik_pemakai: string | null;
@@ -102,25 +103,29 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
 
         // Get total count first
         let countQuery = db
-            .selectFrom('inventory.out_lensa_ref_header')
-            .select((eb) => eb.fn.count('id').as('total'));
+            .selectFrom('inventory.out_lensa_ref_header as olh')
+            .select((eb) => eb.fn.count('olh.id').as('total'));
 
         if (filterWarehouse) {
-            countQuery = countQuery.where('nama_gudang', 'in', filterWarehouse);
+            countQuery = countQuery.where('olh.nama_gudang', 'in', filterWarehouse);
         }
 
         if (search?.trim()) {
             const s = `%${search.trim()}%`;
-            countQuery = countQuery.where((eb) =>
-                eb.or([
-                    eb('reservation_id', 'ilike', s),
-                    eb('gi_number', 'ilike', s),
-                    eb('nik_pemakai', 'ilike', s),
-                    eb('reservation_id_sap', 'ilike', s),
-                    eb('mitra', 'ilike', s),
-                    eb('nama_gudang', 'ilike', s),
-                ])
-            );
+            countQuery = countQuery
+                .leftJoin('hr.technicians as t', 't.nik', 'olh.nik_pemakai')
+                .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
+                .where((eb) =>
+                    eb.or([
+                        eb('olh.reservation_id', 'ilike', s),
+                        eb('olh.gi_number', 'ilike', s),
+                        eb('olh.nik_pemakai', 'ilike', s),
+                        eb('olh.reservation_id_sap', 'ilike', s),
+                        eb('olh.mitra', 'ilike', s),
+                        eb('olh.nama_gudang', 'ilike', s),
+                        eb('b.service_area', 'ilike', s),
+                    ])
+                );
         }
 
         const countResult = await countQuery.executeTakeFirst();
@@ -143,28 +148,49 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             )
         );
 
-        // Fetch paginated headers
+        // Fetch paginated headers with Service Area from HR
         let headerQuery = db
-            .selectFrom('inventory.out_lensa_ref_header')
-            .selectAll()
-            .orderBy('formatted_date', 'desc')
+            .selectFrom('inventory.out_lensa_ref_header as olh')
+            .leftJoin('hr.technicians as t', 't.nik', 'olh.nik_pemakai')
+            .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
+            .select([
+                'olh.id',
+                'olh.reservation_id',
+                'olh.project_id',
+                'olh.mitra',
+                'olh.nik_pemakai',
+                'olh.created_at',
+                'olh.updated_at',
+                'olh.tgl_entry',
+                'olh.nama_gudang',
+                'olh.regional',
+                'olh.reservation_id_sap',
+                'olh.scraped_by_username',
+                'olh.gi_number',
+                'olh.status_proses',
+                'olh.sap_out_check',
+                'olh.formatted_date',
+                'b.service_area as service_area',
+            ])
+            .orderBy('olh.formatted_date', 'desc')
             .limit(pageSize)
             .offset((page - 1) * pageSize);
 
         if (filterWarehouse) {
-            headerQuery = headerQuery.where('nama_gudang', 'in', filterWarehouse);
+            headerQuery = headerQuery.where('olh.nama_gudang', 'in', filterWarehouse);
         }
 
         if (search?.trim()) {
             const s = `%${search.trim()}%`;
             headerQuery = headerQuery.where((eb) =>
                 eb.or([
-                    eb('reservation_id', 'ilike', s),
-                    eb('gi_number', 'ilike', s),
-                    eb('nik_pemakai', 'ilike', s),
-                    eb('reservation_id_sap', 'ilike', s),
-                    eb('mitra', 'ilike', s),
-                    eb('nama_gudang', 'ilike', s),
+                    eb('olh.reservation_id', 'ilike', s),
+                    eb('olh.gi_number', 'ilike', s),
+                    eb('olh.nik_pemakai', 'ilike', s),
+                    eb('olh.reservation_id_sap', 'ilike', s),
+                    eb('olh.mitra', 'ilike', s),
+                    eb('olh.nama_gudang', 'ilike', s),
+                    eb('b.service_area', 'ilike', s),
                 ])
             );
         }

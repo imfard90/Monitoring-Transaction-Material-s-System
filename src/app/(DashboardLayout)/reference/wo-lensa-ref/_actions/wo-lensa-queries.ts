@@ -22,6 +22,7 @@ export interface WOLensaHeader {
     wo_number: string | null;
     nik_pemakai: string | null;
     nama_gudang: string | null;
+    service_area?: string | null;
     gi_number: string | null;
     wbs: string | null;
     rekon_check: boolean | null;
@@ -111,26 +112,30 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
 
         // Hitung total data
         let countQuery = db
-            .selectFrom('inventory.wo_lensa_header')
-            .select((eb) => eb.fn.count('id').as('total'));
+            .selectFrom('inventory.wo_lensa_header as wlh')
+            .select((eb) => eb.fn.count('wlh.id').as('total'));
 
         if (filterWarehouse && filterWarehouse.length > 0) {
-            countQuery = countQuery.where('nama_gudang', 'in', filterWarehouse);
+            countQuery = countQuery.where('wlh.nama_gudang', 'in', filterWarehouse);
         }
 
         if (search?.trim()) {
             const s = `%${search.trim()}%`;
-            countQuery = countQuery.where((eb) =>
-                eb.or([
-                    eb(sql`CAST(pemakaian_id AS text)`, 'ilike', s),
-                    eb('wo_number', 'ilike', s),
-                    eb('gi_number', 'ilike', s),
-                    eb('nik_pemakai', 'ilike', s),
-                    eb('nama_gudang', 'ilike', s),
-                    eb('wbs', 'ilike', s),
-                    eb('type', 'ilike', s),
-                ])
-            );
+            countQuery = countQuery
+                .leftJoin('hr.technicians as t', 't.nik', 'wlh.nik_pemakai')
+                .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
+                .where((eb) =>
+                    eb.or([
+                        eb(sql`CAST(wlh.pemakaian_id AS text)`, 'ilike', s),
+                        eb('wlh.wo_number', 'ilike', s),
+                        eb('wlh.gi_number', 'ilike', s),
+                        eb('wlh.nik_pemakai', 'ilike', s),
+                        eb('wlh.nama_gudang', 'ilike', s),
+                        eb('wlh.wbs', 'ilike', s),
+                        eb('wlh.type', 'ilike', s),
+                        eb('b.service_area', 'ilike', s),
+                    ])
+                );
         }
 
         const countResult = await countQuery.executeTakeFirst();
@@ -153,31 +158,48 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             )
         );
 
-        // Ambil data halaman aktif
+        // Ambil data halaman aktif dengan Service Area dari HR
         const offset = (page - 1) * pageSize;
         let headerQuery = db
-            .selectFrom('inventory.wo_lensa_header')
-            .selectAll()
-            .orderBy('formatted_date', 'desc')
-            .orderBy(sql<number>`pemakaian_id`, 'desc')
+            .selectFrom('inventory.wo_lensa_header as wlh')
+            .leftJoin('hr.technicians as t', 't.nik', 'wlh.nik_pemakai')
+            .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
+            .select([
+                'wlh.id',
+                'wlh.pemakaian_id',
+                'wlh.gi_number',
+                'wlh.nama_gudang',
+                'wlh.nik_pemakai',
+                'wlh.tanggal_update',
+                'wlh.type',
+                'wlh.wbs',
+                'wlh.wo_number',
+                'wlh.created_at',
+                'wlh.formatted_date',
+                'wlh.rekon_check',
+                'b.service_area as service_area',
+            ])
+            .orderBy('wlh.formatted_date', 'desc')
+            .orderBy(sql<number>`wlh.pemakaian_id`, 'desc')
             .limit(pageSize)
             .offset(offset);
 
         if (filterWarehouse && filterWarehouse.length > 0) {
-            headerQuery = headerQuery.where('nama_gudang', 'in', filterWarehouse);
+            headerQuery = headerQuery.where('wlh.nama_gudang', 'in', filterWarehouse);
         }
 
         if (search?.trim()) {
             const s = `%${search.trim()}%`;
             headerQuery = headerQuery.where((eb) =>
                 eb.or([
-                    eb(sql`CAST(pemakaian_id AS text)`, 'ilike', s),
-                    eb('wo_number', 'ilike', s),
-                    eb('gi_number', 'ilike', s),
-                    eb('nik_pemakai', 'ilike', s),
-                    eb('nama_gudang', 'ilike', s),
-                    eb('wbs', 'ilike', s),
-                    eb('type', 'ilike', s),
+                    eb(sql`CAST(wlh.pemakaian_id AS text)`, 'ilike', s),
+                    eb('wlh.wo_number', 'ilike', s),
+                    eb('wlh.gi_number', 'ilike', s),
+                    eb('wlh.nik_pemakai', 'ilike', s),
+                    eb('wlh.nama_gudang', 'ilike', s),
+                    eb('wlh.wbs', 'ilike', s),
+                    eb('wlh.type', 'ilike', s),
+                    eb('b.service_area', 'ilike', s),
                 ])
             );
         }
