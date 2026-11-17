@@ -283,7 +283,7 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
             horizontalAlign: 'right',
             fontSize: '11px',
             fontWeight: 500,
-            labels: { colors: 'var(--muted-foreground, #7C8FAC)' },
+            labels: { colors: 'var(--color-foreground, #0F172A)' },
             markers: { size: 5, shape: 'circle' },
             itemMargin: { horizontal: 6, vertical: 0 },
         },
@@ -306,13 +306,21 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
             axisBorder: { show: false },
             axisTicks: { show: false },
             labels: {
-                style: { fontSize: '11px', fontFamily: 'inherit' },
+                style: {
+                    colors: 'var(--color-muted-foreground, #475569)',
+                    fontSize: '11px',
+                    fontFamily: 'inherit',
+                },
             },
         },
         yaxis: {
             tickAmount: 5,
             labels: {
-                style: { fontSize: '11px', fontFamily: 'monospace' },
+                style: {
+                    colors: 'var(--color-muted-foreground, #475569)',
+                    fontSize: '11px',
+                    fontFamily: 'monospace',
+                },
                 formatter: (val) => `${Math.abs(val ?? 0)}`,
             },
         },

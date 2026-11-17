@@ -139,15 +139,30 @@ const RecentTransaction: React.FC<{ isStaff: boolean; warehouses: WarehouseOptio
                 categories: chartData.categories,
                 axisBorder: { show: false },
                 axisTicks: { show: false },
-                title: { text: 'Volume Pengeluaran (Drop Cable skala visual 1:10)' },
+                title: {
+                    text: 'Volume Pengeluaran (Drop Cable skala visual 1:10)',
+                    style: {
+                        color: 'var(--color-foreground, #0F172A)',
+                        fontSize: '11px',
+                        fontWeight: 500,
+                    },
+                },
                 labels: {
-                    style: { fontSize: '10px', fontFamily: 'monospace' },
+                    style: {
+                        colors: 'var(--color-muted-foreground, #475569)',
+                        fontSize: '10px',
+                        fontFamily: 'monospace',
+                    },
                     formatter: (val) => `${Number(val).toLocaleString('id-ID')}`,
                 },
             },
             yaxis: {
                 labels: {
-                    style: { fontSize: '11px', fontFamily: 'inherit' },
+                    style: {
+                        colors: 'var(--color-muted-foreground, #475569)',
+                        fontSize: '11px',
+                        fontFamily: 'inherit',
+                    },
                 },
             },
             tooltip: {

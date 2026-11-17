@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -69,6 +70,7 @@ function MetricCard({
     ratioLabel = 'Selesai / Total (Persentase)',
     groupBy = 'warehouse',
     onGroupByChange,
+    isOlap = false,
 }: {
     title: string;
     description: string;
@@ -78,6 +80,7 @@ function MetricCard({
     ratioLabel?: string;
     groupBy?: GroupByMode;
     onGroupByChange?: (mode: GroupByMode) => void;
+    isOlap?: boolean;
 }) {
     const sortedRows = sortByCompletion(rows);
     const groupLabel = groupBy === 'service_area' ? 'Service Area' : 'Gudang';
@@ -92,9 +95,19 @@ function MetricCard({
             {/* Header with Title, Description, and GroupBy Segmented Control */}
             <div className="relative z-10 mb-3 flex items-start justify-between gap-2">
                 <div className="min-w-0 pr-1">
-                    <h2 className="text-lg font-semibold tracking-tight text-foreground truncate">
-                        {title}
-                    </h2>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-lg font-semibold tracking-tight text-foreground truncate">
+                            {title}
+                        </h2>
+                        {isOlap && (
+                            <Badge
+                                variant="outline"
+                                className="text-[10px] h-5 px-1.5 font-normal border-primary/30 text-primary bg-primary/5 shrink-0"
+                            >
+                                OLAP Data Mart
+                            </Badge>
+                        )}
+                    </div>
                     <p className="text-xs text-muted-foreground font-normal mt-0.5">
                         {description}
                     </p>
@@ -332,6 +345,7 @@ export function LensaPerformance() {
                 hasError={hasError}
                 groupBy={groupByOut}
                 onGroupByChange={setGroupByOut}
+                isOlap={true}
             />
             <MetricCard
                 title="Performa Rekon Lensa"
@@ -343,6 +357,7 @@ export function LensaPerformance() {
                 hasError={hasError}
                 groupBy={groupByRekon}
                 onGroupByChange={setGroupByRekon}
+                isOlap={true}
             />
             <MetricCard
                 title="Performa Intech Lensa Vs MTMS"

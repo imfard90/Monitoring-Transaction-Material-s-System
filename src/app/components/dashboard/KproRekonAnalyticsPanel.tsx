@@ -154,7 +154,12 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                 axisBorder: { show: false },
                 axisTicks: { show: false },
                 labels: {
-                    style: { fontSize: '10px', fontFamily: 'monospace' },
+                    style: {
+                        colors: 'var(--color-muted-foreground, #475569)',
+                        fontSize: '10px',
+                        fontFamily: 'monospace',
+                        fontWeight: 500,
+                    },
                     rotate: -45,
                     rotateAlways: dailyTrend.length > 15,
                 },
@@ -163,10 +168,18 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                 {
                     title: {
                         text: 'Volume Order',
-                        style: { fontSize: '11px', fontWeight: 500 },
+                        style: {
+                            color: 'var(--color-foreground, #0F172A)',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                        },
                     },
                     labels: {
-                        style: { fontSize: '10px', fontFamily: 'monospace' },
+                        style: {
+                            colors: 'var(--color-muted-foreground, #475569)',
+                            fontSize: '10px',
+                            fontFamily: 'monospace',
+                        },
                         formatter: (val) => `${Number(val).toLocaleString('id-ID')}`,
                     },
                 },
@@ -176,10 +189,18 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                     max: 100,
                     title: {
                         text: '% Kepatuhan',
-                        style: { fontSize: '11px', fontWeight: 500 },
+                        style: {
+                            color: 'var(--color-foreground, #0F172A)',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                        },
                     },
                     labels: {
-                        style: { fontSize: '10px', fontFamily: 'monospace' },
+                        style: {
+                            colors: 'var(--color-muted-foreground, #475569)',
+                            fontSize: '10px',
+                            fontFamily: 'monospace',
+                        },
                         formatter: (val) => `${Number(val).toFixed(0)}%`,
                     },
                 },
@@ -535,15 +556,6 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                         )}
                     </div>
                 </div>
-            </div>
-
-            {/* Footer Note */}
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground/80 pt-1 border-t border-border/40">
-                <span className="flex items-center gap-1">
-                    <Icon icon="solar:database-bold" width={11} className="text-primary/70" />
-                    Sumber: Materialized View <code className="font-mono text-foreground/80">analytics.mv_kpro_rekon_summary</code> (Distrik Lamongan)
-                </span>
-                <span>Response query &lt; 1ms (OLAP Data Mart)</span>
             </div>
         </Card>
     );

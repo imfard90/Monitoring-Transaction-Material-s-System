@@ -183,51 +183,60 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
         const { full } = formatKpiDisplay(item.key, rawValue);
         const { AnimatedNumber } = counters[item.key as KpiKey];
 
+        const cardContent = (
+            <Card
+                className={`relative overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 motion-reduce:transition-none ${item.bgcolor} w-full border border-white/20 dark:border-white/5 py-3.5 px-4 group-hover:-translate-y-0.5 motion-reduce:group-hover:translate-y-0`}
+            >
+                {/* Decorative gradient blob */}
+                <div
+                    className="absolute -right-6 -top-6 w-20 h-20 bg-white/20 dark:bg-white/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500 motion-reduce:transition-none"
+                    aria-hidden="true"
+                />
+
+                <div className="relative z-10 flex items-center gap-3 min-w-0">
+                    <div
+                        className="rounded-xl p-2.5 shrink-0 bg-white/60 dark:bg-black/25 backdrop-blur-sm shadow-xs border border-white/40 dark:border-white/10 group-hover:scale-105 transition-transform duration-300 motion-reduce:transition-none"
+                    >
+                        <Icon
+                            icon={item.icon}
+                            width={24}
+                            height={24}
+                            className={item.iconColor}
+                        />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        <p className="text-xs text-muted-foreground font-medium mb-0.5 truncate">
+                            {item.title}
+                        </p>
+                        <p
+                            title={full}
+                            className={`text-lg sm:text-xl font-bold tracking-tight tabular-nums truncate ${item.iconColor}`}
+                        >
+                            <AnimatedNumber />
+                        </p>
+                    </div>
+                </div>
+            </Card>
+        );
+
         return (
             <div
                 key={`${item.key}-${index}`}
                 className="w-53.75 sm:w-58.75 shrink-0 py-1"
                 aria-hidden={isDuplicate ? 'true' : undefined}
             >
-                <Link
-                    href={item.url}
-                    className="block group focus:outline-hidden"
-                    tabIndex={isDuplicate ? -1 : 0}
-                >
-                    <Card
-                        className={`relative overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 motion-reduce:transition-none ${item.bgcolor} w-full border border-white/20 dark:border-white/5 py-3.5 px-4 group-hover:-translate-y-0.5 motion-reduce:group-hover:translate-y-0`}
+                {isDuplicate ? (
+                    <div className="block group select-none pointer-events-none" aria-hidden="true">
+                        {cardContent}
+                    </div>
+                ) : (
+                    <Link
+                        href={item.url}
+                        className="block group focus:outline-hidden"
                     >
-                        {/* Decorative gradient blob */}
-                        <div
-                            className="absolute -right-6 -top-6 w-20 h-20 bg-white/20 dark:bg-white/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500 motion-reduce:transition-none"
-                            aria-hidden="true"
-                        />
-
-                        <div className="relative z-10 flex items-center gap-3 min-w-0">
-                            <div
-                                className="rounded-xl p-2.5 shrink-0 bg-white/60 dark:bg-black/25 backdrop-blur-sm shadow-xs border border-white/40 dark:border-white/10 group-hover:scale-105 transition-transform duration-300 motion-reduce:transition-none"
-                            >
-                                <Icon
-                                    icon={item.icon}
-                                    width={24}
-                                    height={24}
-                                    className={item.iconColor}
-                                />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                                <p className="text-xs text-muted-foreground font-medium mb-0.5 truncate">
-                                    {item.title}
-                                </p>
-                                <p
-                                    title={full}
-                                    className={`text-lg sm:text-xl font-bold tracking-tight tabular-nums truncate ${item.iconColor}`}
-                                >
-                                    <AnimatedNumber />
-                                </p>
-                            </div>
-                        </div>
-                    </Card>
-                </Link>
+                        {cardContent}
+                    </Link>
+                )}
             </div>
         );
     };

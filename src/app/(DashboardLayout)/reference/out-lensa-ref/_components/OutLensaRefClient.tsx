@@ -540,7 +540,7 @@ export default function OutLensaRefClient({
                             <DataTable
                                 table={table}
                                 emptyMessage="Tidak ada data."
-                                className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-[620px]"
+                                className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-155"
                             />
                         </div>
                         <div className="shrink-0 w-full min-w-0 max-w-full">
