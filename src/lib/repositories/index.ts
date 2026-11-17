@@ -21,5 +21,8 @@ export {
     type KproRekonSummaryRow,
     type KproRekonDistrictRollup,
     type KproRekonDailyTrend,
+    type WarehouseMetricRow,
+    type WoLensaRekonSummaryRow,
+    type OutLensaSapSummaryRow,
     analyticsRepository,
 } from './analytics.repository';

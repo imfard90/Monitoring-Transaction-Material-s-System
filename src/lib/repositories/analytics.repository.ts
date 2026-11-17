@@ -38,6 +38,48 @@ export interface KproRekonDailyTrend {
     persentase_rekon: number;
 }
 
+export interface WarehouseMetricRow {
+    key: number;
+    name: string;
+    total: number;
+    completed: number;
+}
+
+export interface WoLensaRekonSummaryRow {
+    tgl: string | Date;
+    warehouse_id: number;
+    warehouse_name: string;
+    nama_gudang: string;
+    service_area: string;
+    total_wo: number;
+    total_wo_rekon: number;
+    total_wo_pending: number;
+    persentase_rekon: number;
+    total_qty_req: number;
+    total_qty_used: number;
+    total_qty_selisih: number;
+    items_exact_match: number;
+    items_discrepancy: number;
+    count_sla_on_time: number;
+    avg_sla_days: number;
+    refreshed_at: string | Date;
+}
+
+export interface OutLensaSapSummaryRow {
+    tgl: string | Date;
+    warehouse_id: number;
+    warehouse_name: string;
+    nama_gudang: string;
+    service_area: string;
+    total_out_lensa: number;
+    total_matched_sap: number;
+    total_unmatched_sap: number;
+    match_by_gi: number;
+    match_by_reservasi: number;
+    persentase_kecocokan: number;
+    refreshed_at: string | Date;
+}
+
 export interface AnalyticsRepository {
     getKproRekonSummary(params?: {
         district?: string;
@@ -56,6 +98,21 @@ export interface AnalyticsRepository {
         datel?: string;
         days?: number;
     }): Promise<KproRekonDailyTrend[]>;
+    getLensaOutPerformance(days?: number): Promise<WarehouseMetricRow[]>;
+    getLensaRekonPerformance(days?: number): Promise<{
+        rekon: WarehouseMetricRow[];
+        slaRekon: WarehouseMetricRow[];
+    }>;
+    getWoLensaRekonSummary(params?: {
+        warehouseId?: number;
+        serviceArea?: string;
+        days?: number;
+    }): Promise<WoLensaRekonSummaryRow[]>;
+    getOutLensaSapSummary(params?: {
+        warehouseId?: number;
+        serviceArea?: string;
+        days?: number;
+    }): Promise<OutLensaSapSummaryRow[]>;
     refreshAnalyticsMViews(): Promise<{ durationMs: number }>;
 }
 
@@ -219,6 +276,182 @@ export function createAnalyticsRepository(customPool?: Pool): AnalyticsRepositor
             `;
 
             const res = await pool.query<KproRekonDailyTrend>(query, values);
+            return res.rows;
+        },
+
+        /**
+         * Mengambil ringkasan performa Out Lensa per Gudang dari Materialized View (Kluster 3)
+         */
+        async getLensaOutPerformance(days: number = 30): Promise<WarehouseMetricRow[]> {
+            const pool = getPool();
+            const query = `
+                SELECT 
+                    warehouse_id AS key,
+                    warehouse_name AS name,
+                    SUM(total_out_lensa)::int AS total,
+                    SUM(total_matched_sap)::int AS completed
+                FROM analytics.mv_out_sap_lensa_summary
+                WHERE tgl >= CURRENT_DATE - ($1 || ' days')::interval
+                  AND tgl <= CURRENT_DATE
+                  AND warehouse_id > 0
+                GROUP BY warehouse_id, warehouse_name
+                ORDER BY warehouse_name ASC;
+            `;
+
+            const res = await pool.query<WarehouseMetricRow>(query, [days]);
+            return res.rows;
+        },
+
+        /**
+         * Mengambil ringkasan performa Rekon Lensa dan SLA Rekon per Gudang dari Materialized View (Kluster 2)
+         */
+        async getLensaRekonPerformance(days: number = 30): Promise<{
+            rekon: WarehouseMetricRow[];
+            slaRekon: WarehouseMetricRow[];
+        }> {
+            const pool = getPool();
+            const query = `
+                SELECT 
+                    warehouse_id AS key,
+                    warehouse_name AS name,
+                    SUM(total_wo)::int AS total_wo,
+                    SUM(total_wo_rekon)::int AS completed_rekon,
+                    SUM(count_sla_on_time)::int AS completed_sla
+                FROM analytics.mv_wo_lensa_rekon_summary
+                WHERE tgl >= CURRENT_DATE - ($1 || ' days')::interval
+                  AND tgl <= CURRENT_DATE
+                  AND warehouse_id > 0
+                GROUP BY warehouse_id, warehouse_name
+                ORDER BY warehouse_name ASC;
+            `;
+
+            const res = await pool.query<{
+                key: number;
+                name: string;
+                total_wo: number;
+                completed_rekon: number;
+                completed_sla: number;
+            }>(query, [days]);
+
+            const rekon: WarehouseMetricRow[] = res.rows.map((row) => ({
+                key: Number(row.key),
+                name: row.name,
+                total: Number(row.total_wo),
+                completed: Number(row.completed_rekon),
+            }));
+
+            const slaRekon: WarehouseMetricRow[] = res.rows.map((row) => ({
+                key: Number(row.key),
+                name: row.name,
+                total: Number(row.completed_rekon),
+                completed: Number(row.completed_sla),
+            }));
+
+            return { rekon, slaRekon };
+        },
+
+        /**
+         * Mengambil rincian WO Lensa vs Rekon Pemakaian Material (Kluster 2)
+         */
+        async getWoLensaRekonSummary(params?: {
+            warehouseId?: number;
+            serviceArea?: string;
+            days?: number;
+        }): Promise<WoLensaRekonSummaryRow[]> {
+            const pool = getPool();
+            const days = params?.days ?? 30;
+            const conditions: string[] = [
+                'tgl >= CURRENT_DATE - ($1 || \' days\')::interval',
+                'tgl <= CURRENT_DATE',
+            ];
+            const values: unknown[] = [days];
+            let paramIdx = 2;
+
+            if (params?.warehouseId && params.warehouseId > 0) {
+                conditions.push(`warehouse_id = $${paramIdx++}`);
+                values.push(params.warehouseId);
+            }
+
+            if (params?.serviceArea && params.serviceArea !== 'all') {
+                conditions.push(`service_area = $${paramIdx++}`);
+                values.push(params.serviceArea);
+            }
+
+            const query = `
+                SELECT 
+                    tgl,
+                    warehouse_id,
+                    warehouse_name,
+                    nama_gudang,
+                    service_area,
+                    total_wo,
+                    total_wo_rekon,
+                    total_wo_pending,
+                    persentase_rekon,
+                    total_qty_req,
+                    total_qty_used,
+                    total_qty_selisih,
+                    items_exact_match,
+                    items_discrepancy,
+                    count_sla_on_time,
+                    avg_sla_days,
+                    refreshed_at
+                FROM analytics.mv_wo_lensa_rekon_summary
+                WHERE ${conditions.join(' AND ')}
+                ORDER BY tgl DESC, warehouse_name ASC, service_area ASC;
+            `;
+
+            const res = await pool.query<WoLensaRekonSummaryRow>(query, values);
+            return res.rows;
+        },
+
+        /**
+         * Mengambil rincian Out Lensa vs SAP Out (Kluster 3)
+         */
+        async getOutLensaSapSummary(params?: {
+            warehouseId?: number;
+            serviceArea?: string;
+            days?: number;
+        }): Promise<OutLensaSapSummaryRow[]> {
+            const pool = getPool();
+            const days = params?.days ?? 30;
+            const conditions: string[] = [
+                'tgl >= CURRENT_DATE - ($1 || \' days\')::interval',
+                'tgl <= CURRENT_DATE',
+            ];
+            const values: unknown[] = [days];
+            let paramIdx = 2;
+
+            if (params?.warehouseId && params.warehouseId > 0) {
+                conditions.push(`warehouse_id = $${paramIdx++}`);
+                values.push(params.warehouseId);
+            }
+
+            if (params?.serviceArea && params.serviceArea !== 'all') {
+                conditions.push(`service_area = $${paramIdx++}`);
+                values.push(params.serviceArea);
+            }
+
+            const query = `
+                SELECT 
+                    tgl,
+                    warehouse_id,
+                    warehouse_name,
+                    nama_gudang,
+                    service_area,
+                    total_out_lensa,
+                    total_matched_sap,
+                    total_unmatched_sap,
+                    match_by_gi,
+                    match_by_reservasi,
+                    persentase_kecocokan,
+                    refreshed_at
+                FROM analytics.mv_out_sap_lensa_summary
+                WHERE ${conditions.join(' AND ')}
+                ORDER BY tgl DESC, warehouse_name ASC, service_area ASC;
+            `;
+
+            const res = await pool.query<OutLensaSapSummaryRow>(query, values);
             return res.rows;
         },
 

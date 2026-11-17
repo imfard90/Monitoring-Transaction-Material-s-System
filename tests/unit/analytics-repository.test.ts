@@ -129,6 +129,96 @@ describe('Analytics Repository Unit Tests', () => {
         expect(mockQuery.mock.calls[0][0]).toContain('ORDER BY tgl ASC');
     });
 
+    it('should query Lensa Out performance per warehouse from mv_out_sap_lensa_summary', async () => {
+        const mockRows = [
+            { key: 1, name: 'SO Karangpilang', total: 168, completed: 167 },
+            { key: 2, name: 'SO Gresik', total: 373, completed: 373 },
+        ];
+
+        const mockQuery = vi.fn().mockResolvedValue({ rows: mockRows });
+        const mockPool = { query: mockQuery } as unknown as Pool;
+
+        const repo = createAnalyticsRepository(mockPool);
+        const result = await repo.getLensaOutPerformance(30);
+
+        expect(result).toEqual(mockRows);
+        expect(mockQuery).toHaveBeenCalledTimes(1);
+        expect(mockQuery.mock.calls[0][1]).toEqual([30]);
+        expect(mockQuery.mock.calls[0][0]).toContain('analytics.mv_out_sap_lensa_summary');
+        expect(mockQuery.mock.calls[0][0]).toContain('GROUP BY warehouse_id, warehouse_name');
+    });
+
+    it('should query Lensa Rekon and SLA Rekon performance per warehouse from mv_wo_lensa_rekon_summary', async () => {
+        const mockRows = [
+            {
+                key: 1,
+                name: 'SO Karangpilang',
+                total_wo: 409,
+                completed_rekon: 400,
+                completed_sla: 352,
+            },
+            {
+                key: 2,
+                name: 'SO Gresik',
+                total_wo: 1313,
+                completed_rekon: 1267,
+                completed_sla: 1122,
+            },
+        ];
+
+        const mockQuery = vi.fn().mockResolvedValue({ rows: mockRows });
+        const mockPool = { query: mockQuery } as unknown as Pool;
+
+        const repo = createAnalyticsRepository(mockPool);
+        const result = await repo.getLensaRekonPerformance(30);
+
+        expect(result.rekon).toEqual([
+            { key: 1, name: 'SO Karangpilang', total: 409, completed: 400 },
+            { key: 2, name: 'SO Gresik', total: 1313, completed: 1267 },
+        ]);
+        expect(result.slaRekon).toEqual([
+            { key: 1, name: 'SO Karangpilang', total: 400, completed: 352 },
+            { key: 2, name: 'SO Gresik', total: 1267, completed: 1122 },
+        ]);
+        expect(mockQuery).toHaveBeenCalledTimes(1);
+        expect(mockQuery.mock.calls[0][1]).toEqual([30]);
+        expect(mockQuery.mock.calls[0][0]).toContain('analytics.mv_wo_lensa_rekon_summary');
+    });
+
+    it('should query WO Lensa Rekon summary with optional warehouse and service area filters', async () => {
+        const mockQuery = vi.fn().mockResolvedValue({ rows: [] });
+        const mockPool = { query: mockQuery } as unknown as Pool;
+
+        const repo = createAnalyticsRepository(mockPool);
+        await repo.getWoLensaRekonSummary({
+            warehouseId: 3,
+            serviceArea: 'LAMONGAN',
+            days: 14,
+        });
+
+        expect(mockQuery).toHaveBeenCalledTimes(1);
+        expect(mockQuery.mock.calls[0][1]).toEqual([14, 3, 'LAMONGAN']);
+        expect(mockQuery.mock.calls[0][0]).toContain('warehouse_id = $2');
+        expect(mockQuery.mock.calls[0][0]).toContain('service_area = $3');
+    });
+
+    it('should query Out Lensa SAP summary with optional warehouse and service area filters', async () => {
+        const mockQuery = vi.fn().mockResolvedValue({ rows: [] });
+        const mockPool = { query: mockQuery } as unknown as Pool;
+
+        const repo = createAnalyticsRepository(mockPool);
+        await repo.getOutLensaSapSummary({
+            warehouseId: 2,
+            serviceArea: 'GRESIK',
+            days: 7,
+        });
+
+        expect(mockQuery).toHaveBeenCalledTimes(1);
+        expect(mockQuery.mock.calls[0][1]).toEqual([7, 2, 'GRESIK']);
+        expect(mockQuery.mock.calls[0][0]).toContain('warehouse_id = $2');
+        expect(mockQuery.mock.calls[0][0]).toContain('service_area = $3');
+    });
+
     it('should invoke sp_refresh_analytics_mviews procedure', async () => {
         const mockQuery = vi.fn().mockResolvedValue({ rows: [] });
         const mockPool = { query: mockQuery } as unknown as Pool;

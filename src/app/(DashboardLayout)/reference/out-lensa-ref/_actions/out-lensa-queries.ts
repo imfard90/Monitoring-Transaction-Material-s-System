@@ -352,6 +352,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                 tgl_entry: h.tgl_entry,
                 formatted_date: h.formatted_date,
                 nama_gudang: h.nama_gudang,
+                service_area: h.service_area ?? null,
                 gi_number: h.gi_number,
                 status_proses: h.status_proses,
                 nik_pemakai: h.nik_pemakai,

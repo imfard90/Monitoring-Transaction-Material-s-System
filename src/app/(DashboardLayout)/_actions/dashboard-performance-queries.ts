@@ -1,10 +1,10 @@
 'use server';
 
-import { sql } from 'kysely';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
+import { analyticsRepository } from '@/lib/repositories/analytics.repository';
 import { inventoryRepository } from '@/lib/repositories/inventory.repository';
 
 export type IntechLensaWarehouseMetric = {
@@ -41,73 +41,9 @@ export async function getLensaWarehousePerformance() {
     try {
         await getSessionUser();
 
-        const outLensaQuery = db
-            .selectFrom('inventory.out_lensa_ref_header as olh')
-            .innerJoin('inventory.mas_wh as wh', (join) =>
-                join.on(
-                    sql<string>`LOWER(REGEXP_REPLACE(wh.name, '\\s+', '', 'g'))`,
-                    '=',
-                    sql<string>`LOWER(REGEXP_REPLACE(olh.nama_gudang, '\\s+', '', 'g'))`
-                )
-            )
-            .select([
-                'wh.id as key',
-                'wh.name as name',
-                sql<number>`COUNT(olh.id)`.as('total'),
-                sql<number>`COUNT(olh.id) FILTER (WHERE olh.sap_out_check IS TRUE)`.as('completed'),
-            ])
-            .where('olh.formatted_date', '>=', sql<Date>`CURRENT_DATE - INTERVAL '30 days'`)
-            .where('olh.formatted_date', '<=', sql<Date>`CURRENT_DATE`)
-            .groupBy(['wh.id', 'wh.name']);
-
-        const rekonLensaQuery = db
-            .selectFrom('inventory.wo_lensa_header as wlh')
-            .innerJoin('inventory.mas_wh as wh', (join) =>
-                join.on(
-                    sql<string>`LOWER(REGEXP_REPLACE(wh.name, '\\s+', '', 'g'))`,
-                    '=',
-                    sql<string>`LOWER(REGEXP_REPLACE(wlh.nama_gudang, '\\s+', '', 'g'))`
-                )
-            )
-            .select([
-                'wh.id as key',
-                'wh.name as name',
-                sql<number>`COUNT(wlh.id)`.as('total'),
-                sql<number>`COUNT(wlh.id) FILTER (WHERE wlh.rekon_check IS TRUE)`.as('completed'),
-            ])
-            .where('wlh.formatted_date', '>=', sql<Date>`CURRENT_DATE - INTERVAL '30 days'`)
-            .where('wlh.formatted_date', '<=', sql<Date>`CURRENT_DATE`)
-            .groupBy(['wh.id', 'wh.name']);
-
-        const slaRekonQuery = db
-            .selectFrom('inventory.wo_lensa_header as wlh')
-            .leftJoin('inventory.rekon_used_header as ruh', (join) =>
-                join.on('ruh.id_pemakaian', '=', sql<string>`wlh.pemakaian_id::text`)
-            )
-            .innerJoin('inventory.mas_wh as wh', (join) =>
-                join.on(
-                    sql<string>`LOWER(REGEXP_REPLACE(wh.name, '\\s+', '', 'g'))`,
-                    '=',
-                    sql<string>`LOWER(REGEXP_REPLACE(wlh.nama_gudang, '\\s+', '', 'g'))`
-                )
-            )
-            .select([
-                'wh.id as key',
-                'wh.name as name',
-                sql<number>`COUNT(wlh.id)`.as('total'),
-                sql<number>`COUNT(wlh.id) FILTER (WHERE DATE(COALESCE(ruh.create_at, wlh.created_at) AT TIME ZONE 'Asia/Jakarta') - wlh.formatted_date <= 1)`.as(
-                    'completed'
-                ),
-            ])
-            .where('wlh.rekon_check', '=', true)
-            .where('wlh.formatted_date', '>=', sql<Date>`CURRENT_DATE - INTERVAL '30 days'`)
-            .where('wlh.formatted_date', '<=', sql<Date>`CURRENT_DATE`)
-            .groupBy(['wh.id', 'wh.name']);
-
-        const [outLensa, rekonLensa, slaRekon] = await Promise.all([
-            outLensaQuery.execute(),
-            rekonLensaQuery.execute(),
-            slaRekonQuery.execute(),
+        const [outLensa, { rekon: rekonLensa, slaRekon }] = await Promise.all([
+            analyticsRepository.getLensaOutPerformance(30),
+            analyticsRepository.getLensaRekonPerformance(30),
         ]);
 
         const sortByCompletion = <

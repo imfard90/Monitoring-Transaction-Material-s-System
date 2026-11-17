@@ -31,6 +31,15 @@ vi.mock('@/lib/repositories/inventory.repository', () => ({
     },
 }));
 
+const mockGetLensaOutPerformance = vi.fn();
+const mockGetLensaRekonPerformance = vi.fn();
+vi.mock('@/lib/repositories/analytics.repository', () => ({
+    analyticsRepository: {
+        getLensaOutPerformance: (...args: unknown[]) => mockGetLensaOutPerformance(...args),
+        getLensaRekonPerformance: (...args: unknown[]) => mockGetLensaRekonPerformance(...args),
+    },
+}));
+
 const mockGetSessionUser = vi.fn();
 const mockExecute = vi.fn();
 const mockExecuteTakeFirst = vi.fn();
@@ -312,50 +321,44 @@ describe('getLensaWarehousePerformance', () => {
         expect(mockSelectFrom).not.toHaveBeenCalled();
     });
 
-    it('normalizes warehouse names across Lensa performance joins', async () => {
-        await getLensaWarehousePerformance();
+    it('queries Out Lensa and Rekon Lensa performance from analytics repository and sorts by completion', async () => {
+        mockGetLensaOutPerformance.mockResolvedValueOnce([
+            { key: 1, name: 'SO Karangpilang', total: 10, completed: 8 },
+            { key: 2, name: 'SO Gresik', total: 10, completed: 10 },
+        ]);
+        mockGetLensaRekonPerformance.mockResolvedValueOnce({
+            rekon: [
+                { key: 1, name: 'SO Karangpilang', total: 20, completed: 15 },
+                { key: 2, name: 'SO Gresik', total: 20, completed: 20 },
+            ],
+            slaRekon: [
+                { key: 1, name: 'SO Karangpilang', total: 15, completed: 12 },
+                { key: 2, name: 'SO Gresik', total: 20, completed: 18 },
+            ],
+        });
 
-        expect(mockInnerJoin).toHaveBeenCalledTimes(3);
-        const warehouseJoinComparisons = mockJoinOn.mock.calls
-            .filter(([left]) => typeof left === 'object' && left !== null && 'strings' in left)
-            .map(([left, , right]) => [left, right]);
-        expect(warehouseJoinComparisons).toHaveLength(3);
-        expect(
-            warehouseJoinComparisons.flat().every((expression) => {
-                const template = expression as { strings: string[] };
-                return template.strings.join('').includes('REGEXP_REPLACE');
-            })
-        ).toBe(true);
+        const result = await getLensaWarehousePerformance();
+
+        expect(result.success).toBe(true);
+        expect(mockGetLensaOutPerformance).toHaveBeenCalledWith(30);
+        expect(mockGetLensaRekonPerformance).toHaveBeenCalledWith(30);
+
+        if (result.success && result.data) {
+            // Gresik (100%) should be sorted ahead of Karangpilang (80%)
+            expect(result.data.outLensa[0].name).toBe('SO Gresik');
+            expect(result.data.outLensa[1].name).toBe('SO Karangpilang');
+            expect(result.data.rekonLensa[0].name).toBe('SO Gresik');
+            expect(result.data.slaRekon[0].name).toBe('SO Gresik');
+        }
     });
 
-    it('limits Out Lensa, Rekon Lensa, and SLA Rekon metrics to headers within the last 30 days', async () => {
-        await getLensaWarehousePerformance();
+    it('handles analytics repository errors gracefully', async () => {
+        mockGetLensaOutPerformance.mockRejectedValueOnce(new Error('MView failure'));
+        mockGetLensaRekonPerformance.mockResolvedValueOnce({ rekon: [], slaRekon: [] });
 
-        expect(mockWhereByTable).toHaveBeenCalledWith(
-            'inventory.out_lensa_ref_header as olh',
-            'olh.formatted_date',
-            '>=',
-            expect.objectContaining({
-                strings: expect.arrayContaining([expect.stringContaining('30 days')]),
-            })
-        );
-        expect(mockWhereByTable).toHaveBeenCalledWith(
-            'inventory.out_lensa_ref_header as olh',
-            'olh.formatted_date',
-            '<=',
-            expect.objectContaining({
-                strings: expect.arrayContaining([expect.stringContaining('CURRENT_DATE')]),
-            })
-        );
-        expect(mockWhereByTable).toHaveBeenCalledWith(
-            'inventory.wo_lensa_header as wlh',
-            'wlh.formatted_date',
-            '>=',
-            expect.objectContaining({
-                strings: expect.arrayContaining([expect.stringContaining('30 days')]),
-            })
-        );
-        expect(mockExecute).toHaveBeenCalledTimes(3);
+        const result = await getLensaWarehousePerformance();
+
+        expect(result).toEqual({ success: false, data: null });
     });
 });
 
@@ -629,39 +632,41 @@ describe('getWarehouseLeaderboard', () => {
     });
 
     it('aggregates outLensa, rekonLensa, intechLensa, and slaRekon and identifies the champion', async () => {
-        mockExecute
-            .mockResolvedValueOnce([
-                { key: 1, name: 'DC Cikutra', total: 10, completed: 10 },
-                { key: 2, name: 'DC Antapani', total: 10, completed: 8 },
-            ])
-            .mockResolvedValueOnce([
+        mockGetLensaOutPerformance.mockResolvedValueOnce([
+            { key: 1, name: 'DC Cikutra', total: 10, completed: 10 },
+            { key: 2, name: 'DC Antapani', total: 10, completed: 8 },
+        ]);
+        mockGetLensaRekonPerformance.mockResolvedValueOnce({
+            rekon: [
                 { key: 1, name: 'DC Cikutra', total: 10, completed: 10 },
                 { key: 2, name: 'DC Antapani', total: 10, completed: 7 },
-            ])
-            .mockResolvedValueOnce([
+            ],
+            slaRekon: [
                 { key: 1, name: 'DC Cikutra', total: 10, completed: 10 },
                 { key: 2, name: 'DC Antapani', total: 10, completed: 6 },
-            ])
-            .mockResolvedValueOnce([
-                {
-                    nik: 'TECH01',
-                    wh_id: 1,
-                    warehouse_name: 'DC Cikutra',
-                    ref_intech_lensa: {
-                        status: 'success',
-                        materials: [{ id_material: 'HOOK', stock_teknisi: '5' }],
-                    },
+            ],
+        });
+
+        mockExecute.mockResolvedValueOnce([
+            {
+                nik: 'TECH01',
+                wh_id: 1,
+                warehouse_name: 'DC Cikutra',
+                ref_intech_lensa: {
+                    status: 'success',
+                    materials: [{ id_material: 'HOOK', stock_teknisi: '5' }],
                 },
-                {
-                    nik: 'TECH02',
-                    wh_id: 2,
-                    warehouse_name: 'DC Antapani',
-                    ref_intech_lensa: {
-                        status: 'success',
-                        materials: [{ id_material: 'HOOK', stock_teknisi: '4' }],
-                    },
+            },
+            {
+                nik: 'TECH02',
+                wh_id: 2,
+                warehouse_name: 'DC Antapani',
+                ref_intech_lensa: {
+                    status: 'success',
+                    materials: [{ id_material: 'HOOK', stock_teknisi: '4' }],
                 },
-            ]);
+            },
+        ]);
 
         mockGetBatchTechnicianIntechStock.mockResolvedValueOnce([
             { nik_teknisi: 'TECH01', material_code: 'HOOK', qty_intech: 5 },
