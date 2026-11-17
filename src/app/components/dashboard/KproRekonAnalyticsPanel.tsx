@@ -422,11 +422,11 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                         </span>
                     </div>
 
-                    <div className="flex-1 min-h-[280px]">
+                    <div className="flex-1 min-h-70">
                         {isLoading ? (
-                            <Skeleton className="w-full h-full min-h-[280px] rounded-lg" />
+                            <Skeleton className="w-full h-full min-h-70 rounded-lg" />
                         ) : dailyTrend.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full min-h-[280px] text-muted-foreground text-xs gap-2">
+                            <div className="flex flex-col items-center justify-center h-full min-h-70 text-muted-foreground text-xs gap-2">
                                 <Icon icon="solar:inbox-line-linear" width={32} />
                                 <span>Tidak ada data tren untuk filter yang dipilih</span>
                             </div>
@@ -456,13 +456,13 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                         </span>
                     </div>
 
-                    <div className="flex-1 flex flex-col gap-2 overflow-y-auto max-h-[290px] pr-1">
+                    <div className="flex-1 flex flex-col gap-2 overflow-y-auto max-h-72.5 pr-1">
                         {isLoading ? (
                             Array.from({ length: 5 }).map((_, i) => (
                                 <Skeleton key={`skel-row-${i}`} className="h-11 rounded-lg" />
                             ))
                         ) : warehouseRollup.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-muted-foreground text-xs gap-2">
+                            <div className="flex flex-col items-center justify-center h-full min-h-50 text-muted-foreground text-xs gap-2">
                                 <Icon icon="solar:inbox-line-linear" width={28} />
                                 <span>Tidak ada data gudang</span>
                             </div>

@@ -302,14 +302,14 @@ const SalesOverview: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] 
             {/* Quick KPI Strip */}
             <div className="relative z-10 grid grid-cols-3 gap-2 py-1.5 px-2.5 rounded-lg bg-muted/30 border border-border/40 text-xs mb-1">
                 <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-[#2563EB] shrink-0" />
+                    <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" />
                     <span className="text-[11px] text-muted-foreground">Total Out:</span>
                     <span className="font-mono font-bold text-foreground tabular-nums">
                         {totalOut.toLocaleString('id-ID')}
                     </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-[#10B981] shrink-0" />
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
                     <span className="text-[11px] text-muted-foreground">Total Rekon:</span>
                     <span className="font-mono font-bold text-foreground tabular-nums">
                         {totalRekon.toLocaleString('id-ID')}

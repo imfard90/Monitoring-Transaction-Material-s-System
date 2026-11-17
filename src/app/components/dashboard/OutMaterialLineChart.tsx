@@ -530,15 +530,15 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
 
             <div className="relative z-10 -mx-2 flex-1">
                 {isLoading ? (
-                    <div className="flex items-center justify-center h-[280px]">
+                    <div className="flex items-center justify-center h-70">
                         <div className="text-sm text-muted-foreground">Memuat data...</div>
                     </div>
                 ) : isError ? (
-                    <div className="flex items-center justify-center h-[280px]">
+                    <div className="flex items-center justify-center h-70">
                         <div className="text-sm text-destructive">Gagal memuat data chart</div>
                     </div>
                 ) : filteredSeries.length === 0 || slicedDates.length === 0 ? (
-                    <div className="flex items-center justify-center h-[280px]">
+                    <div className="flex items-center justify-center h-70">
                         <div className="text-sm text-muted-foreground">
                             Belum ada data transaksi
                         </div>

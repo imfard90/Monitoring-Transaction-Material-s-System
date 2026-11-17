@@ -244,7 +244,7 @@ export const StockRunoutForecast: React.FC<{
                         <Select value={selectedWh} onValueChange={setSelectedWh}>
                             <SelectTrigger
                                 aria-label="Filter gudang ketahanan stok"
-                                className="w-[125px] sm:w-[135px] h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
+                                className="w-31.25 sm:w-33.75 h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
                             >
                                 <SelectValue placeholder="Pilih Gudang" />
                             </SelectTrigger>
@@ -272,7 +272,7 @@ export const StockRunoutForecast: React.FC<{
                         <Skeleton className="h-7 w-full" />
                     </div>
                 ) : runoutData.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center flex-1 h-[260px] text-center text-xs text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center flex-1 h-65 text-center text-xs text-muted-foreground">
                         <Icon
                             icon="solar:check-circle-linear"
                             width={32}

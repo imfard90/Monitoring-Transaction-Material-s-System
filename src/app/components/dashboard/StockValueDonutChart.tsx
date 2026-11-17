@@ -245,10 +245,10 @@ export const StockValueDonutChart: React.FC<{
                 {/* Metrics Breakdown (Dual Health Cards) */}
                 <div className="mt-2 pt-2.5 border-t border-border/60 space-y-2">
                     {/* Stock Inventory */}
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-[#2563EB]/5 border border-[#2563EB]/20 text-xs">
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-blue-600/5 border border-blue-600/20 text-xs">
                         <div className="flex flex-col min-w-0">
-                            <span className="text-[11px] font-semibold text-[#2563EB] dark:text-blue-400 flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-[#2563EB]" />
+                            <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-blue-600" />
                                 Stok Gudang (Inventory)
                             </span>
                             <span className="text-[10px] text-muted-foreground mt-0.5 font-mono">
@@ -262,17 +262,17 @@ export const StockValueDonutChart: React.FC<{
                             >
                                 {formatCompactRp(data.stockInventoryRp)}
                             </span>
-                            <span className="text-[10px] font-semibold text-[#2563EB] dark:text-blue-400 font-mono">
+                            <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 font-mono">
                                 {data.inventoryPercentage.toFixed(1)}%
                             </span>
                         </div>
                     </div>
 
                     {/* Stock Intech */}
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-[#F59E0B]/5 border border-[#F59E0B]/20 text-xs">
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-amber-500/5 border border-amber-500/20 text-xs">
                         <div className="flex flex-col min-w-0">
-                            <span className="text-[11px] font-semibold text-[#F59E0B] dark:text-amber-400 flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-[#F59E0B]" />
+                            <span className="text-[11px] font-semibold text-amber-500 dark:text-amber-400 flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-amber-500" />
                                 Stok Lapangan (Intech)
                             </span>
                             <span className="text-[10px] text-muted-foreground mt-0.5 font-mono">
@@ -286,7 +286,7 @@ export const StockValueDonutChart: React.FC<{
                             >
                                 {formatCompactRp(data.stockIntechRp)}
                             </span>
-                            <span className="text-[10px] font-semibold text-[#F59E0B] dark:text-amber-400 font-mono">
+                            <span className="text-[10px] font-semibold text-amber-500 dark:text-amber-400 font-mono">
                                 {data.intechPercentage.toFixed(1)}%
                             </span>
                         </div>

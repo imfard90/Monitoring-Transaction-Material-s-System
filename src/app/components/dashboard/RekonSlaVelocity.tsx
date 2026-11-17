@@ -177,7 +177,7 @@ export const RekonSlaVelocity: React.FC<{
                     <Select value={selectedWh} onValueChange={setSelectedWh}>
                         <SelectTrigger
                             aria-label="Filter gudang SLA rekon"
-                            className="w-[115px] h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
+                            className="w-28.75 h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
                         >
                             <SelectValue placeholder="Pilih Gudang" />
                         </SelectTrigger>
@@ -194,7 +194,7 @@ export const RekonSlaVelocity: React.FC<{
             </div>
 
             {/* Donut Chart Content */}
-            <div className="relative z-10 flex-1 flex flex-col items-center justify-center min-h-[175px]">
+            <div className="relative z-10 flex-1 flex flex-col items-center justify-center min-h-43.75">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center gap-2 py-4">
                         <Skeleton className="h-32 w-32 rounded-full" />
