@@ -340,8 +340,8 @@ describe('getLensaWarehousePerformance', () => {
         const result = await getLensaWarehousePerformance();
 
         expect(result.success).toBe(true);
-        expect(mockGetLensaOutPerformance).toHaveBeenCalledWith(30);
-        expect(mockGetLensaRekonPerformance).toHaveBeenCalledWith(30);
+        expect(mockGetLensaOutPerformance).toHaveBeenCalledWith(30, 'warehouse');
+        expect(mockGetLensaRekonPerformance).toHaveBeenCalledWith(30, 'warehouse');
 
         if (result.success && result.data) {
             // Gresik (100%) should be sorted ahead of Karangpilang (80%)
@@ -349,6 +349,34 @@ describe('getLensaWarehousePerformance', () => {
             expect(result.data.outLensa[1].name).toBe('SO Karangpilang');
             expect(result.data.rekonLensa[0].name).toBe('SO Gresik');
             expect(result.data.slaRekon[0].name).toBe('SO Gresik');
+        }
+    });
+
+    it('queries Out Lensa and Rekon Lensa performance grouped by service_area', async () => {
+        mockGetLensaOutPerformance.mockResolvedValueOnce([
+            { key: 'BAMBE', name: 'BAMBE', total: 10, completed: 8 },
+            { key: 'GRESIK', name: 'GRESIK', total: 10, completed: 10 },
+        ]);
+        mockGetLensaRekonPerformance.mockResolvedValueOnce({
+            rekon: [
+                { key: 'BAMBE', name: 'BAMBE', total: 20, completed: 15 },
+                { key: 'GRESIK', name: 'GRESIK', total: 20, completed: 20 },
+            ],
+            slaRekon: [
+                { key: 'BAMBE', name: 'BAMBE', total: 15, completed: 12 },
+                { key: 'GRESIK', name: 'GRESIK', total: 20, completed: 18 },
+            ],
+        });
+
+        const result = await getLensaWarehousePerformance('service_area');
+
+        expect(result.success).toBe(true);
+        expect(mockGetLensaOutPerformance).toHaveBeenCalledWith(30, 'service_area');
+        expect(mockGetLensaRekonPerformance).toHaveBeenCalledWith(30, 'service_area');
+
+        if (result.success && result.data) {
+            expect(result.data.outLensa[0].name).toBe('GRESIK');
+            expect(result.data.outLensa[1].name).toBe('BAMBE');
         }
     });
 
@@ -483,6 +511,58 @@ describe('getIntechLensaWarehousePerformance', () => {
                 name: 'SO Karangpilang',
                 total: 2,
                 completed: 2, // Both are match now (100%)
+            },
+        ]);
+    });
+
+    it('groups by service_area when groupBy is service_area', async () => {
+        mockGetSessionUser.mockResolvedValue({ isStaff: false, warehouseIds: [] });
+
+        mockExecute.mockResolvedValueOnce([
+            {
+                nik: 'TECH01',
+                wh_id: 1,
+                warehouse_name: 'SO Karangpilang',
+                service_area: 'BAMBE',
+                ref_intech_lensa: {
+                    status: 'success',
+                    materials: [{ id_material: 'CLAMP-HOOK', stock_teknisi: '5' }],
+                },
+                exclude_intech_lensa: null,
+            },
+            {
+                nik: 'TECH02',
+                wh_id: 2,
+                warehouse_name: 'SO Gresik',
+                service_area: 'GRESIK',
+                ref_intech_lensa: {
+                    status: 'success',
+                    materials: [{ id_material: 'CLAMP-HOOK', stock_teknisi: '10' }],
+                },
+                exclude_intech_lensa: null,
+            },
+        ]);
+
+        mockGetBatchTechnicianIntechStock.mockResolvedValueOnce([
+            { nik_teknisi: 'TECH01', material_code: 'CLAMP-HOOK', qty_intech: 5 },
+            { nik_teknisi: 'TECH02', material_code: 'CLAMP-HOOK', qty_intech: 8 },
+        ]);
+
+        const result = await getIntechLensaWarehousePerformance('service_area');
+
+        expect(result.success).toBe(true);
+        expect(result.data).toEqual([
+            {
+                key: 'BAMBE',
+                name: 'BAMBE',
+                total: 1,
+                completed: 1, // 100%
+            },
+            {
+                key: 'GRESIK',
+                name: 'GRESIK',
+                total: 1,
+                completed: 0, // 0%
             },
         ]);
     });

@@ -39,7 +39,7 @@ export interface KproRekonDailyTrend {
 }
 
 export interface WarehouseMetricRow {
-    key: number;
+    key: number | string;
     name: string;
     total: number;
     completed: number;
@@ -98,8 +98,14 @@ export interface AnalyticsRepository {
         datel?: string;
         days?: number;
     }): Promise<KproRekonDailyTrend[]>;
-    getLensaOutPerformance(days?: number): Promise<WarehouseMetricRow[]>;
-    getLensaRekonPerformance(days?: number): Promise<{
+    getLensaOutPerformance(
+        days?: number,
+        groupBy?: 'warehouse' | 'service_area'
+    ): Promise<WarehouseMetricRow[]>;
+    getLensaRekonPerformance(
+        days?: number,
+        groupBy?: 'warehouse' | 'service_area'
+    ): Promise<{
         rekon: WarehouseMetricRow[];
         slaRekon: WarehouseMetricRow[];
     }>;
@@ -280,53 +286,94 @@ export function createAnalyticsRepository(customPool?: Pool): AnalyticsRepositor
         },
 
         /**
-         * Mengambil ringkasan performa Out Lensa per Gudang dari Materialized View (Kluster 3)
+         * Mengambil ringkasan performa Out Lensa per Gudang atau Service Area dari Materialized View (Kluster 3)
          */
-        async getLensaOutPerformance(days: number = 30): Promise<WarehouseMetricRow[]> {
+        async getLensaOutPerformance(
+            days: number = 30,
+            groupBy: 'warehouse' | 'service_area' = 'warehouse'
+        ): Promise<WarehouseMetricRow[]> {
             const pool = getPool();
-            const query = `
-                SELECT 
-                    warehouse_id AS key,
-                    warehouse_name AS name,
-                    SUM(total_out_lensa)::int AS total,
-                    SUM(total_matched_sap)::int AS completed
-                FROM analytics.mv_out_sap_lensa_summary
-                WHERE tgl >= CURRENT_DATE - ($1 || ' days')::interval
-                  AND tgl <= CURRENT_DATE
-                  AND warehouse_id > 0
-                GROUP BY warehouse_id, warehouse_name
-                ORDER BY warehouse_name ASC;
-            `;
+            const isServiceArea = groupBy === 'service_area';
+
+            const query = isServiceArea
+                ? `
+                    SELECT 
+                        service_area AS key,
+                        service_area AS name,
+                        SUM(total_out_lensa)::int AS total,
+                        SUM(total_matched_sap)::int AS completed
+                    FROM analytics.mv_out_sap_lensa_summary
+                    WHERE tgl >= CURRENT_DATE - ($1 || ' days')::interval
+                      AND tgl <= CURRENT_DATE
+                      AND service_area IS NOT NULL
+                      AND service_area <> 'UNKNOWN'
+                    GROUP BY service_area
+                    ORDER BY service_area ASC;
+                `
+                : `
+                    SELECT 
+                        warehouse_id AS key,
+                        warehouse_name AS name,
+                        SUM(total_out_lensa)::int AS total,
+                        SUM(total_matched_sap)::int AS completed
+                    FROM analytics.mv_out_sap_lensa_summary
+                    WHERE tgl >= CURRENT_DATE - ($1 || ' days')::interval
+                      AND tgl <= CURRENT_DATE
+                      AND warehouse_id > 0
+                    GROUP BY warehouse_id, warehouse_name
+                    ORDER BY warehouse_name ASC;
+                `;
 
             const res = await pool.query<WarehouseMetricRow>(query, [days]);
             return res.rows;
         },
 
         /**
-         * Mengambil ringkasan performa Rekon Lensa dan SLA Rekon per Gudang dari Materialized View (Kluster 2)
+         * Mengambil ringkasan performa Rekon Lensa dan SLA Rekon per Gudang atau Service Area dari Materialized View (Kluster 2)
          */
-        async getLensaRekonPerformance(days: number = 30): Promise<{
+        async getLensaRekonPerformance(
+            days: number = 30,
+            groupBy: 'warehouse' | 'service_area' = 'warehouse'
+        ): Promise<{
             rekon: WarehouseMetricRow[];
             slaRekon: WarehouseMetricRow[];
         }> {
             const pool = getPool();
-            const query = `
-                SELECT 
-                    warehouse_id AS key,
-                    warehouse_name AS name,
-                    SUM(total_wo)::int AS total_wo,
-                    SUM(total_wo_rekon)::int AS completed_rekon,
-                    SUM(count_sla_on_time)::int AS completed_sla
-                FROM analytics.mv_wo_lensa_rekon_summary
-                WHERE tgl >= CURRENT_DATE - ($1 || ' days')::interval
-                  AND tgl <= CURRENT_DATE
-                  AND warehouse_id > 0
-                GROUP BY warehouse_id, warehouse_name
-                ORDER BY warehouse_name ASC;
-            `;
+            const isServiceArea = groupBy === 'service_area';
+
+            const query = isServiceArea
+                ? `
+                    SELECT 
+                        service_area AS key,
+                        service_area AS name,
+                        SUM(total_wo)::int AS total_wo,
+                        SUM(total_wo_rekon)::int AS completed_rekon,
+                        SUM(count_sla_on_time)::int AS completed_sla
+                    FROM analytics.mv_wo_lensa_rekon_summary
+                    WHERE tgl >= CURRENT_DATE - ($1 || ' days')::interval
+                      AND tgl <= CURRENT_DATE
+                      AND service_area IS NOT NULL
+                      AND service_area <> 'UNKNOWN'
+                    GROUP BY service_area
+                    ORDER BY service_area ASC;
+                `
+                : `
+                    SELECT 
+                        warehouse_id AS key,
+                        warehouse_name AS name,
+                        SUM(total_wo)::int AS total_wo,
+                        SUM(total_wo_rekon)::int AS completed_rekon,
+                        SUM(count_sla_on_time)::int AS completed_sla
+                    FROM analytics.mv_wo_lensa_rekon_summary
+                    WHERE tgl >= CURRENT_DATE - ($1 || ' days')::interval
+                      AND tgl <= CURRENT_DATE
+                      AND warehouse_id > 0
+                    GROUP BY warehouse_id, warehouse_name
+                    ORDER BY warehouse_name ASC;
+                `;
 
             const res = await pool.query<{
-                key: number;
+                key: number | string;
                 name: string;
                 total_wo: number;
                 completed_rekon: number;
@@ -334,14 +381,14 @@ export function createAnalyticsRepository(customPool?: Pool): AnalyticsRepositor
             }>(query, [days]);
 
             const rekon: WarehouseMetricRow[] = res.rows.map((row) => ({
-                key: Number(row.key),
+                key: row.key,
                 name: row.name,
                 total: Number(row.total_wo),
                 completed: Number(row.completed_rekon),
             }));
 
             const slaRekon: WarehouseMetricRow[] = res.rows.map((row) => ({
-                key: Number(row.key),
+                key: row.key,
                 name: row.name,
                 total: Number(row.completed_rekon),
                 completed: Number(row.completed_sla),

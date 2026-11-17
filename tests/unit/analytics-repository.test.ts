@@ -185,6 +185,63 @@ describe('Analytics Repository Unit Tests', () => {
         expect(mockQuery.mock.calls[0][0]).toContain('analytics.mv_wo_lensa_rekon_summary');
     });
 
+    it('should query Lensa Out performance grouped by service_area when requested', async () => {
+        const mockRows = [
+            { key: 'BAMBE', name: 'BAMBE', total: 168, completed: 167 },
+            { key: 'GRESIK', name: 'GRESIK', total: 262, completed: 262 },
+        ];
+
+        const mockQuery = vi.fn().mockResolvedValue({ rows: mockRows });
+        const mockPool = { query: mockQuery } as unknown as Pool;
+
+        const repo = createAnalyticsRepository(mockPool);
+        const result = await repo.getLensaOutPerformance(30, 'service_area');
+
+        expect(result).toEqual(mockRows);
+        expect(mockQuery).toHaveBeenCalledTimes(1);
+        expect(mockQuery.mock.calls[0][1]).toEqual([30]);
+        expect(mockQuery.mock.calls[0][0]).toContain('analytics.mv_out_sap_lensa_summary');
+        expect(mockQuery.mock.calls[0][0]).toContain('GROUP BY service_area');
+    });
+
+    it('should query Lensa Rekon performance grouped by service_area when requested', async () => {
+        const mockRows = [
+            {
+                key: 'BAMBE',
+                name: 'BAMBE',
+                total_wo: 409,
+                completed_rekon: 400,
+                completed_sla: 352,
+            },
+            {
+                key: 'GRESIK',
+                name: 'GRESIK',
+                total_wo: 922,
+                completed_rekon: 887,
+                completed_sla: 794,
+            },
+        ];
+
+        const mockQuery = vi.fn().mockResolvedValue({ rows: mockRows });
+        const mockPool = { query: mockQuery } as unknown as Pool;
+
+        const repo = createAnalyticsRepository(mockPool);
+        const result = await repo.getLensaRekonPerformance(30, 'service_area');
+
+        expect(result.rekon).toEqual([
+            { key: 'BAMBE', name: 'BAMBE', total: 409, completed: 400 },
+            { key: 'GRESIK', name: 'GRESIK', total: 922, completed: 887 },
+        ]);
+        expect(result.slaRekon).toEqual([
+            { key: 'BAMBE', name: 'BAMBE', total: 400, completed: 352 },
+            { key: 'GRESIK', name: 'GRESIK', total: 887, completed: 794 },
+        ]);
+        expect(mockQuery).toHaveBeenCalledTimes(1);
+        expect(mockQuery.mock.calls[0][1]).toEqual([30]);
+        expect(mockQuery.mock.calls[0][0]).toContain('analytics.mv_wo_lensa_rekon_summary');
+        expect(mockQuery.mock.calls[0][0]).toContain('GROUP BY service_area');
+    });
+
     it('should query WO Lensa Rekon summary with optional warehouse and service area filters', async () => {
         const mockQuery = vi.fn().mockResolvedValue({ rows: [] });
         const mockPool = { query: mockQuery } as unknown as Pool;

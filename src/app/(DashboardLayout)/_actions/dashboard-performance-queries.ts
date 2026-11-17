@@ -8,7 +8,7 @@ import { analyticsRepository } from '@/lib/repositories/analytics.repository';
 import { inventoryRepository } from '@/lib/repositories/inventory.repository';
 
 export type IntechLensaWarehouseMetric = {
-    key: number;
+    key: number | string;
     name: string;
     total: number;
     completed: number;
@@ -21,7 +21,7 @@ export type WarehouseMetricBreakdown = {
 };
 
 export type WarehouseLeaderboardEntry = {
-    key: number;
+    key: number | string;
     name: string;
     score: number;
     totalTransactions: number;
@@ -37,13 +37,15 @@ export type WarehouseChampionResponse = {
     updatedAt: string;
 };
 
-export async function getLensaWarehousePerformance() {
+export async function getLensaWarehousePerformance(
+    groupBy: 'warehouse' | 'service_area' = 'warehouse'
+) {
     try {
         await getSessionUser();
 
         const [outLensa, { rekon: rekonLensa, slaRekon }] = await Promise.all([
-            analyticsRepository.getLensaOutPerformance(30),
-            analyticsRepository.getLensaRekonPerformance(30),
+            analyticsRepository.getLensaOutPerformance(30, groupBy),
+            analyticsRepository.getLensaRekonPerformance(30, groupBy),
         ]);
 
         const sortByCompletion = <
@@ -73,14 +75,16 @@ export async function getLensaWarehousePerformance() {
         };
     } catch (error: unknown) {
         actionLogger.error(
-            'Failed to fetch Lensa warehouse performance:',
+            'Failed to fetch Lensa performance:',
             error instanceof Error ? error : new Error(String(error))
         );
         return { success: false, data: null };
     }
 }
 
-export async function getIntechLensaWarehousePerformance(): Promise<{
+export async function getIntechLensaWarehousePerformance(
+    groupBy: 'warehouse' | 'service_area' = 'warehouse'
+): Promise<{
     success: boolean;
     data: IntechLensaWarehouseMetric[] | null;
     error?: string;
@@ -89,14 +93,16 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
         await getSessionUser();
 
         // For dashboard & champions leaderboard, Intech Lensa performance represents
-        // the warehouse competition across all warehouses (no PIC filter).
+        // the competition across all warehouses or service areas (no PIC filter).
         const techQuery = db
             .selectFrom('hr.technicians as t')
             .innerJoin('inventory.mas_wh as wh', 'wh.id', 't.wh_id')
+            .leftJoin('hr.branches as b', 'b.id', 't.branch_id')
             .select([
                 't.nik',
                 't.wh_id',
                 'wh.name as warehouse_name',
+                'b.service_area as service_area',
                 't.ref_intech_lensa',
                 't.exclude_intech_lensa',
             ])
@@ -107,6 +113,7 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
             nik: string | null;
             wh_id: number | null;
             warehouse_name: string | null;
+            service_area: string | null;
             ref_intech_lensa: unknown;
             exclude_intech_lensa: unknown;
         }>;
@@ -128,18 +135,26 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
             techMap.set(matCode, Number(row.qty_intech ?? 0));
         }
 
-        const whMap = new Map<
-            number,
-            { key: number; name: string; total: number; completed: number }
+        const isServiceArea = groupBy === 'service_area';
+        const groupMap = new Map<
+            number | string,
+            { key: number | string; name: string; total: number; completed: number }
         >();
+
         for (const t of techRows) {
             if (!t.wh_id || !t.warehouse_name) continue;
-            let whData = whMap.get(t.wh_id);
-            if (!whData) {
-                whData = { key: t.wh_id, name: t.warehouse_name, total: 0, completed: 0 };
-                whMap.set(t.wh_id, whData);
+
+            const groupKey = isServiceArea ? (t.service_area || 'UNKNOWN') : t.wh_id;
+            const groupName = isServiceArea ? (t.service_area || 'UNKNOWN') : t.warehouse_name;
+
+            if (isServiceArea && groupKey === 'UNKNOWN') continue;
+
+            let groupData = groupMap.get(groupKey);
+            if (!groupData) {
+                groupData = { key: groupKey, name: groupName, total: 0, completed: 0 };
+                groupMap.set(groupKey, groupData);
             }
-            whData.total++;
+            groupData.total++;
 
             const cached = t.ref_intech_lensa as {
                 status?: string;
@@ -190,12 +205,12 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
                 }
 
                 if (isMatch) {
-                    whData.completed++;
+                    groupData.completed++;
                 }
             }
         }
 
-        const rows = Array.from(whMap.values());
+        const rows = Array.from(groupMap.values());
         const sorted = [...rows].sort((left, right) => {
             const leftPercent = left.total === 0 ? 0 : left.completed / left.total;
             const rightPercent = right.total === 0 ? 0 : right.completed / right.total;
@@ -205,7 +220,7 @@ export async function getIntechLensaWarehousePerformance(): Promise<{
         return { success: true, data: sorted };
     } catch (error: unknown) {
         actionLogger.error(
-            'Failed to fetch Intech Lensa warehouse performance:',
+            'Failed to fetch Intech Lensa performance:',
             error instanceof Error ? error : new Error(String(error))
         );
         return {

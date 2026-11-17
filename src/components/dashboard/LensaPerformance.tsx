@@ -5,18 +5,25 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
+export type GroupByMode = 'warehouse' | 'service_area';
+
 type WarehouseMetric = {
-    key: number;
+    key: number | string;
     name: string;
     total: number;
     completed: number;
     percentage: number;
 };
 
+type MetricGrouping = {
+    warehouse: WarehouseMetric[];
+    service_area: WarehouseMetric[];
+};
+
 type LensaMetrics = {
-    outLensa: WarehouseMetric[];
-    rekonLensa: WarehouseMetric[];
-    intechLensaVsMtms: WarehouseMetric[];
+    outLensa: MetricGrouping;
+    rekonLensa: MetricGrouping;
+    intechLensaVsMtms: MetricGrouping;
 };
 
 function calculatePercentage(completed: number, total: number): number {
@@ -60,6 +67,8 @@ function MetricCard({
     isLoading,
     hasError,
     ratioLabel = 'Selesai / Total (Persentase)',
+    groupBy = 'warehouse',
+    onGroupByChange,
 }: {
     title: string;
     description: string;
@@ -67,8 +76,11 @@ function MetricCard({
     isLoading: boolean;
     hasError: boolean;
     ratioLabel?: string;
+    groupBy?: GroupByMode;
+    onGroupByChange?: (mode: GroupByMode) => void;
 }) {
     const sortedRows = sortByCompletion(rows);
+    const groupLabel = groupBy === 'service_area' ? 'Service Area' : 'Gudang';
 
     return (
         <Card className="border border-border bg-card text-card-foreground shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md p-4 motion-reduce:transition-none w-full relative overflow-hidden flex flex-col">
@@ -77,15 +89,55 @@ function MetricCard({
                 aria-hidden="true"
             />
 
-            {/* Header */}
-            <div className="relative z-10 mb-3">
-                <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
-                <p className="text-xs text-muted-foreground font-normal mt-0.5">{description}</p>
+            {/* Header with Title, Description, and GroupBy Segmented Control */}
+            <div className="relative z-10 mb-3 flex items-start justify-between gap-2">
+                <div className="min-w-0 pr-1">
+                    <h2 className="text-lg font-semibold tracking-tight text-foreground truncate">
+                        {title}
+                    </h2>
+                    <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                        {description}
+                    </p>
+                </div>
+                {onGroupByChange && (
+                    <div
+                        className="inline-flex items-center rounded-lg bg-muted/60 p-0.5 border border-border/80 text-[11px] font-medium shrink-0"
+                        role="group"
+                        aria-label={`Pilih pengelompokan untuk ${title}`}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => onGroupByChange('warehouse')}
+                            className={cn(
+                                'px-2 py-0.5 rounded-md transition-all duration-150 cursor-pointer',
+                                groupBy === 'warehouse'
+                                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            )}
+                            aria-pressed={groupBy === 'warehouse'}
+                        >
+                            Gudang
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onGroupByChange('service_area')}
+                            className={cn(
+                                'px-2 py-0.5 rounded-md transition-all duration-150 cursor-pointer',
+                                groupBy === 'service_area'
+                                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            )}
+                            aria-pressed={groupBy === 'service_area'}
+                        >
+                            Service Area
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Column Label / Legend */}
             <div className="relative z-10 flex items-center justify-between text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pb-2 border-b border-border/60">
-                <span>Gudang</span>
+                <span>{groupLabel}</span>
                 <span>{ratioLabel}</span>
             </div>
 
@@ -109,7 +161,7 @@ function MetricCard({
                     </p>
                 ) : sortedRows.length === 0 ? (
                     <p className="py-6 text-center text-xs text-muted-foreground">
-                        Belum ada data transaksi lensa.
+                        Belum ada data transaksi.
                     </p>
                 ) : (
                     sortedRows.map((row, index) => {
@@ -118,7 +170,7 @@ function MetricCard({
 
                         return (
                             <div
-                                key={row.key}
+                                key={String(row.key)}
                                 className="group space-y-1.5 rounded-lg p-1.5 -mx-1.5 transition-colors hover:bg-muted/40"
                             >
                                 {/* Row Top: Rank, Name, Ratio & Badge */}
@@ -188,10 +240,13 @@ function MetricCard({
 
 export function LensaPerformance() {
     const [metrics, setMetrics] = useState<LensaMetrics>({
-        outLensa: [],
-        rekonLensa: [],
-        intechLensaVsMtms: [],
+        outLensa: { warehouse: [], service_area: [] },
+        rekonLensa: { warehouse: [], service_area: [] },
+        intechLensaVsMtms: { warehouse: [], service_area: [] },
     });
+    const [groupByOut, setGroupByOut] = useState<GroupByMode>('warehouse');
+    const [groupByRekon, setGroupByRekon] = useState<GroupByMode>('warehouse');
+    const [groupByIntech, setGroupByIntech] = useState<GroupByMode>('warehouse');
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
 
@@ -201,52 +256,55 @@ export function LensaPerformance() {
             try {
                 const { getLensaWarehousePerformance, getIntechLensaWarehousePerformance } =
                     await import('@/app/(DashboardLayout)/_actions/dashboard-actions');
-                const [lensaResult, intechResult] = await Promise.all([
-                    getLensaWarehousePerformance(),
-                    getIntechLensaWarehousePerformance(),
+
+                const [lensaWh, lensaSa, intechWh, intechSa] = await Promise.all([
+                    getLensaWarehousePerformance('warehouse'),
+                    getLensaWarehousePerformance('service_area'),
+                    getIntechLensaWarehousePerformance('warehouse'),
+                    getIntechLensaWarehousePerformance('service_area'),
                 ]);
 
                 if (isActive) {
-                    if (lensaResult.success && lensaResult.data) {
-                        setMetrics((prev) => ({
-                            ...prev,
-                            outLensa: (lensaResult.data?.outLensa ?? []).map((row) => ({
-                                ...row,
-                                total: Number(row.total),
-                                completed: Number(row.completed),
-                                percentage: calculatePercentage(
-                                    Number(row.completed),
-                                    Number(row.total)
-                                ),
-                            })),
-                            rekonLensa: (lensaResult.data?.rekonLensa ?? []).map((row) => ({
-                                ...row,
-                                total: Number(row.total),
-                                completed: Number(row.completed),
-                                percentage: calculatePercentage(
-                                    Number(row.completed),
-                                    Number(row.total)
-                                ),
-                            })),
+                    const mapMetrics = (
+                        rows?: Array<{
+                            key: number | string;
+                            name: string;
+                            total: number | string;
+                            completed: number | string;
+                        }>
+                    ): WarehouseMetric[] =>
+                        (rows ?? []).map((row) => ({
+                            key: row.key,
+                            name: row.name,
+                            total: Number(row.total),
+                            completed: Number(row.completed),
+                            percentage: calculatePercentage(
+                                Number(row.completed),
+                                Number(row.total)
+                            ),
                         }));
-                    }
 
-                    if (intechResult.success && intechResult.data) {
-                        setMetrics((prev) => ({
-                            ...prev,
-                            intechLensaVsMtms: (intechResult.data ?? []).map((row) => ({
-                                ...row,
-                                total: Number(row.total),
-                                completed: Number(row.completed),
-                                percentage: calculatePercentage(
-                                    Number(row.completed),
-                                    Number(row.total)
-                                ),
-                            })),
-                        }));
-                    }
+                    setMetrics({
+                        outLensa: {
+                            warehouse: mapMetrics(lensaWh.data?.outLensa),
+                            service_area: mapMetrics(lensaSa.data?.outLensa),
+                        },
+                        rekonLensa: {
+                            warehouse: mapMetrics(lensaWh.data?.rekonLensa),
+                            service_area: mapMetrics(lensaSa.data?.rekonLensa),
+                        },
+                        intechLensaVsMtms: {
+                            warehouse: mapMetrics(intechWh.data ?? undefined),
+                            service_area: mapMetrics(intechSa.data ?? undefined),
+                        },
+                    });
 
-                    if (!lensaResult.success && !intechResult.success) {
+                    if (
+                        !lensaWh.success &&
+                        !lensaSa.success &&
+                        !intechWh.success &&
+                        !intechSa.success
+                    ) {
                         setHasError(true);
                     }
                 }
@@ -266,26 +324,39 @@ export function LensaPerformance() {
         <section aria-label="Performa Lensa" className="contents">
             <MetricCard
                 title="Performa Out Lensa"
-                description="Pengeluaran dan transaksi yang telah diproses SAP per gudang (30 hari terakhir)."
-                rows={metrics.outLensa}
+                description={`Pengeluaran dan transaksi yang telah diproses SAP per ${
+                    groupByOut === 'service_area' ? 'service area' : 'gudang'
+                } (30 hari terakhir).`}
+                rows={metrics.outLensa[groupByOut]}
                 isLoading={isLoading}
                 hasError={hasError}
+                groupBy={groupByOut}
+                onGroupByChange={setGroupByOut}
             />
             <MetricCard
                 title="Performa Rekon Lensa"
-                description="WO Lensa yang sudah masuk ke Rekon Lensa per gudang (30 hari terakhir)."
-                rows={metrics.rekonLensa}
+                description={`WO Lensa yang sudah masuk ke Rekon Lensa per ${
+                    groupByRekon === 'service_area' ? 'service area' : 'gudang'
+                } (30 hari terakhir).`}
+                rows={metrics.rekonLensa[groupByRekon]}
                 isLoading={isLoading}
                 hasError={hasError}
+                groupBy={groupByRekon}
+                onGroupByChange={setGroupByRekon}
             />
             <MetricCard
                 title="Performa Intech Lensa Vs MTMS"
-                description="Kesesuaian stok fisik teknisi (Intech Lensa) dengan saldo MTMS per gudang."
-                rows={metrics.intechLensaVsMtms}
+                description={`Kesesuaian stok fisik teknisi (Intech Lensa) dengan saldo MTMS per ${
+                    groupByIntech === 'service_area' ? 'service area' : 'gudang'
+                }.`}
+                rows={metrics.intechLensaVsMtms[groupByIntech]}
                 isLoading={isLoading}
                 hasError={hasError}
                 ratioLabel="Match / Total (Persentase)"
+                groupBy={groupByIntech}
+                onGroupByChange={setGroupByIntech}
             />
         </section>
     );
 }
+
