@@ -286,7 +286,10 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                     {!isStaff && (
                         <Select value={selectedWh} onValueChange={setSelectedWh}>
-                            <SelectTrigger className="w-31.25 sm:w-35 h-7.5 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors">
+                            <SelectTrigger
+                                aria-label="Filter gudang aging stok intech"
+                                className="w-31.25 sm:w-35 h-7.5 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
+                            >
                                 <SelectValue placeholder="Pilih Gudang" />
                             </SelectTrigger>
                             <SelectContent>

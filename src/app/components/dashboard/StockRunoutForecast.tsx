@@ -242,7 +242,10 @@ export const StockRunoutForecast: React.FC<{
 
                     {!isStaff && (
                         <Select value={selectedWh} onValueChange={setSelectedWh}>
-                            <SelectTrigger className="w-[125px] sm:w-[135px] h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors">
+                            <SelectTrigger
+                                aria-label="Filter gudang ketahanan stok"
+                                className="w-[125px] sm:w-[135px] h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
+                            >
                                 <SelectValue placeholder="Pilih Gudang" />
                             </SelectTrigger>
                             <SelectContent>

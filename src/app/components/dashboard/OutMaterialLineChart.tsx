@@ -417,7 +417,10 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
 
                     {!isStaff && (
                         <Select value={selectedWh} onValueChange={setSelectedWh}>
-                            <SelectTrigger className="w-28 sm:w-32 h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors">
+                            <SelectTrigger
+                                aria-label="Filter gudang pengeluaran material"
+                                className="w-28 sm:w-32 h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
+                            >
                                 <SelectValue placeholder="Pilih Gudang" />
                             </SelectTrigger>
                             <SelectContent>
@@ -432,7 +435,10 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
                     )}
 
                     <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
-                        <SelectTrigger className="w-36 sm:w-44 h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors">
+                        <SelectTrigger
+                            aria-label="Filter jenis material keluar"
+                            className="w-36 sm:w-44 h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
+                        >
                             <SelectValue placeholder="Pilih Material" />
                         </SelectTrigger>
                         <SelectContent>

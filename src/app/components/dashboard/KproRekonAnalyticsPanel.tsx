@@ -247,7 +247,10 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                         value={String(selectedDays)}
                         onValueChange={(val) => setSelectedDays(Number(val))}
                     >
-                        <SelectTrigger className="h-8 text-xs w-32 border-border/80">
+                        <SelectTrigger
+                            aria-label="Pilih rentang waktu analisa K-PRO"
+                            className="h-8 text-xs w-32 border-border/80"
+                        >
                             <SelectValue placeholder="Rentang Waktu" />
                         </SelectTrigger>
                         <SelectContent>
@@ -271,7 +274,10 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                         value={selectedWarehouse}
                         onValueChange={(val) => setSelectedWarehouse(val)}
                     >
-                        <SelectTrigger className="h-8 text-xs w-44 border-border/80">
+                        <SelectTrigger
+                            aria-label="Filter gudang analisa K-PRO"
+                            className="h-8 text-xs w-44 border-border/80"
+                        >
                             <SelectValue placeholder="Semua Gudang" />
                         </SelectTrigger>
                         <SelectContent>

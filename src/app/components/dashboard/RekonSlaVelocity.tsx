@@ -175,7 +175,10 @@ export const RekonSlaVelocity: React.FC<{
 
                 {!isStaff && (
                     <Select value={selectedWh} onValueChange={setSelectedWh}>
-                        <SelectTrigger className="w-[115px] h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors">
+                        <SelectTrigger
+                            aria-label="Filter gudang SLA rekon"
+                            className="w-[115px] h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
+                        >
                             <SelectValue placeholder="Pilih Gudang" />
                         </SelectTrigger>
                         <SelectContent>

@@ -194,7 +194,10 @@ export const StockValueDonutChart: React.FC<{
 
                     {!isStaff && (
                         <Select value={selectedWh} onValueChange={setSelectedWh}>
-                            <SelectTrigger className="w-39 h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors">
+                            <SelectTrigger
+                                aria-label="Filter gudang sebaran nilai stok"
+                                className="w-39 h-7 text-xs bg-background/60 backdrop-blur-xs border-border/60 hover:border-primary/50 transition-colors"
+                            >
                                 <SelectValue placeholder="Pilih Gudang" />
                             </SelectTrigger>
                             <SelectContent>
