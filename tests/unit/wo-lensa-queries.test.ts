@@ -97,8 +97,13 @@ vi.mock('@/lib/db/db', () => ({
     },
 }));
 
-const { getWOLensaList, getWOLensaFilterOptions, getWOLensaRefDetails, getWOPemakaianIdOptions } =
-    await import('@/app/(DashboardLayout)/reference/wo-lensa-ref/_actions/wo-lensa-queries');
+const {
+    getWOLensaList,
+    getWOLensaFilterOptions,
+    getWOLensaRefDetails,
+    getWOPemakaianIdOptions,
+    isOctober2026Cutoff,
+} = await import('@/app/(DashboardLayout)/reference/wo-lensa-ref/_actions/wo-lensa-queries');
 
 describe('wo-lensa-queries Unit Tests', () => {
     beforeEach(() => {
@@ -251,5 +256,24 @@ describe('wo-lensa-queries Unit Tests', () => {
         expect(res.error).toBeUndefined();
         expect(res.success).toBe(true);
         expect(res.data).toEqual([]);
+    });
+
+    describe('isOctober2026Cutoff', () => {
+        it('identifies October 2026 dates correctly', () => {
+            expect(isOctober2026Cutoff('2026-10-01')).toBe(true);
+            expect(isOctober2026Cutoff('2026-10-15')).toBe(true);
+            expect(isOctober2026Cutoff('2026-10-31')).toBe(true);
+            expect(isOctober2026Cutoff(new Date('2026-10-15T00:00:00Z'))).toBe(true);
+            expect(isOctober2026Cutoff(new Date('2026-09-30T17:00:00Z'))).toBe(true); // 2026-10-01 WIB
+        });
+
+        it('rejects dates outside October 2026', () => {
+            expect(isOctober2026Cutoff('2026-11-01')).toBe(false);
+            expect(isOctober2026Cutoff('2026-09-30')).toBe(false);
+            expect(isOctober2026Cutoff('2025-10-15')).toBe(false);
+            expect(isOctober2026Cutoff(null)).toBe(false);
+            expect(isOctober2026Cutoff(undefined)).toBe(false);
+            expect(isOctober2026Cutoff('')).toBe(false);
+        });
     });
 });

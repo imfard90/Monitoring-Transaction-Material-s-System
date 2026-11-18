@@ -55,6 +55,31 @@ export interface GetWOLensaListOptions {
     search?: string;
 }
 
+/**
+ * Memeriksa apakah tanggal transaksi berada di periode cutoff Oktober 2026 (2026-10-01 s/d 2026-10-31).
+ * Transaksi pada periode ini telah dinormalisasi (rekon_check = TRUE) via migrasi 065
+ * dan dikecualikan dari mekanisme self-healing agar status pemutihannya tidak ter-revert.
+ */
+export function isOctober2026Cutoff(val: unknown): boolean {
+    if (!val) return false;
+    if (val instanceof Date) {
+        if (val.getFullYear() === 2026 && val.getMonth() === 9) return true;
+        // Penanganan offset UTC (misal: 2026-09-30T17:00:00Z = 2026-10-01 00:00:00 WIB)
+        const wib = new Date(val.getTime() + 7 * 60 * 60 * 1000);
+        if (wib.getUTCFullYear() === 2026 && wib.getUTCMonth() === 9) return true;
+        return false;
+    }
+    const str = String(val).trim();
+    if (str.startsWith('2026-10')) return true;
+    const parsed = new Date(str);
+    if (!Number.isNaN(parsed.getTime())) {
+        if (parsed.getFullYear() === 2026 && parsed.getMonth() === 9) return true;
+        const wib = new Date(parsed.getTime() + 7 * 60 * 60 * 1000);
+        if (wib.getUTCFullYear() === 2026 && wib.getUTCMonth() === 9) return true;
+    }
+    return false;
+}
+
 export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
     const { page = 1, pageSize = 20, warehouseFilter, search } = options;
 
@@ -268,8 +293,13 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             }
         }
 
-        // Self-heal any false-positive rekon_check on the current page (e.g. from previous looser matching)
-        const flaggedHeaders = headers.filter((h) => h.rekon_check);
+        // Self-heal any false-positive rekon_check on the current page (e.g. from previous looser matching).
+        // Pengecualian khusus: Periode Oktober 2026 telah dinormalisasi via migrasi 065 (cutoff uji coba).
+        const flaggedHeaders = headers.filter((h) => {
+            if (!h.rekon_check) return false;
+            if (isOctober2026Cutoff(h.formatted_date)) return false;
+            return true;
+        });
         if (flaggedHeaders.length > 0) {
             const flaggedPIds = flaggedHeaders
                 .map((h) => (h.pemakaian_id ? String(h.pemakaian_id).trim() : ''))
