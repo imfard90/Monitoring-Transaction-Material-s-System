@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
 import { expandWarehouseAliases, isMasterWarehouse } from '@/lib/warehouse-helper';
+import { isOctober2026Cutoff } from '@/lib/services/lensa-wo/types';
 
 export interface ScraperLastUpdateInfo {
     timestamp: string;
@@ -53,31 +54,6 @@ export interface GetWOLensaListOptions {
     pageSize?: number;
     warehouseFilter?: string;
     search?: string;
-}
-
-/**
- * Memeriksa apakah tanggal transaksi berada di periode cutoff Oktober 2026 (2026-10-01 s/d 2026-10-31).
- * Transaksi pada periode ini telah dinormalisasi (rekon_check = TRUE) via migrasi 065
- * dan dikecualikan dari mekanisme self-healing agar status pemutihannya tidak ter-revert.
- */
-export function isOctober2026Cutoff(val: unknown): boolean {
-    if (!val) return false;
-    if (val instanceof Date) {
-        if (val.getFullYear() === 2026 && val.getMonth() === 9) return true;
-        // Penanganan offset UTC (misal: 2026-09-30T17:00:00Z = 2026-10-01 00:00:00 WIB)
-        const wib = new Date(val.getTime() + 7 * 60 * 60 * 1000);
-        if (wib.getUTCFullYear() === 2026 && wib.getUTCMonth() === 9) return true;
-        return false;
-    }
-    const str = String(val).trim();
-    if (str.startsWith('2026-10')) return true;
-    const parsed = new Date(str);
-    if (!Number.isNaN(parsed.getTime())) {
-        if (parsed.getFullYear() === 2026 && parsed.getMonth() === 9) return true;
-        const wib = new Date(parsed.getTime() + 7 * 60 * 60 * 1000);
-        if (wib.getUTCFullYear() === 2026 && wib.getUTCMonth() === 9) return true;
-    }
-    return false;
 }
 
 export async function getWOLensaList(options: GetWOLensaListOptions = {}) {

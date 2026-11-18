@@ -97,12 +97,13 @@ vi.mock('@/lib/db/db', () => ({
     },
 }));
 
+import { isOctober2026Cutoff } from '@/lib/services/lensa-wo/types';
+
 const {
     getWOLensaList,
     getWOLensaFilterOptions,
     getWOLensaRefDetails,
     getWOPemakaianIdOptions,
-    isOctober2026Cutoff,
 } = await import('@/app/(DashboardLayout)/reference/wo-lensa-ref/_actions/wo-lensa-queries');
 
 describe('wo-lensa-queries Unit Tests', () => {
