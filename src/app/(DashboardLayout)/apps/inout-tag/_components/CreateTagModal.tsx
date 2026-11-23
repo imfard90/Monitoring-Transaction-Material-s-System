@@ -33,6 +33,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import { cn } from '@/lib/utils';
+import { useWarehouses } from '@/hooks/use-warehouses';
 import { createTag, getMaterialsWithStock, getWarehouses } from '../_actions/tag-actions';
 
 interface CreateTagModalProps {
@@ -111,10 +112,7 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
     const toWhId = watch('toWhId');
 
     // Queries
-    const { data: whRes } = useQuery({
-        queryKey: queryKeys.warehouses.all,
-        queryFn: getWarehouses,
-    });
+    const { warehouses } = useWarehouses(getWarehouses);
 
     const { data: matRes } = useQuery({
         queryKey: queryKeys.materials.byWarehouse(fromWhId),
@@ -122,7 +120,6 @@ export default function CreateTagModal({ isOpen, onClose }: CreateTagModalProps)
         enabled: Boolean(fromWhId),
     });
 
-    const warehouses = whRes?.data || [];
     const materials = matRes?.data || [];
 
     // Reset form when modal opens

@@ -60,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     role="alert"
                     className="my-4 motion-reduce:transition-none"
                 >
-                    <Icon icon="mdi:alert-triangle" className="h-4 w-4" aria-hidden="true" />
+                    <Icon icon="lucide:alert-triangle" className="h-4 w-4" aria-hidden="true" />
                     <AlertTitle>Terjadi kesalahan</AlertTitle>
                     <AlertDescription className="mt-2">
                         <p className="mb-4 text-sm">

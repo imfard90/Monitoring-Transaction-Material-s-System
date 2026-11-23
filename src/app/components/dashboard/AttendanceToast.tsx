@@ -32,11 +32,21 @@ export function AttendanceToast({ hasCheckedIn, checkInTime, nik }: AttendanceTo
 
         // Periksa apakah toast sudah pernah ditampilkan pada sesi login browser saat ini
         if (typeof window !== 'undefined') {
-            const alreadyShown = sessionStorage.getItem(storageKey);
-            if (alreadyShown) {
-                return;
+            try {
+                const storedState = sessionStorage.getItem(storageKey);
+                // Jika sudah pernah menampilkan status 'checked_in', jangan tampilkan lagi di sesi ini
+                if (storedState === 'checked_in') {
+                    return;
+                }
+                // Jika belum absen dan sudah pernah menampilkan notifikasi 'pending', jangan spam di sesi ini
+                if (!hasCheckedIn && storedState === 'pending') {
+                    return;
+                }
+
+                sessionStorage.setItem(storageKey, hasCheckedIn ? 'checked_in' : 'pending');
+            } catch {
+                // Ignore sessionStorage errors
             }
-            sessionStorage.setItem(storageKey, 'true');
         }
 
         if (hasCheckedIn) {

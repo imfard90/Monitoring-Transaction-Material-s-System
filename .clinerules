@@ -20,6 +20,10 @@
    - API keys are hashed with SHA-256 (`hashApiKey()`); never log plaintext keys.
    - Enforce admin approval gate (`appr_api === true`) and atomic per-user Redis rate limiting (300s window).
    - Use RFC 9457 Problem Details for errors and standard envelopes for responses.
+5. **Local Icon Bundling & Strict CSP (P0)**:
+   - MTMS enforces strict CSP (`connect-src 'self'`). Runtime HTTP fetching to `api.iconify.design` is blocked.
+   - All icons (`solar:*`, `lucide:*`, `mdi:*`, `ri:*`) must be bundled locally into `src/lib/icons/bundled-icons.json` via `pnpm icons:bundle`.
+   - Verified by `tests/unit/bundled-icons.test.ts`.
 
 ## 2. Quality & Verification Toolchain
 
@@ -27,6 +31,7 @@ Always verify changes using project-local commands:
 - **Format**: `pnpm format` (Biome write)
 - **Lint**: `pnpm lint` (Biome check)
 - **Type Check**: `pnpm tsc --noEmit`
+- **Icon Bundling**: `pnpm icons:bundle` (packages all `src/` icons locally)
 - **Unit Tests**: `pnpm test:unit` (Vitest)
 - **Integration Tests**: `pnpm test:integration` (requires `DATABASE_URL`)
 - **Database Migrations**: `pnpm migrate` (runs `run-migration.ts`)

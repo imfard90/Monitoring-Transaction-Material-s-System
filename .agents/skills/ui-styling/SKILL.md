@@ -314,6 +314,13 @@ export function LoginForm() {
 </div>
 ```
 
+## MTMS Icon Rules: Local Bundling & Strict CSP
+
+In MTMS, Content Security Policy enforces `connect-src 'self' https://challenges.cloudflare.com`. Pustaka `@iconify/react` dilarang keras melakukan runtime HTTP fetch ke `api.iconify.design` di browser klien.
+- Semua icon (`solar:*`, `lucide:*`, `mdi:*`, `ri:*`) harus dibundle secara lokal ke `src/lib/icons/bundled-icons.json`.
+- Setiap kali menambahkan icon baru di antarmuka, jalankan `pnpm icons:bundle`.
+- Validasi selalu dengan `pnpm test:unit` (`tests/unit/bundled-icons.test.ts`).
+
 ## Resources
 
 - shadcn/ui Docs: https://ui.shadcn.com

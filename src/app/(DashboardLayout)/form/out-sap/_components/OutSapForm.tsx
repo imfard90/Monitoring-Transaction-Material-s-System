@@ -16,6 +16,7 @@ import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import type { OutSapFormItem } from '@/lib/types/inventory';
 import { scrapeReservationAction } from '../../../reference/out-lensa-ref/_actions/out-lensa-actions';
+import { useWarehouses } from '@/hooks/use-warehouses';
 import {
     createOutSap,
     getBranches,
@@ -53,10 +54,7 @@ export default function OutSapForm() {
         enabled: !!formData.name_sa,
     });
 
-    const { data: whData } = useQuery({
-        queryKey: queryKeys.warehouses.all,
-        queryFn: getWarehouses,
-    });
+    const { warehouses } = useWarehouses(getWarehouses);
 
     const { data: matData, isFetching: isFetchingMaterials } = useQuery({
         queryKey: queryKeys.materials.byWarehouse(formData.warehouse_id),
@@ -70,7 +68,6 @@ export default function OutSapForm() {
     });
 
     const technicians = techData?.data || [];
-    const warehouses = whData?.data || [];
     const materials = matData?.data || [];
     const branches = branchData?.data || [];
 

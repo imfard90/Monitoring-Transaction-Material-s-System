@@ -69,6 +69,13 @@
   - **Sinkronisasi Google Sheets (`mtms-google-sheets`)**: Wajib gunakan `list_sheets` dan `read_sheet_range` untuk introspeksi data spreadsheet eksternal secara read-only.
 - **Prinsip Least Privilege**: Server MCP database dan Google Sheets bersifat strictly read-only. Tool mutasi pada GitHub MCP wajib meminta persetujuan pengguna sebelum dijalankan. Kredensial MCP (PAT, password DB) tidak boleh dicatat dalam chat/log atau di-commit ke Git.
 
+### 1.8 Bundle Icon Lokal & Kebijakan CSP (P0)
+
+- **Zero Runtime External Fetch**: MTMS menerapkan CSP ketat (`connect-src 'self' https://challenges.cloudflare.com`). Browser dilarang keras melakukan fetch ke domain eksternal seperti `api.iconify.design`.
+- **Local Icon Bundling**: Semua icon (`solar:*`, `lucide:*`, `mdi:*`, `ri:*`) WAJIB dibundle secara lokal ke `src/lib/icons/bundled-icons.json`.
+- **Otomatisasi Bundle**: Setiap penambahan/perubahan icon di `src/` WAJIB menjalankan `pnpm icons:bundle`. Build produksi (`pnpm build`) dan tes `tests/unit/bundled-icons.test.ts` memverifikasi bahwa 100% icon di `src/` telah terdaftar di bundle lokal.
+- **Validasi Nama Icon**: Pastikan nama icon valid di registry resmi sebelum digunakan untuk mencegah error `not_found`.
+
 ## 2. Alur Kerja Wajib
 
 Sebelum menyatakan tugas selesai, pastikan:
@@ -97,6 +104,7 @@ Sebelum menyatakan tugas selesai, pastikan:
 21. **reactStrictMode** — `true` di `next.config.mjs` (P3-Q4).
 22. **External REST API endpoints** — route handler di `src/app/api/v1/*` wajib menerapkan autentikasi bearer key SHA-256, rate limiting 5 menit atomik per-user via Redis, validasi gate `appr_api`, RFC 9457 Problem Details error envelope, dan metadata success envelope (§1.6).
 23. **MCP Tooling Priority** — Utamakan penggunaan MCP aktif (`postgres`, `github`, `context7`, `mtms-google-sheets`) untuk tugas domain terkait sebelum menulis skrip baru atau berspekulasi (§1.7).
+24. **Local icon bundling & browser cache** — setiap penambahan icon di UI wajib menyertakan bundle lokal via `pnpm icons:bundle` dan lolos tes `tests/unit/bundled-icons.test.ts` (§1.8). Komponen/aset statis (bundle icon lokal, preferensi UI sidebar/tema) dipertahankan di `localStorage` sampai user menghapus cache browser; notifikasi sesi login transien (seperti Toast Kehadiran) menggunakan `sessionStorage` (§3.4).
 
 
 ## 3. Aturan Kode Spesifik
@@ -138,7 +146,11 @@ Sebelum menyatakan tugas selesai, pastikan:
   1. *Form & Transaksi Domain*: Validasi Zod sinkron client-server, feedback loading/pending eksplisit pada tombol submit, dialog konfirmasi untuk aksi destruktif.
   2. *Dashboard Operasional*: Data table (TanStack Table) dengan pagination server-side (`LIMIT`/`OFFSET`), status badge semantik, empty/error state informatif.
   3. *Konsistensi & Aksesibilitas Lintas Halaman*: Kontras WCAG AA, navigasi keyboard (`focus-visible`), hormati `prefers-reduced-motion`, dark mode konsisten, salinan teks Bahasa Indonesia yang sopan dan spesifik.
-- **State & Caching**: State server via React Query/TanStack Table; jangan simpan token/password di `localStorage`. Service worker (`src/sw.ts`) hanya cache aset statis; jangan cache response transaksi sensitif.
+- **State & Caching**: State server via React Query/TanStack Table; jangan simpan token/password di `localStorage`.
+  - *Komponen Statis & Preferensi UI (`localStorage`)*: Simpan state komponen statis (bundle koleksi icon lokal `registerBundledIcons`, preferensi widget/sidebar minimized, preferensi tema) di `localStorage` agar bertahan sampai pengguna menghapus cache browser.
+  - *Notifikasi Transien Sesi (`sessionStorage`)*: Notifikasi sambutan atau kehadiran harian (seperti `AttendanceToast`) menggunakan `sessionStorage` agar menyapa sekali per sesi login/tab browser.
+  - *Aset Statis & Service Worker*: Service worker (`src/sw.ts`) hanya cache aset statis. Aset statis `/images/*` dan `/favicon.svg` disetel dengan header cache browser jangka panjang (`immutable`).
+- **Icon Bundling Lokal**: Semua icon (`solar:*`, `lucide:*`, `mdi:*`, `ri:*`) wajib dibundle ke `src/lib/icons/bundled-icons.json` menggunakan `pnpm icons:bundle`. Dilarang runtime fetch ke Iconify API karena diblokir CSP (§1.8).
 - **Panduan UI/UX**: Gunakan skill `ui-ux-pro-max` untuk kecerdasan sistem desain, tipografi, palet, audit a11y, dan pola antarmuka. Pada konflik aturan, otorisasi/business rules di `AGENTS.md` tetap memiliki prioritas tertinggi.
 
 ## 4. Definisi Selesai (Definition of Done)
@@ -153,6 +165,7 @@ Sebelum menyatakan tugas selesai, pastikan:
 - [ ] Tes minimal untuk SP/authz baru.
 - [ ] `tsc` + `biome` lolos.
 - [ ] Untuk perubahan UI: checklist UI terpenuhi (primitif `src/components/ui/*`, token tema, responsif, dark mode, a11y, state UI lengkap default/loading/empty/error, salinan Bahasa Indonesia, skill `ui-ux-pro-max`).
+- [ ] Icon bundle lokal terverifikasi via `pnpm icons:bundle` & `tests/unit/bundled-icons.test.ts` (jika menambah/mengubah icon UI).
 - [ ] External REST API sesuai standar §1.6 (jika membuat/mengubah endpoint publik).
 - [ ] Dokumentasi Keputusan (ADR): jika tugas memperkenalkan perubahan arsitektural lintas modul, skema kritis, atau pustaka baru, catat di `docs/adr/` menggunakan format `docs/adr/TEMPLATE.md` dan daftarkan di `docs/adr/README.md`.
 

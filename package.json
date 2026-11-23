@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/sync-pdf-worker.mjs && next build",
+    "build": "node scripts/bundle-icons.mjs && node scripts/sync-pdf-worker.mjs && next build",
     "postinstall": "node scripts/sync-pdf-worker.mjs",
     "start": "next start",
     "check": "biome check .",

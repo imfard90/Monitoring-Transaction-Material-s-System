@@ -418,7 +418,7 @@ export const SidebarWarehouseChampion = () => {
                                             type="button"
                                             className="w-full mt-1 py-1 px-2 flex items-center justify-center gap-1.5 rounded-lg text-[10.5px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 active:scale-[0.99] transition-all cursor-pointer border border-amber-500/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500"
                                         >
-                                            <Icon icon="solar:podium-bold" width="12" height="12" />
+                                            <Icon icon="solar:ranking-bold" width="12" height="12" />
                                             <span>Lihat Klasemen Gudang</span>
                                         </button>
                                     </DialogTrigger>

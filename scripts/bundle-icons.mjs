@@ -35,6 +35,11 @@ async function bundleIcons() {
             throw new Error(`Failed to fetch icons for prefix ${prefix}: ${response.statusText}`);
         }
         const json = await response.json();
+        if (json.not_found && json.not_found.length > 0) {
+            throw new Error(
+                `[bundle-icons] Icons not found in "${prefix}": ${json.not_found.join(', ')}. Please verify icon names in code.`
+            );
+        }
         const iconCount = Object.keys(json.icons || {}).length;
         totalIcons += iconCount;
         collections.push(json);

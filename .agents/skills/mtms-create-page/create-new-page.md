@@ -76,7 +76,7 @@ Rules:
 Edit `src/app/(DashboardLayout)/layout/sidebar/sidebaritems.ts` (`SidebarContent`):
 
 - **Child of existing group** (new icon: NO): add `{ name: "[PAGE_LABEL]", url: "/[PAGE_PATH]" }` to that group's `children` array.
-- **New top-level item** (new icon: YES): add `{ name: "[PAGE_LABEL]", url: "/[PAGE_PATH]", icon: "[icon-name]", id: uniqueId() }` under the correct `heading`. Icon name should be an Iconify string like `solar:widget-2-linear` (match existing conventions).
+- **New top-level item** (new icon: YES): add `{ name: "[PAGE_LABEL]", url: "/[PAGE_PATH]", icon: "[icon-name]", id: uniqueId() }` under the correct `heading`. Icon name should be an Iconify string like `solar:widget-2-linear` (match existing conventions). **Wajib**: jika menggunakan icon baru, jalankan `pnpm icons:bundle` agar icon tersimpan di `src/lib/icons/bundled-icons.json` (mencegah pemblokiran CSP).
 
 `url` must match `/[PAGE_PATH]` exactly.
 
@@ -84,6 +84,7 @@ Edit `src/app/(DashboardLayout)/layout/sidebar/sidebaritems.ts` (`SidebarContent
 
 ## Step 3 — Verify
 
-1. `pnpm check` (Biome linting/formatting) passes.
-2. `pnpm run build` passes with no errors.
-3. `pnpm run dev`: page renders at `/[PAGE_PATH]` showing only the breadcrumb header; sidebar shows `[PAGE_LABEL]` under the correct section/group; active state highlights.
+1. `pnpm icons:bundle` (pastikan icon baru ter-bundle lokal dan `pnpm test:unit` lolos).
+2. `pnpm check` (Biome linting/formatting) passes.
+3. `pnpm run build` passes with no errors.
+4. `pnpm run dev`: page renders at `/[PAGE_PATH]` showing only the breadcrumb header; sidebar shows `[PAGE_LABEL]` under the correct section/group; active state highlights.

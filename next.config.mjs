@@ -49,6 +49,25 @@ const nextConfig = {
                 source: '/:path*',
                 headers: securityHeaders,
             },
+            {
+                // Aset gambar statis dipertahankan di cache lokal browser sampai pengguna menghapus cache
+                source: '/images/:path*',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'public, max-age=31536000, immutable',
+                    },
+                ],
+            },
+            {
+                source: '/favicon.svg',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'public, max-age=31536000, immutable',
+                    },
+                ],
+            },
         ];
     },
     images: {
