@@ -2,6 +2,11 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 function createEnforcedCsp(nonce: string): string {
     const isDevelopment = process.env.NODE_ENV === 'development';
+    // CSP reporting dinonaktifkan secara default di produksi untuk mengeliminasi ribuan
+    // laporan noise dari ekstensi browser klien. Dapat diaktifkan saat masa audit keamanan
+    // dengan menyetel ENABLE_CSP_REPORTING=true di environment server.
+    const isReportingEnabled = process.env.ENABLE_CSP_REPORTING === 'true';
+
     return [
         "default-src 'self'",
         `script-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com${isDevelopment ? " 'unsafe-eval'" : ''}`,
@@ -10,7 +15,7 @@ function createEnforcedCsp(nonce: string): string {
         "font-src 'self' data:",
         "connect-src 'self' https://challenges.cloudflare.com",
         'frame-src https://challenges.cloudflare.com',
-        'report-uri /api/csp-report',
+        ...(isReportingEnabled ? ['report-uri /api/csp-report'] : []),
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
