@@ -4,10 +4,10 @@
             "path": "."
         },
         {
-            "path": "../../Zoom/endStateV3"
+            "path": "../gresikV2"
         },
         {
-            "path": "../gresikV2"
+            "path": "../Digital-Support"
         }
     ]
 }

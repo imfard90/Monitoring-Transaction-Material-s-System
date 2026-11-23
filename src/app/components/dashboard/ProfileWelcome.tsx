@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { auth } from '@/lib/auth';
 import { getPageSessionUser } from '@/lib/auth-server';
 import { getInitials } from '@/lib/avatar';
+import { getAttendanceToday } from '@/lib/services/telkomakses-attendance.service';
+import { AttendanceToast } from './AttendanceToast';
 
 function getTimeGreeting(date = new Date()): {
     text: string;
@@ -50,6 +52,7 @@ function getTimeGreeting(date = new Date()): {
 export default async function ProfileWelcome() {
     const sessionUser = await getPageSessionUser();
     const session = await auth.api.getSession({ headers: await headers() });
+    const attendance = await getAttendanceToday(sessionUser.nik);
 
     const name = session?.user?.name ?? 'User';
 
@@ -62,7 +65,9 @@ export default async function ProfileWelcome() {
           ? `/images/profile/${sessionUser.nik}.jpg`
           : fs.existsSync(pngProfile)
             ? `/images/profile/${sessionUser.nik}.png`
-            : null;
+            : sessionUser.nik
+              ? `https://apps.telkomakses.co.id/wimata/photo/crop_${sessionUser.nik}.png`
+              : null;
 
     const role = sessionUser.role ?? 'User';
     const branch = sessionUser.branchName ?? '';
@@ -150,6 +155,22 @@ export default async function ProfileWelcome() {
                                 </span>
                             </>
                         ) : null}
+
+                        {/* Mobile-only compact attendance indicator */}
+                        <span
+                            className={`sm:hidden inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-semibold text-xs tracking-wide border ${
+                                attendance.hasCheckedIn
+                                    ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
+                                    : 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-500/30'
+                            }`}
+                        >
+                            <span
+                                className={`h-1.5 w-1.5 rounded-full ${
+                                    attendance.hasCheckedIn ? 'bg-emerald-500' : 'bg-rose-500'
+                                }`}
+                            />
+                            {attendance.hasCheckedIn ? 'Sudah Absen' : 'Belum Absen'}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -164,14 +185,30 @@ export default async function ProfileWelcome() {
                     <span className="capitalize">{todayStr}</span>
                 </div>
 
-                <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300 font-semibold">
-                    <span className="relative flex h-2.5 w-2.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-                    </span>
-                    <span>Sistem Aktif</span>
-                </div>
+                {attendance.hasCheckedIn ? (
+                    <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300 font-semibold shadow-2xs">
+                        <span className="relative flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                        </span>
+                        <span>Sudah Absen</span>
+                    </div>
+                ) : (
+                    <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-800 dark:text-rose-300 font-semibold shadow-2xs">
+                        <span className="relative flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                        </span>
+                        <span>Belum Absen</span>
+                    </div>
+                )}
             </div>
+
+            <AttendanceToast
+                hasCheckedIn={attendance.hasCheckedIn}
+                checkInTime={attendance.checkInTime}
+                nik={sessionUser.nik}
+            />
         </div>
     );
 }
