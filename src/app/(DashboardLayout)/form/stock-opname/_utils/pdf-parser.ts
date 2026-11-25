@@ -170,14 +170,17 @@ function groupByRowWithTolerance(items: TextItem[], tolerance = 2.5): Map<number
  * Extracts numeric quantity from line items in a single row.
  * In SAP BA SO documents, the Volume SO column is located around x: 400..480.
  * Looks for Indonesian number format: e.g. 1.234,00 or standard integers.
+ * Concatenates all quantity chunks in the cell to prevent font-kerning truncation.
  */
 function extractQuantity(items: TextItem[]): number | null {
-    const qtyItem = items.find(
-        (it) => it.x >= 400 && it.x <= 480 && /^[\d.,]+$/.test(it.text.trim())
-    );
-    if (!qtyItem) return null;
+    const qtyItems = items
+        .filter((it) => it.x >= 400 && it.x <= 480 && /^[\d.,]+$/.test(it.text.trim()))
+        .sort((a, b) => a.x - b.x);
 
-    const raw = qtyItem.text.trim().replace(/\./g, '').replace(',', '.');
+    if (qtyItems.length === 0) return null;
+
+    const combinedRaw = qtyItems.map((it) => it.text.trim()).join('');
+    const raw = combinedRaw.replace(/\./g, '').replace(',', '.');
     const parsed = parseFloat(raw);
     return Number.isNaN(parsed) || parsed < 0 ? null : Math.round(parsed);
 }
