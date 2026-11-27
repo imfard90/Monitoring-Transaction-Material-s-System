@@ -238,14 +238,6 @@ export const createHasilRekonRepository = (dbClient: Kysely<DB> | Transaction<DB
             )
         `;
 
-        const countQuery = sql<{ total: string }>`
-            ${baseCte}
-            SELECT count(*) as total FROM combined
-            ${whereSql}
-        `;
-        const countRes = await countQuery.execute(dbClient);
-        const total = Number(countRes.rows[0]?.total ?? 0);
-
         const dataQuery = sql<Record<string, unknown>>`
             ${baseCte}
             SELECT 
@@ -263,13 +255,27 @@ export const createHasilRekonRepository = (dbClient: Kysely<DB> | Transaction<DB
                 material_code,
                 material_name,
                 qty,
-                is_new_rekon as "isNewRekon"
+                is_new_rekon as "isNewRekon",
+                COUNT(*) OVER()::text as "totalCount"
             FROM combined
             ${whereSql}
             ORDER BY created_at DESC
             LIMIT ${pageSize} OFFSET ${offset}
         `;
         const dataRes = await dataQuery.execute(dbClient);
+
+        let total = 0;
+        if (dataRes.rows.length > 0) {
+            total = Number(dataRes.rows[0].totalCount ?? 0);
+        } else if (offset > 0) {
+            const countQuery = sql<{ total: string }>`
+                ${baseCte}
+                SELECT count(*) as total FROM combined
+                ${whereSql}
+            `;
+            const countRes = await countQuery.execute(dbClient);
+            total = Number(countRes.rows[0]?.total ?? 0);
+        }
 
         const items: HasilRekonItem[] = dataRes.rows.map((r) => ({
             header_id: Number(r.header_id),

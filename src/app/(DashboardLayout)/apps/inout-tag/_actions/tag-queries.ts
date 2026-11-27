@@ -322,15 +322,8 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
         const filterWhere =
             conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 
-        const countQuery = sql<{ total: string }>`
-            ${baseCte}
-            SELECT count(*) as total FROM combined
-            ${filterWhere}
-        `;
-        const countRes = await countQuery.execute(db);
-        const total = Number(countRes.rows[0]?.total ?? 0);
-
-        const dataQuery = sql<InOutTagRow>`
+        type TagQueryRow = InOutTagRow & { total_count?: string };
+        const dataQuery = sql<TagQueryRow>`
             ${baseCte}
             SELECT 
                 id,
@@ -354,7 +347,8 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
                 to_wh_name,
                 type,
                 wh_from_id as from_wh_id,
-                wh_to_id as to_wh_id
+                wh_to_id as to_wh_id,
+                COUNT(*) OVER()::text as total_count
             FROM combined
             ${filterWhere}
             ORDER BY request_time DESC
@@ -362,11 +356,27 @@ export async function getInOutTagsPaginated(options: GetInOutTagsPaginatedOption
         `;
         const dataRes = await dataQuery.execute(db);
 
-        const tags = dataRes.rows.map((row) => ({
-            ...row,
-            from_wh_id: row.from_wh_id ? Number(row.from_wh_id) : null,
-            to_wh_id: row.to_wh_id ? Number(row.to_wh_id) : null,
-        }));
+        let total = 0;
+        if (dataRes.rows.length > 0) {
+            total = Number(dataRes.rows[0].total_count ?? 0);
+        } else if (offset > 0) {
+            const countQuery = sql<{ total: string }>`
+                ${baseCte}
+                SELECT count(*) as total FROM combined
+                ${filterWhere}
+            `;
+            const countRes = await countQuery.execute(db);
+            total = Number(countRes.rows[0]?.total ?? 0);
+        }
+
+        const tags: InOutTagRow[] = dataRes.rows.map((row) => {
+            const { total_count: _, ...tagData } = row;
+            return {
+                ...tagData,
+                from_wh_id: tagData.from_wh_id ? Number(tagData.from_wh_id) : null,
+                to_wh_id: tagData.to_wh_id ? Number(tagData.to_wh_id) : null,
+            };
+        });
 
         return {
             success: true,

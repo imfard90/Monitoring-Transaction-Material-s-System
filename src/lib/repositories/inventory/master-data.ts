@@ -173,6 +173,17 @@ export const createMasterDataRepository = (dbClient: Kysely<DB> | Transaction<DB
      */
     listLiveStockRows: () =>
         dbClient
+            .with('active_movements', (qb) =>
+                qb
+                    .selectFrom('inventory.stock_movement')
+                    .select(['warehouse_id', 'designator_id'])
+                    .where('movement_type', 'in', [
+                        'material_used',
+                        'sap_out',
+                        'transfer_out',
+                    ])
+                    .distinct()
+            )
             .selectFrom('inventory.stock_balance as sb')
             .innerJoin('inventory.materials as m', 'm.id', 'sb.designator_id')
             .innerJoin('inventory.mas_wh as w', 'w.id', 'sb.warehouse_id')
@@ -180,6 +191,11 @@ export const createMasterDataRepository = (dbClient: Kysely<DB> | Transaction<DB
                 join
                     .onRef('sp.warehouse_id', '=', 'sb.warehouse_id')
                     .onRef('sp.designator_id', '=', 'sb.designator_id')
+            )
+            .leftJoin('active_movements as am', (join) =>
+                join
+                    .onRef('am.warehouse_id', '=', 'sb.warehouse_id')
+                    .onRef('am.designator_id', '=', 'sb.designator_id')
             )
             .select([
                 'sb.warehouse_id as warehouseId',
@@ -195,23 +211,8 @@ export const createMasterDataRepository = (dbClient: Kysely<DB> | Transaction<DB
                 'sp.average_demand_weekly as averageDemandWeekly',
                 'sp.safety_stock_pct as safetyStockPct',
                 'sp.updated_at as policyUpdatedAt',
+                sql<boolean>`(am.warehouse_id is not null)`.as('hasOutMaterialHistory'),
             ])
-            .select((eb) =>
-                eb
-                    .exists(
-                        eb
-                            .selectFrom('inventory.stock_movement as sm')
-                            .select('sm.id')
-                            .whereRef('sm.warehouse_id', '=', 'sb.warehouse_id')
-                            .whereRef('sm.designator_id', '=', 'sb.designator_id')
-                            .where('sm.movement_type', 'in', [
-                                'material_used',
-                                'sap_out',
-                                'transfer_out',
-                            ])
-                    )
-                    .as('hasOutMaterialHistory')
-            )
             .orderBy('w.name')
             .orderBy('m.code')
             .execute(),

@@ -123,6 +123,7 @@ temp/
 # --------------------------------------------------
 # Keep committed skills, agents, rules, and workflows for team collaboration
 .agents/*
+!.agents/README.md
 !.agents/skills/
 !.agents/agents/
 !.agents/rules/

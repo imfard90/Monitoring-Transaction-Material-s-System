@@ -1,61 +1,79 @@
-# MTMS Agent Skills
+# MTMS Agent Skills Directory
 
-Skill guides live in named directories under this folder. Each skill has one `SKILL.md` with YAML frontmatter (`name`, `description`). Keep guides aligned with `AGENTS.md`, the active migration runner, and the repositories; generic guidance does not override MTMS authorization, database, or API rules.
+> Direktori resmi kumpulan **59 Agent Skills** yang digunakan oleh agen AI dan pengembang di repositori **Monitoring Transaction Material's System (MTMS)**.  
+> Setiap skill berisi panduan implementasi mandiri di dalam folder masing-masing (`<skill-name>/SKILL.md`) dengan metadata YAML frontmatter (`name`, `description`).
 
-## Skill Categories
+Panduan dalam skill bersifat komplementer dan operasional. Sesuai ketentuan **`AGENTS.md` §0**, prinsip keamanan, aturan bisnis di database (`inventory.sp_*`), dan otorisasi server action di `AGENTS.md` tetap menjadi **sumber kebenaran tertinggi (P0)** yang tidak boleh dikesampingkan oleh skill generik.
 
-All skills live flat in this directory (`skill-name/SKILL.md`). The table below groups them by role for navigation; the folder names are the actual paths.
+---
 
-| Category | Skills |
-|---|---|
-| **Engineering** | `codebase-design`, `debugging`, `domain-modeling`, `research`, `tdd-workflow`, `two-axis-code-review`, `writing-docs` |
-| **Architecture** | `clean-architecture`, `domain-driven-design`, `backend-patterns`, `frontend-patterns`, `postgres-patterns`, `redis-patterns`, `api-design` |
-| **UI/UX** | `ui-ux-pro-max`, `design-system`, `ui-styling`, `frontend-a11y`, `make-interfaces-feel-better`, `motion-foundations`, `motion-advanced`, `motion-patterns`, `frontend-design-direction`, `design` |
-| **Testing** | `react-testing`, `e2e-testing`, `browser-qa`, `security-scan`, `security-review` |
-| **Code Quality** | `clean-code`, `code-complete`, `coding-standards`, `refactoring`, `refactoring-guru`, `error-handling`, `working-effectively-with-legacy-code` |
-| **MTMS-specific** | `mtms-security-guide`, `mtms-create-page`, `mtms-change-branding`, `google-sheets`, `better-auth`, `nextjs-turbopack` |
-| **Reference** | `a-philosophy-of-software-design`, `designing-data-intensive-applications`, `the-pragmatic-programmer` |
-| **Productivity** | `grill-me`, `handoff`, `to-questionnaire`, `wait-what` |
-| **Process** | `skill-authoring`, `git-workflow`, `database-migrations`, `accessibility`, `cybersecurity` |
+## 1. Taksonomi & Indeks Kategori Skill (59 Skills)
 
-## Where to Start
+| Kategori | Jumlah | Daftar Skill |
+|---|:---:|---|
+| **1. Engineering & SDLC** | 7 | [`codebase-design`](codebase-design/SKILL.md), [`debugging`](debugging/SKILL.md), [`domain-modeling`](domain-modeling/SKILL.md), [`research`](research/SKILL.md), [`tdd-workflow`](tdd-workflow/SKILL.md), [`two-axis-code-review`](two-axis-code-review/SKILL.md), [`writing-docs`](writing-docs/SKILL.md) |
+| **2. Architecture & Design** | 7 | [`clean-architecture`](clean-architecture/SKILL.md), [`domain-driven-design`](domain-driven-design/SKILL.md), [`backend-patterns`](backend-patterns/SKILL.md), [`frontend-patterns`](frontend-patterns/SKILL.md), [`postgres-patterns`](postgres-patterns/SKILL.md), [`redis-patterns`](redis-patterns/SKILL.md), [`api-design`](api-design/SKILL.md) |
+| **3. UI/UX & Design System** | 11 | [`ui-ux-pro-max`](ui-ux-pro-max/SKILL.md), [`design-system`](design-system/SKILL.md), [`ui-styling`](ui-styling/SKILL.md), [`frontend-a11y`](frontend-a11y/SKILL.md), [`accessibility`](accessibility/SKILL.md), [`make-interfaces-feel-better`](make-interfaces-feel-better/SKILL.md), [`motion-foundations`](motion-foundations/SKILL.md), [`motion-advanced`](motion-advanced/SKILL.md), [`motion-patterns`](motion-patterns/SKILL.md), [`frontend-design-direction`](frontend-design-direction/SKILL.md), [`design`](design/SKILL.md) |
+| **4. Data Table (TanStack Table v9)** | 3 | [`getting-started`](getting-started/SKILL.md), [`migrate-v8-to-v9`](migrate-v8-to-v9/SKILL.md), [`table-state`](table-state/SKILL.md) |
+| **5. Testing, QA & Security** | 6 | [`react-testing`](react-testing/SKILL.md), [`e2e-testing`](e2e-testing/SKILL.md), [`browser-qa`](browser-qa/SKILL.md), [`security-scan`](security-scan/SKILL.md), [`security-review`](security-review/SKILL.md), [`cybersecurity`](cybersecurity/SKILL.md) |
+| **6. Code Quality & Refactoring** | 7 | [`clean-code`](clean-code/SKILL.md), [`code-complete`](code-complete/SKILL.md), [`coding-standards`](coding-standards/SKILL.md), [`refactoring`](refactoring/SKILL.md), [`refactoring-guru`](refactoring-guru/SKILL.md), [`error-handling`](error-handling/SKILL.md), [`working-effectively-with-legacy-code`](working-effectively-with-legacy-code/SKILL.md) |
+| **7. MTMS Domain Spesifik** | 6 | [`better-auth`](better-auth/SKILL.md), [`google-sheets`](google-sheets/SKILL.md), [`mtms-security-guide`](mtms-security-guide/SKILL.md), [`mtms-create-page`](mtms-create-page/SKILL.md), [`mtms-change-branding`](mtms-change-branding/SKILL.md), [`nextjs-turbopack`](nextjs-turbopack/SKILL.md) |
+| **8. Classical References** | 3 | [`a-philosophy-of-software-design`](a-philosophy-of-software-design/SKILL.md), [`designing-data-intensive-applications`](designing-data-intensive-applications/SKILL.md), [`the-pragmatic-programmer`](the-pragmatic-programmer/SKILL.md) |
+| **9. Productivity & Alignment** | 4 | [`grill-me`](grill-me/SKILL.md), [`handoff`](handoff/SKILL.md), [`to-questionnaire`](to-questionnaire/SKILL.md), [`wait-what`](wait-what/SKILL.md) |
+| **10. Process & Workflow** | 5 | [`skill-authoring`](skill-authoring/SKILL.md), [`git-workflow`](git-workflow/SKILL.md), [`database-migrations`](database-migrations/SKILL.md), [`react-performance`](react-performance/SKILL.md), [`cybersecurity`](cybersecurity/SKILL.md) |
 
-- **Google Sheets** application access and the read-only development MCP: [`google-sheets/SKILL.md`](google-sheets/SKILL.md).
-- **Security reviews** covering agent workflows, prompt injection, and secret exposure: [`mtms-security-guide/SKILL.md`](mtms-security-guide/SKILL.md) plus [`security-guide.md`](mtms-security-guide/security-guide.md), read together with `.cline/workflows/security.md` and `AGENTS.md`. For NTE security review also follow `docs/NTE_SECURITY_WORKFLOW.md`. These guides inform review; they do not authorize implementation, migrations, or data writes.
-- **UI work**: [`ui-ux-pro-max/SKILL.md`](ui-ux-pro-max/SKILL.md), [`design-system/SKILL.md`](design-system/SKILL.md), [`motion-foundations/SKILL.md`](motion-foundations/SKILL.md).
-- **Domain modeling**: [`domain-modeling/SKILL.md`](domain-modeling/SKILL.md) plus the glossary and ADR register.
+---
 
-## Layer Separation
+## 2. Panduan Cepat Pemilihan Skill (Quick Router)
 
-MTMS separates three layers on purpose. Keep new material in the correct one.
+- **Menulis Fitur Baru / Perbaikan Bug:**
+  Mulai dengan [`tdd-workflow`](tdd-workflow/SKILL.md) untuk siklus RED-GREEN-REFACTOR $\to$ konsultasikan [`coding-standards`](coding-standards/SKILL.md) $\to$ tinjau dengan [`two-axis-code-review`](two-axis-code-review/SKILL.md).
+- **Membangun Komponen Antarmuka (UI):**
+  Rujuk [`ui-ux-pro-max`](ui-ux-pro-max/SKILL.md) untuk pola desain, [`ui-styling`](ui-styling/SKILL.md) untuk integrasi Tailwind/shadcn, [`frontend-a11y`](frontend-a11y/SKILL.md) untuk aksesibilitas keyboard/ARIA, dan [`motion-patterns`](motion-patterns/SKILL.md) untuk animasi interaksi.
+- **Implementasi / Migrasi Tabel Data:**
+  Gunakan [`getting-started`](getting-started/SKILL.md) dan [`table-state`](table-state/SKILL.md) untuk adapter TanStack Table v9 dengan kontrol state reaktif.
+- **Perubahan Database & Optimasi Performa Query:**
+  Wajib merujuk [`postgres-patterns`](postgres-patterns/SKILL.md) untuk standar 5 Pilar (Prepared Statement, Indexing, Partitioning, Streaming COPY, Replikasi) dan pola CTE berkinerja tinggi, serta ikuti [`database-migrations`](database-migrations/SKILL.md) untuk migrasi idempoten terlacak. Pendamping kode dan studi kasus Before/After tersedia di [`postgres-patterns/references/performance-playbook.md`](postgres-patterns/references/performance-playbook.md).
+- **Integrasi Ekosistem Google Sheets:**
+  Wajib mengikuti [`google-sheets`](google-sheets/SKILL.md) (klien resmi `googleapis` server-only, batas range 250 baris, MCP strictly read-only).
+- **Audit Keamanan & Otorisasi:**
+  Gunakan [`security-review`](security-review/SKILL.md), [`mtms-security-guide`](mtms-security-guide/SKILL.md), dan [`better-auth`](better-auth/SKILL.md).
 
-| Layer | Owns | Does not own |
+---
+
+## 3. Pemisahan Layer Arsitektur MTMS
+
+MTMS membagi tata kelola agen ke dalam 4 lapisan yang memiliki batas kepemilikan tegas:
+
+```
+[Layer 1: Entry Points]      .cline/workflows/*.md  (Urutan perintah operasional & CLI)
+                                      │
+[Layer 2: Methodology]       .agents/skills/**      (Panduan "How-To" dan metode teknis)
+                                      │
+[Layer 3: Standards & Gates] .agents/rules/*.md     (Standar kode, kriteria kelolosan, checklist)
+                                      │
+[Layer 4: Supreme Policy]    AGENTS.md              (Aturan Bisnis DB, Keamanan P0, Otorisasi Sesi)
+```
+
+| Layer | Cakupan Tugas | Yang DILARANG di Layer Ini |
 |---|---|---|
-| `.cline/workflows/*.md` | Entry points: which commands to run, in what order | Methodology, standards |
-| `.agents/skills/**/SKILL.md` | How-to guidance and methodology for a task | Severity levels, approval gates |
-| `.agents/rules/*.md` | Standards, severity mapping, approval criteria | Step-by-step procedure |
+| **Workflows** (`.cline/workflows/`) | Perintah berurutan, skrip eksekusi, instruksi langkah | Standar pengkodean, filosofi arsitektur |
+| **Skills** (`.agents/skills/`) | Metodologi kerja, panduan *how-to*, pola solusi | Menetapkan kriteria kelulusan review / severity level |
+| **Rules** (`.agents/rules/`) | Standar kualitas, matriks kepatuhan, batas toleransi | Menulis urutan langkah-langkah terminal interaktif |
+| **Supreme Policy** (`AGENTS.md`) | Invarian bisnis mutlak, otorisasi sesi, migrasi | Digantikan atau diabaikan oleh skill mana pun |
 
-A workflow invokes a skill; a skill references a rule. Do not paste rule content into a skill or command sequences into a rule.
+---
 
-## Discovery and Invocation
+## 4. Standar Pembuatan Skill Baru
 
-Discover skills from the `SKILL.md` files in each directory; do not maintain fixed skill counts anywhere. Invoke the matching skill explicitly when its trigger applies.
-
-Discover agent personas in `.agents/agents/*.md` and slash workflows in `.cline/workflows/*.md`. Consult `CLINE.md` for the current command index, and only invoke workflows that exist in that directory.
-
-When `.cline/rules/` and `.agents/rules/` disagree, apply the stricter applicable project or security rule, check `AGENTS.md` and the authoritative source it names, and do not bulk-copy one directory over the other. Keep behaviorally relevant rule edits aligned in both locations and review differences deliberately.
-
-## Adding or Changing a Skill
-
-Follow [`skill-authoring/SKILL.md`](skill-authoring/SKILL.md). Short version: one skill per directory, frontmatter `description` starts with "Use when", keep `SKILL.md` under roughly 500 lines, put heavy reference in a sibling file, and test the skill against a baseline before claiming it works.
-
-## Rules vs Skills
-
-- **Rules** define standards and checklists that apply broadly: authorization requirements, severity levels, coverage thresholds.
-- **Skills** provide executable how-to guidance for a specific domain: stored procedure patterns, React testing, migration procedure.
-
-Rules tell you what to comply with; skills tell you how to do it.
-
-## Standalone Scripts
-
-For explicitly approved standalone non-inventory PostgreSQL data-fix scripts, use `src/lib/db/execute.ts`, load `dotenv/config` before any database access, verify the target and rollback path, and close the pool in a `finally` block. That helper provides tooling, not approval. Inventory mutations remain procedure and repository only; schema changes go through reviewed migrations; read-only inspection uses the Postgres MCP. Do not create ad-hoc read scripts, and do not infer approval to write data.
+Untuk menambah skill baru, ikuti disiplin [`skill-authoring/SKILL.md`](skill-authoring/SKILL.md):
+1. **Satu skill per folder:** Terletak di `.agents/skills/<nama-skill>/SKILL.md`.
+2. **Format Frontmatter Wajib:**
+   ```yaml
+   ---
+   name: nama-kebab-case
+   description: Selalu diawali dengan "Use when..." mencakup pemicu/gejala konkret.
+   ---
+   ```
+3. **Maksimal ~500 baris per file:** Dokumentasi referensi panjang dipisahkan ke file pendamping (`references/`).
+4. **Verifikasi TDD:** Uji efektivitas instruksi skill terhadap skenario nyata sebelum digabungkan ke repositori.
