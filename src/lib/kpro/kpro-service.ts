@@ -110,33 +110,32 @@ export async function executeKproSync(options?: {
                                 `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Created import job #${jobId}`
                             );
 
-                            // Step C: Parse data HTML & filter status COMPWORK
+                            // Step C: Parse data HTML & ekstrak baris mentah
                             const parsed = await parseKproHtmlFile(downloadedFilePath);
                             witelTotalRows += parsed.totalRows;
 
-                            // Step D: Batch UPSERT data COMPWORK ke public.data_kpro
+                            // Step D: Ingest baris mentah ke etl.staging_data_kpro_raw
                             kproLogger.info(
-                                `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Upserting ${parsed.compworkRows} COMPWORK records to public.data_kpro...`
+                                `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Ingesting ${parsed.rawRecords.length} raw rows to etl.staging_data_kpro_raw...`
                             );
-                            const upsertedCount = await kproRepository.batchUpsertCompwork(
-                                parsed.records,
-                                KPRO_CONFIG.batchSize
+                            await kproRepository.insertRawStagingBatch(
+                                jobId,
+                                parsed.rawRecords,
+                                1000
                             );
-                            witelTotalUpserted += upsertedCount;
 
-                            // Step E: Perbarui status import_job ke COMPLETED
-                            await kproRepository.updateImportJob(jobId, 'COMPLETED', {
-                                totalRows: parsed.totalRows,
-                                processedRows: parsed.totalRows,
-                                successRows: upsertedCount,
-                                errorRows: 0,
-                            });
+                            // Step E: Trigger Stored Procedure etl.sp_process_kpro_staging di database
+                            kproLogger.info(
+                                `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Executing etl.sp_process_kpro_staging for job #${jobId}...`
+                            );
+                            const spResult = await kproRepository.callProcessKproStaging(jobId);
+                            witelTotalUpserted += spResult.compworkUpserted;
 
-                            processedPsbs.push(`${psb}: ${upsertedCount} rows`);
+                            processedPsbs.push(`${psb}: ${spResult.compworkUpserted} rows`);
 
                             const psbDuration = Date.now() - psbStartTime;
                             kproLogger.info(
-                                `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Finished in ${(psbDuration / 1000).toFixed(1)}s: ${upsertedCount} rows upserted.`
+                                `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Finished in ${(psbDuration / 1000).toFixed(1)}s: ${spResult.compworkUpserted} rows upserted from ${spResult.totalStaging} staging rows.`
                             );
                         } catch (psbErr) {
                             const errorMsg =

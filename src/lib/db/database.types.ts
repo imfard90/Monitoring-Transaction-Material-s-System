@@ -299,7 +299,7 @@ export interface DataKpro {
     ownergroup: string | null;
     package_name: string | null;
     product: string | null;
-    regional_baru: string | null;
+    regional_baru: number | null;
     regional_lama: string | null;
     schedule_labor: Timestamp | null;
     scorderno: string | null;
@@ -370,7 +370,7 @@ export interface EtlDataKproClean {
     ownergroup: string | null;
     package_name: string | null;
     product: string | null;
-    regional_baru: string | null;
+    regional_baru: number | null;
     regional_lama: string | null;
     schedule_labor: Timestamp | null;
     scorderno: string | null;

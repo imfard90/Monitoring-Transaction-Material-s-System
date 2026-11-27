@@ -38,7 +38,7 @@ describe('K-PRO Downloader URL Builder', () => {
 });
 
 describe('K-PRO HTML Table Parser', () => {
-    it('should parse HTML table, filter only COMPWORK rows, and safely normalize types', async () => {
+    it('should parse HTML table and extract raw records for staging ingestion', async () => {
         const testHtml = `
         <table border="1">
             <thead>
@@ -132,27 +132,26 @@ describe('K-PRO HTML Table Parser', () => {
             const result = await parseKproHtmlFile(tempFilePath);
 
             expect(result.totalRows).toBe(3);
-            expect(result.compworkRows).toBe(2);
-            expect(result.skippedRows).toBe(1);
-            expect(result.records.length).toBe(2);
+            expect(result.rawRecords.length).toBe(3);
 
-            // Record 1 (COMPWORK)
-            const rec1 = result.records[0];
-            expect(rec1.wonum).toBe('WO010001');
-            expect(rec1.status).toBe('COMPWORK');
-            expect(rec1.latitude_ins).toBe(-7.155);
-            expect(rec1.longitude_ins).toBe(112.655);
-            expect(rec1.datecreated).toBeInstanceOf(Date);
-            // Tanggal diparse dengan offset WIB (+07:00), sehingga 12:00:00 WIB tersimpan sebagai 05:00:00 UTC
-            expect(rec1.statusdate?.toISOString()).toBe('2026-11-01T05:00:00.000Z');
-            // Non-numeric string 'ODP-GSK-FBJ/40' in float field must be normalized to null without throwing
-            expect(rec1.long_inst_ut).toBeNull();
+            // Row 1
+            expect(result.rawRecords[0].WONUM).toBe('WO010001');
+            expect(result.rawRecords[0].CRMORDERTYPE).toBe('CREATE');
+            expect(result.rawRecords[0].REGIONAL_BARU).toBe('3');
+            expect(result.rawRecords[0].DISTRICT_BARU).toBe('SURAMADU');
+            expect(result.rawRecords[0].DATEL_BARU).toBe('GRESIK');
+            expect(result.rawRecords[0].STO).toBe('GSK');
+            expect(result.rawRecords[0].STATUS).toBe('COMPWORK');
+            expect(result.rawRecords[0].LATITUDE_INS).toBe('-7.155');
+            expect(result.rawRecords[0].LONGITUDE_INS).toBe('112.655');
 
-            // Record 2 (COMPWORK from row 3)
-            const rec2 = result.records[1];
-            expect(rec2.wonum).toBe('WO010003');
-            expect(rec2.status).toBe('COMPWORK');
-            expect(rec2.long_inst_ut).toBe(112.657);
+            // Row 2 (CANCLWORK in rawRecords, filtered later by SP)
+            expect(result.rawRecords[1].WONUM).toBe('WO010002');
+            expect(result.rawRecords[1].STATUS).toBe('CANCLWORK');
+
+            // Row 3 (COMPWORK)
+            expect(result.rawRecords[2].WONUM).toBe('WO010003');
+            expect(result.rawRecords[2].STATUS).toBe('COMPWORK');
         } finally {
             await fs.unlink(tempFilePath).catch(() => {});
         }
@@ -170,5 +169,55 @@ describe('K-PRO Repository Unit Test', () => {
         expect(jobId).toBe(42);
         expect(mockQuery).toHaveBeenCalledTimes(1);
         expect(mockQuery.mock.calls[0][1]).toEqual(['kpro_SURAMADU_123.html', 1048576]);
+    });
+
+    it('should execute insertRawStagingBatch in chunks with transaction', async () => {
+        const mockClientQuery = vi.fn().mockResolvedValue({ rows: [] });
+        const mockClientRelease = vi.fn();
+        const mockConnect = vi.fn().mockResolvedValue({
+            query: mockClientQuery,
+            release: mockClientRelease,
+        });
+        const mockPool = { connect: mockConnect } as unknown as import('pg').Pool;
+
+        const repo = createKproRepository(mockPool);
+        const rawRows = [
+            { WONUM: 'WO1', STATUS: 'COMPWORK' },
+            { WONUM: 'WO2', STATUS: 'CANCLWORK' },
+        ];
+        const inserted = await repo.insertRawStagingBatch(101, rawRows, 1);
+
+        expect(inserted).toBe(2);
+        expect(mockConnect).toHaveBeenCalledTimes(1);
+        // Expect BEGIN, 2 chunks of INSERT, COMMIT
+        expect(mockClientQuery).toHaveBeenCalledWith('BEGIN');
+        expect(mockClientQuery).toHaveBeenCalledWith('COMMIT');
+        expect(mockClientRelease).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call callProcessKproStaging and return SP metrics', async () => {
+        const mockQuery = vi.fn().mockResolvedValue({
+            rows: [
+                {
+                    p_total_staging: '150',
+                    p_compwork_upserted: '120',
+                    p_error_count: '0',
+                },
+            ],
+        });
+        const mockPool = { query: mockQuery } as unknown as import('pg').Pool;
+
+        const repo = createKproRepository(mockPool);
+        const result = await repo.callProcessKproStaging(101);
+
+        expect(result).toEqual({
+            totalStaging: 150,
+            compworkUpserted: 120,
+            errorCount: 0,
+        });
+        expect(mockQuery).toHaveBeenCalledWith(
+            expect.stringContaining('CALL etl.sp_process_kpro_staging'),
+            [101]
+        );
     });
 });
