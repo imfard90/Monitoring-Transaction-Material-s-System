@@ -61,7 +61,7 @@ All priority skills and agents **MUST** utilize active MCP servers for domain op
 
 Proactively apply these methodologies without waiting for user prompting:
 
-1. **Complex Feature Requests**: Plan architectural changes, check `bispro.md` and `AGENTS.md`.
+1. **Complex Feature Requests**: Plan architectural changes, check `bispro.md`, `AGENTS.md`, ADRs (`docs/adr/`), and discussion history to maintain architectural continuity and ensure alignment with established patterns (e.g. Database-Centric ELT in ADR-007).
 2. **Code Modified**: Validate with Biome (`pnpm format`, `pnpm lint`) and `pnpm tsc --noEmit`.
 3. **Bug Fixes**: Write failing unit tests with Vitest before fixing implementation.
 4. **Security Surfaces**: Ensure server actions check `getSessionUser()`/`getSessionNik()` and validate input schemas with Zod.

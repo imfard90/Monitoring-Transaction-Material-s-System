@@ -220,4 +220,17 @@ describe('K-PRO Repository Unit Test', () => {
             [101]
         );
     });
+
+    it('should call refreshKproMaterializedViewSafe and return boolean result', async () => {
+        const mockQuery = vi.fn().mockResolvedValue({
+            rows: [{ p_refreshed: true }],
+        });
+        const mockPool = { query: mockQuery } as unknown as import('pg').Pool;
+
+        const repo = createKproRepository(mockPool);
+        const refreshed = await repo.refreshKproMaterializedViewSafe();
+
+        expect(refreshed).toBe(true);
+        expect(mockQuery).toHaveBeenCalledWith('CALL analytics.sp_refresh_kpro_mview_safe(null);');
+    });
 });

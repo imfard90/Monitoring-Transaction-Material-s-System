@@ -27,6 +27,7 @@ export interface KproRepository {
         compworkUpserted: number;
         errorCount: number;
     }>;
+    refreshKproMaterializedViewSafe(): Promise<boolean>;
     getLastSyncInfo(): Promise<{
         lastUpdatedAt: Date | null;
         totalRecords: number;
@@ -175,6 +176,27 @@ export function createKproRepository(customPool?: Pool): KproRepository {
                 compworkUpserted: Number(row?.p_compwork_upserted ?? 0),
                 errorCount: Number(row?.p_error_count ?? 0),
             };
+        },
+
+        /**
+         * Memicu refresh aman materialized view analytics.mv_kpro_rekon_summary.
+         * Menggunakan PostgreSQL Advisory Transaction Lock di database untuk mencegah bentrok
+         * jika cron 30-menitan sedang berjalan bersamaan.
+         */
+        async refreshKproMaterializedViewSafe(): Promise<boolean> {
+            const pool = getPool();
+            try {
+                const res = await pool.query<{ p_refreshed: boolean }>(
+                    'CALL analytics.sp_refresh_kpro_mview_safe(null);'
+                );
+                return Boolean(res.rows[0]?.p_refreshed);
+            } catch (err) {
+                dbLogger.warn(
+                    '[KPRO-REPO] Graceful skip on safe mview refresh:',
+                    err instanceof Error ? err : { error: String(err) }
+                );
+                return false;
+            }
         },
 
         /**

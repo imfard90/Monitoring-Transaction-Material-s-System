@@ -200,11 +200,22 @@ SELECT * FROM tree;
 
 ## 4. Arsitektur Database-Centric ELT
 
-Sesuai blueprint ELT MTMS, pipeline pengolahan data mentah eksternal menerapkan alur kerja sekuensial (Opsi A):
-1. **Task 1 (Extract):** Scraper worker (Playwright) mengambil payload mentah tanpa kalkulasi bisnis di Node.js.
-2. **Task 2 (Load):** Ingest payload mentah ke tabel staging `jsonb` (`etl.staging_*_raw`).
-3. **Task 3 (Transform):** Eksekusi Stored Procedure di PostgreSQL (`etl.transform_*()`) yang memanfaatkan kapabilitas set-based engine, pemetaan alias (`inventory.warehouse_alias`), regex sanitasi, dan logging alias tidak dikenal (`inventory.unmapped_alias_log`).
-4. **Task 4 (Finalize & Audit):** Catat ringkasan metriks pemrosesan ke `etl.upload_logs` atau `inventory.scraper_cronjob_log`.
+Sesuai blueprint arsitektur ELT MTMS ([ADR-007](../../docs/adr/007-elt-staging-architecture-for-scrapers.md)), pipeline pengolahan data mentah eksternal (K-PRO, Out Lensa, WO Lensa) menerapkan alur kerja sekuensial (Opsi A: *Immediate Execution*):
+
+> **Aturan Wajib:** Sebelum merancang atau mengubah pipeline data scraper, agen **wajib** membaca `docs/adr/007-elt-staging-architecture-for-scrapers.md` dan histori pembahasan arsitektur agar konsistensi desain tidak terputus.
+
+1. **Task 1 (Extract):** Scraper worker (Playwright / Node.js) mengambil payload mentah tanpa parsing string rumit atau kalkulasi bisnis yang membebani V8 memory.
+2. **Task 2 (Load):** Ingest payload mentah apa adanya ke tabel staging `jsonb` (`staging.stg_*_raw` / `etl.staging_*_raw`) dengan `batch_id UUID` dan metadata wilayah (`regional`, `branch_id`).
+3. **Task 3 (Transform via Stored Procedure):** Eksekusi Stored Procedure di PostgreSQL (`sp_process_stg_*`) yang memanfaatkan:
+   - Operasi berbasis himpunan (*set-based operation*) dan sanitasi regex.
+   - Lookup normalisasi alias gudang via `inventory.warehouse_alias`.
+   - Lookup normalisasi material via `inventory.material_alias`.
+   - Pencatatan anomali alias baru yang belum terpetakan ke `inventory.unmapped_alias_log`.
+   - *Dilarang keras hardcode string alias di TypeScript/Node.js.*
+4. **Task 4 (Finalize, Safe MView Refresh & Centralized Audit):**
+   - **Collision-Free Materialized View Refresh:** Jika pipeline menyegarkan Materialized View (misal `analytics.mv_kpro_rekon_summary`), gunakan `pg_try_advisory_xact_lock(hashtext('...'))` agar tidak melempar error saat `pg_cron` sedang me-refresh di waktu yang bersamaan.
+   - **Automated Retention:** Log job (`etl.import_jobs`, `etl.upload_logs`) dan staging data dibersihkan otomatis dengan retensi 90 hari (60 hari garansi transaksi + 30 hari buffer). Data `FAILED` dipertahankan untuk audit investigasi.
+   - Catat ringkasan metriks pemrosesan ke monitoring terpusat `inventory.scraper_cronjob_log`.
 
 ---
 
@@ -212,6 +223,10 @@ Sesuai blueprint ELT MTMS, pipeline pengolahan data mentah eksternal menerapkan 
 
 Sebelum menyatakan tugas database selesai, pastikan:
 
+- [ ] Konsistensi arsitektur dan ADR (`docs/adr/`) telah diverifikasi terhadap histori pembahasan.
+- [ ] Pipeline scraper mengadopsi arsitektur ELT Database-Centric (Opsi A) dan Stored Procedure transform.
+- [ ] Normalisasi alias (gudang/material) menggunakan tabel `inventory.*_alias`, bukan hardcoded di kode aplikasi.
+- [ ] Refresh Materialized View terproteksi `pg_try_advisory_xact_lock` dari tabrakan jadwal `pg_cron`.
 - [ ] Filter array menggunakan `= ANY($1)` alih-alih dynamic `IN (...)`.
 - [ ] Bulk insert/upsert memanfaatkan `UNNEST` atau staging table, bukan string interpolasi dinamis.
 - [ ] Query paginasi list dashboard yang menggunakan CTE menyatukan total count dan data via `COUNT(*) OVER()`.

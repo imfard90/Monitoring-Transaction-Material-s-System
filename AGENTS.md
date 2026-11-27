@@ -8,6 +8,7 @@
 - Untuk repo-specific requirements, bagian keamanan, bisnis, dan data di `AGENTS.md` bersifat wajib. `bispro.md` menetapkan alur bisnis; `docs/AUDIT_REPORT.md` mencatat temuan dan prioritas audit. Jika ada konflik material, jangan menebak—jelaskan konflik dan minta klarifikasi.
 - Terapkan `.agents/rules/` sebagai standar rekayasa umum dan `.cline/workflows/` sebagai prosedur operasional perintah. Skills/personas memberi metode khusus, bukan mengganti kebijakan wajib di atas.
 - Kontrak teknis otoritatif: migrasi aktif dan repository terkait; otorisasi: `src/lib/auth-server.ts`; Google Sheets: `src/lib/google_ecosystem/README.md` dan `.agents/skills/google-sheets/SKILL.md`.
+- **Konsistensi Desain & Histori Pembahasan:** Sebelum merancang atau mengeksekusi fitur baru / refactoring (terutama data pipeline, skema, dan migrasi), agen **wajib** memeriksa dan mematuhi catatan keputusan di `docs/adr/` (termasuk ADR-007) serta konteks histori pembahasan sebelumnya. Dilarang mengubah arah arsitektur yang sudah disepakati (misalnya kembali ke in-memory ETL atau bypass tabel normalisasi) tanpa persetujuan eksplisit.
 - Handoff/status note hanya petunjuk sementara; verifikasi ulang isinya pada sumber di atas dan kondisi repo terkini. Tidak ada framework tambahan atau pencatatan memori otomatis yang diwajibkan.
 
 ## 1. Prinsip Mutlak
@@ -76,6 +77,21 @@
 - **Otomatisasi Bundle**: Setiap penambahan/perubahan icon di `src/` WAJIB menjalankan `pnpm icons:bundle`. Build produksi (`pnpm build`) dan tes `tests/unit/bundled-icons.test.ts` memverifikasi bahwa 100% icon di `src/` telah terdaftar di bundle lokal.
 - **Validasi Nama Icon**: Pastikan nama icon valid di registry resmi sebelum digunakan untuk mencegah error `not_found`.
 
+### 1.9 Arsitektur Database-Centric ELT & Pipeline Scraper (P0)
+
+- **Pola ELT Murni (Extract-Load-Transform):** Seluruh pipeline ingest scraper (K-PRO, Out Lensa Ref, WO Lensa Ref) **wajib** mengikuti arsitektur ELT Database-Centric (ADR-007). Scraper worker (Playwright/Node.js) hanya bertugas:
+  1. *Extract*: Ambil payload mentah dari portal sumber tanpa parsing/kalkulasi bisnis berat di runtime Node.js.
+  2. *Load*: Simpan raw payload apa adanya ke tabel staging (`staging.*_raw` / `etl.staging_*_raw`) dengan metadata batch (`batch_id UUID`, hirarki wilayah).
+  3. *Transform*: Panggil Stored Procedure database (`inventory.sp_process_*` / `etl.sp_process_*`) untuk melakukan sanitasi, casting tipe data strict, deduplikasi, dan upsert relasional di engine PostgreSQL.
+  4. *Finalize & Logging*: Catat ringkasan metriks pemrosesan ke monitoring terpusat `inventory.scraper_cronjob_log`.
+- **Normalisasi Teks & Lookup Alias di Database:** Normalisasi variasi nama gudang dan material pihak ketiga **wajib** menggunakan tabel master lookup database:
+  - `inventory.warehouse_alias`: pemetaan nama gudang upstream ke master `inventory.mas_wh(id)`.
+  - `inventory.material_alias`: pemetaan nama/deskripsi material non-standar ke `inventory.materials(code)`.
+  - `inventory.unmapped_alias_log`: penampung otomatis anomali alias baru yang belum terdaftar agar pipeline tidak patah.
+  **Dilarang keras** menulis hardcoded dictionary/string mapping (misal `switch-case` atau objek statis) di kode TypeScript aplikasi.
+- **Lock-Safe Materialized View Refresh:** Pemanggilan `REFRESH MATERIALIZED VIEW CONCURRENTLY` pasca-sinkronisasi worker yang berpotensi bentrok dengan scheduler (`pg_cron`) **wajib** dilindungi transaction advisory lock (`pg_try_advisory_xact_lock(...)`). Jika lock sedang dipegang sesi lain, refresh dilewati dengan aman (`refreshed = false`) tanpa melempar error konkurensi.
+- **Retensi Log & Pembersihan Data Otomatis:** Log pemrosesan job dan data staging yang telah berstatus `'PROCESSED'` dibersihkan otomatis dengan retensi terdefinisi (misal: 90 hari = 60 hari garansi transaksi + 30 hari buffer) di dalam SP atau jadwal cron. Data `'FAILED'` tidak dihapus otomatis agar dapat diaudit.
+
 ## 2. Alur Kerja Wajib
 
 Sebelum menyatakan tugas selesai, pastikan:
@@ -105,6 +121,8 @@ Sebelum menyatakan tugas selesai, pastikan:
 22. **External REST API endpoints** — route handler di `src/app/api/v1/*` wajib menerapkan autentikasi bearer key SHA-256, rate limiting 5 menit atomik per-user via Redis, validasi gate `appr_api`, RFC 9457 Problem Details error envelope, dan metadata success envelope (§1.6).
 23. **MCP Tooling Priority** — Utamakan penggunaan MCP aktif (`postgres`, `github`, `context7`, `mtms-google-sheets`) untuk tugas domain terkait sebelum menulis skrip baru atau berspekulasi (§1.7).
 24. **Local icon bundling & browser cache** — setiap penambahan icon di UI wajib menyertakan bundle lokal via `pnpm icons:bundle` dan lolos tes `tests/unit/bundled-icons.test.ts` (§1.8). Komponen/aset statis (bundle icon lokal, preferensi UI sidebar/tema) dipertahankan di `localStorage` sampai user menghapus cache browser; notifikasi sesi login transien (seperti Toast Kehadiran) menggunakan `sessionStorage` (§3.4).
+25. **Konsistensi Desain & Review ADR** — periksa `docs/adr/` (terutama ADR-007) dan histori keputusan teknis sebelum merancang atau memodifikasi pipeline data, skema basis data, dan modul integrasi (§0).
+26. **Database-Centric ELT & Normalisasi Alias** — pipeline scraper (K-PRO, Out Lensa, WO Lensa) wajib menerapkan arsitektur ELT Database-Centric, normalisasi teks via master alias di database (`inventory.warehouse_alias`, `inventory.material_alias`, `inventory.unmapped_alias_log`), dan advisory lock aman pada refresh materialized view (§1.9).
 
 
 ## 3. Aturan Kode Spesifik
@@ -167,7 +185,10 @@ Sebelum menyatakan tugas selesai, pastikan:
 - [ ] Untuk perubahan UI: checklist UI terpenuhi (primitif `src/components/ui/*`, token tema, responsif, dark mode, a11y, state UI lengkap default/loading/empty/error, salinan Bahasa Indonesia, skill `ui-ux-pro-max`).
 - [ ] Icon bundle lokal terverifikasi via `pnpm icons:bundle` & `tests/unit/bundled-icons.test.ts` (jika menambah/mengubah icon UI).
 - [ ] External REST API sesuai standar §1.6 (jika membuat/mengubah endpoint publik).
+- [ ] Pipeline scraper & normalisasi alias sesuai standar Database-Centric ELT (§1.9).
+- [ ] Refresh Materialized View terproteksi transaction advisory lock dari tabrakan konkurensi `pg_cron`.
 - [ ] Dokumentasi Keputusan (ADR): jika tugas memperkenalkan perubahan arsitektural lintas modul, skema kritis, atau pustaka baru, catat di `docs/adr/` menggunakan format `docs/adr/TEMPLATE.md` dan daftarkan di `docs/adr/README.md`.
+- [ ] Verifikasi kepatuhan terhadap catatan arsitektur dan histori keputusan sebelumnya terlaksana.
 
 - [ ] `docs/AUDIT_REPORT.md` diperbarui status temuan terkait.
 

@@ -1,7 +1,7 @@
 # ADR-007: Adopsi Arsitektur ELT (Staging Table & Database-Level Transformation) untuk Scraper Lensa dan K-PRO
 
-- **Status**: Proposed (Coming Soon)
-- **Tanggal**: 2026-11-25
+- **Status**: Accepted
+- **Tanggal**: 2026-11-25 (Accepted: 2026-11-28 via Migration 070)
 - **Pengusul**: Planner / Data Architect & AI Agent
 - **Komponen Terdampak**: 
   - Database Schemas: Skema baru `staging`, skema `inventory` (Stored Procedures & Master Alias)

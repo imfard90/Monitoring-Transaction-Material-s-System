@@ -3,6 +3,7 @@ import path from 'node:path';
 import { kproLogger } from '@/lib/logger';
 import { withLock } from '@/lib/redis-lock';
 import { kproRepository } from '@/lib/repositories/kpro.repository';
+import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
 import { checkIntranetConnection, getValidCookies } from './kpro-auth';
 import { KPRO_CONFIG } from './kpro-config';
 import { downloadWitelFile } from './kpro-downloader';
@@ -193,9 +194,41 @@ export async function executeKproSync(options?: {
                 }
             }
 
-            // 4. Catat riwayat ke upload_logs
+            // 4. Catat riwayat ke upload_logs & inventory.scraper_cronjob_log (Improvement 1)
             if (totalCompworkUpserted > 0) {
                 await kproRepository.recordUploadLog(totalCompworkUpserted);
+            }
+
+            const resumeResult =
+                totalCompworkUpserted > 0
+                    ? `Sukses ${totalCompworkUpserted} data K-PRO COMPWORK baru (${witelResults.length} witel)`
+                    : `Selesai: Tidak ada data K-PRO COMPWORK baru (${witelResults.length} witel)`;
+
+            await scraperLogRepository
+                .insertLog({
+                    scraper_type: 'kpro',
+                    action: 'system',
+                    resume_result: resumeResult,
+                })
+                .catch((err) => {
+                    kproLogger.warn('[KPRO-SERVICE] Gagal mencatat scraper_cronjob_log:', err);
+                });
+
+            // 5. Trigger lock-safe refresh Materialized View (Improvement 3: Anti-bentrok)
+            if (totalCompworkUpserted > 0) {
+                kproLogger.info(
+                    '[KPRO-SERVICE] Triggering lock-safe refresh for analytics.mv_kpro_rekon_summary...'
+                );
+                await kproRepository
+                    .refreshKproMaterializedViewSafe()
+                    .then((refreshed) => {
+                        kproLogger.info(
+                            `[KPRO-SERVICE] MView refresh finished (executed: ${refreshed})`
+                        );
+                    })
+                    .catch((err) => {
+                        kproLogger.warn('[KPRO-SERVICE] MView refresh skipped gracefully:', err);
+                    });
             }
 
             const totalDurationMs = Date.now() - tStart;

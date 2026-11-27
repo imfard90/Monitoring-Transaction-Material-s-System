@@ -1,7 +1,7 @@
 import type { ColumnType, Generated, Kysely } from 'kysely';
 import { db } from '@/lib/db/db';
 
-export type ScraperType = 'out_lensa' | 'wo_lensa' | 'stock_teknisi' | 'other_stock';
+export type ScraperType = 'out_lensa' | 'wo_lensa' | 'stock_teknisi' | 'other_stock' | 'kpro';
 export type ScraperAction = 'system' | 'manual';
 
 export interface InventoryScraperCronjobLogRow {
