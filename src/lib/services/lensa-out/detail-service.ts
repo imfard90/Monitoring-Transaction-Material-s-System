@@ -5,10 +5,11 @@
  * configured account), scrapes the reservation detail, and upserts the header
  * plus its material rows.
  */
+import crypto from 'node:crypto';
 import { db } from '@/lib/db/db';
 import { scrapeLensaDetails } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
-import { resolveMaterialAlias } from '@/lib/material-alias-helper';
+import { lensaEltRepository } from '@/lib/repositories/lensa-elt.repository';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
 import {
     executeWithLensaFallback,
@@ -69,68 +70,49 @@ export async function scrapeSingleOutLensaDetailService(
         const rawMaterials = detailItem?.materials || [];
         const scrapedMitra = detailItem?.mitra || null;
 
-        // 4. Buat header jika belum ada
-        let targetHeaderId = headerId;
-        if (!header) {
-            const created = await db
-                .insertInto('inventory.out_lensa_ref_header')
-                .values({
-                    reservation_id: reservationId,
-                    tgl_entry: new Date().toISOString(),
-                    formatted_date: new Date().toISOString().slice(0, 10),
-                    mitra: scrapedMitra,
-                })
-                .returning('id')
-                .executeTakeFirst();
-            if (created) {
-                targetHeaderId = String(created.id);
-            }
-        } else if (scrapedMitra && !header.mitra) {
-            await db
-                .updateTable('inventory.out_lensa_ref_header')
-                .set({ mitra: scrapedMitra })
-                .where('id', '=', String(header.id))
-                .execute();
-        }
+        // Ingest ke staging dan proses via Database-Centric ELT (Opsi A)
+        const singlePayload = [
+            {
+                reservation_id: reservationId,
+                tgl_entry: header?.tgl_entry || new Date().toISOString(),
+                formatted_date: header?.formatted_date
+                    ? new Date(header.formatted_date).toISOString().slice(0, 10)
+                    : new Date().toISOString().slice(0, 10),
+                nama_gudang: header?.nama_gudang || null,
+                mitra: scrapedMitra || header?.mitra || null,
+                gi_number: header?.gi_number || null,
+                project_id: header?.project_id || null,
+                nik_pemakai: header?.nik_pemakai || null,
+                reservation_id_sap: header?.reservation_id_sap || null,
+                items: rawMaterials,
+            },
+        ];
 
-        const mappedMaterials: ScrapedOutLensaDetailMaterial[] = rawMaterials.map(
-            (m: Record<string, string>) => {
-                const rawMaterialId = (m['ID MATERIAL'] as string)?.trim() || null;
-                const materialDesc =
-                    m['NAMA MATERIAL'] || m['MATERIAL DESC'] || m.DESCRIPTION || null;
-                let materialId = rawMaterialId;
-                if (!materialId && materialDesc) {
-                    const resolved = resolveMaterialAlias(materialDesc);
-                    if (resolved) materialId = resolved;
-                }
-                return {
-                    material_id: materialId,
-                    material_desc: materialDesc,
-                    qty_approve:
-                        m['QTY ACCEPTED'] || m['QTY APPROVE']
-                            ? String(m['QTY ACCEPTED'] || m['QTY APPROVE'])
-                            : null,
-                };
-            }
-        );
+        const batchId = crypto.randomUUID();
+        await lensaEltRepository.insertOutLensaStagingBatch(batchId, singlePayload, 'manual');
+        await lensaEltRepository.processOutLensaStaging(batchId);
+        await lensaEltRepository.refreshLensaMaterializedViewsSafe();
 
-        if (targetHeaderId && targetHeaderId !== '0' && mappedMaterials.length > 0) {
-            await db.transaction().execute(async (trx) => {
-                await trx
-                    .deleteFrom('inventory.out_lensa_ref_list')
-                    .where('header_id', '=', String(targetHeaderId))
-                    .execute();
+        // Ambil data terbaru dari database
+        const updatedHeader = await db
+            .selectFrom('inventory.out_lensa_ref_header')
+            .selectAll()
+            .where('reservation_id', '=', reservationId)
+            .executeTakeFirst();
 
-                const dbInserts = mappedMaterials.map((m) => ({
-                    header_id: String(targetHeaderId),
-                    material_id: m.material_id,
-                    material_desc: m.material_desc,
-                    qty_approve: m.qty_approve,
-                }));
+        const savedItems = updatedHeader
+            ? await db
+                  .selectFrom('inventory.out_lensa_ref_list')
+                  .selectAll()
+                  .where('header_id', '=', updatedHeader.id)
+                  .execute()
+            : [];
 
-                await trx.insertInto('inventory.out_lensa_ref_list').values(dbInserts).execute();
-            });
-        }
+        const mappedMaterials: ScrapedOutLensaDetailMaterial[] = savedItems.map((item) => ({
+            material_id: item.material_id,
+            material_desc: item.material_desc,
+            qty_approve: item.qty_approve != null ? String(item.qty_approve) : null,
+        }));
 
         // Catat ke inventory.scraper_cronjob_log
         const resume =
@@ -152,9 +134,9 @@ export async function scrapeSingleOutLensaDetailService(
             success: true,
             data: {
                 reservation_id: reservationId,
-                gi_number: header?.gi_number ?? null,
-                nama_gudang: header?.nama_gudang ?? null,
-                mitra: scrapedMitra || header?.mitra || null,
+                gi_number: updatedHeader?.gi_number ?? header?.gi_number ?? null,
+                nama_gudang: updatedHeader?.nama_gudang ?? header?.nama_gudang ?? null,
+                mitra: updatedHeader?.mitra ?? scrapedMitra ?? header?.mitra ?? null,
                 materials: mappedMaterials,
             },
         };

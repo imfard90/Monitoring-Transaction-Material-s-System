@@ -5,6 +5,7 @@
  * warehouse that has a Lensa-credited PIC, then fills in missing material rows.
  * Free of Next.js request dependencies so it can run from the PM2 worker or CLI.
  */
+import crypto from 'node:crypto';
 import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
 import {
@@ -14,7 +15,7 @@ import {
     scrapeWOLensaHeaders,
 } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
-import { resolveMaterialAlias } from '@/lib/material-alias-helper';
+import { lensaEltRepository } from '@/lib/repositories/lensa-elt.repository';
 import {
     type ScraperAction,
     scraperLogRepository,
@@ -124,94 +125,15 @@ export async function executeWOLensaScraping(
         }
         const deduplicatedHeaders = Array.from(uniqueHeadersMap.values());
 
-        const rowsWithGi = deduplicatedHeaders.filter(
-            (header) =>
-                existingPemakaianIds.includes(String(header.pemakaian_id)) &&
-                header.gi_number != null &&
-                String(header.gi_number).trim() !== ''
-        );
-
-        for (let index = 0; index < rowsWithGi.length; index += 200) {
-            const batch = rowsWithGi.slice(index, index + 200);
-            await db.transaction().execute(async (trx) => {
-                await sql`
-                    UPDATE inventory.wo_lensa_header AS header
-                    SET gi_number = updates.gi_number
-                    FROM (${sql.join(
-                        batch.map(
-                            (header) =>
-                                sql`(${Number(header.pemakaian_id)}, ${String(header.gi_number)})`
-                        ),
-                        sql`, `
-                    )}) AS updates(pemakaian_id, gi_number)
-                    WHERE header.pemakaian_id = updates.pemakaian_id
-                      AND header.gi_number IS NULL
-                `.execute(trx);
-            });
-        }
-
+        // Ingest headers ke staging dan proses via Database-Centric ELT (ADR-007)
         if (deduplicatedHeaders.length > 0) {
-            const pemakaianIds = deduplicatedHeaders
-                .map((h) => (h.pemakaian_id ? String(h.pemakaian_id).trim() : ''))
-                .filter(Boolean);
-
-            const matchedPairs = new Set<string>();
-
-            if (pemakaianIds.length > 0) {
-                const existingRekon = await db
-                    .selectFrom('inventory.rekon_used_header')
-                    .select(['id_pemakaian', 'wo_number'])
-                    .where('id_pemakaian', 'in', pemakaianIds)
-                    .execute();
-
-                for (const r of existingRekon) {
-                    const pIdTrim = r.id_pemakaian?.trim();
-                    if (pIdTrim) {
-                        matchedPairs.add(`${pIdTrim}:::${r.wo_number?.trim() || ''}`);
-                    }
-                }
+            const batchId = crypto.randomUUID();
+            await lensaEltRepository.insertWOLensaStagingBatch(batchId, deduplicatedHeaders, action);
+            const { processedCount } = await lensaEltRepository.processWOLensaStaging(batchId);
+            totalInserted += processedCount;
+            for (const h of deduplicatedHeaders) {
+                existingPemakaianIds.push(String(h.pemakaian_id));
             }
-
-            await db.transaction().execute(async (trx) => {
-                for (const h of deduplicatedHeaders) {
-                    const pId = h.pemakaian_id ? String(h.pemakaian_id).trim() : '';
-                    const wo = h.wo_number ? String(h.wo_number).trim() : '';
-                    const isRekonCheck =
-                        Boolean(pId) &&
-                        (matchedPairs.has(`${pId}:::${wo}`) || matchedPairs.has(`${pId}:::`));
-
-                    await trx
-                        .insertInto('inventory.wo_lensa_header')
-                        .values({
-                            pemakaian_id: Number(pId) || sql`CAST(${pId} AS BIGINT)`,
-                            gi_number: h.gi_number,
-                            nama_gudang: h.nama_gudang,
-                            nik_pemakai: h.nik_pemakai,
-                            tanggal_update: h.tanggal_update,
-                            formatted_date: toISODateString(h.formatted_date),
-                            type: h.type,
-                            wbs: h.wbs,
-                            wo_number: h.wo_number,
-                            rekon_check: isRekonCheck,
-                        })
-                        .onConflict((oc) =>
-                            oc.column('pemakaian_id').doUpdateSet({
-                                wo_number: sql`COALESCE(EXCLUDED.wo_number, inventory.wo_lensa_header.wo_number)`,
-                                nama_gudang: sql`COALESCE(EXCLUDED.nama_gudang, inventory.wo_lensa_header.nama_gudang)`,
-                                nik_pemakai: sql`COALESCE(EXCLUDED.nik_pemakai, inventory.wo_lensa_header.nik_pemakai)`,
-                                gi_number: sql`COALESCE(EXCLUDED.gi_number, inventory.wo_lensa_header.gi_number)`,
-                                tanggal_update: sql`COALESCE(EXCLUDED.tanggal_update, inventory.wo_lensa_header.tanggal_update)`,
-                                formatted_date: sql`COALESCE(EXCLUDED.formatted_date, inventory.wo_lensa_header.formatted_date)`,
-                                type: sql`COALESCE(EXCLUDED.type, inventory.wo_lensa_header.type)`,
-                                wbs: sql`COALESCE(EXCLUDED.wbs, inventory.wo_lensa_header.wbs)`,
-                                rekon_check: sql`COALESCE(EXCLUDED.rekon_check, inventory.wo_lensa_header.rekon_check)`,
-                            })
-                        )
-                        .execute();
-                    totalInserted++;
-                    existingPemakaianIds.push(String(h.pemakaian_id));
-                }
-            });
         }
 
         await syncMissingWOLensaDetails();
@@ -336,47 +258,23 @@ export async function syncMissingWOLensaDetails(): Promise<number> {
     const allDetails = detailResults.flat();
 
     if (allDetails.length > 0) {
-        await db.transaction().execute(async (trx) => {
-            for (const d of allDetails) {
-                if (d.materials && d.materials.length > 0) {
-                    const materialInserts = d.materials.map(
-                        (m: Record<string, string | number>) => {
-                            const rawMaterialId = (m['ID MATERIAL'] as string)?.trim() || null;
-                            const materialDesc = (m['NAMA MATERIAL'] as string) || null;
+        const detailPayload = allDetails
+            .filter((d) => d.pemakaian_id && d.materials && d.materials.length > 0)
+            .map((d) => ({
+                pemakaian_id: d.pemakaian_id,
+                items: d.materials,
+            }));
 
-                            let materialId = rawMaterialId;
-                            if (!materialId && materialDesc) {
-                                const resolved = resolveMaterialAlias(materialDesc);
-                                if (resolved) {
-                                    actionLogger.info(
-                                        `[WO Lensa] Resolved empty material_id via alias: "${materialDesc}" → "${resolved}" (header ${d.header_id})`
-                                    );
-                                    materialId = resolved;
-                                } else {
-                                    actionLogger.warn(
-                                        `[WO Lensa] Material tanpa ID dan tidak ada alias: "${materialDesc}" (header ${d.header_id}).`
-                                    );
-                                }
-                            }
-
-                            return {
-                                header_id: d.header_id,
-                                material_id: materialId,
-                                material_desc: materialDesc,
-                                uom: (m.SATUAN as string) || null,
-                                qty_pemakaian: Number(m['QTY PEMAKAIAN']) || null,
-                            };
-                        }
-                    );
-                    await trx
-                        .insertInto('inventory.wo_lensa_list')
-                        .values(materialInserts)
-                        .execute();
-                    insertedDetailsCount += materialInserts.length;
-                }
-            }
-        });
+        if (detailPayload.length > 0) {
+            const detailBatchId = crypto.randomUUID();
+            await lensaEltRepository.insertWOLensaStagingBatch(detailBatchId, detailPayload, 'system');
+            const { processedCount } = await lensaEltRepository.processWOLensaStaging(detailBatchId);
+            insertedDetailsCount += processedCount;
+        }
     }
+
+    // Refresh MViews Lensa secara aman dengan advisory lock
+    await lensaEltRepository.refreshLensaMaterializedViewsSafe();
 
     return insertedDetailsCount;
 }

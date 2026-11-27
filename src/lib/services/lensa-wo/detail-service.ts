@@ -4,6 +4,7 @@
  * Accepts either a pemakaian ID or a WO number and falls back to the Lensa
  * header-search endpoint when the direct detail lookup yields nothing.
  */
+import crypto from 'node:crypto';
 import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
 import {
@@ -14,6 +15,7 @@ import {
     type WOLensaHeader,
 } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
+import { lensaEltRepository } from '@/lib/repositories/lensa-elt.repository';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
 import {
     executeWithLensaFallback,
@@ -380,173 +382,53 @@ export async function scrapeSingleWODetailService(
         }
 
         const rawMaterials: LensaDetailMaterial[] = detail?.materials || [];
-        const mappedMaterials: ScrapedWODetailMaterial[] = rawMaterials.map((m) => ({
-            material_id: m['ID MATERIAL'] ? String(m['ID MATERIAL']) : null,
-            material_desc: m['NAMA MATERIAL']
-                ? String(m['NAMA MATERIAL'])
-                : m.DESCRIPTION
-                  ? String(m.DESCRIPTION)
-                  : null,
-            uom: m.SATUAN ? String(m.SATUAN) : null,
-            qty_pemakaian: Number(m['QTY PEMAKAIAN']) || null,
+
+        // Ingest ke staging dan proses via Database-Centric ELT (Opsi A)
+        const singlePayload = [
+            {
+                pemakaian_id: resolvedPemakaianId,
+                wo_number: headerMetadata?.wo_number ?? header?.wo_number ?? null,
+                nama_gudang: headerMetadata?.nama_gudang ?? header?.nama_gudang ?? null,
+                nik_pemakai: headerMetadata?.nik_pemakai ?? header?.nik_pemakai ?? null,
+                gi_number: headerMetadata?.gi_number ?? header?.gi_number ?? null,
+                formatted_date: headerMetadata?.formatted_date
+                    ? toISODateString(headerMetadata.formatted_date)
+                    : header?.formatted_date
+                      ? toISODateString(header.formatted_date)
+                      : null,
+                tanggal_update: headerMetadata?.tanggal_update ?? header?.tanggal_update ?? null,
+                type: headerMetadata?.type ?? (header as { type?: string | null })?.type ?? null,
+                wbs: headerMetadata?.wbs ?? header?.wbs ?? null,
+                items: rawMaterials,
+            },
+        ];
+
+        const batchId = crypto.randomUUID();
+        await lensaEltRepository.insertWOLensaStagingBatch(batchId, singlePayload, 'manual');
+        await lensaEltRepository.processWOLensaStaging(batchId);
+        await lensaEltRepository.refreshLensaMaterializedViewsSafe();
+
+        // Ambil data terbaru dari database
+        const updatedHeader = await db
+            .selectFrom('inventory.wo_lensa_header')
+            .selectAll()
+            .where(sql<boolean>`CAST(pemakaian_id AS VARCHAR) = ${String(resolvedPemakaianId)}`)
+            .executeTakeFirst();
+
+        const savedItems = updatedHeader
+            ? await db
+                  .selectFrom('inventory.wo_lensa_list')
+                  .selectAll()
+                  .where('header_id', '=', updatedHeader.id)
+                  .execute()
+            : [];
+
+        const mappedMaterials: ScrapedWODetailMaterial[] = savedItems.map((item) => ({
+            material_id: item.material_id,
+            material_desc: item.material_desc,
+            uom: item.uom,
+            qty_pemakaian: item.qty_pemakaian != null ? Number(item.qty_pemakaian) : null,
         }));
-
-        let savedHeaderId: string | null = header?.id ? String(header.id) : null;
-
-        // Jika pencarian awal dengan cleanInput belum menemukan header di DB (misal cleanInput berupa No WO tapi di DB wo_number masih null),
-        // cek kembali DB menggunakan resolvedPemakaianId yang sudah terkonfirmasi numerik
-        if (!savedHeaderId && resolvedPemakaianId) {
-            const existingHeader = await db
-                .selectFrom('inventory.wo_lensa_header')
-                .selectAll()
-                .where(sql<boolean>`CAST(pemakaian_id AS VARCHAR) = ${String(resolvedPemakaianId)}`)
-                .executeTakeFirst();
-            if (existingHeader) {
-                header = existingHeader;
-                savedHeaderId = String(existingHeader.id);
-            }
-        }
-
-        await db.transaction().execute(async (trx) => {
-            // Re-check di dalam transaksi untuk keamanan konkurensi
-            if (!savedHeaderId && resolvedPemakaianId) {
-                const existingInTrx = await trx
-                    .selectFrom('inventory.wo_lensa_header')
-                    .selectAll()
-                    .where(
-                        sql<boolean>`CAST(pemakaian_id AS VARCHAR) = ${String(resolvedPemakaianId)}`
-                    )
-                    .executeTakeFirst();
-                if (existingInTrx) {
-                    header = existingInTrx;
-                    savedHeaderId = String(existingInTrx.id);
-                }
-            }
-
-            // 1. Simpan Header ke inventory.wo_lensa_header jika belum ada di DB
-            if (!savedHeaderId) {
-                const pId = resolvedPemakaianId as string;
-                const wo = headerMetadata?.wo_number ? String(headerMetadata.wo_number).trim() : '';
-
-                // Cek status rekon_check terhadap inventory.rekon_used_header (pencocokan ketat pemakaian_id + wo_number)
-                let isRekonCheck = false;
-                if (pId) {
-                    const rekonMatch = await trx
-                        .selectFrom('inventory.rekon_used_header')
-                        .select(['id'])
-                        .where((eb) => {
-                            const conditions = [eb('id_pemakaian', '=', pId)];
-                            if (wo) conditions.push(eb('wo_number', '=', wo));
-                            return eb.and(conditions);
-                        })
-                        .limit(1)
-                        .executeTakeFirst();
-                    isRekonCheck = Boolean(rekonMatch);
-                }
-
-                const inserted = await trx
-                    .insertInto('inventory.wo_lensa_header')
-                    .values({
-                        pemakaian_id: Number(pId) || sql`CAST(${pId} AS BIGINT)`,
-                        gi_number: headerMetadata?.gi_number ?? null,
-                        nama_gudang: headerMetadata?.nama_gudang ?? null,
-                        nik_pemakai: headerMetadata?.nik_pemakai ?? null,
-                        tanggal_update: headerMetadata?.tanggal_update ?? null,
-                        formatted_date: headerMetadata?.formatted_date ?? null,
-                        type: headerMetadata?.type ?? 'assurance',
-                        wbs: headerMetadata?.wbs ?? null,
-                        wo_number: headerMetadata?.wo_number ?? null,
-                        rekon_check: isRekonCheck,
-                    })
-                    .onConflict((oc) =>
-                        oc.column('pemakaian_id').doUpdateSet({
-                            wo_number: sql`COALESCE(EXCLUDED.wo_number, inventory.wo_lensa_header.wo_number)`,
-                            nama_gudang: sql`COALESCE(EXCLUDED.nama_gudang, inventory.wo_lensa_header.nama_gudang)`,
-                            nik_pemakai: sql`COALESCE(EXCLUDED.nik_pemakai, inventory.wo_lensa_header.nik_pemakai)`,
-                            gi_number: sql`COALESCE(EXCLUDED.gi_number, inventory.wo_lensa_header.gi_number)`,
-                            tanggal_update: sql`COALESCE(EXCLUDED.tanggal_update, inventory.wo_lensa_header.tanggal_update)`,
-                            formatted_date: sql`COALESCE(EXCLUDED.formatted_date, inventory.wo_lensa_header.formatted_date)`,
-                            type: sql`COALESCE(EXCLUDED.type, inventory.wo_lensa_header.type)`,
-                            wbs: sql`COALESCE(EXCLUDED.wbs, inventory.wo_lensa_header.wbs)`,
-                            rekon_check: sql`COALESCE(EXCLUDED.rekon_check, inventory.wo_lensa_header.rekon_check)`,
-                        })
-                    )
-                    .returning('id')
-                    .executeTakeFirst();
-
-                savedHeaderId = inserted?.id ? String(inserted.id) : null;
-            }
-
-            if (savedHeaderId && headerMetadata) {
-                // Jika header sudah ada (atau ditemukan lewat resolvedPemakaianId), lengkapi field yang sebelumnya bernilai null atau perbarui dengan metadata Lensa terkini
-                const updatePayload: Record<string, unknown> = {};
-                if (headerMetadata.wo_number && headerMetadata.wo_number !== header?.wo_number) {
-                    updatePayload.wo_number = headerMetadata.wo_number;
-                }
-                if (
-                    headerMetadata.nama_gudang &&
-                    headerMetadata.nama_gudang !== header?.nama_gudang
-                ) {
-                    updatePayload.nama_gudang = headerMetadata.nama_gudang;
-                }
-                if (
-                    headerMetadata.nik_pemakai &&
-                    headerMetadata.nik_pemakai !== header?.nik_pemakai
-                ) {
-                    updatePayload.nik_pemakai = headerMetadata.nik_pemakai;
-                }
-                if (headerMetadata.gi_number && headerMetadata.gi_number !== header?.gi_number) {
-                    updatePayload.gi_number = headerMetadata.gi_number;
-                }
-                const targetFormattedDate = toISODateString(headerMetadata.formatted_date);
-                const existingFormattedDate = toISODateString(header?.formatted_date);
-                if (targetFormattedDate && targetFormattedDate !== existingFormattedDate) {
-                    updatePayload.formatted_date = targetFormattedDate;
-                }
-                if (
-                    headerMetadata.tanggal_update &&
-                    headerMetadata.tanggal_update !== header?.tanggal_update
-                ) {
-                    updatePayload.tanggal_update = headerMetadata.tanggal_update;
-                }
-                if (headerMetadata.type && headerMetadata.type !== header?.type) {
-                    updatePayload.type = headerMetadata.type;
-                }
-                if (headerMetadata.wbs && headerMetadata.wbs !== header?.wbs) {
-                    updatePayload.wbs = headerMetadata.wbs;
-                }
-                if (Object.keys(updatePayload).length > 0) {
-                    await trx
-                        .updateTable('inventory.wo_lensa_header')
-                        .set(updatePayload)
-                        .where('id', '=', savedHeaderId)
-                        .execute();
-                }
-            }
-
-            // 2. Simpan Detail Material ke inventory.wo_lensa_list
-            if (savedHeaderId) {
-                await trx
-                    .deleteFrom('inventory.wo_lensa_list')
-                    .where('header_id', '=', savedHeaderId)
-                    .execute();
-
-                if (mappedMaterials.length > 0) {
-                    const materialInserts = mappedMaterials.map((m) => ({
-                        header_id: savedHeaderId as string,
-                        material_id: m.material_id,
-                        material_desc: m.material_desc,
-                        uom: m.uom,
-                        qty_pemakaian: m.qty_pemakaian,
-                    }));
-
-                    await trx
-                        .insertInto('inventory.wo_lensa_list')
-                        .values(materialInserts)
-                        .execute();
-                }
-            }
-        });
 
         const resume =
             mappedMaterials.length > 0

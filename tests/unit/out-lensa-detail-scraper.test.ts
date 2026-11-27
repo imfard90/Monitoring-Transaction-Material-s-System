@@ -39,6 +39,34 @@ vi.mock('@/lib/repositories/scraper-log.repository', () => ({
     },
 }));
 
+const mockInsertOutLensaStagingBatch = vi.fn().mockResolvedValue(1);
+const mockProcessOutLensaStaging = vi.fn().mockResolvedValue({ processedCount: 1, errorCount: 0 });
+const mockRefreshLensaMaterializedViewsSafe = vi
+    .fn()
+    .mockResolvedValue({ outLensaRefreshed: true, woLensaRefreshed: true });
+
+vi.mock('@/lib/repositories/lensa-elt.repository', () => ({
+    lensaEltRepository: {
+        insertOutLensaStagingBatch: (...args: unknown[]) => mockInsertOutLensaStagingBatch(...args),
+        processOutLensaStaging: (...args: unknown[]) => mockProcessOutLensaStaging(...args),
+        refreshLensaMaterializedViewsSafe: () => mockRefreshLensaMaterializedViewsSafe(),
+    },
+}));
+
+vi.mock('@/lib/services/lensa-credential-helper', () => ({
+    getWarehouseLensaCandidates: vi.fn().mockResolvedValue([
+        {
+            username: 'test_user',
+            password: 'test_password',
+            source: 'system',
+        },
+    ]),
+    executeWithLensaFallback: vi.fn(async (candidates, task) => {
+        const creds = candidates[0] || { username: 'test_user', password: 'test_password' };
+        return task(creds);
+    }),
+}));
+
 vi.mock('next/cache', () => ({
     revalidatePath: vi.fn(),
 }));
@@ -157,7 +185,7 @@ describe('scrapeSingleOutLensaDetail Unit Tests', () => {
                 isStaff: false,
             });
 
-            // Header exists
+            // Initial header exists
             mockExecuteTakeFirst.mockResolvedValueOnce({
                 id: '88',
                 reservation_id: '202410150001',
@@ -165,6 +193,25 @@ describe('scrapeSingleOutLensaDetail Unit Tests', () => {
                 nama_gudang: 'SO Gresik',
                 mitra: null,
             });
+
+            // Post-ELT updated header
+            mockExecuteTakeFirst.mockResolvedValueOnce({
+                id: '88',
+                reservation_id: '202410150001',
+                gi_number: 'GI-998877',
+                nama_gudang: 'SO Gresik',
+                mitra: 'PT MITRA TELEKOM',
+            });
+
+            // Post-ELT saved material items
+            mockExecute.mockResolvedValueOnce([
+                {
+                    header_id: '88',
+                    material_id: 'MAT-OUT-01',
+                    material_desc: 'Patchcord SC-UPC 2M',
+                    qty_approve: '10',
+                },
+            ]);
 
             // Scraper returns detail items
             mockScrapeLensaDetails.mockResolvedValueOnce([

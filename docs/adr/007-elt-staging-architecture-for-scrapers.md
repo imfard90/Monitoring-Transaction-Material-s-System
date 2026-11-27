@@ -1,13 +1,13 @@
 # ADR-007: Adopsi Arsitektur ELT (Staging Table & Database-Level Transformation) untuk Scraper Lensa dan K-PRO
 
 - **Status**: Accepted
-- **Tanggal**: 2026-11-25 (Accepted: 2026-11-28 via Migration 070)
+- **Tanggal**: 2026-11-25 (Updated & Implemented: 2026-11-28 via Migrations 070 & 072)
 - **Pengusul**: Planner / Data Architect & AI Agent
 - **Komponen Terdampak**: 
-  - Database Schemas: Skema baru `staging`, skema `inventory` (Stored Procedures & Master Alias)
-  - Scraper Services: `src/lib/scrapers/` (Lensa Scraper, K-PRO Scraper)
-  - Repositories: `src/lib/repositories/scraper.repository.ts`, `src/lib/repositories/staging.repository.ts`
-  - Automated Jobs: `scripts/post-deploy/` (pg_cron cleaner)
+  - Database Schemas: Skema `etl` (tabel staging terpadu `etl.stg_out_lensa_raw`, `etl.stg_wo_lensa_raw`), skema `inventory` (Stored Procedures & Master Alias, FK `warehouse_id`, `NUMERIC` types), skema `analytics` (Safe MView Refresh)
+  - Scraper Services: `src/lib/services/lensa-out/`, `src/lib/services/lensa-wo/`
+  - Repositories: `src/lib/repositories/lensa-elt.repository.ts`
+  - Background Workers: `src/workers/scraper-worker.ts`
 
 ---
 
@@ -37,70 +37,97 @@ Saat ini, modul scraper MTMS (Lensa dan K-PRO) menggunakan Playwright / fetch be
 Mengalihkan arsitektur pipeline data scraper dari **ETL Aplikasi (Extract-Transform-Load)** menjadi **ELT Database-Centric (Extract-Load-Transform)** dengan **Trigger Otomatis Berurutan (Opsi A)**:
 
 ```
-[ Lensa / K-PRO ]
+[ Lensa / K-PRO ] (Scheduled Cron or Manual Batch / Single Item)
        │
        ▼ (Task 1: Extract via Playwright)
-[ Scraper Worker (Node.js) ]
+[ Scraper Worker / Action (Node.js) ]
        │
        ▼ (Task 2: Load as-is / Raw Dump JSONB)
-[ Schema: staging ] ─── stg_out_lensa_raw / stg_wo_lensa_raw / stg_kpro_raw
+[ Schema: etl ] ─── stg_out_lensa_raw / stg_wo_lensa_raw / staging_data_kpro_raw
        │
        ▼ (Task 3: Immediate Stored Procedure Trigger)
-[ Schema: inventory ] ─── sp_process_stg_* (PL/pgSQL: Clean, Cast, Map Aliases)
+[ Schema: inventory ] ─── sp_process_stg_* (PL/pgSQL: Clean, Cast NUMERIC, Map Aliases)
        │
-       ├─► Strict Production Tables (INTEGER, DATE, TIMESTAMPTZ)
+       ├─► Strict Production Tables (NUMERIC(10,2), warehouse_id FK, DATE, TIMESTAMPTZ)
        ├─► Unmapped Alias Log (inventory.unmapped_alias_log)
+       ├─► Safe Advisory Lock MView Refresh (analytics.sp_refresh_lensa_mviews_safe)
        │
        ▼ (Task 4: Finalize & Audit Log)
 [ inventory.scraper_cronjob_log ]
 ```
 
 ### 2.1 Alur Pipeline Task Runtun & Rapi (Opsi A: Immediate Execution)
-Setiap eksekusi scraping dijalankan dalam 4 task sekuensial yang terisolasi dan mudah diaudit:
+Setiap eksekusi scraping (baik **Cronjob Terjadwal**, **Manual Batch Scrape**, maupun **Manual Single Item Scrape**) dijalankan dalam 4 task sekuensial yang terisolasi dan mudah diaudit:
 - **Task 1: Extract (Playwright / Node.js Worker)**:
   - Mengunduh data mentah berupa HTML/JSON dari portal upstream (Lensa / K-PRO).
-  - Tidak melakukan parsing atau validasi bisnis yang membebani memori V8.
+  - Tidak melakukan parsing string rumit, validasi bisnis, atau filter gudang manual yang membebani memori V8.
 - **Task 2: Load to Staging (Ingestion)**:
-  - Mengirimkan raw payload secara utuh ke skema `staging` dalam satu batch transaction (`batch_id UUID`).
-  - Menyertakan metadata hirarki wilayah (`regional`, `branch_id`, `service_area`, `sto_code`).
+  - Mengirimkan raw payload secara utuh ke skema `etl` (`etl.stg_out_lensa_raw` / `etl.stg_wo_lensa_raw`) dalam satu batch transaction (`batch_id UUID`).
+  - Menyertakan metadata: `source_action` (`'system'` atau `'manual'`), `regional`, `branch_id`.
   - Status batch awal dicatat sebagai `'PENDING'`.
 - **Task 3: Transform & Upsert via Stored Procedure (PostgreSQL Engine)**:
-  - Begitu Task 2 berhasil, worker langsung memanggil Stored Procedure:
-    `CALL inventory.sp_process_stg_*(p_batch_id, v_processed, v_error);`
-  - PostgreSQL melakukan parsing berbasis set (*set-based operation*), sanitasi regex, konversi tanggal ISO/WIB, lookup alias gudang & material via master table, dan atomic upsert ke tabel produksi inti.
-  - Anomali alias baru otomatis dialirkan ke `inventory.unmapped_alias_log`.
-  - Status record staging diperbarui menjadi `'PROCESSED'` atau `'FAILED'`.
-- **Task 4: Finalize & Logging**:
+  - Begitu Task 2 berhasil, worker/action langsung memanggil Stored Procedure:
+    `CALL inventory.sp_process_stg_out_lensa(p_batch_id, v_processed, v_error);`
+    `CALL inventory.sp_process_stg_wo_lensa(p_batch_id, v_processed, v_error);`
+  - PostgreSQL melakukan:
+    1. Parsing berbasis himpunan (*set-based operation*) via `jsonb_to_recordset()`.
+    2. Sanitasi & casting tipe data strict: kuantitas material (`qty_approve`, `qty_req`) dikonversi ke `NUMERIC(10,2)`.
+    3. Resolusi gudang ke `warehouse_id INT REFERENCES inventory.mas_wh(id)` via `inventory.warehouse_alias`.
+    4. Resolusi material ke master material code via `inventory.material_alias`.
+    5. Anomali alias baru otomatis dialirkan ke `inventory.unmapped_alias_log`.
+    6. Pembaruan status rekonsiliasi atomik (`sap_out_check`, `rekon_check`).
+    7. Pembaruan status record staging menjadi `'PROCESSED'` atau `'FAILED'`.
+- **Task 4: Finalize, Safe MView Refresh & Logging**:
+  - Menyegarkan Materialized View terkait (`analytics.mv_out_sap_lensa_summary`, `analytics.mv_wo_lensa_rekon_summary`) menggunakan PostgreSQL Advisory Lock `pg_try_advisory_xact_lock` untuk mencegah tabrakan konkurensi dengan `pg_cron`.
   - Scraper worker mencatat rekap hasil (`processed_count`, `error_count`, durasi) ke `inventory.scraper_cronjob_log`.
-  - Jika terdapat alias baru yang belum terpetakan, sistem memicu notifikasi peringatan (*warning alert*).
 
-### 2.2 Pembentukan Skema `staging` Mendukung Hirarki Wilayah
-Skema `staging` terisolasi dari tabel operasional transaksi dan dilengkapi metadata regional:
+### 2.2 Penyatuan Tabel Penyangga Mentah di Skema `etl`
+Seluruh tabel penyangga staging disatukan di skema `etl`:
 
 ```sql
-CREATE SCHEMA IF NOT EXISTS staging;
-
 -- Tabel Penyangga Mentah: Out Lensa Ref
-CREATE TABLE staging.stg_out_lensa_raw (
+CREATE TABLE IF NOT EXISTS etl.stg_out_lensa_raw (
     id BIGSERIAL PRIMARY KEY,
     batch_id UUID NOT NULL,
+    source_action VARCHAR(20) NOT NULL DEFAULT 'system',    -- 'system' (cron) atau 'manual'
     source_system VARCHAR(50) NOT NULL DEFAULT 'LENSA_OUT',
-    -- Metadata Hirarki Wilayah Telkom
-    regional VARCHAR(50) NOT NULL DEFAULT 'REGIONAL-5',     -- Regional V (Jatim)
-    branch_id VARCHAR(50),                                  -- District / Witel (Lamongan, Gresik, dll)
-    service_area VARCHAR(50),                               -- Service Area
-    sto_code VARCHAR(50),                                   -- STO / Warehouse Unit
+    regional VARCHAR(50) NOT NULL DEFAULT 'REGIONAL-5',
+    branch_id VARCHAR(50),
+    service_area VARCHAR(50),
+    sto_code VARCHAR(50),
     raw_payload JSONB NOT NULL,
     record_count INT DEFAULT 0,
     scraped_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',          -- 'PENDING', 'PROCESSED', 'FAILED', 'PARTIAL'
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',          -- 'PENDING', 'PROCESSED', 'FAILED'
     processed_at TIMESTAMPTZ,
     error_message TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_stg_out_lensa_status_batch ON staging.stg_out_lensa_raw (status, batch_id);
-CREATE INDEX idx_stg_out_lensa_hierarchy ON staging.stg_out_lensa_raw (regional, branch_id);
+CREATE INDEX IF NOT EXISTS idx_stg_out_lensa_status_batch ON etl.stg_out_lensa_raw (status, batch_id);
+CREATE INDEX IF NOT EXISTS idx_stg_out_lensa_hierarchy ON etl.stg_out_lensa_raw (regional, branch_id);
+
+-- Tabel Penyangga Mentah: WO Lensa Ref
+CREATE TABLE IF NOT EXISTS etl.stg_wo_lensa_raw (
+    id BIGSERIAL PRIMARY KEY,
+    batch_id UUID NOT NULL,
+    source_action VARCHAR(20) NOT NULL DEFAULT 'system',
+    source_system VARCHAR(50) NOT NULL DEFAULT 'LENSA_WO',
+    regional VARCHAR(50) NOT NULL DEFAULT 'REGIONAL-5',
+    branch_id VARCHAR(50),
+    service_area VARCHAR(50),
+    sto_code VARCHAR(50),
+    raw_payload JSONB NOT NULL,
+    record_count INT DEFAULT 0,
+    scraped_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    processed_at TIMESTAMPTZ,
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_stg_wo_lensa_status_batch ON etl.stg_wo_lensa_raw (status, batch_id);
+CREATE INDEX IF NOT EXISTS idx_stg_wo_lensa_hierarchy ON etl.stg_wo_lensa_raw (regional, branch_id);
 ```
 
 ### 2.3 Tabel Normalisasi & Pemetaan Alias (Master Lookup Multi-Level)

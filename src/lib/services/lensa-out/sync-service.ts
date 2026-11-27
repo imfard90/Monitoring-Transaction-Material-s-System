@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { db } from '@/lib/db/db';
 import {
     isBeforeCutoffOut,
@@ -6,6 +7,7 @@ import {
     scrapeLensaHeaders,
 } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
+import { lensaEltRepository } from '@/lib/repositories/lensa-elt.repository';
 import {
     type ScraperAction,
     scraperLogRepository,
@@ -128,70 +130,15 @@ export async function executeOutLensaScraping(
         }
         const deduplicatedHeaders = Array.from(uniqueHeadersMap.values());
 
-        // Insert new headers sequentially
+        // Ingest new headers ke staging dan proses via Database-Centric ELT (ADR-007)
         if (deduplicatedHeaders.length > 0) {
-            const giNumbers = deduplicatedHeaders
-                .map((h) => (h.gi_number ? String(h.gi_number).trim() : ''))
-                .filter(Boolean);
-            const resIds = deduplicatedHeaders
-                .map((h) => (h.reservation_id ? String(h.reservation_id).trim() : ''))
-                .filter(Boolean);
-
-            const matchedSapNumbers = new Set<string>();
-            const matchedRequestIds = new Set<string>();
-
-            if (giNumbers.length > 0 || resIds.length > 0) {
-                let query = db
-                    .selectFrom('inventory.sap_out_header')
-                    .select(['sap_number', 'request_id']);
-
-                if (giNumbers.length > 0 && resIds.length > 0) {
-                    query = query.where((eb) =>
-                        eb.or([eb('sap_number', 'in', giNumbers), eb('request_id', 'in', resIds)])
-                    );
-                } else if (giNumbers.length > 0) {
-                    query = query.where('sap_number', 'in', giNumbers);
-                } else {
-                    query = query.where('request_id', 'in', resIds);
-                }
-
-                const existingSap = await query.execute();
-                for (const s of existingSap) {
-                    if (s.sap_number?.trim()) matchedSapNumbers.add(s.sap_number.trim());
-                    if (s.request_id?.trim()) matchedRequestIds.add(s.request_id.trim());
-                }
+            const batchId = crypto.randomUUID();
+            await lensaEltRepository.insertOutLensaStagingBatch(batchId, deduplicatedHeaders, action);
+            const { processedCount } = await lensaEltRepository.processOutLensaStaging(batchId);
+            totalInserted += processedCount;
+            for (const h of deduplicatedHeaders) {
+                existingHeaderIds.push(h.reservation_id);
             }
-
-            await db.transaction().execute(async (trx) => {
-                for (const h of deduplicatedHeaders) {
-                    const gi = h.gi_number ? String(h.gi_number).trim() : '';
-                    const res = h.reservation_id ? String(h.reservation_id).trim() : '';
-                    const isSapOutCheck =
-                        (Boolean(gi) && matchedSapNumbers.has(gi)) ||
-                        (Boolean(res) && matchedRequestIds.has(res)) ||
-                        isBeforeCutoffOut(h.tgl_entry);
-
-                    await trx
-                        .insertInto('inventory.out_lensa_ref_header')
-                        .values({
-                            reservation_id: h.reservation_id,
-                            tgl_entry: h.tgl_entry,
-                            formatted_date: h.formatted_date,
-                            nama_gudang: h.nama_gudang,
-                            regional: h.regional,
-                            project_id: h.project_id,
-                            nik_pemakai: h.nik_pemakai,
-                            reservation_id_sap: h.reservation_id_sap,
-                            scraped_by_username: h.scraped_by_username,
-                            gi_number: h.gi_number,
-                            status_proses: h.status_proses,
-                            sap_out_check: isSapOutCheck,
-                        })
-                        .execute();
-                    totalInserted++;
-                    existingHeaderIds.push(h.reservation_id);
-                }
-            });
         }
 
         // PHASE 2: SCRAPE DETAILS
@@ -280,39 +227,26 @@ export async function executeOutLensaScraping(
             const allDetails = detailResults.flat();
 
             if (allDetails.length > 0) {
-                await db.transaction().execute(async (trx) => {
-                    for (const d of allDetails) {
-                        if (d.mitra) {
-                            await trx
-                                .updateTable('inventory.out_lensa_ref_header')
-                                .set({ mitra: d.mitra })
-                                .where('id', '=', String(d.header_id))
-                                .execute();
-                        }
+                const detailPayload = allDetails
+                    .filter((d) => d.reservation_id && (d.mitra || (d.materials && d.materials.length > 0)))
+                    .map((d) => ({
+                        reservation_id: d.reservation_id,
+                        mitra: d.mitra,
+                        items: d.materials,
+                    }));
 
-                        if (d.materials && d.materials.length > 0) {
-                            const materialInserts = d.materials.map((m) => ({
-                                header_id: d.header_id,
-                                material_id: m['ID MATERIAL'] || null,
-                                material_desc:
-                                    m['NAMA MATERIAL'] ||
-                                    m['MATERIAL DESC'] ||
-                                    m.DESCRIPTION ||
-                                    null,
-                                qty_approve: m['QTY ACCEPTED'] || m['QTY APPROVE'] || null,
-                            }));
-
-                            await trx
-                                .insertInto('inventory.out_lensa_ref_list')
-                                .values(materialInserts)
-                                .execute();
-                        }
-                    }
-                });
+                if (detailPayload.length > 0) {
+                    const detailBatchId = crypto.randomUUID();
+                    await lensaEltRepository.insertOutLensaStagingBatch(detailBatchId, detailPayload, action);
+                    await lensaEltRepository.processOutLensaStaging(detailBatchId);
+                }
             }
         } else {
             totalUsersScraped = whTasks.length;
         }
+
+        // Refresh MViews Lensa secara aman dengan advisory lock
+        await lensaEltRepository.refreshLensaMaterializedViewsSafe();
 
         const summary = {
             totalAccounts: whTasks.length,

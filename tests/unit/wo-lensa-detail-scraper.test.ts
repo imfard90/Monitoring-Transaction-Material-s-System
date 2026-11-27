@@ -33,6 +33,38 @@ vi.mock('@/lib/repositories/scraper-log.repository', () => ({
     },
 }));
 
+const mockInsertWOLensaStagingBatch = vi.fn().mockResolvedValue(1);
+const mockProcessWOLensaStaging = vi.fn().mockResolvedValue({ processedCount: 1, errorCount: 0 });
+const mockRefreshLensaMaterializedViewsSafe = vi
+    .fn()
+    .mockResolvedValue({ outLensaRefreshed: true, woLensaRefreshed: true });
+
+vi.mock('@/lib/repositories/lensa-elt.repository', () => ({
+    lensaEltRepository: {
+        insertWOLensaStagingBatch: (...args: unknown[]) => mockInsertWOLensaStagingBatch(...args),
+        processWOLensaStaging: (...args: unknown[]) => mockProcessWOLensaStaging(...args),
+        refreshLensaMaterializedViewsSafe: () => mockRefreshLensaMaterializedViewsSafe(),
+    },
+}));
+
+vi.mock('@/lib/services/lensa-credential-helper', () => ({
+    getWarehouseLensaCandidates: vi.fn().mockResolvedValue([
+        {
+            username: 'test_user',
+            password: 'test_password',
+            source: 'system',
+        },
+    ]),
+    executeWithLensaFallback: vi.fn(async (candidates, task) => {
+        const creds = candidates[0] || {
+            username: 'test_user',
+            password: 'test_password',
+            source: 'system',
+        };
+        return task(creds);
+    }),
+}));
+
 vi.mock('next/cache', () => ({
     revalidatePath: vi.fn(),
 }));
@@ -48,6 +80,7 @@ vi.mock('@/lib/logger', () => ({
 const mockTransactionExecute = vi.fn();
 
 vi.mock('@/lib/db/db', () => ({
+    pool: { query: vi.fn(), connect: vi.fn(), on: vi.fn(), end: vi.fn() },
     db: {
         selectFrom: vi.fn(() => ({
             select: vi.fn().mockReturnThis(),
@@ -165,7 +198,7 @@ describe('scrapeSingleWODetail Unit Tests', () => {
                 isStaff: false,
             });
 
-            // Header exists
+            // Initial Header exists
             mockExecuteTakeFirst.mockResolvedValueOnce({
                 id: '10',
                 pemakaian_id: '123456',
@@ -173,6 +206,26 @@ describe('scrapeSingleWODetail Unit Tests', () => {
                 nama_gudang: 'SO Gresik',
                 type: 'assurance',
             });
+
+            // Post-ELT updated header
+            mockExecuteTakeFirst.mockResolvedValueOnce({
+                id: '10',
+                pemakaian_id: '123456',
+                wo_number: 'WO-123456',
+                nama_gudang: 'SO Gresik',
+                type: 'assurance',
+            });
+
+            // Post-ELT saved material items
+            mockExecute.mockResolvedValueOnce([
+                {
+                    header_id: '10',
+                    material_id: 'MAT-001',
+                    material_desc: 'Kabel Dropcore 1 Core',
+                    uom: 'MTR',
+                    qty_pemakaian: 150,
+                },
+            ]);
 
             // Scraper returns detail items
             mockScrapeWOLensaDetails.mockResolvedValueOnce([
@@ -231,6 +284,27 @@ describe('scrapeSingleWODetail Unit Tests', () => {
             // DB does not have the header yet
             mockExecuteTakeFirst.mockResolvedValueOnce(null);
 
+            // Post-ELT updated header
+            mockExecuteTakeFirst.mockResolvedValueOnce({
+                id: '99',
+                pemakaian_id: '998877',
+                wo_number: 'INC13579070',
+                nama_gudang: 'WH SUB KARANGPILANG',
+                nik_pemakai: '18930453',
+                type: 'assurance',
+            });
+
+            // Post-ELT saved material items
+            mockExecute.mockResolvedValueOnce([
+                {
+                    header_id: '99',
+                    material_id: '101234',
+                    material_desc: 'Patchcord SC-UPC',
+                    uom: 'PCS',
+                    qty_pemakaian: 2,
+                },
+            ]);
+
             // Lensa header search finds the WO header
             mockSearchSingleWOLensaHeader.mockResolvedValueOnce({
                 pemakaian_id: '998877',
@@ -285,7 +359,7 @@ describe('scrapeSingleWODetail Unit Tests', () => {
             expect(res.data?.nama_gudang).toBe('WH SUB KARANGPILANG');
             expect(res.data?.materials).toHaveLength(1);
             expect(res.data?.materials[0].material_id).toBe('101234');
-            expect(mockTransactionExecute).toHaveBeenCalled();
+            expect(mockInsertWOLensaStagingBatch).toHaveBeenCalled();
         } finally {
             process.env.LENSA_USERNAME = originalUser;
             process.env.LENSA_PASSWORD = originalPass;
@@ -309,6 +383,27 @@ describe('scrapeSingleWODetail Unit Tests', () => {
 
             // Header not in DB
             mockExecuteTakeFirst.mockResolvedValueOnce(null);
+
+            // Post-ELT updated header
+            mockExecuteTakeFirst.mockResolvedValueOnce({
+                id: '99',
+                pemakaian_id: '554433',
+                wo_number: 'SC13610307',
+                nama_gudang: 'WH SUB TUBAN',
+                nik_pemakai: '19001234',
+                type: 'provisioning',
+            });
+
+            // Post-ELT saved material items
+            mockExecute.mockResolvedValueOnce([
+                {
+                    header_id: '99',
+                    material_id: '201999',
+                    material_desc: 'Roset Optik 1 Core',
+                    uom: 'PCS',
+                    qty_pemakaian: 1,
+                },
+            ]);
 
             // First direct detail scrape returns empty materials
             mockScrapeWOLensaDetails.mockResolvedValueOnce([
@@ -384,15 +479,28 @@ describe('scrapeSingleWODetail Unit Tests', () => {
             });
 
             // Initial lookup with WO number returns null (wo_number not yet recorded in DB)
-            // But second lookup by resolvedPemakaianId returns existing header record (e.g. id: '2687')
-            mockExecuteTakeFirst
-                .mockResolvedValueOnce(null) // 1. Initial db lookup by '1-95602227495' -> null
-                .mockResolvedValueOnce({
-                    id: '2687',
-                    pemakaian_id: '100257706',
-                    wo_number: null,
-                    nama_gudang: null,
-                }); // 2. Second db lookup by resolvedPemakaianId '100257706' -> existing row!
+            mockExecuteTakeFirst.mockResolvedValueOnce(null);
+
+            // Post-ELT updated header
+            mockExecuteTakeFirst.mockResolvedValueOnce({
+                id: '2687',
+                pemakaian_id: '100257706',
+                wo_number: '1-95602227495',
+                nama_gudang: 'WH SUB TUBAN',
+                nik_pemakai: '19001234',
+                type: 'assurance',
+            });
+
+            // Post-ELT saved material items
+            mockExecute.mockResolvedValueOnce([
+                {
+                    header_id: '2687',
+                    material_id: 'S-CLAMP',
+                    material_desc: 'S-Clamp-Springer',
+                    uom: 'Pcs',
+                    qty_pemakaian: 2,
+                },
+            ]);
 
             // Lensa search returns header metadata for '1-95602227495'
             mockSearchSingleWOLensaHeader.mockResolvedValueOnce({
