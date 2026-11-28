@@ -44,6 +44,21 @@ import { getCronRunningStatus } from '@/lib/services/cron-guard';
 export async function triggerScraping(): Promise<
     { success: true; jobId: string } | { success: false; error: string }
 > {
+    // Otorisasi server action (AGENTS.md §1.1)
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+        return {
+            success: false,
+            error: 'Sesi kedaluwarsa. Silakan login kembali.',
+        };
+    }
+    if (sessionUser.isStaff) {
+        return {
+            success: false,
+            error: 'Akses ditolak: Hanya Admin atau Pengelola yang dapat memicu scraping massal.',
+        };
+    }
+
     // Guard against manual trigger if scheduled cron is active
     const activeCron = await getCronRunningStatus();
     if (activeCron) {

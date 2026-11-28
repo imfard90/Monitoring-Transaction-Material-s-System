@@ -437,6 +437,9 @@ export async function getOutLensaFilterOptions() {
 }
 
 export async function checkScrapingStatus(jobId: string) {
+    const user = await getSessionUser();
+    if (!user) return { status: 'unauthorized' };
+
     const data = await redis.get(`job:${jobId}`);
     if (!data) return { status: 'not_found' };
 
