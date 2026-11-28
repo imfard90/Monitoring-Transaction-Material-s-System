@@ -4,8 +4,8 @@ import { getSessionUser } from '@/lib/auth-server';
 import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
 import { bulkScrapeStockTeknisi } from '@/lib/services/bulk-stock-scraper';
-import { dispatchWorkerJob, isWorkerActive } from '@/lib/workers/worker-client';
 import { getCronRunningStatus } from '@/lib/services/cron-guard';
+import { dispatchWorkerJob, isWorkerActive } from '@/lib/workers/worker-client';
 
 export interface BulkScrapeJobResult {
     success: number;

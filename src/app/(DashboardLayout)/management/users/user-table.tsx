@@ -1,8 +1,8 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { ShieldAlert, ShieldCheck, Smartphone, Trash2 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
@@ -27,6 +27,7 @@ import {
     toggleUserApiApproval,
     toggleUserStatus,
 } from './actions';
+
 const UserDevicesDialog = dynamic(
     () => import('./_components/user-devices-dialog').then((mod) => mod.UserDevicesDialog),
     { ssr: false }
@@ -143,9 +144,7 @@ export default function UserTable({ data }: UserTableProps) {
                 const latest = await getUsers();
                 setUsers(latest);
             } catch (error: unknown) {
-                toast.error(
-                    error instanceof Error ? error.message : 'Gagal me-reset MFA pengguna'
-                );
+                toast.error(error instanceof Error ? error.message : 'Gagal me-reset MFA pengguna');
             }
         });
     };

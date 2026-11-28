@@ -208,8 +208,12 @@ export async function getPendingNotifications(): Promise<{
             .where('o.formatted_date', '>=', sql<Date>`'2026-10-01'::date`);
 
         if (isStaff && whNames.length > 0) {
-            outSapCountQuery = outSapCountQuery.where(sql<boolean>`${sql.ref('o.nama_gudang')} = ANY(${whNames}::text[])`);
-            outSapRecentQuery = outSapRecentQuery.where(sql<boolean>`${sql.ref('o.nama_gudang')} = ANY(${whNames}::text[])`);
+            outSapCountQuery = outSapCountQuery.where(
+                sql<boolean>`${sql.ref('o.nama_gudang')} = ANY(${whNames}::text[])`
+            );
+            outSapRecentQuery = outSapRecentQuery.where(
+                sql<boolean>`${sql.ref('o.nama_gudang')} = ANY(${whNames}::text[])`
+            );
         }
 
         // 4. Rekon Lensa Belum Rekon Queries (inventory.wo_lensa_header)
@@ -232,8 +236,12 @@ export async function getPendingNotifications(): Promise<{
             .where('w.rekon_check', '=', false);
 
         if (isStaff && whNames.length > 0) {
-            rekonCountQuery = rekonCountQuery.where(sql<boolean>`${sql.ref('w.nama_gudang')} = ANY(${whNames}::text[])`);
-            rekonRecentQuery = rekonRecentQuery.where(sql<boolean>`${sql.ref('w.nama_gudang')} = ANY(${whNames}::text[])`);
+            rekonCountQuery = rekonCountQuery.where(
+                sql<boolean>`${sql.ref('w.nama_gudang')} = ANY(${whNames}::text[])`
+            );
+            rekonRecentQuery = rekonRecentQuery.where(
+                sql<boolean>`${sql.ref('w.nama_gudang')} = ANY(${whNames}::text[])`
+            );
         }
 
         // Execute queries in parallel

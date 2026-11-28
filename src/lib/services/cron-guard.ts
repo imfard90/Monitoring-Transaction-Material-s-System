@@ -66,4 +66,3 @@ export async function isCronRunning(): Promise<boolean> {
     const status = await getCronRunningStatus();
     return status !== null;
 }
-

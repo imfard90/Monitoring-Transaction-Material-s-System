@@ -57,11 +57,11 @@ export function isNoiseViolation(blockedUri?: string, sourceFile?: string): bool
 interface CspReportBody {
     'csp-report'?: {
         'document-uri'?: string;
-        'referrer'?: string;
+        referrer?: string;
         'violated-directive'?: string;
         'effective-directive'?: string;
         'original-policy'?: string;
-        'disposition'?: string;
+        disposition?: string;
         'blocked-uri'?: string;
         'line-number'?: number;
         'source-file'?: string;
@@ -118,10 +118,8 @@ export async function POST(request: Request): Promise<Response> {
             : [parsed as CspReportBody];
 
         for (const item of reports) {
-            const blockedUri =
-                item['csp-report']?.['blocked-uri'] || item.body?.blockedURL || '';
-            const sourceFile =
-                item['csp-report']?.['source-file'] || item.body?.sourceFile || '';
+            const blockedUri = item['csp-report']?.['blocked-uri'] || item.body?.blockedURL || '';
+            const sourceFile = item['csp-report']?.['source-file'] || item.body?.sourceFile || '';
             const violatedDirective =
                 item['csp-report']?.['violated-directive'] ||
                 item['csp-report']?.['effective-directive'] ||

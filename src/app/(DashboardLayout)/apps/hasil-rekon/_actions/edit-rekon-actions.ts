@@ -1,7 +1,7 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { sql } from 'kysely';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSessionNik, getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
@@ -30,7 +30,9 @@ export async function getRekonEditData(header_id: string, sap_out_id: string) {
             .where('tuh.id', '=', parsed.data.header_id)
             .where('soh.id', '=', parsed.data.sap_out_id);
         const scopedAccessQuery = isStaff
-            ? accessQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${warehouseIds}::int[])`)
+            ? accessQuery.where(
+                  sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${warehouseIds}::int[])`
+              )
             : accessQuery;
         if (!(await scopedAccessQuery.executeTakeFirst())) {
             return { success: false, error: 'Transaksi tidak ditemukan atau akses ditolak' };
@@ -71,7 +73,9 @@ export async function getRekonEditData(header_id: string, sap_out_id: string) {
             if (warehouseIds.length === 0) {
                 return { success: true, existingItems: [], sapItems: [] };
             }
-            sapItemsQuery = sapItemsQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${warehouseIds}::int[])`);
+            sapItemsQuery = sapItemsQuery.where(
+                sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${warehouseIds}::int[])`
+            );
         }
 
         const sapItems = await sapItemsQuery.execute();
@@ -131,7 +135,9 @@ export async function submitEditRekon(
             .where('tuh.id', '=', parsed.data.headerId)
             .where('soh.id', '=', parsed.data.sapOutId);
         const scopedHeaderQuery = isStaff
-            ? headerQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${warehouseIds}::int[])`)
+            ? headerQuery.where(
+                  sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${warehouseIds}::int[])`
+              )
             : headerQuery;
         if (!(await scopedHeaderQuery.executeTakeFirst())) {
             return { success: false, error: 'Transaksi tidak ditemukan atau akses ditolak' };

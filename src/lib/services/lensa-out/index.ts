@@ -15,4 +15,3 @@ export type {
     ScrapedOutLensaDetailMaterial,
     ScrapedOutLensaDetailResult,
 } from './types';
-

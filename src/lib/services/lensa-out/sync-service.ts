@@ -133,7 +133,11 @@ export async function executeOutLensaScraping(
         // Ingest new headers ke staging dan proses via Database-Centric ELT (ADR-007)
         if (deduplicatedHeaders.length > 0) {
             const batchId = crypto.randomUUID();
-            await lensaEltRepository.insertOutLensaStagingBatch(batchId, deduplicatedHeaders, action);
+            await lensaEltRepository.insertOutLensaStagingBatch(
+                batchId,
+                deduplicatedHeaders,
+                action
+            );
             const { processedCount } = await lensaEltRepository.processOutLensaStaging(batchId);
             totalInserted += processedCount;
             for (const h of deduplicatedHeaders) {
@@ -228,7 +232,10 @@ export async function executeOutLensaScraping(
 
             if (allDetails.length > 0) {
                 const detailPayload = allDetails
-                    .filter((d) => d.reservation_id && (d.mitra || (d.materials && d.materials.length > 0)))
+                    .filter(
+                        (d) =>
+                            d.reservation_id && (d.mitra || (d.materials && d.materials.length > 0))
+                    )
                     .map((d) => ({
                         reservation_id: d.reservation_id,
                         mitra: d.mitra,
@@ -237,7 +244,11 @@ export async function executeOutLensaScraping(
 
                 if (detailPayload.length > 0) {
                     const detailBatchId = crypto.randomUUID();
-                    await lensaEltRepository.insertOutLensaStagingBatch(detailBatchId, detailPayload, action);
+                    await lensaEltRepository.insertOutLensaStagingBatch(
+                        detailBatchId,
+                        detailPayload,
+                        action
+                    );
                     await lensaEltRepository.processOutLensaStaging(detailBatchId);
                 }
             }

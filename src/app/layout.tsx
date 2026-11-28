@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
 import { Plus_Jakarta_Sans } from 'next/font/google';
+import { headers } from 'next/headers';
 import type React from 'react';
 import './css/globals.css';
 import ServiceWorkerRegister from '@/app/components/service-worker/ServiceWorkerRegister';
-import { WebVitalsReporter } from '@/components/analytics/WebVitalsReporter';
 import { A11yAuditor } from '@/components/a11y/A11yAuditor';
+import { WebVitalsReporter } from '@/components/analytics/WebVitalsReporter';
 import { Providers } from './providers';
 
 export const dynamic = 'force-dynamic';

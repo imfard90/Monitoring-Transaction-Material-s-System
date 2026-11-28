@@ -128,7 +128,11 @@ export async function executeWOLensaScraping(
         // Ingest headers ke staging dan proses via Database-Centric ELT (ADR-007)
         if (deduplicatedHeaders.length > 0) {
             const batchId = crypto.randomUUID();
-            await lensaEltRepository.insertWOLensaStagingBatch(batchId, deduplicatedHeaders, action);
+            await lensaEltRepository.insertWOLensaStagingBatch(
+                batchId,
+                deduplicatedHeaders,
+                action
+            );
             const { processedCount } = await lensaEltRepository.processWOLensaStaging(batchId);
             totalInserted += processedCount;
             for (const h of deduplicatedHeaders) {
@@ -267,8 +271,13 @@ export async function syncMissingWOLensaDetails(): Promise<number> {
 
         if (detailPayload.length > 0) {
             const detailBatchId = crypto.randomUUID();
-            await lensaEltRepository.insertWOLensaStagingBatch(detailBatchId, detailPayload, 'system');
-            const { processedCount } = await lensaEltRepository.processWOLensaStaging(detailBatchId);
+            await lensaEltRepository.insertWOLensaStagingBatch(
+                detailBatchId,
+                detailPayload,
+                'system'
+            );
+            const { processedCount } =
+                await lensaEltRepository.processWOLensaStaging(detailBatchId);
             insertedDetailsCount += processedCount;
         }
     }

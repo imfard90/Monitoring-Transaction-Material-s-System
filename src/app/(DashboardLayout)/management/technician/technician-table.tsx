@@ -1,8 +1,8 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { PackageMinus, Pencil, Plus } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
@@ -25,6 +25,7 @@ import {
     useReactTable,
 } from '@/lib/table';
 import { toggleTechnicianStatus } from './actions';
+
 const TechnicianDialog = dynamic(
     () => import('./technician-dialog').then((mod) => mod.TechnicianDialog),
     { ssr: false }

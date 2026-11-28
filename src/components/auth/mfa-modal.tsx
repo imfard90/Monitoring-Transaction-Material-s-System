@@ -184,9 +184,7 @@ export function MfaModal({
     };
 
     const defaultTitle =
-        mode === 'setup'
-            ? 'Aktivasi Authenticator (MFA)'
-            : 'Verifikasi Dua Langkah';
+        mode === 'setup' ? 'Aktivasi Authenticator (MFA)' : 'Verifikasi Dua Langkah';
 
     const defaultDesc =
         mode === 'setup'
@@ -215,7 +213,11 @@ export function MfaModal({
                                 <motion.div
                                     initial={{ scale: 0.8, opacity: 0.8 }}
                                     animate={{ scale: [1, 1.45, 1.8], opacity: [0.6, 0.2, 0] }}
-                                    transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut' }}
+                                    transition={{
+                                        duration: 1.5,
+                                        repeat: Infinity,
+                                        ease: 'easeOut',
+                                    }}
                                     className="absolute w-24 h-24 rounded-full bg-emerald-500/15 border border-emerald-500/30 pointer-events-none"
                                 />
                                 {/* Pulse Ripple 2 */}
@@ -253,7 +255,12 @@ export function MfaModal({
                                         {/* Shackle: animates up and rotates open */}
                                         <motion.path
                                             d="M7 11V7a5 5 0 0 1 10 0v4"
-                                            initial={{ y: 0, rotate: 0, originX: '17px', originY: '11px' }}
+                                            initial={{
+                                                y: 0,
+                                                rotate: 0,
+                                                originX: '17px',
+                                                originY: '11px',
+                                            }}
                                             animate={{ y: -3.5, rotate: 25 }}
                                             transition={{
                                                 delay: 0.25,
@@ -496,4 +503,3 @@ export function MfaModal({
         </Dialog>
     );
 }
-

@@ -70,7 +70,8 @@ describe('session-anomaly.service', () => {
         });
 
         it('identifies macOS Firefox correctly', () => {
-            const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0';
+            const ua =
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0';
             const res = parseUserAgentFamilies(ua);
             expect(res.osFamily).toBe('macOS');
             expect(res.browserFamily).toBe('Firefox');
@@ -78,7 +79,9 @@ describe('session-anomaly.service', () => {
 
         it('identifies automated tools and scrapers as Automated', () => {
             expect(parseUserAgentFamilies('curl/8.4.0').browserFamily).toBe('Automated');
-            expect(parseUserAgentFamilies('python-requests/2.31.0').browserFamily).toBe('Automated');
+            expect(parseUserAgentFamilies('python-requests/2.31.0').browserFamily).toBe(
+                'Automated'
+            );
             expect(parseUserAgentFamilies('PostmanRuntime/7.36.0').browserFamily).toBe('Automated');
         });
     });
@@ -277,4 +280,3 @@ describe('session-anomaly.service', () => {
         });
     });
 });
-

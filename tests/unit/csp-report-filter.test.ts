@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { isNoiseViolation, POST } from '@/app/api/csp-report/route';
 import { securityLogger } from '@/lib/logger';
 import { proxy } from '@/proxy';
@@ -60,8 +60,7 @@ describe('CSP Noise Filtering and Reporting Logic', () => {
             const payload = {
                 'csp-report': {
                     'document-uri': 'https://mtms-app.credea.biz.id/dashboard',
-                    'blocked-uri':
-                        'chrome-extension://gighmmpiobklfepjocnamgkkbiglidom/adblock.js',
+                    'blocked-uri': 'chrome-extension://gighmmpiobklfepjocnamgkkbiglidom/adblock.js',
                     'violated-directive': 'script-src',
                 },
             };

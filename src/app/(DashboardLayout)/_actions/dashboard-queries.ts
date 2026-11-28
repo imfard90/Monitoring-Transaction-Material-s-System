@@ -81,7 +81,9 @@ export async function getStockWarnings(warehouseId: string = 'all') {
             .orderBy('m.code');
 
         if (scope.kind === 'scoped') {
-            query = query.where(sql<boolean>`${sql.ref('p.warehouse_id')} = ANY(${scope.ids}::int[])`);
+            query = query.where(
+                sql<boolean>`${sql.ref('p.warehouse_id')} = ANY(${scope.ids}::int[])`
+            );
         } else if (parsed.data.warehouseId !== 'all') {
             query = query.where('p.warehouse_id', '=', Number(parsed.data.warehouseId));
         }

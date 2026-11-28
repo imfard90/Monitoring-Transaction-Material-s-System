@@ -225,8 +225,10 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
 
     // Rasio warna badge kepatuhan keseluruhan
     const complianceBadgeColor = useMemo(() => {
-        if (summary.persentaseRekon >= 80) return 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/30';
-        if (summary.persentaseRekon >= 50) return 'text-amber-800 dark:text-amber-300 bg-amber-500/10 border-amber-500/30';
+        if (summary.persentaseRekon >= 80)
+            return 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/30';
+        if (summary.persentaseRekon >= 50)
+            return 'text-amber-800 dark:text-amber-300 bg-amber-500/10 border-amber-500/30';
         return 'text-rose-700 dark:text-rose-300 bg-rose-500/10 border-rose-500/30';
     }, [summary.persentaseRekon]);
 
@@ -357,7 +359,9 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                     {/* Card 2: Sudah Rekon */}
                     <div className="p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex flex-col justify-between">
                         <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-300">
-                            <span className="text-[11px] font-semibold">Tervalidasi Rekon Lensa</span>
+                            <span className="text-[11px] font-semibold">
+                                Tervalidasi Rekon Lensa
+                            </span>
                             <Icon icon="solar:check-circle-bold-duotone" width={16} />
                         </div>
                         <div className="mt-1.5 flex items-baseline gap-1">
@@ -489,16 +493,15 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                             </div>
                         ) : (
                             warehouseRollup.map((row) => {
-                                const isSelected = selectedWarehouse.toUpperCase() === row.datel.toUpperCase();
+                                const isSelected =
+                                    selectedWarehouse.toUpperCase() === row.datel.toUpperCase();
                                 const pct = Number(row.persentase_rekon);
                                 return (
                                     <button
                                         type="button"
                                         key={row.datel}
                                         onClick={() =>
-                                            setSelectedWarehouse(
-                                                isSelected ? 'all' : row.datel
-                                            )
+                                            setSelectedWarehouse(isSelected ? 'all' : row.datel)
                                         }
                                         className={`flex flex-col p-2.5 rounded-lg border text-left transition-all ${
                                             isSelected
@@ -520,10 +523,15 @@ export const KproRekonAnalyticsPanel: React.FC = () => {
                                             </span>
                                             <div className="flex items-center gap-1.5">
                                                 <span className="text-xs font-mono font-bold text-foreground">
-                                                    {Number(row.total_rekon_lensa).toLocaleString('id-ID')}
+                                                    {Number(row.total_rekon_lensa).toLocaleString(
+                                                        'id-ID'
+                                                    )}
                                                 </span>
                                                 <span className="text-[10px] text-muted-foreground">
-                                                    / {Number(row.total_orders).toLocaleString('id-ID')}
+                                                    /{' '}
+                                                    {Number(row.total_orders).toLocaleString(
+                                                        'id-ID'
+                                                    )}
                                                 </span>
                                                 <span
                                                     className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded ${

@@ -160,9 +160,7 @@ export async function revokeAllUserSessions(email: string) {
  * Clear current user's presence upon explicit sign-out or idle timeout
  * and write an audit log event.
  */
-export async function logoutUser(
-    reason: 'LOGOUT_MANUAL' | 'LOGOUT_TIMEOUT' = 'LOGOUT_MANUAL'
-) {
+export async function logoutUser(reason: 'LOGOUT_MANUAL' | 'LOGOUT_TIMEOUT' = 'LOGOUT_MANUAL') {
     try {
         const session = await getSessionUser();
         if (session.nik) {

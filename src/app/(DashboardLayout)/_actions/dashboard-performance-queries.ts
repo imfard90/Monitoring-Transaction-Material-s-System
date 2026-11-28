@@ -144,8 +144,8 @@ export async function getIntechLensaWarehousePerformance(
         for (const t of techRows) {
             if (!t.wh_id || !t.warehouse_name) continue;
 
-            const groupKey = isServiceArea ? (t.service_area || 'UNKNOWN') : t.wh_id;
-            const groupName = isServiceArea ? (t.service_area || 'UNKNOWN') : t.warehouse_name;
+            const groupKey = isServiceArea ? t.service_area || 'UNKNOWN' : t.wh_id;
+            const groupName = isServiceArea ? t.service_area || 'UNKNOWN' : t.warehouse_name;
 
             if (isServiceArea && groupKey === 'UNKNOWN') continue;
 

@@ -160,9 +160,7 @@ export async function batchGetUsersOnlineStatus(
  * Count the total number of distinct active online users using non-blocking SCAN on index keys.
  * This avoids the blocking O(N) KEYS command and avoids overcounting multiple sessions per user.
  */
-export async function countActiveOnlineUsers(
-    redisClient: RedisPresenceClient
-): Promise<number> {
+export async function countActiveOnlineUsers(redisClient: RedisPresenceClient): Promise<number> {
     try {
         if (typeof redisClient.scan !== 'function') {
             return 0;
@@ -189,4 +187,3 @@ export async function countActiveOnlineUsers(
         return 0;
     }
 }
-

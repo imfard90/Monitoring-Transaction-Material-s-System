@@ -27,7 +27,8 @@ type WarehouseOption = { id: number; name: string };
 export const StockRunoutForecast: React.FC<{
     isStaff: boolean;
     warehouses: WarehouseOption[];
-}> = ({ isStaff, warehouses }) => {    const [selectedWh, setSelectedWh] = useState<string>('all');
+}> = ({ isStaff, warehouses }) => {
+    const [selectedWh, setSelectedWh] = useState<string>('all');
     const targetWh = isStaff ? 'all' : selectedWh;
 
     const { data: runoutData = [], isLoading } = useQuery<StockRunoutItem[]>({
@@ -182,8 +183,7 @@ export const StockRunoutForecast: React.FC<{
     );
 
     return (
-        <Card
-            className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl p-3.5 sm:p-4 h-full w-full relative overflow-hidden flex flex-col justify-between">
+        <Card className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl p-3.5 sm:p-4 h-full w-full relative overflow-hidden flex flex-col justify-between">
             <div
                 className="absolute top-0 left-0 w-full h-20 bg-linear-to-b from-primary/5 to-transparent pointer-events-none"
                 aria-hidden="true"

@@ -3,11 +3,9 @@
  */
 
 export type {
-    KproRefItem,
     GetKproRefListOptions,
+    KproRefItem,
     PaginatedKproRefResult,
 } from './kpro-ref-queries';
 
-export {
-    getKproRefList,
-} from './kpro-ref-queries';
+export { getKproRefList } from './kpro-ref-queries';

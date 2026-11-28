@@ -174,7 +174,11 @@ export async function executeNightlyWOLensaScrapingByNik(
         let totalInserted = 0;
         if (deduplicatedHeaders.length > 0) {
             const batchId = crypto.randomUUID();
-            await lensaEltRepository.insertWOLensaStagingBatch(batchId, deduplicatedHeaders, action);
+            await lensaEltRepository.insertWOLensaStagingBatch(
+                batchId,
+                deduplicatedHeaders,
+                action
+            );
             const { processedCount } = await lensaEltRepository.processWOLensaStaging(batchId);
             totalInserted += processedCount;
         }

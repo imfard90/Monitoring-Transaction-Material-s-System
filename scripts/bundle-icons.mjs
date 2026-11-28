@@ -62,4 +62,3 @@ bundleIcons().catch((err) => {
     console.error('[bundle-icons] Error:', err);
     process.exit(1);
 });
-

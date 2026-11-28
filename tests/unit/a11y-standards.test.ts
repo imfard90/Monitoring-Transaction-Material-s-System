@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -95,4 +95,3 @@ describe('WCAG 2.1 & 2.2 AA Accessibility Guardrails', () => {
         }
     });
 });
-

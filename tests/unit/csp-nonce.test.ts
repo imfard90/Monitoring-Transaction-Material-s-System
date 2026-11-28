@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { NextRequest } from 'next/server';
-import { proxy } from '@/proxy';
 // Import Next.js internal helper that extracts the nonce during server rendering
 import { getScriptNonceFromHeader } from 'next/dist/server/app-render/get-script-nonce-from-header';
+import { NextRequest } from 'next/server';
+import { describe, expect, it } from 'vitest';
+import { proxy } from '@/proxy';
 
 describe('CSP Nonce Generation and Next.js Parser Compatibility', () => {
     it('sets matching nonces on both request headers and response headers', async () => {
@@ -75,4 +75,3 @@ describe('CSP Nonce Generation and Next.js Parser Compatibility', () => {
         expect(res.headers.get('Cache-Control')).toContain('no-store');
     });
 });
-

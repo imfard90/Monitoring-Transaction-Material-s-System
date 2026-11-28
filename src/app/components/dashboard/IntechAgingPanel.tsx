@@ -30,7 +30,8 @@ interface IntechAgingPanelProps {
     warehouses: WarehouseOption[];
 }
 
-export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, warehouses }) => {    const [selectedWh, setSelectedWh] = useState<string>('all');
+export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, warehouses }) => {
+    const [selectedWh, setSelectedWh] = useState<string>('all');
     const [activeSecondaryView, setActiveSecondaryView] = useState<'material' | 'technician'>(
         'material'
     );
@@ -256,9 +257,7 @@ export const IntechAgingPanel: React.FC<IntechAgingPanelProps> = ({ isStaff, war
     );
 
     return (
-        <Card
-            className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl p-3.5 sm:p-4 transition-shadow duration-200 hover:shadow-sm relative overflow-hidden"
-        >
+        <Card className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl p-3.5 sm:p-4 transition-shadow duration-200 hover:shadow-sm relative overflow-hidden">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-border/60">
                 <div className="flex items-center gap-2.5">

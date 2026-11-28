@@ -30,10 +30,10 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useWarehouses } from '@/hooks/use-warehouses';
 import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
 import { cn } from '@/lib/utils';
-import { useWarehouses } from '@/hooks/use-warehouses';
 import { createTag, getMaterialsWithStock, getWarehouses } from '../_actions/tag-actions';
 
 interface CreateTagModalProps {

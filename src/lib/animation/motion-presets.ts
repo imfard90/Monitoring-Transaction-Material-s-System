@@ -12,7 +12,7 @@
  * - Form field validation feedback
  */
 
-import type { Variants, Transition } from 'framer-motion';
+import type { Transition, Variants } from 'framer-motion';
 
 /**
  * Easing curves matching MTMS design tokens.
@@ -62,11 +62,11 @@ export const fadeSlideVariants: Variants = {
  * @see ./stagger.ts for full documentation
  */
 export {
-    staggerContainer as staggerContainerVariants,
-    staggerItemVariants,
-    staggerItem,
     fadeInUp,
     scaleIn,
+    staggerContainer as staggerContainerVariants,
+    staggerItem,
+    staggerItemVariants,
 } from './stagger';
 
 /**

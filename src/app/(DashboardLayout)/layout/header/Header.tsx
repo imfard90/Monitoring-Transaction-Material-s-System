@@ -23,7 +23,9 @@ const Header = () => {
             'startViewTransition' in document &&
             !window.matchMedia('(prefers-reduced-motion: reduce)').matches
         ) {
-            (document as Document & { startViewTransition?: (callback: () => void) => void }).startViewTransition?.(() => {
+            (
+                document as Document & { startViewTransition?: (callback: () => void) => void }
+            ).startViewTransition?.(() => {
                 setTheme(newTheme);
             });
         } else {

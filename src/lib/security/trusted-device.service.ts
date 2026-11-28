@@ -91,14 +91,11 @@ export async function checkAndRegisterDevice(params: {
 
         // New device: check 3-device limit
         if (activeDevices.length >= MAX_TRUSTED_DEVICES_PER_USER) {
-            securityLogger.warn(
-                'Device registration blocked: max 3 devices reached',
-                {
-                    userId,
-                    deviceFingerprint,
-                    activeCount: activeDevices.length,
-                }
-            );
+            securityLogger.warn('Device registration blocked: max 3 devices reached', {
+                userId,
+                deviceFingerprint,
+                activeCount: activeDevices.length,
+            });
 
             await logAuthEvent({
                 userId,

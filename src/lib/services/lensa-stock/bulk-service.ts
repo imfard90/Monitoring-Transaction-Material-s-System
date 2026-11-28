@@ -10,14 +10,14 @@
 
 import { sql } from 'kysely';
 import type { BrowserContext } from 'playwright';
-import {
-    getWarehouseLensaCandidates,
-    type LensaCredentialCandidate,
-} from '../lensa-credential-helper';
 import { db } from '@/lib/db/db';
 import { scrapeStockTeknisiOnPage, setupContext } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
+import {
+    getWarehouseLensaCandidates,
+    type LensaCredentialCandidate,
+} from '../lensa-credential-helper';
 
 export interface ScrapingResult {
     nik: string;
@@ -184,7 +184,6 @@ async function scrapeWarehouseWorker(param: WarehouseWorkerParam): Promise<Scrap
     }
 
     try {
-
         const allResults: ScrapingResult[] = [];
 
         // Loop per-chunk (10 teknisi per putaran) sampai SEMUA teknisi di gudang ini selesai

@@ -292,6 +292,7 @@ export function getLensaBrowserHealth() {
 }
 
 import { parseLensaDate } from './lensa-wo-helpers';
+
 export { parseLensaDate };
 
 /**
@@ -425,9 +426,14 @@ export async function setupContext(username: string, password: string) {
                         })
                         .catch(() => null);
                     await activePage.fill('input[type="text"], input[name="username"]', username);
-                    await activePage.fill('input[type="password"], input[name="password"]', password);
+                    await activePage.fill(
+                        'input[type="password"], input[name="password"]',
+                        password
+                    );
                     await activePage.click('button[type="submit"]');
-                    await activePage.waitForURL('**/dashboard**', { timeout: 15000 }).catch(() => null);
+                    await activePage
+                        .waitForURL('**/dashboard**', { timeout: 15000 })
+                        .catch(() => null);
 
                     if (activePage.url().includes('login')) {
                         throw new Error(

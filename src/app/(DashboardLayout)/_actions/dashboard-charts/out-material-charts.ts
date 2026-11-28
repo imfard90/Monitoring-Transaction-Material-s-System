@@ -55,7 +55,9 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
             .limit(validLimit);
 
         if (scope.kind === 'scoped') {
-            topMatQuery = topMatQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
+            topMatQuery = topMatQuery.where(
+                sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`
+            );
         } else if (wh_id !== 'all') {
             topMatQuery = topMatQuery.where('soh.warehouse_id', '=', Number(wh_id));
         }
@@ -94,7 +96,9 @@ export async function getOutMaterialLineChartData(wh_id: string, limit: number =
             ]);
 
         if (scope.kind === 'scoped') {
-            dailyQuery = dailyQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
+            dailyQuery = dailyQuery.where(
+                sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`
+            );
         } else if (wh_id !== 'all') {
             dailyQuery = dailyQuery.where('soh.warehouse_id', '=', Number(wh_id));
         }

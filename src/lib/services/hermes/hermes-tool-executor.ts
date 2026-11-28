@@ -1,10 +1,7 @@
 import { z } from 'zod';
 import { actionLogger } from '@/lib/logger';
 import { inventoryRepository } from '@/lib/repositories/inventory.repository';
-import {
-    expandMaterialKeywords,
-    extractWarehouse,
-} from './skills/stock-query.skill';
+import { expandMaterialKeywords, extractWarehouse } from './skills/stock-query.skill';
 
 const getMaterialStockSchema = z.object({
     material_keyword: z

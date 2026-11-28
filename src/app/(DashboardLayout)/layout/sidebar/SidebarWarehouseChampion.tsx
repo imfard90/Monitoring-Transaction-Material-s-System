@@ -418,7 +418,11 @@ export const SidebarWarehouseChampion = () => {
                                             type="button"
                                             className="w-full mt-1 py-1 px-2 flex items-center justify-center gap-1.5 rounded-lg text-[10.5px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 active:scale-[0.99] transition-all cursor-pointer border border-amber-500/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500"
                                         >
-                                            <Icon icon="solar:ranking-bold" width="12" height="12" />
+                                            <Icon
+                                                icon="solar:ranking-bold"
+                                                width="12"
+                                                height="12"
+                                            />
                                             <span>Lihat Klasemen Gudang</span>
                                         </button>
                                     </DialogTrigger>
@@ -464,8 +468,9 @@ export const SidebarWarehouseChampion = () => {
                             </button>
                         </div>
                         <DialogDescription className="text-xs text-muted-foreground">
-                            Penilaian seimbang berdasarkan rata-rata 4 pilar (30 hari terakhir): Performa Out Lensa,
-                            Rekon Lensa, Intech Lensa vs MTMS, dan SLA Rekon (maksimal H+1).
+                            Penilaian seimbang berdasarkan rata-rata 4 pilar (30 hari terakhir):
+                            Performa Out Lensa, Rekon Lensa, Intech Lensa vs MTMS, dan SLA Rekon
+                            (maksimal H+1).
                             {leaderboardData?.updatedAt && (
                                 <span className="block mt-0.5 text-[10px] text-muted-foreground/75 font-mono">
                                     Terakhir diperbarui:{' '}

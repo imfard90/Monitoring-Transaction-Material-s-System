@@ -64,7 +64,9 @@ export async function getRekonSlaVelocity(wh_id: string = 'all') {
         if (wh_id !== 'all') {
             query = query.where('soh.warehouse_id', '=', Number(wh_id));
         } else if (scope.kind === 'scoped') {
-            query = query.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
+            query = query.where(
+                sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`
+            );
         }
 
         const res = await query.executeTakeFirst();

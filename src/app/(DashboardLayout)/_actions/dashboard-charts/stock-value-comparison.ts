@@ -63,7 +63,9 @@ export async function getStockValueComparison(wh_id: string = 'all') {
         if (wh_id !== 'all') {
             invQuery = invQuery.where('sb.warehouse_id', '=', Number(wh_id));
         } else if (scope.kind === 'scoped') {
-            invQuery = invQuery.where(sql<boolean>`${sql.ref('sb.warehouse_id')} = ANY(${scope.ids}::int[])`);
+            invQuery = invQuery.where(
+                sql<boolean>`${sql.ref('sb.warehouse_id')} = ANY(${scope.ids}::int[])`
+            );
         }
 
         const invResult = await invQuery.executeTakeFirst();
@@ -89,7 +91,9 @@ export async function getStockValueComparison(wh_id: string = 'all') {
         if (wh_id !== 'all') {
             intechQuery = intechQuery.where('soh.warehouse_id', '=', Number(wh_id));
         } else if (scope.kind === 'scoped') {
-            intechQuery = intechQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
+            intechQuery = intechQuery.where(
+                sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`
+            );
         }
 
         const intechResult = await intechQuery.executeTakeFirst();

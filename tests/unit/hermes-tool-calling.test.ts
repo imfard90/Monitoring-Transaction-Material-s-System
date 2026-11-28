@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { executeHermesTool } from '@/lib/services/hermes/hermes-tool-executor';
 import { sendChatMessageToHermes } from '@/lib/services/hermes/hermes-agent.service';
+import { executeHermesTool } from '@/lib/services/hermes/hermes-tool-executor';
 
 const mockSearchStockBalances = vi.fn();
 
@@ -210,7 +210,9 @@ describe('Hermes Tool Calling Unit Tests', () => {
                 );
 
                 expect(result.role).toBe('assistant');
-                expect(result.content).toContain('Material AC-OF-SM-ADSS-96D tersedia di SO Gresik');
+                expect(result.content).toContain(
+                    'Material AC-OF-SM-ADSS-96D tersedia di SO Gresik'
+                );
                 expect(mockSearchStockBalances).toHaveBeenCalled();
             } finally {
                 global.fetch = originalFetch;
@@ -218,4 +220,3 @@ describe('Hermes Tool Calling Unit Tests', () => {
         });
     });
 });
-

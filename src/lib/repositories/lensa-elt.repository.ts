@@ -31,9 +31,7 @@ export interface LensaEltRepository {
         }
     ): Promise<void>;
 
-    processWOLensaStaging(
-        batchId: string
-    ): Promise<{ processedCount: number; errorCount: number }>;
+    processWOLensaStaging(batchId: string): Promise<{ processedCount: number; errorCount: number }>;
 
     refreshLensaMaterializedViewsSafe(): Promise<{
         outLensaRefreshed: boolean;

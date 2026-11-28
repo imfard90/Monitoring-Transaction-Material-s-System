@@ -373,4 +373,3 @@ export function LensaPerformance() {
         </section>
     );
 }
-

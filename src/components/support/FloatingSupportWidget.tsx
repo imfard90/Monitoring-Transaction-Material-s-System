@@ -5,10 +5,9 @@ import { Headset, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
 
-const SupportMenu = dynamic(
-    () => import('./SupportMenu').then((m) => m.SupportMenu),
-    { ssr: false }
-);
+const SupportMenu = dynamic(() => import('./SupportMenu').then((m) => m.SupportMenu), {
+    ssr: false,
+});
 
 export function FloatingSupportWidget() {
     const [open, setOpen] = useState(false);

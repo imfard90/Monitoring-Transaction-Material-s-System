@@ -17,10 +17,7 @@ import {
 import { actionLogger } from '@/lib/logger';
 import { lensaEltRepository } from '@/lib/repositories/lensa-elt.repository';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
-import {
-    executeWithLensaFallback,
-    getWarehouseLensaCandidates,
-} from '../lensa-credential-helper';
+import { executeWithLensaFallback, getWarehouseLensaCandidates } from '../lensa-credential-helper';
 import { handleRejectedWOPemakaian, processRejectedWOLensaItems } from './rollback-service';
 import {
     type LensaDetailMaterial,
@@ -62,10 +59,7 @@ export async function scrapeSingleWODetailService(
                     sql<boolean>`UPPER(wo_number) = UPPER(${cleanInput})`,
                 ])
             )
-            .orderBy(
-                sql`CASE WHEN UPPER(wo_number) LIKE '%REJECTED%' THEN 1 ELSE 0 END`,
-                'asc'
-            )
+            .orderBy(sql`CASE WHEN UPPER(wo_number) LIKE '%REJECTED%' THEN 1 ELSE 0 END`, 'asc')
             .orderBy('id', 'desc')
             .executeTakeFirst();
 
@@ -142,9 +136,7 @@ export async function scrapeSingleWODetailService(
                 // Selalu verifikasi header metadata terkini di Lensa (untuk mendeteksi status REJECTED terbaru, GI number, dan WBS)
                 // Catatan: Jika input numerik (pemakaian_id) belum tersimpan di DB, endpoint pencarian Lensa tidak mendukung filter pemakaian_id.
                 // Jika nomor WO tersedia dari database lokal, gunakan nomor WO untuk verifikasi status mutakhir di Lensa.
-                const lookupQuery = isNumeric
-                    ? (header?.wo_number ?? null)
-                    : cleanInput;
+                const lookupQuery = isNumeric ? (header?.wo_number ?? null) : cleanInput;
                 const targetPemakaianId =
                     currentPemakaianId || (isNumeric ? cleanInput : undefined);
 
@@ -311,8 +303,7 @@ export async function scrapeSingleWODetailService(
         // ambil metadata header lengkap dari Lensa agar database terisi informasi yang utuh
         if (resolvedPemakaianId && (!headerMetadata?.wo_number || !headerMetadata?.nik_pemakai)) {
             try {
-                const extraQuery =
-                    isNumeric && header?.wo_number ? header.wo_number : cleanInput;
+                const extraQuery = isNumeric && header?.wo_number ? header.wo_number : cleanInput;
                 const extraRejected: RejectedWOLensaItem[] = [];
                 let extraHeader = await searchSingleWOLensaHeader(
                     extraQuery,
@@ -427,7 +418,7 @@ export async function scrapeSingleWODetailService(
             material_id: item.material_id,
             material_desc: item.material_desc,
             uom: item.uom,
-            qty_pemakaian: item.qty_pemakaian != null ? Number(item.qty_pemakaian) : null,
+            qty_pemakaian: item.qty_pemakaian == null ? null : Number(item.qty_pemakaian),
         }));
 
         const resume =

@@ -9,6 +9,11 @@
  */
 
 export {
+    getKproRekonAnalytics,
+    type KproRekonAnalyticsData,
+    type KproRekonSummaryMetrics,
+} from './dashboard-analytics-queries';
+export {
     getIntechAgingData,
     getOutMaterialLineChartData,
     getRekonSlaVelocity,
@@ -46,8 +51,3 @@ export {
     type OtherStockItem,
     triggerOtherStockSync,
 } from './dashboard-stock-queries';
-export {
-    getKproRekonAnalytics,
-    type KproRekonAnalyticsData,
-    type KproRekonSummaryMetrics,
-} from './dashboard-analytics-queries';

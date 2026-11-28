@@ -77,4 +77,3 @@ export function isOctober2026Cutoff(val: unknown): boolean {
     }
     return false;
 }
-

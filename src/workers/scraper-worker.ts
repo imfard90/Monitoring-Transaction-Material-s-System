@@ -16,11 +16,7 @@ import { redis } from '@/lib/redis';
 import { acquireLock } from '@/lib/redis-lock';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
 import { bulkScrapeStockTeknisi } from '@/lib/services/bulk-stock-scraper';
-import {
-    clearCronRunning,
-    getCronRunningStatus,
-    setCronRunning,
-} from '@/lib/services/cron-guard';
+import { clearCronRunning, getCronRunningStatus, setCronRunning } from '@/lib/services/cron-guard';
 import { executeOutLensaScraping } from '@/lib/services/lensa-out-service';
 import {
     executeNightlyWOLensaScrapingByNik,
@@ -594,17 +590,22 @@ const runWatchdog = async () => {
         // Jika sistem idle tapi di Linux ada orphan process atau browser disconnected
         if (!health.connected && health.pid === null && process.platform === 'linux') {
             const { exec } = await import('node:child_process');
-            exec('pgrep -f "chrome-headless|ms-playwright.*chrome" 2>/dev/null | wc -l', (err, stdout) => {
-                if (!err) {
-                    const count = parseInt(stdout.trim(), 10) || 0;
-                    if (count > 0) {
-                        actionLogger.warn(
-                            `[WATCHDOG] Ditemukan ${count} proses Chromium orphan saat sistem idle. Membersihkan...`
-                        );
-                        exec('pkill -f "chrome-headless|ms-playwright.*chrome" 2>/dev/null || true');
+            exec(
+                'pgrep -f "chrome-headless|ms-playwright.*chrome" 2>/dev/null | wc -l',
+                (err, stdout) => {
+                    if (!err) {
+                        const count = parseInt(stdout.trim(), 10) || 0;
+                        if (count > 0) {
+                            actionLogger.warn(
+                                `[WATCHDOG] Ditemukan ${count} proses Chromium orphan saat sistem idle. Membersihkan...`
+                            );
+                            exec(
+                                'pkill -f "chrome-headless|ms-playwright.*chrome" 2>/dev/null || true'
+                            );
+                        }
                     }
                 }
-            });
+            );
         }
     } catch (watchdogErr) {
         actionLogger.warn('[WATCHDOG] Error saat pemeriksaan watchdog:', {

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-    WAREHOUSE_STORAGE_KEY,
     getStoredWarehouses,
     setStoredWarehouses,
+    WAREHOUSE_STORAGE_KEY,
     type WarehouseActionResult,
 } from '@/hooks/use-warehouses';
 
@@ -60,19 +60,14 @@ describe('useWarehouses localStorage Cache Utils', () => {
     });
 
     it('returns undefined if cached data array is empty', () => {
-        localStorage.setItem(
-            WAREHOUSE_STORAGE_KEY,
-            JSON.stringify({ success: true, data: [] })
-        );
+        localStorage.setItem(WAREHOUSE_STORAGE_KEY, JSON.stringify({ success: true, data: [] }));
         expect(getStoredWarehouses()).toBeUndefined();
     });
 
     it('saves valid warehouse data into localStorage', () => {
         const mockPayload: WarehouseActionResult = {
             success: true,
-            data: [
-                { id: 3, name: 'SO Tuban', branch: 'Tuban' },
-            ],
+            data: [{ id: 3, name: 'SO Tuban', branch: 'Tuban' }],
         };
 
         setStoredWarehouses(mockPayload);
@@ -94,4 +89,3 @@ describe('useWarehouses localStorage Cache Utils', () => {
         expect(localStorage.getItem(WAREHOUSE_STORAGE_KEY)).toBeNull();
     });
 });
-

@@ -13,14 +13,14 @@
  * Order optimized for visual distinction when placed adjacently.
  */
 export const chartColors = {
-    primary: '#3B82F6',      // Blue 500 (primary brand)
-    success: '#10B981',      // Emerald 500
-    warning: '#F59E0B',      // Amber 500
-    error: '#EF4444',        // Red 500
-    info: '#0EA5E9',         // Sky 500
-    purple: '#8B5CF6',       // Violet 500
-    pink: '#EC4899',         // Pink 500
-    teal: '#14B8A6',         // Teal 500
+    primary: '#3B82F6', // Blue 500 (primary brand)
+    success: '#10B981', // Emerald 500
+    warning: '#F59E0B', // Amber 500
+    error: '#EF4444', // Red 500
+    info: '#0EA5E9', // Sky 500
+    purple: '#8B5CF6', // Violet 500
+    pink: '#EC4899', // Pink 500
+    teal: '#14B8A6', // Teal 500
 } as const;
 
 /**
@@ -53,10 +53,10 @@ export const divergingColors = [
  * Status palette (SLA, completion, health indicators).
  */
 export const statusColors = {
-    onTime: '#10B981',       // Green (success)
-    warning: '#F59E0B',      // Amber
-    breached: '#EF4444',     // Red (error)
-    pending: '#6B7280',      // Gray 500
+    onTime: '#10B981', // Green (success)
+    warning: '#F59E0B', // Amber
+    breached: '#EF4444', // Red (error)
+    pending: '#6B7280', // Gray 500
 } as const;
 
 /**
@@ -94,7 +94,8 @@ export function getApexTheme(isDark: boolean) {
 export function getApexBaseOptions() {
     // Check for prefers-reduced-motion
     const prefersReducedMotion =
-        typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     return {
         chart: {

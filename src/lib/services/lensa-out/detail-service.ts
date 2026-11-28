@@ -11,10 +11,7 @@ import { scrapeLensaDetails } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
 import { lensaEltRepository } from '@/lib/repositories/lensa-elt.repository';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
-import {
-    executeWithLensaFallback,
-    getWarehouseLensaCandidates,
-} from '../lensa-credential-helper';
+import { executeWithLensaFallback, getWarehouseLensaCandidates } from '../lensa-credential-helper';
 import type { ScrapedOutLensaDetailMaterial, ScrapedOutLensaDetailResult } from './types';
 
 /**
@@ -111,7 +108,7 @@ export async function scrapeSingleOutLensaDetailService(
         const mappedMaterials: ScrapedOutLensaDetailMaterial[] = savedItems.map((item) => ({
             material_id: item.material_id,
             material_desc: item.material_desc,
-            qty_approve: item.qty_approve != null ? String(item.qty_approve) : null,
+            qty_approve: item.qty_approve == null ? null : String(item.qty_approve),
         }));
 
         // Catat ke inventory.scraper_cronjob_log

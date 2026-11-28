@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
 import { Kysely, PostgresDialect } from 'kysely';
+import { describe, expect, it, vi } from 'vitest';
 import { applyInOutTagWarehouseScope, applyWarehouseScope } from '@/lib/db/scopes';
 import type { AuthorizationUser } from '@/lib/policies';
 
 describe('applyWarehouseScope', () => {
-    const createTestDb = () => new Kysely<any>({ dialect: new PostgresDialect({ pool: {} as any }) });
+    const createTestDb = () =>
+        new Kysely<any>({ dialect: new PostgresDialect({ pool: {} as any }) });
 
     it('returns original query untouched if user is not Staff', () => {
         const mockQuery = { where: vi.fn().mockReturnThis() };
@@ -75,11 +76,29 @@ describe('applyWarehouseScope', () => {
 
     it('produces identical SQL text for different warehouse counts (plan cache friendly)', () => {
         const db = createTestDb();
-        const staff1: AuthorizationUser = { nik: 'S1', role: 'Staff', isStaff: true, warehouseIds: [1] };
-        const staff3: AuthorizationUser = { nik: 'S3', role: 'Staff', isStaff: true, warehouseIds: [1, 2, 3] };
+        const staff1: AuthorizationUser = {
+            nik: 'S1',
+            role: 'Staff',
+            isStaff: true,
+            warehouseIds: [1],
+        };
+        const staff3: AuthorizationUser = {
+            nik: 'S3',
+            role: 'Staff',
+            isStaff: true,
+            warehouseIds: [1, 2, 3],
+        };
 
-        const q1 = applyWarehouseScope(db.selectFrom('inventory.stock_balance').selectAll(), 'warehouse_id', staff1).compile();
-        const q3 = applyWarehouseScope(db.selectFrom('inventory.stock_balance').selectAll(), 'warehouse_id', staff3).compile();
+        const q1 = applyWarehouseScope(
+            db.selectFrom('inventory.stock_balance').selectAll(),
+            'warehouse_id',
+            staff1
+        ).compile();
+        const q3 = applyWarehouseScope(
+            db.selectFrom('inventory.stock_balance').selectAll(),
+            'warehouse_id',
+            staff3
+        ).compile();
 
         expect(q1.sql).toBe(q3.sql);
         expect(q1.parameters).toEqual([[1]]);
@@ -88,7 +107,8 @@ describe('applyWarehouseScope', () => {
 });
 
 describe('applyInOutTagWarehouseScope', () => {
-    const createTestDb = () => new Kysely<any>({ dialect: new PostgresDialect({ pool: {} as any }) });
+    const createTestDb = () =>
+        new Kysely<any>({ dialect: new PostgresDialect({ pool: {} as any }) });
 
     it('returns original query if non-staff', () => {
         const mockQuery = { where: vi.fn().mockReturnThis() };
@@ -113,12 +133,20 @@ describe('applyInOutTagWarehouseScope', () => {
         };
 
         const baseQuery = db.selectFrom('inventory.inout_tag_header').selectAll();
-        const scopedQuery = applyInOutTagWarehouseScope(baseQuery, 'from_wh_id', 'to_wh_id', staffUser);
+        const scopedQuery = applyInOutTagWarehouseScope(
+            baseQuery,
+            'from_wh_id',
+            'to_wh_id',
+            staffUser
+        );
         const compiled = scopedQuery.compile();
 
         expect(compiled.sql).toContain('"from_wh_id" = ANY($1::int[])');
         expect(compiled.sql).toContain('"to_wh_id" = ANY($2::int[])');
-        expect(compiled.parameters).toEqual([[5, 6], [5, 6]]);
+        expect(compiled.parameters).toEqual([
+            [5, 6],
+            [5, 6],
+        ]);
     });
 
     it('filters by [-1] in always mode when staff has no warehouse', () => {
@@ -131,7 +159,13 @@ describe('applyInOutTagWarehouseScope', () => {
         };
 
         const baseQuery = db.selectFrom('inventory.inout_tag_header').selectAll();
-        const scopedQuery = applyInOutTagWarehouseScope(baseQuery, 'from_wh_id', 'to_wh_id', staffUser, 'always');
+        const scopedQuery = applyInOutTagWarehouseScope(
+            baseQuery,
+            'from_wh_id',
+            'to_wh_id',
+            staffUser,
+            'always'
+        );
         const compiled = scopedQuery.compile();
 
         expect(compiled.sql).toContain('"from_wh_id" = ANY($1::int[])');

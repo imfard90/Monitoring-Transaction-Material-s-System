@@ -56,10 +56,7 @@ server.registerTool(
                 .string()
                 .default('dashboards/crm')
                 .describe('The route to inspect, e.g. "dashboards/crm"'),
-            fullPage: z
-                .boolean()
-                .default(true)
-                .describe('Whether to capture full scrollable page'),
+            fullPage: z.boolean().default(true).describe('Whether to capture full scrollable page'),
         },
     },
     async ({ route, fullPage }) => {

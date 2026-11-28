@@ -102,4 +102,3 @@ describe('auth-audit.service', () => {
         expect(db.selectFrom).toHaveBeenCalledWith('auth.auth_audit_logs');
     });
 });
-

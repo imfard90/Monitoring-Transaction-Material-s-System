@@ -90,7 +90,8 @@ describe('WO Lensa Ref — selectBestCandidateWOLensaHeader (Reject Avoidance)',
         const items = [
             {
                 pemakaian_id: 100340964,
-                wo_number: 'DGPS261105130255330310657-AOi4261105010255738277820-REJECTED-20261106152519',
+                wo_number:
+                    'DGPS261105130255330310657-AOi4261105010255738277820-REJECTED-20261106152519',
                 tanggal_update: '06/11/2026',
             },
             {
@@ -109,11 +110,26 @@ describe('WO Lensa Ref — selectBestCandidateWOLensaHeader (Reject Avoidance)',
 
     it('correctly picks the sole non-rejected WO when multiple prior submissions were rejected (Tuban case: 5 reject, 1 valid)', () => {
         const items = [
-            { pemakaian_id: 100359739, wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094714' },
-            { pemakaian_id: 100359740, wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094720' },
-            { pemakaian_id: 100359741, wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094726' },
-            { pemakaian_id: 100359742, wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094735' },
-            { pemakaian_id: 100359743, wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094752' },
+            {
+                pemakaian_id: 100359739,
+                wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094714',
+            },
+            {
+                pemakaian_id: 100359740,
+                wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094720',
+            },
+            {
+                pemakaian_id: 100359741,
+                wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094726',
+            },
+            {
+                pemakaian_id: 100359742,
+                wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094735',
+            },
+            {
+                pemakaian_id: 100359743,
+                wo_number: 'DGPS261107...-AOi4261107095410087f06590-REJECTED-20261108094752',
+            },
             { pemakaian_id: 100359744, wo_number: 'DGPS261107...-AOi4261107095410087f06590' },
         ];
 
@@ -146,11 +162,7 @@ describe('WO Lensa Ref — selectBestCandidateWOLensaHeader (Reject Avoidance)',
             },
         ];
 
-        const candidate = selectBestCandidateWOLensaHeader(
-            items,
-            'AOi4...',
-            '100369772'
-        );
+        const candidate = selectBestCandidateWOLensaHeader(items, 'AOi4...', '100369772');
         expect(candidate).not.toBeNull();
         expect(candidate?.pemakaian_id).toBe(100369772);
         expect(isRejectedWONumber(String(candidate?.wo_number))).toBe(true);

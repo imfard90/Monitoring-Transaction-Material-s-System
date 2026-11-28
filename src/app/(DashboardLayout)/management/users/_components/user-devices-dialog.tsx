@@ -14,8 +14,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import type { UserItem } from '../user-table';
 import { getUserDevices, revokeDeviceByAdmin } from '../actions';
+import type { UserItem } from '../user-table';
 
 interface DeviceRecord {
     id?: string;
@@ -103,7 +103,8 @@ export function UserDevicesDialog({ user, isOpen, onClose, onRefresh }: UserDevi
                         </Badge>
                     </div>
                     <DialogDescription className="text-xs text-muted-foreground">
-                        Daftar perangkat yang diotorisasi untuk mengakses akun ini melalui verifikasi MFA.
+                        Daftar perangkat yang diotorisasi untuk mengakses akun ini melalui
+                        verifikasi MFA.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -116,7 +117,9 @@ export function UserDevicesDialog({ user, isOpen, onClose, onRefresh }: UserDevi
                     ) : devices.length === 0 ? (
                         <div className="py-8 flex flex-col items-center justify-center text-muted-foreground gap-2 text-center">
                             <Smartphone className="w-8 h-8 text-muted-foreground/40" />
-                            <span className="text-xs">Belum ada perangkat yang terdaftar untuk akun ini.</span>
+                            <span className="text-xs">
+                                Belum ada perangkat yang terdaftar untuk akun ini.
+                            </span>
                         </div>
                     ) : (
                         <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
@@ -217,4 +220,3 @@ export function UserDevicesDialog({ user, isOpen, onClose, onRefresh }: UserDevi
         </Dialog>
     );
 }
-

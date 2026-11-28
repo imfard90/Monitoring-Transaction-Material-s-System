@@ -238,4 +238,3 @@ describe('Hermes Stock Query Skill Unit Tests', () => {
         });
     });
 });
-

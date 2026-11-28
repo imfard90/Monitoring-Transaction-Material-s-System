@@ -113,12 +113,7 @@ export const queryKeys = {
             [...queryKeys.dashboard.all, 'rekon-sla', warehouseId ?? 'all'] as const,
         productPerformance: () => [...queryKeys.dashboard.all, 'product-performance'] as const,
         kproRekon: (days?: number, warehouse?: string) =>
-            [
-                ...queryKeys.dashboard.all,
-                'kpro-rekon',
-                days ?? 30,
-                warehouse ?? 'all',
-            ] as const,
+            [...queryKeys.dashboard.all, 'kpro-rekon', days ?? 30, warehouse ?? 'all'] as const,
     },
 
     // Operational pending notifications

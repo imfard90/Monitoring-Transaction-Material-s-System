@@ -36,7 +36,8 @@ describe('Hermes Agent Service & Session Unit Tests', () => {
 
     describe('stripReasoningContent', () => {
         it('removes <think>...</think> tags and their contents', () => {
-            const raw = '<think>Let me analyze the database schema...</think>Halo! Ada yang bisa saya bantu?';
+            const raw =
+                '<think>Let me analyze the database schema...</think>Halo! Ada yang bisa saya bantu?';
             expect(stripReasoningContent(raw)).toBe('Halo! Ada yang bisa saya bantu?');
         });
 
@@ -80,7 +81,12 @@ Stok material tersedia di gudang.`;
 
         it('saves chat messages with 10-minute (600s) TTL', async () => {
             const msgs = [
-                { id: '1', role: 'user' as const, content: 'Halo', createdAt: '2026-11-09T00:00:00Z' },
+                {
+                    id: '1',
+                    role: 'user' as const,
+                    content: 'Halo',
+                    createdAt: '2026-11-09T00:00:00Z',
+                },
             ];
             await saveHermesChatHistory('user-1', msgs);
 
@@ -100,7 +106,9 @@ Stok material tersedia di gudang.`;
 
     describe('sendChatMessageToHermes', () => {
         it('rejects empty user message', async () => {
-            await expect(sendChatMessageToHermes('   ')).rejects.toThrow('Pesan tidak boleh kosong.');
+            await expect(sendChatMessageToHermes('   ')).rejects.toThrow(
+                'Pesan tidak boleh kosong.'
+            );
         });
 
         it('calls Hermes completions endpoint and strips reasoning from response', async () => {
@@ -111,8 +119,10 @@ Stok material tersedia di gudang.`;
                         {
                             message: {
                                 role: 'assistant',
-                                content: '<think>Menganalisis permintaan pengguna...</think>Tentu, ini panduan input transaksi.',
-                                reasoning_content: 'Internal reasoning tokens that should be ignored',
+                                content:
+                                    '<think>Menganalisis permintaan pengguna...</think>Tentu, ini panduan input transaksi.',
+                                reasoning_content:
+                                    'Internal reasoning tokens that should be ignored',
                             },
                         },
                     ],
@@ -137,7 +147,9 @@ Stok material tersedia di gudang.`;
         });
 
         it('handles connection refused error with user-friendly Indonesian message', async () => {
-            const mockFetch = vi.fn().mockRejectedValueOnce(new Error('connect ECONNREFUSED 127.0.0.1:20129'));
+            const mockFetch = vi
+                .fn()
+                .mockRejectedValueOnce(new Error('connect ECONNREFUSED 127.0.0.1:20129'));
             vi.stubGlobal('fetch', mockFetch);
 
             await expect(sendChatMessageToHermes('Halo')).rejects.toThrow(
@@ -146,4 +158,3 @@ Stok material tersedia di gudang.`;
         });
     });
 });
-

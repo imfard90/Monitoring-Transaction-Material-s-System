@@ -18,11 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    createColumnHelper,
-    getCoreRowModel,
-    useReactTable,
-} from '@/lib/table';
+import { createColumnHelper, getCoreRowModel, useReactTable } from '@/lib/table';
 import type { KproRefItem } from '../_actions/kpro-ref-queries';
 
 interface PaginationState {
@@ -249,8 +245,7 @@ export default function KproRefClient({
             pagination: paginationState,
         },
         onPaginationChange: (updater) => {
-            const nextState =
-                typeof updater === 'function' ? updater(paginationState) : updater;
+            const nextState = typeof updater === 'function' ? updater(paginationState) : updater;
             updateUrlParams({
                 page: nextState.pageIndex + 1,
                 pageSize: nextState.pageSize,
@@ -305,14 +300,22 @@ export default function KproRefClient({
                                     90 Hari Terakhir
                                 </Badge>
                                 {lastUpdate?.lastUpdatedAt && (
-                                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                    <Badge
+                                        variant="secondary"
+                                        className="text-xs flex items-center gap-1"
+                                    >
                                         <RefreshCw className="h-3 w-3" />
-                                        Update: {format(new Date(lastUpdate.lastUpdatedAt), 'dd/MM HH:mm')}
+                                        Update:{' '}
+                                        {format(new Date(lastUpdate.lastUpdatedAt), 'dd/MM HH:mm')}
                                     </Badge>
                                 )}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                                Total: <span className="font-semibold text-foreground">{pagination?.total?.toLocaleString('id-ID') ?? 0}</span> data
+                                Total:{' '}
+                                <span className="font-semibold text-foreground">
+                                    {pagination?.total?.toLocaleString('id-ID') ?? 0}
+                                </span>{' '}
+                                data
                             </div>
                         </div>
 

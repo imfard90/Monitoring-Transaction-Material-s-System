@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { redis } from '@/lib/redis';
 import {
-    WORKER_HEARTBEAT_KEY,
-    WORKER_QUEUE_KEY,
     dispatchWorkerJob,
     isWorkerActive,
+    WORKER_HEARTBEAT_KEY,
+    WORKER_QUEUE_KEY,
 } from '@/lib/workers/worker-client';
 
 vi.mock('@/lib/redis', () => ({

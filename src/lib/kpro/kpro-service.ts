@@ -69,114 +69,107 @@ export async function executeKproSync(options?: {
 
             // 3. Eksekusi pengunduhan dan ETL untuk 3 witel secara PARALEL (konkuren tetap 3)
             // Setiap instance witel memproses 2 PSB (CREATE lalu PDA) secara sekuensial
-            const witelPromises = targetWitels.map(
-                async (witel): Promise<KproWitelSyncResult> => {
-                    const witelStartTime = Date.now();
-                    kproLogger.info(`[KPRO-SERVICE] [Worker-${witel}] Starting parallel pipeline...`);
+            const witelPromises = targetWitels.map(async (witel): Promise<KproWitelSyncResult> => {
+                const witelStartTime = Date.now();
+                kproLogger.info(`[KPRO-SERVICE] [Worker-${witel}] Starting parallel pipeline...`);
 
-                    let witelTotalUpserted = 0;
-                    let witelTotalRows = 0;
-                    let totalFileSize = 0;
-                    let lastJobId = 0;
-                    let lastFilePath = '';
-                    const processedPsbs: string[] = [];
+                let witelTotalUpserted = 0;
+                let witelTotalRows = 0;
+                let totalFileSize = 0;
+                let lastJobId = 0;
+                let lastFilePath = '';
+                const processedPsbs: string[] = [];
 
-                    for (const psb of KPRO_CONFIG.psbTypes) {
-                        const psbStartTime = Date.now();
-                        let downloadedFilePath = '';
-                        let jobId = 0;
+                for (const psb of KPRO_CONFIG.psbTypes) {
+                    const psbStartTime = Date.now();
+                    let downloadedFilePath = '';
+                    let jobId = 0;
 
-                        try {
-                            // Step A: Unduh file laporan witel + PSB
-                            const downloadResult = await downloadWitelFile(
-                                cookies,
-                                witel,
-                                psb,
-                                startStr,
-                                endStr,
-                                KPRO_CONFIG.tempDir
-                            );
-                            downloadedFilePath = downloadResult.filePath;
-                            lastFilePath = downloadedFilePath;
-                            totalFileSize += downloadResult.fileSize;
-                            const fileName = path.basename(downloadedFilePath);
+                    try {
+                        // Step A: Unduh file laporan witel + PSB
+                        const downloadResult = await downloadWitelFile(
+                            cookies,
+                            witel,
+                            psb,
+                            startStr,
+                            endStr,
+                            KPRO_CONFIG.tempDir
+                        );
+                        downloadedFilePath = downloadResult.filePath;
+                        lastFilePath = downloadedFilePath;
+                        totalFileSize += downloadResult.fileSize;
+                        const fileName = path.basename(downloadedFilePath);
 
-                            // Step B: Buat entri job di etl.import_jobs
-                            jobId = await kproRepository.createImportJob(
-                                fileName,
-                                downloadResult.fileSize
-                            );
-                            lastJobId = jobId;
-                            kproLogger.info(
-                                `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Created import job #${jobId}`
-                            );
+                        // Step B: Buat entri job di etl.import_jobs
+                        jobId = await kproRepository.createImportJob(
+                            fileName,
+                            downloadResult.fileSize
+                        );
+                        lastJobId = jobId;
+                        kproLogger.info(
+                            `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Created import job #${jobId}`
+                        );
 
-                            // Step C: Parse data HTML & ekstrak baris mentah
-                            const parsed = await parseKproHtmlFile(downloadedFilePath);
-                            witelTotalRows += parsed.totalRows;
+                        // Step C: Parse data HTML & ekstrak baris mentah
+                        const parsed = await parseKproHtmlFile(downloadedFilePath);
+                        witelTotalRows += parsed.totalRows;
 
-                            // Step D: Ingest baris mentah ke etl.staging_data_kpro_raw
-                            kproLogger.info(
-                                `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Ingesting ${parsed.rawRecords.length} raw rows to etl.staging_data_kpro_raw...`
-                            );
-                            await kproRepository.insertRawStagingBatch(
-                                jobId,
-                                parsed.rawRecords,
-                                1000
-                            );
+                        // Step D: Ingest baris mentah ke etl.staging_data_kpro_raw
+                        kproLogger.info(
+                            `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Ingesting ${parsed.rawRecords.length} raw rows to etl.staging_data_kpro_raw...`
+                        );
+                        await kproRepository.insertRawStagingBatch(jobId, parsed.rawRecords, 1000);
 
-                            // Step E: Trigger Stored Procedure etl.sp_process_kpro_staging di database
-                            kproLogger.info(
-                                `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Executing etl.sp_process_kpro_staging for job #${jobId}...`
-                            );
-                            const spResult = await kproRepository.callProcessKproStaging(jobId);
-                            witelTotalUpserted += spResult.compworkUpserted;
+                        // Step E: Trigger Stored Procedure etl.sp_process_kpro_staging di database
+                        kproLogger.info(
+                            `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Executing etl.sp_process_kpro_staging for job #${jobId}...`
+                        );
+                        const spResult = await kproRepository.callProcessKproStaging(jobId);
+                        witelTotalUpserted += spResult.compworkUpserted;
 
-                            processedPsbs.push(`${psb}: ${spResult.compworkUpserted} rows`);
+                        processedPsbs.push(`${psb}: ${spResult.compworkUpserted} rows`);
 
-                            const psbDuration = Date.now() - psbStartTime;
-                            kproLogger.info(
-                                `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Finished in ${(psbDuration / 1000).toFixed(1)}s: ${spResult.compworkUpserted} rows upserted from ${spResult.totalStaging} staging rows.`
-                            );
-                        } catch (psbErr) {
-                            const errorMsg =
-                                psbErr instanceof Error ? psbErr.message : String(psbErr);
-                            kproLogger.error(
-                                `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Pipeline failed: ${errorMsg}`
-                            );
+                        const psbDuration = Date.now() - psbStartTime;
+                        kproLogger.info(
+                            `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Finished in ${(psbDuration / 1000).toFixed(1)}s: ${spResult.compworkUpserted} rows upserted from ${spResult.totalStaging} staging rows.`
+                        );
+                    } catch (psbErr) {
+                        const errorMsg = psbErr instanceof Error ? psbErr.message : String(psbErr);
+                        kproLogger.error(
+                            `[KPRO-SERVICE] [Worker-${witel}] (${psb}) Pipeline failed: ${errorMsg}`
+                        );
 
-                            if (jobId > 0) {
-                                await kproRepository
-                                    .updateImportJob(jobId, 'FAILED', {
-                                        errorRows: 1,
-                                    })
-                                    .catch(() => {});
-                            }
-                            throw psbErr;
-                        } finally {
-                            // Step F: Bersihkan file unduhan temporer
-                            if (downloadedFilePath) {
-                                await fs.unlink(downloadedFilePath).catch(() => {});
-                            }
+                        if (jobId > 0) {
+                            await kproRepository
+                                .updateImportJob(jobId, 'FAILED', {
+                                    errorRows: 1,
+                                })
+                                .catch(() => {});
+                        }
+                        throw psbErr;
+                    } finally {
+                        // Step F: Bersihkan file unduhan temporer
+                        if (downloadedFilePath) {
+                            await fs.unlink(downloadedFilePath).catch(() => {});
                         }
                     }
-
-                    const witelDuration = Date.now() - witelStartTime;
-                    kproLogger.info(
-                        `[KPRO-SERVICE] [Worker-${witel}] Finished all PSBs in ${(witelDuration / 1000).toFixed(1)}s: Total ${witelTotalUpserted} rows upserted (${processedPsbs.join(', ')}).`
-                    );
-
-                    return {
-                        witel,
-                        filePath: lastFilePath,
-                        fileSize: totalFileSize,
-                        jobId: lastJobId,
-                        totalRows: witelTotalRows,
-                        compworkRows: witelTotalUpserted,
-                        durationMs: witelDuration,
-                    };
                 }
-            );
+
+                const witelDuration = Date.now() - witelStartTime;
+                kproLogger.info(
+                    `[KPRO-SERVICE] [Worker-${witel}] Finished all PSBs in ${(witelDuration / 1000).toFixed(1)}s: Total ${witelTotalUpserted} rows upserted (${processedPsbs.join(', ')}).`
+                );
+
+                return {
+                    witel,
+                    filePath: lastFilePath,
+                    fileSize: totalFileSize,
+                    jobId: lastJobId,
+                    totalRows: witelTotalRows,
+                    compworkRows: witelTotalUpserted,
+                    durationMs: witelDuration,
+                };
+            });
 
             // Menunggu seluruh pipeline witel paralel selesai (terisolasi, tidak saling membatalkan)
             const settledResults = await Promise.allSettled(witelPromises);

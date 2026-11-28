@@ -79,7 +79,10 @@ export async function getKproRekonAnalytics(inputParams?: {
 
     try {
         const cacheKey = `kpro_rekon_lamongan_${days}_${warehouse.toLowerCase()}`;
-        const cached = await encryptedCache.getGeneral<KproRekonAnalyticsData>('analytics', cacheKey);
+        const cached = await encryptedCache.getGeneral<KproRekonAnalyticsData>(
+            'analytics',
+            cacheKey
+        );
         if (cached) {
             return { success: true, data: cached };
         }
@@ -129,9 +132,7 @@ export async function getKproRekonAnalytics(inputParams?: {
         }
 
         const persentaseRekon =
-            totalOrders > 0
-                ? Number(((totalRekonLensa / totalOrders) * 100).toFixed(2))
-                : 0;
+            totalOrders > 0 ? Number(((totalRekonLensa / totalOrders) * 100).toFixed(2)) : 0;
 
         const summary: KproRekonSummaryMetrics = {
             totalOrders,

@@ -20,9 +20,7 @@ export interface KproRepository {
         rows: Record<string, string>[],
         chunkSize?: number
     ): Promise<number>;
-    callProcessKproStaging(
-        jobId: number
-    ): Promise<{
+    callProcessKproStaging(jobId: number): Promise<{
         totalStaging: number;
         compworkUpserted: number;
         errorCount: number;
@@ -230,4 +228,3 @@ export function createKproRepository(customPool?: Pool): KproRepository {
 }
 
 export const kproRepository = createKproRepository();
-

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { redis } from '@/lib/redis';
 import type { ScraperAction } from '@/lib/repositories/scraper-log.repository';
+import { getCronRunningStatus } from '@/lib/services/cron-guard';
 import {
     executeWOLensaScraping,
     type ScrapedWODetailMaterial,
@@ -13,7 +14,6 @@ import {
     type WOLensaScrapeOutcome,
 } from '@/lib/services/lensa-wo-service';
 import { dispatchWorkerJob, isWorkerActive } from '@/lib/workers/worker-client';
-import { getCronRunningStatus } from '@/lib/services/cron-guard';
 
 export type { ScrapedWODetailMaterial, ScrapedWODetailResult };
 

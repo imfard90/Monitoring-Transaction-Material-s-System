@@ -1,5 +1,5 @@
-import { type NextRequest, NextResponse } from 'next/server';
 import { sql } from 'kysely';
+import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
@@ -70,7 +70,9 @@ export async function POST(req: NextRequest) {
             .innerJoin('inventory.materials as mat', (join) =>
                 join.onRef('inventory.stock_balance.designator_id', '=', 'mat.id')
             )
-            .where(sql<boolean>`${sql.ref('inventory.stock_balance.warehouse_id')} = ANY(${warehouseIds}::int[])`)
+            .where(
+                sql<boolean>`${sql.ref('inventory.stock_balance.warehouse_id')} = ANY(${warehouseIds}::int[])`
+            )
             .select([
                 'inventory.stock_balance.warehouse_id',
                 'wh.name as warehouse_name',

@@ -64,4 +64,3 @@ export async function clearHermesChatHistory(userNik: string): Promise<void> {
         });
     }
 }
-

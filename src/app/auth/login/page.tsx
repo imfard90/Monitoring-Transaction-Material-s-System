@@ -11,12 +11,12 @@ import { z } from 'zod';
 import AuthCard from '@/app/auth/components/AuthCard';
 import AuthLayout from '@/app/auth/components/AuthLayout';
 import TurnstileWidget from '@/app/auth/components/TurnstileWidget';
+import { MfaModal } from '@/components/auth/mfa-modal';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FloatingInput } from '@/components/ui/floating-input';
 import { Label } from '@/components/ui/label';
 import { ModalDialog } from '@/components/ui/modal-dialog';
-import { MfaModal } from '@/components/auth/mfa-modal';
 
 import { authClient } from '@/lib/auth-client';
 import { getClientDeviceFingerprint } from '@/lib/security/client-fingerprint';
@@ -238,11 +238,7 @@ const LoginForm = () => {
                 return;
             }
 
-            if (
-                enableRes.data &&
-                'totpURI' in enableRes.data &&
-                enableRes.data.totpURI
-            ) {
+            if (enableRes.data && 'totpURI' in enableRes.data && enableRes.data.totpURI) {
                 setTotpUri(enableRes.data.totpURI);
                 setMfaMode('setup');
                 setMfaModalOpen(true);

@@ -86,9 +86,7 @@ export interface AnalyticsRepository {
         datel?: string;
         days?: number;
     }): Promise<KproRekonSummaryRow[]>;
-    getKproRekonDistrictRollup(params?: {
-        days?: number;
-    }): Promise<KproRekonDistrictRollup[]>;
+    getKproRekonDistrictRollup(params?: { days?: number }): Promise<KproRekonDistrictRollup[]>;
     getKproRekonDatelRollup(params?: {
         district?: string;
         days?: number;
@@ -139,7 +137,7 @@ export function createAnalyticsRepository(customPool?: Pool): AnalyticsRepositor
         }): Promise<KproRekonSummaryRow[]> {
             const pool = getPool();
             const days = params?.days ?? 90;
-            const conditions: string[] = ['tgl >= CURRENT_DATE - ($1 || \' days\')::interval'];
+            const conditions: string[] = ["tgl >= CURRENT_DATE - ($1 || ' days')::interval"];
             const values: unknown[] = [days];
             let paramIdx = 2;
 
@@ -212,7 +210,7 @@ export function createAnalyticsRepository(customPool?: Pool): AnalyticsRepositor
             const pool = getPool();
             const days = params?.days ?? 30;
             const district = params?.district ?? 'LAMONGAN';
-            const conditions: string[] = ['tgl >= CURRENT_DATE - ($1 || \' days\')::interval'];
+            const conditions: string[] = ["tgl >= CURRENT_DATE - ($1 || ' days')::interval"];
             const values: unknown[] = [days];
             let paramIdx = 2;
 
@@ -251,7 +249,7 @@ export function createAnalyticsRepository(customPool?: Pool): AnalyticsRepositor
         }): Promise<KproRekonDailyTrend[]> {
             const pool = getPool();
             const days = params?.days ?? 30;
-            const conditions: string[] = ['tgl >= CURRENT_DATE - ($1 || \' days\')::interval'];
+            const conditions: string[] = ["tgl >= CURRENT_DATE - ($1 || ' days')::interval"];
             const values: unknown[] = [days];
             let paramIdx = 2;
 
@@ -408,7 +406,7 @@ export function createAnalyticsRepository(customPool?: Pool): AnalyticsRepositor
             const pool = getPool();
             const days = params?.days ?? 30;
             const conditions: string[] = [
-                'tgl >= CURRENT_DATE - ($1 || \' days\')::interval',
+                "tgl >= CURRENT_DATE - ($1 || ' days')::interval",
                 'tgl <= CURRENT_DATE',
             ];
             const values: unknown[] = [days];
@@ -463,7 +461,7 @@ export function createAnalyticsRepository(customPool?: Pool): AnalyticsRepositor
             const pool = getPool();
             const days = params?.days ?? 30;
             const conditions: string[] = [
-                'tgl >= CURRENT_DATE - ($1 || \' days\')::interval',
+                "tgl >= CURRENT_DATE - ($1 || ' days')::interval",
                 'tgl <= CURRENT_DATE',
             ];
             const values: unknown[] = [days];

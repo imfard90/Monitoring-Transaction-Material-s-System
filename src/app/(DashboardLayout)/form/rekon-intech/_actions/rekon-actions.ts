@@ -53,9 +53,7 @@ export async function getTechniciansWithIntechSaps() {
             if (warehouseIds.length === 0) {
                 return { success: true, data: [] };
             }
-            query = query.where(
-                sql<boolean>`${sql.ref('t.wh_id')} = ANY(${warehouseIds}::int[])`
-            );
+            query = query.where(sql<boolean>`${sql.ref('t.wh_id')} = ANY(${warehouseIds}::int[])`);
         }
 
         const saps = await query.execute();

@@ -1,19 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { AuthorizationUser, InOutTagAuthorizationResource } from '@/lib/policies';
 import {
-    warehouseScope,
-    resolveWarehouseScope,
-    warehouseScopeCacheKey,
+    canAccessManagement,
+    canAccessReturnWarehouse,
+    canAccessTechnicianManagement,
     canAccessWarehouse,
+    canApproveStockOpname,
+    canCancelInOutTag,
+    canCreateInOutTag,
     canSyncStock,
     canUpdateInOutTag,
-    canCancelInOutTag,
-    canAccessReturnWarehouse,
-    canAccessManagement,
-    canAccessTechnicianManagement,
-    canApproveStockOpname,
-    canCreateInOutTag,
+    resolveWarehouseScope,
+    warehouseScope,
+    warehouseScopeCacheKey,
 } from '@/lib/policies';
-import type { AuthorizationUser, InOutTagAuthorizationResource } from '@/lib/policies';
 
 const staff: AuthorizationUser = {
     nik: 'STAFF-1',

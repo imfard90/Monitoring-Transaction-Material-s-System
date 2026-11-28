@@ -104,9 +104,7 @@ async function triggerSync(triggerType: string, isRetry = false): Promise<void> 
                 '[MTMS-KPRO] Kendala jaringan intranet K-PRO terputus. Menunggu jadwal berikutnya tanpa auto-retry.'
             );
         } else if (!isRetry && !isShuttingDown) {
-            kproLogger.info(
-                '[MTMS-KPRO] Scheduling automatic sync retry in 60s after error...'
-            );
+            kproLogger.info('[MTMS-KPRO] Scheduling automatic sync retry in 60s after error...');
             setTimeout(() => {
                 void triggerSync(triggerType, true);
             }, 60000);
@@ -147,8 +145,7 @@ kproLogger.info(`[MTMS-KPRO] Registered ${cronTasks.length} active cron tasks.`)
 // ----------------------------------------------------
 // 4. Initial Run on Startup (Opsional via Flag)
 // ----------------------------------------------------
-const shouldRunOnStart =
-    process.env.RUN_ON_START === 'true' || process.argv.includes('--now');
+const shouldRunOnStart = process.env.RUN_ON_START === 'true' || process.argv.includes('--now');
 
 if (shouldRunOnStart) {
     kproLogger.info('[MTMS-KPRO] RUN_ON_START is active, running initial sync in 3 seconds...');

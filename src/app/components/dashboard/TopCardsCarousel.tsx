@@ -174,11 +174,7 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
         ),
     };
 
-    const renderCard = (
-        item: (typeof kpiConfig)[number],
-        index: number,
-        isDuplicate = false
-    ) => {
+    const renderCard = (item: (typeof kpiConfig)[number], index: number, isDuplicate = false) => {
         const rawValue = kpis[item.key as KpiKey] ?? 0;
         const { full } = formatKpiDisplay(item.key, rawValue);
         const { AnimatedNumber } = counters[item.key as KpiKey];
@@ -194,15 +190,8 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
                 />
 
                 <div className="relative z-10 flex items-center gap-3 min-w-0">
-                    <div
-                        className="rounded-xl p-2.5 shrink-0 bg-white/60 dark:bg-black/25 backdrop-blur-sm shadow-xs border border-white/40 dark:border-white/10 group-hover:scale-105 transition-transform duration-300 motion-reduce:transition-none"
-                    >
-                        <Icon
-                            icon={item.icon}
-                            width={24}
-                            height={24}
-                            className={item.iconColor}
-                        />
+                    <div className="rounded-xl p-2.5 shrink-0 bg-white/60 dark:bg-black/25 backdrop-blur-sm shadow-xs border border-white/40 dark:border-white/10 group-hover:scale-105 transition-transform duration-300 motion-reduce:transition-none">
+                        <Icon icon={item.icon} width={24} height={24} className={item.iconColor} />
                     </div>
                     <div className="flex flex-col min-w-0">
                         <p className="text-xs text-muted-foreground font-medium mb-0.5 truncate">
@@ -230,10 +219,7 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
                         {cardContent}
                     </div>
                 ) : (
-                    <Link
-                        href={item.url}
-                        className="block group focus:outline-hidden"
-                    >
+                    <Link href={item.url} className="block group focus:outline-hidden">
                         {cardContent}
                     </Link>
                 )}
@@ -242,10 +228,7 @@ export function TopCardsCarousel({ kpis: initialKpis }: TopCardsCarouselProps) {
     };
 
     return (
-        <section
-            aria-label="Ringkasan KPI"
-            className="w-full relative overflow-hidden py-1"
-        >
+        <section aria-label="Ringkasan KPI" className="w-full relative overflow-hidden py-1">
             {/* Edge fade mask for seamless entry and exit visual */}
             <div className="relative w-full overflow-hidden mask-[linear-gradient(to_right,transparent,black_20px,black_calc(100%-20px),transparent)]">
                 <div className="animate-kpi-marquee flex gap-3.5 sm:gap-4 pr-3.5 sm:pr-4">

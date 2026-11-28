@@ -8,14 +8,7 @@ interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
     action?: React.ReactNode;
 }
 
-function EmptyState({
-    icon,
-    title,
-    description,
-    action,
-    className,
-    ...props
-}: EmptyStateProps) {
+function EmptyState({ icon, title, description, action, className, ...props }: EmptyStateProps) {
     return (
         <div
             className={cn(
@@ -35,13 +28,9 @@ function EmptyState({
                 </div>
             )}
             <div className="space-y-1.5 max-w-sm">
-                <h3 className="text-base font-semibold tracking-tight text-foreground">
-                    {title}
-                </h3>
+                <h3 className="text-base font-semibold tracking-tight text-foreground">{title}</h3>
                 {description && (
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                        {description}
-                    </p>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
                 )}
             </div>
             {action && <div className="mt-2">{action}</div>}

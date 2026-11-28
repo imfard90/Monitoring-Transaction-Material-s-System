@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/headers', () => ({
-    headers: vi.fn().mockResolvedValue(new Headers({ 'user-agent': 'Chrome/120', 'x-forwarded-for': '127.0.0.1' })),
+    headers: vi
+        .fn()
+        .mockResolvedValue(
+            new Headers({ 'user-agent': 'Chrome/120', 'x-forwarded-for': '127.0.0.1' })
+        ),
 }));
 
 const mockGetSession = vi.fn();
@@ -158,4 +162,3 @@ describe('mfa-actions', () => {
         });
     });
 });
-

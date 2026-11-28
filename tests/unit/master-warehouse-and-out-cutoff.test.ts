@@ -6,6 +6,7 @@ vi.mock('@/lib/redis', () => ({
         set: vi.fn(),
     },
 }));
+
 import {
     allBeforeCutoffOut,
     isBeforeCutoffOut,
@@ -72,16 +73,10 @@ describe('Out Lensa Cutoff Date Validation (October 2026 Floor)', () => {
     });
 
     it('correctly evaluates allBeforeCutoffOut across batches', () => {
-        const oldBatch = [
-            { tgl_entry: '2026-09-28' },
-            { tgl_entry: '2026-09-29' },
-        ];
+        const oldBatch = [{ tgl_entry: '2026-09-28' }, { tgl_entry: '2026-09-29' }];
         expect(allBeforeCutoffOut(oldBatch)).toBe(true);
 
-        const mixedBatch = [
-            { tgl_entry: '2026-09-28' },
-            { tgl_entry: '2026-10-02' },
-        ];
+        const mixedBatch = [{ tgl_entry: '2026-09-28' }, { tgl_entry: '2026-10-02' }];
         expect(allBeforeCutoffOut(mixedBatch)).toBe(false);
 
         expect(allBeforeCutoffOut([])).toBe(true);

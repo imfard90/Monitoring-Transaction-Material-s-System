@@ -66,7 +66,12 @@ describe('WO Lensa Rejection Rollback Service', () => {
                 executeTakeFirst: vi.fn().mockResolvedValue(
                     callCount === 1
                         ? { id: '3436', wo_number: 'WO-12345', nama_gudang: 'SO Tuban' }
-                        : { id: '3225', wo_number: 'WO-12345', nik_teknisi: '16031689', name_gudang: 'SO Tuban' }
+                        : {
+                              id: '3225',
+                              wo_number: 'WO-12345',
+                              nik_teknisi: '16031689',
+                              name_gudang: 'SO Tuban',
+                          }
                 ),
             };
         });
@@ -106,4 +111,3 @@ describe('WO Lensa Rejection Rollback Service', () => {
         expect(mockRollback).toHaveBeenCalledTimes(2);
     });
 });
-

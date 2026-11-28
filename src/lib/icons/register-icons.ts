@@ -64,6 +64,3 @@ export function registerBundledIcons(): void {
 
 // Auto-register upon import
 registerBundledIcons();
-
-
-

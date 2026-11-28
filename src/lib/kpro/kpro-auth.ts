@@ -438,8 +438,7 @@ export async function loginAndGetCookies(): Promise<KproCookie[]> {
     }
 
     throw (
-        lastError ||
-        new Error(`Login failed after ${KPRO_CONFIG.retry.maxLoginAttempts} attempts`)
+        lastError || new Error(`Login failed after ${KPRO_CONFIG.retry.maxLoginAttempts} attempts`)
     );
 }
 

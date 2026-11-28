@@ -1,7 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { LoaderCircle, Scale } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/app/components/shared/DataTable';
@@ -38,6 +38,7 @@ import {
     getTeknisiStockList,
 } from '../_actions/stock-comparison-actions';
 import { createStockComparisonColumns } from './StockComparisonColumns';
+
 const StockComparisonDetailDialog = dynamic(
     () => import('./StockComparisonDetailDialog').then((mod) => mod.StockComparisonDetailDialog),
     { ssr: false }

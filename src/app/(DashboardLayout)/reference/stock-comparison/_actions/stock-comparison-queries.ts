@@ -53,9 +53,7 @@ export async function getTeknisiStockList(options?: { includeInactive?: boolean 
         }
 
         if (scope.kind === 'scoped') {
-            query = query.where(
-                sql<boolean>`${sql.ref('t.wh_id')} = ANY(${scope.ids}::int[])`
-            );
+            query = query.where(sql<boolean>`${sql.ref('t.wh_id')} = ANY(${scope.ids}::int[])`);
         }
 
         const rows = (await query.execute()) as TeknisiRow[];
@@ -350,9 +348,7 @@ export async function getTeknisiList(): Promise<{
 
         // Staff: hanya teknisi yang berada di gudang yang di-assign ke user
         if (scope.kind === 'scoped') {
-            query = query.where(
-                sql<boolean>`${sql.ref('wh_id')} = ANY(${scope.ids}::int[])`
-            );
+            query = query.where(sql<boolean>`${sql.ref('wh_id')} = ANY(${scope.ids}::int[])`);
         }
 
         const rows = await query.orderBy('name', 'asc').execute();

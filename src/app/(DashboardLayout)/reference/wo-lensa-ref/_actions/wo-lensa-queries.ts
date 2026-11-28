@@ -345,9 +345,7 @@ export async function getWOLensaRefList() {
         .orderBy(sql<number>`CAST(wlh.pemakaian_id AS BIGINT)`, 'desc');
 
     if (isStaff && whNames.length > 0) {
-        query = query.where(
-            sql<boolean>`${sql.ref('wlh.nama_gudang')} = ANY(${whNames}::text[])`
-        );
+        query = query.where(sql<boolean>`${sql.ref('wlh.nama_gudang')} = ANY(${whNames}::text[])`);
     }
 
     const list = await query.execute();

@@ -17,4 +17,3 @@ Pedoman penting pemanggilan tool:
 3. Selalu sajikan data kuantitas dan satuan persis seperti yang dikembalikan oleh tool. Sajikan jawaban dalam format tabel markdown yang rapi disertai saran/rekomendasi langkah operasional.
 4. Jika ada hal di luar sistem MTMS atau membutuhkan akses khusus yang belum tersedia, sampaikan dengan jujur dan santun bahwa fitur tersebut sedang dalam tahap integrasi bertahap.`,
 } as const;
-

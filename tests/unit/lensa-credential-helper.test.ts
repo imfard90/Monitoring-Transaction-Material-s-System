@@ -56,9 +56,7 @@ describe('lensa-credential-helper Unit Tests', () => {
             const systemChain = createChain();
             systemChain.execute.mockResolvedValue([]);
 
-            mockDbSelectFrom
-                .mockReturnValueOnce(whChain)
-                .mockReturnValueOnce(systemChain);
+            mockDbSelectFrom.mockReturnValueOnce(whChain).mockReturnValueOnce(systemChain);
 
             const result = await getWarehouseLensaCandidates({ warehouseId: 99 });
             expect(result).toEqual([]);
@@ -259,9 +257,7 @@ describe('lensa-credential-helper Unit Tests', () => {
                 },
             ]);
 
-            mockDbSelectFrom
-                .mockReturnValueOnce(whChain)
-                .mockReturnValueOnce(usersChain);
+            mockDbSelectFrom.mockReturnValueOnce(whChain).mockReturnValueOnce(usersChain);
 
             mockDecryptLensaPassword.mockImplementation((p: string) => `dec_${p}`);
 
@@ -297,9 +293,9 @@ describe('lensa-credential-helper Unit Tests', () => {
         ];
 
         it('throws error when candidate list is empty', async () => {
-            await expect(
-                executeWithLensaFallback([], async () => 'ok')
-            ).rejects.toThrow('Tidak ada akun Lensa yang terhubung');
+            await expect(executeWithLensaFallback([], async () => 'ok')).rejects.toThrow(
+                'Tidak ada akun Lensa yang terhubung'
+            );
         });
 
         it('returns result immediately when the first candidate succeeds', async () => {
@@ -329,7 +325,9 @@ describe('lensa-credential-helper Unit Tests', () => {
         it('falls back to second candidate if first candidate returns an auth error object', async () => {
             const op = vi
                 .fn()
-                .mockResolvedValueOnce({ error: 'Sesi Lensa telah berakhir. Silakan login kembali.' })
+                .mockResolvedValueOnce({
+                    error: 'Sesi Lensa telah berakhir. Silakan login kembali.',
+                })
                 .mockResolvedValueOnce({ data: 'from_pic2' });
 
             const result = await executeWithLensaFallback(mockCandidates, op);
@@ -344,12 +342,11 @@ describe('lensa-credential-helper Unit Tests', () => {
                 .mockRejectedValueOnce(new Error('PIC1 login rejected'))
                 .mockRejectedValueOnce(new Error('PIC2 login rejected'));
 
-            await expect(
-                executeWithLensaFallback(mockCandidates, op)
-            ).rejects.toThrow('PIC2 login rejected');
+            await expect(executeWithLensaFallback(mockCandidates, op)).rejects.toThrow(
+                'PIC2 login rejected'
+            );
 
             expect(op).toHaveBeenCalledTimes(2);
         });
     });
 });
-

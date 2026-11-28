@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
 import type * as React from 'react';
+import { describe, expect, it, vi } from 'vitest';
 import { SearchField } from '@/components/ui/search-field';
 
 describe('SearchField Keyboard Escape & Clear Logic', () => {

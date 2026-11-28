@@ -229,7 +229,9 @@ export default function HasilRekonClient({
 
             for (const item of result.data) {
                 worksheet.addRow({
-                    timestamp: item.created_at ? format(new Date(item.created_at), 'yyyy-MM-dd HH:mm:ss') : '-',
+                    timestamp: item.created_at
+                        ? format(new Date(item.created_at), 'yyyy-MM-dd HH:mm:ss')
+                        : '-',
                     trx_id: item.trx_id || '-',
                     sap_number: item.sap_number || '-',
                     warehouse: item.warehouse_name || '-',

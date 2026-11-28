@@ -69,11 +69,7 @@ export const createMasterDataRepository = (dbClient: Kysely<DB> | Transaction<DB
      * If keywords are provided, matches against material code and description (case-insensitive).
      * Returns up to limit items ordered by qty_stock descending.
      */
-    searchWarehouseStockBalance: (
-        warehouseId: number,
-        keywords: string[] = [],
-        limit = 20
-    ) => {
+    searchWarehouseStockBalance: (warehouseId: number, keywords: string[] = [], limit = 20) => {
         let query = dbClient
             .selectFrom('inventory.stock_balance as sb')
             .innerJoin('inventory.materials as m', 'm.id', 'sb.designator_id')
@@ -90,9 +86,7 @@ export const createMasterDataRepository = (dbClient: Kysely<DB> | Transaction<DB
             ])
             .where('sb.warehouse_id', '=', warehouseId);
 
-        const cleanKeywords = keywords
-            .map((k) => k.trim())
-            .filter((k) => k.length > 0);
+        const cleanKeywords = keywords.map((k) => k.trim()).filter((k) => k.length > 0);
 
         if (cleanKeywords.length > 0) {
             query = query.where((eb) =>
@@ -142,9 +136,7 @@ export const createMasterDataRepository = (dbClient: Kysely<DB> | Transaction<DB
             query = query.where('sb.warehouse_id', '=', warehouseId);
         }
 
-        const cleanKeywords = keywords
-            .map((k) => k.trim())
-            .filter((k) => k.length > 0);
+        const cleanKeywords = keywords.map((k) => k.trim()).filter((k) => k.length > 0);
 
         if (cleanKeywords.length > 0) {
             query = query.where((eb) =>

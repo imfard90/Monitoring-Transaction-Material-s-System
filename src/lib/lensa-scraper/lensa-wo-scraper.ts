@@ -171,7 +171,6 @@ async function scrapeDefaultEndpoint(
     );
 }
 
-
 async function scrapePrefixEndpoint(
     page: LensaPage,
     performLogin: LensaPerformLogin,
@@ -368,7 +367,6 @@ export async function scrapeWOLensaHeadersByNik(
         await context.close().catch(() => {});
     }
 }
-
 
 /**
  * Search single WO Lensa header on Lensa API by search keyword (No WO or Pemakaian ID).

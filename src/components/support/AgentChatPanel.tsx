@@ -3,8 +3,8 @@
 import { ArrowLeft, Bot, Loader2, RotateCcw, Send, User } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import type { HermesChatMessage } from '@/lib/services/hermes/types';
+import { cn } from '@/lib/utils';
 
 interface AgentChatPanelProps {
     onBack: () => void;
@@ -14,7 +14,7 @@ const INITIAL_WELCOME_MESSAGE: HermesChatMessage = {
     id: 'mtms-welcome',
     role: 'assistant',
     content:
-        'Halo! Saya **MTMS Agent**, asisten AI untuk Monitoring Transaction Material\'s System (MTMS).\nAda yang bisa saya bantu terkait operasional, transaksi material, atau panduan sistem ini?',
+        "Halo! Saya **MTMS Agent**, asisten AI untuk Monitoring Transaction Material's System (MTMS).\nAda yang bisa saya bantu terkait operasional, transaksi material, atau panduan sistem ini?",
     createdAt: new Date().toISOString(),
 };
 

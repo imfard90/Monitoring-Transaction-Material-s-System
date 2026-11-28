@@ -5,11 +5,12 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { staggerContainer, staggerItemVariants } from '@/lib/animation/stagger';
 import { queryKeys } from '@/lib/query-keys';
 import { cn } from '@/lib/utils';
-import { staggerContainer, staggerItemVariants } from '@/lib/animation/stagger';
 
-export const ProductPerformance = () => {    const { data: warehouseData = [], isLoading } = useQuery({
+export const ProductPerformance = () => {
+    const { data: warehouseData = [], isLoading } = useQuery({
         queryKey: queryKeys.dashboard.leaderboard(),
         queryFn: async () => {
             const { getWarehousePerformance } = await import(
@@ -61,8 +62,7 @@ export const ProductPerformance = () => {    const { data: warehouseData = [], i
         .sort((a, b) => b.percentage - a.percentage || b.trxOut - a.trxOut);
 
     return (
-        <Card
-            className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-sm p-3.5 sm:p-4 motion-reduce:transition-none w-full relative overflow-hidden flex flex-col">
+        <Card className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-sm p-3.5 sm:p-4 motion-reduce:transition-none w-full relative overflow-hidden flex flex-col">
             <div
                 className="pointer-events-none absolute right-0 top-0 h-24 w-24 bg-linear-to-bl from-primary/5 to-transparent"
                 aria-hidden="true"

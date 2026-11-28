@@ -67,7 +67,13 @@ describe('management/users/actions', () => {
             const mockUsers = [
                 { id: '1', name: 'Alice', email: 'alice@test.com', nik: 'NIK001', is_active: true },
                 { id: '2', name: 'Bob', email: 'bob@test.com', nik: 'NIK002', is_active: true },
-                { id: '3', name: 'Charlie', email: 'charlie@test.com', nik: null, is_active: false },
+                {
+                    id: '3',
+                    name: 'Charlie',
+                    email: 'charlie@test.com',
+                    nik: null,
+                    is_active: false,
+                },
             ];
 
             const mockOrderBy = vi.fn().mockReturnValue({
@@ -83,7 +89,12 @@ describe('management/users/actions', () => {
 
             const batchSpy = vi
                 .spyOn(presenceModule, 'batchGetUsersOnlineStatus')
-                .mockResolvedValue(new Map([['NIK001', true], ['NIK002', false]]));
+                .mockResolvedValue(
+                    new Map([
+                        ['NIK001', true],
+                        ['NIK002', false],
+                    ])
+                );
 
             const result = await getUsers();
 
@@ -109,4 +120,3 @@ describe('management/users/actions', () => {
         });
     });
 });
-

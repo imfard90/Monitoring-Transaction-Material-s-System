@@ -2,8 +2,8 @@
 
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
-import { cn } from '@/lib/utils';
 import { staggerItemVariants } from '@/lib/animation/stagger';
+import { cn } from '@/lib/utils';
 
 interface StaggerItemProps {
     children: ReactNode;

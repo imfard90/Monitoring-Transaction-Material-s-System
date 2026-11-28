@@ -186,12 +186,16 @@ export async function killSessionAndAudit(
             metadata,
         });
 
-        securityLogger.warn('Session terminated due to critical anomaly (hijack guard)', undefined, {
-            sessionId,
-            userId,
-            nik,
-            reason,
-        });
+        securityLogger.warn(
+            'Session terminated due to critical anomaly (hijack guard)',
+            undefined,
+            {
+                sessionId,
+                userId,
+                nik,
+                reason,
+            }
+        );
     } catch (err) {
         securityLogger.error(
             'Error during session termination on anomaly',
@@ -365,4 +369,3 @@ export async function validateSessionIntegrity(
 
     return { allowed: true };
 }
-

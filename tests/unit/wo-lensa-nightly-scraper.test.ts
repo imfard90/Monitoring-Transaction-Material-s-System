@@ -35,7 +35,9 @@ vi.mock('@/lib/repositories/lensa-elt.repository', () => ({
     lensaEltRepository: {
         insertWOLensaStagingBatch: (...args: unknown[]) => mockInsertWOLensaStagingBatch(...args),
         processWOLensaStaging: (...args: unknown[]) => mockProcessWOLensaStaging(...args),
-        refreshLensaMaterializedViewsSafe: vi.fn().mockResolvedValue({ outLensaRefreshed: true, woLensaRefreshed: true }),
+        refreshLensaMaterializedViewsSafe: vi
+            .fn()
+            .mockResolvedValue({ outLensaRefreshed: true, woLensaRefreshed: true }),
     },
 }));
 

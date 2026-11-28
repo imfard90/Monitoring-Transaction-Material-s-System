@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-    clearCronRunning,
     CRON_RUNNING_KEY,
+    clearCronRunning,
     getCronRunningStatus,
     isCronRunning,
     setCronRunning,
@@ -81,4 +81,3 @@ describe('cron-guard', () => {
         expect(running).toBe(false);
     });
 });
-

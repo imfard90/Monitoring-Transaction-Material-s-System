@@ -83,15 +83,15 @@ export async function getUsers() {
             sql<boolean>`(auth.user.api_key IS NOT NULL)`.as('has_api_key'),
             sql<Record<string, unknown>>`auth.user.lensa_acount`.as('lensa_acount'),
             'hr.levels.level_name as role',
-            sql<number>`COALESCE((SELECT COUNT(*)::int FROM auth.user_trusted_devices utd WHERE utd.user_id = auth.user.id AND utd.is_revoked = false), 0)`.as('active_devices_count'),
+            sql<number>`COALESCE((SELECT COUNT(*)::int FROM auth.user_trusted_devices utd WHERE utd.user_id = auth.user.id AND utd.is_revoked = false), 0)`.as(
+                'active_devices_count'
+            ),
         ])
         .orderBy('auth.user.name', 'asc')
         .execute();
 
     // Batch-query Redis presence for all users in a single roundtrip (O(1) network calls)
-    const validNiks = users
-        .map((u) => u.nik)
-        .filter((nik): nik is string => Boolean(nik));
+    const validNiks = users.map((u) => u.nik).filter((nik): nik is string => Boolean(nik));
     const onlineMap = await batchGetUsersOnlineStatus(redis, validNiks);
 
     return users.map((user) => ({
@@ -200,7 +200,11 @@ export async function toggleUserApiApproval(userId: string, apprApi: boolean) {
     const parsed = userIdSchema.safeParse(userId);
     if (!parsed.success) return;
 
-    await db.updateTable('auth.user').set({ appr_api: apprApi }).where('id', '=', parsed.data).execute();
+    await db
+        .updateTable('auth.user')
+        .set({ appr_api: apprApi })
+        .where('id', '=', parsed.data)
+        .execute();
 
     revalidatePath('/management/users');
 }

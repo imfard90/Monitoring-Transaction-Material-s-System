@@ -1,8 +1,8 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { format } from 'date-fns';
 import { CheckCircle2, Eye, FileSearch, Play } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -38,6 +38,7 @@ import {
     scrapeSingleOutLensaDetail,
     triggerScraping,
 } from '../_actions/out-lensa-actions';
+
 const OutLensaLiveDetailDialog = dynamic(
     () => import('./OutLensaLiveDetailDialog').then((mod) => mod.OutLensaLiveDetailDialog),
     { ssr: false }

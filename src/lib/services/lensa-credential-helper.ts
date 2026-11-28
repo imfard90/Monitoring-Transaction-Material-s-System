@@ -198,12 +198,7 @@ export async function getWarehouseLensaCandidates(
             (await db
                 .selectFrom('inventory.mas_wh')
                 .select(['id', 'name', 'pic_1', 'pic_2'])
-                .where((eb) =>
-                    eb.or([
-                        eb('pic_1', '=', sessionNik),
-                        eb('pic_2', '=', sessionNik),
-                    ])
-                )
+                .where((eb) => eb.or([eb('pic_1', '=', sessionNik), eb('pic_2', '=', sessionNik)]))
                 .executeTakeFirst()) || null;
     }
 
@@ -391,4 +386,3 @@ export async function executeWithLensaFallback<T>(
 
     throw lastError || new Error(`Gagal memproses data Lensa untuk ${contextLabel}.`);
 }
-

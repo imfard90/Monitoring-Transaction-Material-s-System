@@ -1,6 +1,6 @@
-import { sql, type Kysely } from 'kysely';
-import { db } from '@/lib/db/db';
+import { type Kysely, sql } from 'kysely';
 import type { DB, LensaAccount } from '@/lib/db/database.types';
+import { db } from '@/lib/db/db';
 
 /**
  * Repository for `auth.user` reads/writes.

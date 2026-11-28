@@ -75,11 +75,7 @@ export async function getLiveStockComparison(nik: string): Promise<{
             lensData = await executeWithLensaFallback(
                 candidates,
                 async (creds) => {
-                    return scrapeStockTeknisi(
-                        validNik,
-                        creds.username,
-                        creds.password
-                    );
+                    return scrapeStockTeknisi(validNik, creds.username, creds.password);
                 },
                 'Stock Comparison'
             );

@@ -20,7 +20,8 @@ vi.mock('@/lib/services/hermes', () => ({
     getHermesChatHistory: (userId: string) => mockGetHermesChatHistory(userId),
     saveHermesChatHistory: (userId: string, msgs: any[]) => mockSaveHermesChatHistory(userId, msgs),
     clearHermesChatHistory: (userId: string) => mockClearHermesChatHistory(userId),
-    sendChatMessageToHermes: (msg: string, history: any[]) => mockSendChatMessageToHermes(msg, history),
+    sendChatMessageToHermes: (msg: string, history: any[]) =>
+        mockSendChatMessageToHermes(msg, history),
     handleStockQuerySkill: (...args: any[]) => mockHandleStockQuerySkill(...args),
 }));
 
@@ -54,7 +55,12 @@ describe('API Route /api/chat-agent Unit Tests', () => {
             mockGetSessionUser.mockResolvedValueOnce({ id: 'usr-123', nik: '12345' });
             const mockHistory = [
                 { id: '1', role: 'user', content: 'Halo', createdAt: '2026-11-09T00:00:00Z' },
-                { id: '2', role: 'assistant', content: 'Halo juga!', createdAt: '2026-11-09T00:00:01Z' },
+                {
+                    id: '2',
+                    role: 'assistant',
+                    content: 'Halo juga!',
+                    createdAt: '2026-11-09T00:00:01Z',
+                },
             ];
             mockGetHermesChatHistory.mockResolvedValueOnce(mockHistory);
 
@@ -167,7 +173,10 @@ describe('API Route /api/chat-agent Unit Tests', () => {
             expect(mockSaveHermesChatHistory).toHaveBeenCalledWith(
                 '12345',
                 expect.arrayContaining([
-                    expect.objectContaining({ role: 'user', content: 'berapa stok kabel di gresik?' }),
+                    expect.objectContaining({
+                        role: 'user',
+                        content: 'berapa stok kabel di gresik?',
+                    }),
                     mockSkillMsg,
                 ])
             );

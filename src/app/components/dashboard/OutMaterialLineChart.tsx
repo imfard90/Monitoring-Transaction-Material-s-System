@@ -61,7 +61,8 @@ function formatUnit(unit?: string | null): string {
 const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOption[] }> = ({
     isStaff,
     warehouses,
-}) => {    const [selectedWh, setSelectedWh] = useState<string>('all');
+}) => {
+    const [selectedWh, setSelectedWh] = useState<string>('all');
     const [selectedMaterial, setSelectedMaterial] = useState<string>('all');
     const [timeframe, setTimeframe] = useState<TimeframeOption>(30);
 
@@ -367,9 +368,7 @@ const OutMaterialLineChart: React.FC<{ isStaff: boolean; warehouses: WarehouseOp
     };
 
     return (
-        <Card
-            className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-sm p-3.5 sm:p-4 motion-reduce:transition-none pb-1 h-full w-full relative overflow-hidden flex flex-col justify-between"
-        >
+        <Card className="border border-border/80 bg-card text-card-foreground shadow-xs rounded-xl transition-shadow duration-200 hover:shadow-sm p-3.5 sm:p-4 motion-reduce:transition-none pb-1 h-full w-full relative overflow-hidden flex flex-col justify-between">
             <div
                 className="absolute top-0 left-0 w-full h-20 bg-linear-to-b from-primary/5 to-transparent pointer-events-none"
                 aria-hidden="true"

@@ -1,7 +1,7 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { sql } from 'kysely';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSessionNik, getSessionUser, requireWarehouseAccess } from '@/lib/auth-server';
 import { invalidateLiveStockCache, invalidateNotificationCache } from '@/lib/cache/lru-cache';
@@ -508,7 +508,7 @@ export async function getOutSapReservationData(params: {
         const candidates = await getWarehouseLensaCandidates({
             warehouseId: resolvedWhId,
             warehouseName: headerInDb?.nama_gudang,
-            sessionNik: isStaff ? undefined : (await getSessionNik().catch(() => null)),
+            sessionNik: isStaff ? undefined : await getSessionNik().catch(() => null),
         });
 
         if (candidates.length === 0) {

@@ -5,6 +5,7 @@ import { Ban } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
+import { MfaModal } from '@/components/auth/mfa-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,9 +23,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { queryKeys } from '@/lib/query-keys';
 import { generateIdempotencyKey, setIdempotencyKey } from '@/lib/security/idempotency-client';
-import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
-import { MfaModal } from '@/components/auth/mfa-modal';
 import { verifyTotpForSensitiveAction } from '@/lib/security/mfa-actions';
+import type { InOutTagItem, InOutTagRow } from '@/lib/types/inventory';
 import { acceptReturnTag, cancelTag, updateTag } from '../_actions/tag-actions';
 
 interface UpdateTagModalProps {

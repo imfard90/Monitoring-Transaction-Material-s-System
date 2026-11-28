@@ -56,7 +56,9 @@ export function allBeforeCutoff(
     cutoffDate: Date = CUTOFF_DATE
 ): boolean {
     if (items.length === 0) return true;
-    return items.every((item) => isBeforeCutoff(item.tanggal_update?.toString() || null, cutoffDate));
+    return items.every((item) =>
+        isBeforeCutoff(item.tanggal_update?.toString() || null, cutoffDate)
+    );
 }
 
 /**
@@ -74,10 +76,7 @@ export function isRejectedWONumber(woNumber?: string | null): boolean {
  * - Membentuk daftar bulan dinamis dari cutoffDate hingga bulan berjalan (atau referenceDate)
  *   misal '2610', 'DGPS2610', 'FMC2610', 'AOi42610', 'AOk42610', '2611', dst.
  */
-export function getWOPrefixes(
-    cutoffDate: Date = CUTOFF_DATE,
-    referenceDate?: Date
-): string[] {
+export function getWOPrefixes(cutoffDate: Date = CUTOFF_DATE, referenceDate?: Date): string[] {
     const prefixes = new Set<string>();
 
     // 1. Prefiks tiket statis umum
@@ -88,9 +87,7 @@ export function getWOPrefixes(
     // 2. Daftar bulan dinamis dari cutoffDate hingga bulan berjalan
     const start = new Date(cutoffDate.getFullYear(), cutoffDate.getMonth(), 1);
     const endRef = referenceDate ?? new Date();
-    const end = start > endRef
-        ? start
-        : new Date(endRef.getFullYear(), endRef.getMonth(), 1);
+    const end = start > endRef ? start : new Date(endRef.getFullYear(), endRef.getMonth(), 1);
 
     const current = new Date(start);
     while (current <= end) {
@@ -133,7 +130,10 @@ export function selectBestCandidateWOLensaHeader(
     if (targetPemakaianId) {
         const normTarget = targetPemakaianId.trim().toUpperCase();
         const targetMatch = items.find(
-            (item) => String(item.pemakaian_id ?? '').trim().toUpperCase() === normTarget
+            (item) =>
+                String(item.pemakaian_id ?? '')
+                    .trim()
+                    .toUpperCase() === normTarget
         );
         if (targetMatch) return targetMatch;
     }

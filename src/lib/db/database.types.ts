@@ -719,7 +719,9 @@ export interface InventoryReturnMaterialHeader {
     accept_time: Timestamp | null;
     created_at: Generated<Timestamp | null>;
     created_by: string | null;
-    end_status: Generated<'pending' | 'wait_approve' | 'requested' | 'accepted' | 'cancel' | 'rejected'>;
+    end_status: Generated<
+        'pending' | 'wait_approve' | 'requested' | 'accepted' | 'cancel' | 'rejected'
+    >;
     id: Generated<Int8>;
     id_trx: string;
     nik_accept: string | null;

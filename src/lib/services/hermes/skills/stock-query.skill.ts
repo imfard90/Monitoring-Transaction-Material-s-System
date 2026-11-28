@@ -202,7 +202,8 @@ export function formatStockMarkdown(
         ? `Berikut data ketersediaan stok untuk material **${materialKeyword}** di **${warehouseName}** berdasarkan sistem MTMS terkini:`
         : `Berikut data ketersediaan stok material di **${warehouseName}** berdasarkan sistem MTMS terkini:`;
 
-    const tableHeader = '| Kode Material | Deskripsi Material | Sisa Stok | Satuan |\n| :--- | :--- | :---: | :---: |';
+    const tableHeader =
+        '| Kode Material | Deskripsi Material | Sisa Stok | Satuan |\n| :--- | :--- | :---: | :---: |';
     const tableRows = rows
         .map(
             (r) =>

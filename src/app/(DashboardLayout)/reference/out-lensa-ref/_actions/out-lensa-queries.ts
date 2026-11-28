@@ -262,7 +262,9 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                     .selectFrom('inventory.sap_out_items as si')
                     .innerJoin('inventory.materials as m', 'm.id', 'si.designator_id')
                     .select(['si.header_id', 'm.code as material_id', 'si.qty_req'])
-                    .where(sql<boolean>`${sql.ref('si.header_id')} = ANY(${sapHeaderIds}::bigint[])`)
+                    .where(
+                        sql<boolean>`${sql.ref('si.header_id')} = ANY(${sapHeaderIds}::bigint[])`
+                    )
                     .execute();
 
                 const itemsByHeaderId = new Map<

@@ -109,9 +109,7 @@ const {
     resolveWarehouseLensaCredentials,
     getOutSapReservationData,
     getOutLensaReservationOptionsForAdmin,
-} = await import(
-    '@/app/(DashboardLayout)/form/out-sap/_actions/out-sap-actions'
-);
+} = await import('@/app/(DashboardLayout)/form/out-sap/_actions/out-sap-actions');
 
 describe('out-sap-actions Unit Tests', () => {
     beforeEach(() => {
@@ -123,7 +121,12 @@ describe('out-sap-actions Unit Tests', () => {
             isStaff: true,
             warehouseIds: [1],
         });
-        mockGetTechnicianByNik.mockResolvedValue({ nik: 'TKN001', name: 'Budi', sa: 'SA-SURABAYA', is_active: true });
+        mockGetTechnicianByNik.mockResolvedValue({
+            nik: 'TKN001',
+            name: 'Budi',
+            sa: 'SA-SURABAYA',
+            is_active: true,
+        });
         mockRequireWarehouseAccess.mockResolvedValue({
             nik: 'STAFF_TEST_NIK',
             role: 'Staff',
@@ -142,11 +145,15 @@ describe('out-sap-actions Unit Tests', () => {
             { id: 10, code: 'MAT-01', name: 'Material 1' },
             { id: 20, code: 'MAT-02', name: 'Material 2' },
         ]);
-        mockFindMatchingMasterWarehouse.mockImplementation((namaGudang: string, warehouses: any[]) => {
-            return warehouses.find((w: any) =>
-                namaGudang.toLowerCase().includes('surabaya') && w.id === 1
-            ) || null;
-        });
+        mockFindMatchingMasterWarehouse.mockImplementation(
+            (namaGudang: string, warehouses: any[]) => {
+                return (
+                    warehouses.find(
+                        (w: any) => namaGudang.toLowerCase().includes('surabaya') && w.id === 1
+                    ) || null
+                );
+            }
+        );
     });
 
     describe('createOutSap', () => {
@@ -479,9 +486,7 @@ describe('out-sap-actions Unit Tests', () => {
                 nik_pemakai: 'TKN001',
             };
 
-            const detailRows = [
-                { id: 1, header_id: 50, material_id: 'MAT-01', qty_approve: '4' },
-            ];
+            const detailRows = [{ id: 1, header_id: 50, material_id: 'MAT-01', qty_approve: '4' }];
 
             mockDbSelectFrom
                 .mockImplementationOnce(() => ({
