@@ -1,5 +1,3 @@
-'use client';
-
 import { PresenceHeartbeat } from '@/components/PresenceHeartbeat';
 import { FloatingSupportWidget } from '@/components/support/FloatingSupportWidget';
 import Header from './layout/header/Header';

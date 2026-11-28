@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import nextDynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { LensaPerformance } from '@/components/dashboard/LensaPerformance';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
@@ -6,18 +7,36 @@ import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getPageSessionUser } from '@/lib/auth-server';
 import { Footer } from '../components/dashboard/Footer';
-import { IntechAgingPanel } from '../components/dashboard/IntechAgingPanel';
-import { KproRekonAnalyticsPanel } from '../components/dashboard/KproRekonAnalyticsPanel';
-import OutMaterialLineChart from '../components/dashboard/OutMaterialLineChart';
-import { ProductPerformance } from '../components/dashboard/ProductPerformance';
 import ProfileWelcome from '../components/dashboard/ProfileWelcome';
 import { RecentTransaction } from '../components/dashboard/RecentTransaction';
-import { RekonSlaVelocity } from '../components/dashboard/RekonSlaVelocity';
 import SalesOverview from '../components/dashboard/SalesOverview';
-import { StockRunoutForecast } from '../components/dashboard/StockRunoutForecast';
-import StockValueDonutChart from '../components/dashboard/StockValueDonutChart';
-import { StockWarningTable } from '../components/dashboard/StockWarningTable';
 import { TopCards } from '../components/dashboard/TopCards';
+
+// Lazy-load below-the-fold dashboard panels to keep initial route bundle lean
+const IntechAgingPanel = nextDynamic(() =>
+    import('../components/dashboard/IntechAgingPanel').then((m) => m.IntechAgingPanel)
+);
+const StockRunoutForecast = nextDynamic(() =>
+    import('../components/dashboard/StockRunoutForecast').then((m) => m.StockRunoutForecast)
+);
+const RekonSlaVelocity = nextDynamic(() =>
+    import('../components/dashboard/RekonSlaVelocity').then((m) => m.RekonSlaVelocity)
+);
+const KproRekonAnalyticsPanel = nextDynamic(() =>
+    import('../components/dashboard/KproRekonAnalyticsPanel').then((m) => m.KproRekonAnalyticsPanel)
+);
+const StockValueDonutChart = nextDynamic(
+    () => import('../components/dashboard/StockValueDonutChart')
+);
+const OutMaterialLineChart = nextDynamic(
+    () => import('../components/dashboard/OutMaterialLineChart')
+);
+const StockWarningTable = nextDynamic(() =>
+    import('../components/dashboard/StockWarningTable').then((m) => m.StockWarningTable)
+);
+const ProductPerformance = nextDynamic(() =>
+    import('../components/dashboard/ProductPerformance').then((m) => m.ProductPerformance)
+);
 
 export const metadata: Metadata = {
     title: 'Dashboard Utama',

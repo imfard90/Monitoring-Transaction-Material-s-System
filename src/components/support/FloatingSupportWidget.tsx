@@ -2,11 +2,19 @@
 
 import * as Popover from '@radix-ui/react-popover';
 import { Headset, X } from 'lucide-react';
-import { SupportMenu } from './SupportMenu';
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
+
+const SupportMenu = dynamic(
+    () => import('./SupportMenu').then((m) => m.SupportMenu),
+    { ssr: false }
+);
 
 export function FloatingSupportWidget() {
+    const [open, setOpen] = useState(false);
+
     return (
-        <Popover.Root>
+        <Popover.Root open={open} onOpenChange={setOpen}>
             <Popover.Trigger asChild>
                 <button
                     type="button"
@@ -27,7 +35,7 @@ export function FloatingSupportWidget() {
                     className="z-50 origin-bottom-right outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 motion-reduce:animate-none"
                 >
                     <div className="relative">
-                        <SupportMenu />
+                        {open ? <SupportMenu /> : null}
                         <Popover.Close
                             aria-label="Tutup menu bantuan"
                             className="absolute right-3 top-3 z-10 flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
