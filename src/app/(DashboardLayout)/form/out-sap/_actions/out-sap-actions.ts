@@ -455,7 +455,7 @@ export async function getOutSapReservationData(params: {
 
                 for (const d of detailRows) {
                     const code = (d.material_id || '').trim();
-                    const qty = parseInt(d.qty_approve || '0', 10) || 0;
+                    const qty = parseFloat(String(d.qty_approve || '0')) || 0;
                     if (code && qty > 0) {
                         const m = allMats.find((mat) => (mat.code || '').trim() === code);
                         if (m) {

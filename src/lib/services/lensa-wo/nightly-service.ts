@@ -6,6 +6,7 @@
  * - Each NIK gets up to 3 retries on Lensa network/server failures.
  * - Tolerates irregular WO number formats (1-xxxx, LPxxxx, ...).
  */
+import crypto from 'node:crypto';
 import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
 import {
@@ -14,6 +15,7 @@ import {
     scrapeWOLensaHeadersByNik,
 } from '@/lib/lensa-scraper/lensa-scraper';
 import { actionLogger } from '@/lib/logger';
+import { lensaEltRepository } from '@/lib/repositories/lensa-elt.repository';
 import {
     type ScraperAction,
     scraperLogRepository,
@@ -168,106 +170,16 @@ export async function executeNightlyWOLensaScrapingByNik(
         }
         const deduplicatedHeaders = Array.from(uniqueHeadersMap.values());
 
-        // 7. Update nomor GI pada header yang sebelumnya kosong
-        const rowsWithGi = deduplicatedHeaders.filter(
-            (header) =>
-                existingSet.has(String(header.pemakaian_id)) &&
-                header.gi_number != null &&
-                String(header.gi_number).trim() !== ''
-        );
-
-        for (let index = 0; index < rowsWithGi.length; index += 200) {
-            const batch = rowsWithGi.slice(index, index + 200);
-            await db.transaction().execute(async (trx) => {
-                await sql`
-                    UPDATE inventory.wo_lensa_header AS header
-                    SET gi_number = updates.gi_number
-                    FROM (${sql.join(
-                        batch.map(
-                            (header) =>
-                                sql`(${Number(header.pemakaian_id)}, ${String(header.gi_number)})`
-                        ),
-                        sql`, `
-                    )}) AS updates(pemakaian_id, gi_number)
-                    WHERE header.pemakaian_id = updates.pemakaian_id
-                      AND header.gi_number IS NULL
-                `.execute(trx);
-            });
-        }
-
-        // 8. Simpan / Perbarui header ke database
+        // 7. Simpan / Perbarui header ke database via Database-Centric ELT (ADR-007)
         let totalInserted = 0;
         if (deduplicatedHeaders.length > 0) {
-            const pemakaianIds = deduplicatedHeaders
-                .map((h) => (h.pemakaian_id ? String(h.pemakaian_id).trim() : ''))
-                .filter(Boolean);
-
-            const matchedPairs = new Set<string>();
-
-            if (pemakaianIds.length > 0) {
-                const existingRekon = await db
-                    .selectFrom('inventory.rekon_used_header')
-                    .select(['id_pemakaian', 'wo_number'])
-                    .where('id_pemakaian', 'in', pemakaianIds)
-                    .execute();
-
-                for (const r of existingRekon) {
-                    const pIdTrim = r.id_pemakaian?.trim();
-                    if (pIdTrim) {
-                        matchedPairs.add(`${pIdTrim}:::${r.wo_number?.trim() || ''}`);
-                    }
-                }
-            }
-
-            await db.transaction().execute(async (trx) => {
-                for (const h of deduplicatedHeaders) {
-                    const pId = h.pemakaian_id ? String(h.pemakaian_id).trim() : '';
-                    const wo = h.wo_number ? String(h.wo_number).trim() : '';
-                    const isRekonCheck =
-                        Boolean(pId) &&
-                        (matchedPairs.has(`${pId}:::${wo}`) || matchedPairs.has(`${pId}:::`));
-
-                    const isNew = !existingSet.has(pId);
-
-                    await trx
-                        .insertInto('inventory.wo_lensa_header')
-                        .values({
-                            pemakaian_id: Number(pId) || sql`CAST(${pId} AS BIGINT)`,
-                            gi_number: h.gi_number,
-                            nama_gudang: h.nama_gudang,
-                            nik_pemakai: h.nik_pemakai,
-                            tanggal_update: h.tanggal_update,
-                            formatted_date: toISODateString(h.formatted_date),
-                            type: h.type,
-                            wbs: h.wbs,
-                            wo_number: h.wo_number,
-                            rekon_check: isRekonCheck,
-                        })
-                        .onConflict((oc) =>
-                            oc.column('pemakaian_id').doUpdateSet({
-                                wo_number: sql`COALESCE(EXCLUDED.wo_number, inventory.wo_lensa_header.wo_number)`,
-                                nama_gudang: sql`COALESCE(EXCLUDED.nama_gudang, inventory.wo_lensa_header.nama_gudang)`,
-                                nik_pemakai: sql`COALESCE(EXCLUDED.nik_pemakai, inventory.wo_lensa_header.nik_pemakai)`,
-                                gi_number: sql`COALESCE(EXCLUDED.gi_number, inventory.wo_lensa_header.gi_number)`,
-                                tanggal_update: sql`COALESCE(EXCLUDED.tanggal_update, inventory.wo_lensa_header.tanggal_update)`,
-                                formatted_date: sql`COALESCE(EXCLUDED.formatted_date, inventory.wo_lensa_header.formatted_date)`,
-                                type: sql`COALESCE(EXCLUDED.type, inventory.wo_lensa_header.type)`,
-                                wbs: sql`COALESCE(EXCLUDED.wbs, inventory.wo_lensa_header.wbs)`,
-                                rekon_check: sql`COALESCE(EXCLUDED.rekon_check, inventory.wo_lensa_header.rekon_check)`,
-                            })
-                        )
-                        .execute();
-
-                    if (isNew) {
-                        totalInserted++;
-                        existingSet.add(pId);
-                        existingPemakaianIds.push(pId);
-                    }
-                }
-            });
+            const batchId = crypto.randomUUID();
+            await lensaEltRepository.insertWOLensaStagingBatch(batchId, deduplicatedHeaders, action);
+            const { processedCount } = await lensaEltRepository.processWOLensaStaging(batchId);
+            totalInserted += processedCount;
         }
 
-        // 9. Sinkronisasi detail material untuk header yang belum memiliki detail
+        // 8. Sinkronisasi detail material untuk header yang belum memiliki detail
         const syncedDetailsCount = await syncMissingWOLensaDetails();
         actionLogger.info(
             `[WO-NIGHTLY] Sinkronisasi detail selesai: ${syncedDetailsCount} baris material tersimpan.`

@@ -28,6 +28,17 @@ vi.mock('@/lib/repositories/scraper-log.repository', () => ({
     },
 }));
 
+const mockInsertWOLensaStagingBatch = vi.fn().mockResolvedValue(1);
+const mockProcessWOLensaStaging = vi.fn().mockResolvedValue({ processedCount: 1, errorCount: 0 });
+
+vi.mock('@/lib/repositories/lensa-elt.repository', () => ({
+    lensaEltRepository: {
+        insertWOLensaStagingBatch: (...args: unknown[]) => mockInsertWOLensaStagingBatch(...args),
+        processWOLensaStaging: (...args: unknown[]) => mockProcessWOLensaStaging(...args),
+        refreshLensaMaterializedViewsSafe: vi.fn().mockResolvedValue({ outLensaRefreshed: true, woLensaRefreshed: true }),
+    },
+}));
+
 vi.mock('@/lib/services/lensa-crypto', () => ({
     asyncPool: async <T, R>(_limit: number, array: T[], iteratorFn: (item: T) => Promise<R>) => {
         const ret: R[] = [];
