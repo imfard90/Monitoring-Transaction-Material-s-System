@@ -250,7 +250,7 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
             cell: (info) => {
                 const user = info.row.original;
                 return (
-                    <div className="flex items-center gap-2.5 min-w-[200px]">
+                    <div className="flex items-center gap-2.5 min-w-50">
                         <div className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary border border-primary/20">
                             {getInitials(user.name)}
                             <span
@@ -291,7 +291,7 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
                           : 'bg-muted text-foreground';
 
                 return (
-                    <div className="flex flex-col gap-1 items-start min-w-[160px]">
+                    <div className="flex flex-col gap-1 items-start min-w-40">
                         <div className="flex items-center gap-1.5">
                             <Badge variant="outline" className={badgeClass}>
                                 {roleLabel}
@@ -305,7 +305,7 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
                                 </Badge>
                             )}
                         </div>
-                        <span className="text-[11px] text-muted-foreground max-w-[220px] truncate">
+                        <span className="text-[11px] text-muted-foreground max-w-55 truncate">
                             {user.scope_summary || '-'}
                         </span>
                     </div>
@@ -550,7 +550,7 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
                         onValueChange={(val) => setRoleFilter(val as RoleFilterValue)}
                     >
                         <SelectTrigger
-                            className="h-9 w-[180px] text-xs"
+                            className="h-9 w-45 text-xs"
                             aria-label="Filter berdasarkan role"
                         >
                             <SelectValue placeholder="Semua Role" />
@@ -572,7 +572,7 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
                         onValueChange={(val) => setStatusFilter(val as StatusFilterValue)}
                     >
                         <SelectTrigger
-                            className="h-9 w-[165px] text-xs"
+                            className="h-9 w-42 text-xs"
                             aria-label="Filter berdasarkan status"
                         >
                             <SelectValue placeholder="Semua Status" />

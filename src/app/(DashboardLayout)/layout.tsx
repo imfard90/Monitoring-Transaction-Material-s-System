@@ -54,7 +54,7 @@ export default async function Layout({
                         {/* Body Content */}
                         <main
                             id="main-content"
-                            className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-w-0 w-full max-w-full relative z-[1]"
+                            className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-w-0 w-full max-w-full relative z-1"
                         >
                             {children}
                         </main>

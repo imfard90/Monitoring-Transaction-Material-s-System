@@ -17,7 +17,7 @@ interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function DateRangePicker({ className, date, setDate }: DateRangePickerProps) {
     return (
-        <div className={cn('w-full sm:w-[260px]', className)}>
+        <div className={cn('w-full sm:w-65', className)}>
             <Popover>
                 <PopoverTrigger asChild>
                     <Button

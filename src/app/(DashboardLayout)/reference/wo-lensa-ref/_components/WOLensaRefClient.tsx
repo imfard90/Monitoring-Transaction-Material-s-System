@@ -353,7 +353,7 @@ export default function WOLensaRefClient({
             size: 190,
             cell: (info) => (
                 <div
-                    className="min-w-[140px] max-w-60 truncate font-mono font-medium text-foreground"
+                    className="min-w-35 max-w-60 truncate font-mono font-medium text-foreground"
                     title={info.getValue() || undefined}
                 >
                     {info.getValue() || '-'}
@@ -500,7 +500,7 @@ export default function WOLensaRefClient({
                                 onValueChange={setSearchQuery}
                                 onClear={handleResetAll}
                                 placeholder="Cari WO, GI, NIK, WBS..."
-                                wrapperClassName="w-full sm:w-[220px]"
+                                wrapperClassName="w-full sm:w-55"
                             />
                             {!isStaff && (
                                 <WarehouseCombobox
@@ -553,7 +553,7 @@ export default function WOLensaRefClient({
                             <DataTable
                                 table={table}
                                 emptyMessage="Tidak ada data."
-                                className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-[620px]"
+                                className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-155"
                             />
                         </div>
                         <div className="shrink-0 w-full min-w-0 max-w-full">

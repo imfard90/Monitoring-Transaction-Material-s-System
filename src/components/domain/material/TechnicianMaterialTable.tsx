@@ -93,7 +93,7 @@ export function TechnicianMaterialTable({
                                 No
                             </TableHead>
                         )}
-                        <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground min-w-[120px]">
+                        <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground min-w-30">
                             Tanggal
                         </TableHead>
                         {showTransactionId && (
@@ -104,20 +104,20 @@ export function TechnicianMaterialTable({
                         <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                             Nomor SAP
                         </TableHead>
-                        <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground min-w-[110px]">
+                        <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground min-w-27.5">
                             Kode Material
                         </TableHead>
                         {!hideDescriptionColumn && (
-                            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground min-w-[180px]">
+                            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground min-w-45">
                                 Deskripsi Material
                             </TableHead>
                         )}
-                        <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-[80px]">
+                        <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-20">
                             Sisa Stok
                         </TableHead>
                         <TableHead
                             className={`text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground ${
-                                wrapAllocationHeader ? 'w-[85px] px-1' : 'w-[120px]'
+                                wrapAllocationHeader ? 'w-[85px] px-1' : 'w-30'
                             }`}
                         >
                             {mode === 'input' ? (

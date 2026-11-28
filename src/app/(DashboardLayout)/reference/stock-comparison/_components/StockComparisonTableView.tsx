@@ -289,7 +289,7 @@ export default function StockComparisonTableView({
                                 onValueChange={setGlobalFilter}
                                 onClear={handleResetFilters}
                                 placeholder="Cari NIK atau nama..."
-                                wrapperClassName="w-full sm:w-[220px]"
+                                wrapperClassName="w-full sm:w-55"
                             />
                             {!isStaff && (
                                 <WarehouseCombobox

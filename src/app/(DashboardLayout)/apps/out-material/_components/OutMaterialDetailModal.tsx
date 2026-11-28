@@ -37,7 +37,7 @@ export default function OutMaterialDetailModal({
             isOpen={isOpen}
             onClose={onClose}
             title="Out Material Detail"
-            className="sm:max-w-[700px]"
+            className="sm:max-w-175"
         >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 bg-muted/50 p-4 rounded-md text-sm">
                 <div>

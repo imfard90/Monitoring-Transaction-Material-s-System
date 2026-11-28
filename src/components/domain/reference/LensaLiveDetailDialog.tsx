@@ -176,7 +176,7 @@ export function LensaLiveDetailDialog({
                                 size="sm"
                                 onClick={onRunScrape}
                                 disabled={isButtonDisabled}
-                                className="h-8 text-xs font-medium min-w-[130px]"
+                                className="h-8 text-xs font-medium min-w-32.5"
                             >
                                 {busy ? (
                                     <>
@@ -225,7 +225,7 @@ export function LensaLiveDetailDialog({
                                 <DataTable
                                     table={table}
                                     emptyMessage="Tidak ada item material ditemukan untuk ID ini."
-                                    className="border-0 max-h-[300px] overflow-y-auto"
+                                    className="border-0 max-h-75 overflow-y-auto"
                                 />
                             </div>
                         </div>

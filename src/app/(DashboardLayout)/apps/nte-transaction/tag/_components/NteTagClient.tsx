@@ -224,7 +224,7 @@ export default function NteTagClient({
                 </div>
                 <div>
                     <Select value={filterType} onValueChange={setFilterType}>
-                        <SelectTrigger className="w-[200px]">
+                        <SelectTrigger className="w-50">
                             <SelectValue placeholder="Semua Tipe" />
                         </SelectTrigger>
                         <SelectContent>

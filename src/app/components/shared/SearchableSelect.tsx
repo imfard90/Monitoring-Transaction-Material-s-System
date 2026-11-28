@@ -67,14 +67,14 @@ export function SearchableSelect({
                 </Button>
             </PopoverTrigger>
             <PopoverContent
-                className="w-[--radix-popover-trigger-width] min-w-[200px] p-0 z-[60]"
+                className="w-(--radix-popover-trigger-width) min-w-50 p-0 z-60"
                 align="start"
                 onWheel={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
             >
                 <Command>
                     <CommandInput placeholder="Cari..." />
-                    <CommandList className="max-h-[260px] overflow-y-auto">
+                    <CommandList className="max-h-65 overflow-y-auto">
                         <CommandEmpty>{emptyText}</CommandEmpty>
                         <CommandGroup>
                             {options.map((option) => (

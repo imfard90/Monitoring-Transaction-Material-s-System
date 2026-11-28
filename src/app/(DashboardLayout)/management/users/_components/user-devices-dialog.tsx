@@ -122,7 +122,7 @@ export function UserDevicesDialog({ user, isOpen, onClose, onRefresh }: UserDevi
                             </span>
                         </div>
                     ) : (
-                        <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
+                        <div className="space-y-2.5 max-h-85 overflow-y-auto pr-1">
                             {devices.map((device) => {
                                 const isRevoked = !!device.is_revoked;
                                 const isMobile =

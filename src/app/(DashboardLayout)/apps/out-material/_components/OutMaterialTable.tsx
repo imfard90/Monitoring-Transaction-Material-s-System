@@ -218,7 +218,7 @@ export default function OutMaterialTable({
                     <DateRangePicker
                         date={dateFilter}
                         setDate={onDateFilterChange}
-                        className="w-full sm:w-[260px] shrink-0"
+                        className="w-full sm:w-65 shrink-0"
                     />
                     {/* Warehouse Filter */}
                     <Popover open={openCombo} onOpenChange={setOpenCombo}>
@@ -227,7 +227,7 @@ export default function OutMaterialTable({
                                 variant="outline"
                                 role="combobox"
                                 aria-expanded={openCombo}
-                                className="w-full sm:w-[180px] justify-between font-normal h-9 px-3 shrink-0"
+                                className="w-full sm:w-45 justify-between font-normal h-9 px-3 shrink-0"
                             >
                                 <span className="truncate">
                                     {whFilter === 'all' ? 'Semua Gudang' : whFilter}
@@ -235,7 +235,7 @@ export default function OutMaterialTable({
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[220px] p-0" align="start">
+                        <PopoverContent className="w-55 p-0" align="start">
                             <Command>
                                 <CommandInput placeholder="Cari gudang..." />
                                 <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
@@ -312,7 +312,7 @@ export default function OutMaterialTable({
                     table={table}
                     isLoading={isLoading}
                     emptyMessage="Tidak ada data material."
-                    className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-[600px]"
+                    className="rounded-md border border-border flex-1 w-full min-w-0 max-w-full overflow-x-auto relative max-h-150"
                 />
             </StaggerItem>
             <StaggerItem className="py-2 px-1 shrink-0 w-full min-w-0 max-w-full">

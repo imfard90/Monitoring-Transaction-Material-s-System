@@ -41,7 +41,7 @@ export default async function StockNtePage({ searchParams }: { searchParams: Sea
                 <CardContent className="p-0">
                     {result.success ? (
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[900px] text-left text-sm">
+                            <table className="w-full min-w-225 text-left text-sm">
                                 <thead className="sticky top-0 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
                                     <tr>
                                         {[

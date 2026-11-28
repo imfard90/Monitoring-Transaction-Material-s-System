@@ -88,7 +88,7 @@ export function LiveStockClient({ initialData }: { initialData?: Result }) {
     }
 
     return (
-        <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto w-full max-w-400 p-4 sm:p-6 lg:p-8">
             {/* Mobile sticky header: judul + search + info tidak ikut scroll */}
             <div className="sticky top-0 z-30 -mx-4 mb-4 border-b border-border/70 bg-background px-4 pt-3 pb-3 animate-in fade-in duration-300 sm:static sm:mx-0 sm:mb-6 sm:flex sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0">
                 <div className="min-w-0">

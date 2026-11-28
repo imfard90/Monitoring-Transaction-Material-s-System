@@ -196,7 +196,7 @@ export function MfaModal({
             open={isOpen}
             onOpenChange={(open) => !open && allowCancel && !isSuccessState && onClose()}
         >
-            <DialogContent className="max-w-[360px] sm:max-w-[370px] p-5 sm:p-5.5 sm:rounded-2xl border-border/80 bg-background/95 backdrop-blur-md shadow-2xl transition-all duration-300">
+            <DialogContent className="max-w-90 sm:max-w-92.5 p-5 sm:p-5.5 sm:rounded-2xl border-border/80 bg-background/95 backdrop-blur-md shadow-2xl transition-all duration-300">
                 <AnimatePresence mode="wait">
                     {isSuccessState ? (
                         <motion.div
@@ -205,7 +205,7 @@ export function MfaModal({
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ type: 'spring', stiffness: 320, damping: 24 }}
-                            className="flex flex-col items-center justify-center py-6 px-2 space-y-5 text-center min-h-[260px]"
+                            className="flex flex-col items-center justify-center py-6 px-2 space-y-5 text-center min-h-65"
                         >
                             {/* Concentric radar pulse ripples + SVG Padlock with Unlocking Shackle */}
                             <div className="relative flex items-center justify-center my-1">
@@ -238,7 +238,7 @@ export function MfaModal({
                                     initial={{ scale: 0.75, rotate: -6 }}
                                     animate={{ scale: 1, rotate: 0 }}
                                     transition={{ type: 'spring', stiffness: 350, damping: 20 }}
-                                    className="relative z-10 flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-primary/10 text-emerald-500 border border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.35)] backdrop-blur-xs"
+                                    className="relative z-10 flex items-center justify-center w-16 h-16 rounded-2xl bg-linear-to-br from-emerald-500/20 via-emerald-500/10 to-primary/10 text-emerald-500 border border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.35)] backdrop-blur-xs"
                                 >
                                     <svg
                                         width="32"
@@ -299,12 +299,12 @@ export function MfaModal({
                             </motion.div>
 
                             {/* Smooth Micro Progress Bar */}
-                            <div className="w-full max-w-[240px] h-1.5 rounded-full bg-muted/60 overflow-hidden relative border border-border/40 mt-1">
+                            <div className="w-full max-w-60 h-1.5 rounded-full bg-muted/60 overflow-hidden relative border border-border/40 mt-1">
                                 <motion.div
                                     initial={{ width: '0%' }}
                                     animate={{ width: '100%' }}
                                     transition={{ duration: 1.6, ease: 'easeInOut' }}
-                                    className="h-full bg-gradient-to-r from-emerald-500 via-primary to-emerald-400 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                                    className="h-full bg-linear-to-r from-emerald-500 via-primary to-emerald-400 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                                 />
                             </div>
                         </motion.div>
@@ -483,7 +483,7 @@ export function MfaModal({
                                     size="sm"
                                     onClick={() => handleVerify()}
                                     disabled={otpCode.length !== 6 || isLoading}
-                                    className="text-xs h-9 min-w-[100px]"
+                                    className="text-xs h-9 min-w-25"
                                 >
                                     {isLoading ? (
                                         <>

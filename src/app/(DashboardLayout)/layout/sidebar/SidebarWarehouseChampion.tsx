@@ -566,7 +566,7 @@ export const SidebarWarehouseChampion = () => {
 
                     {/* Detailed Leaderboard Table */}
                     <div
-                        className="flex-1 overflow-y-auto min-h-[220px] max-h-[340px] pr-1 mt-2 border rounded-lg border-border/60 [overflow-anchor:auto]"
+                        className="flex-1 overflow-y-auto min-h-55 max-h-85 pr-1 mt-2 border rounded-lg border-border/60 [overflow-anchor:auto]"
                         data-scroll-anchor="true"
                     >
                         <table className="w-full text-xs text-left">
@@ -618,7 +618,7 @@ export const SidebarWarehouseChampion = () => {
                                             <td className="py-2 px-3">
                                                 <div className="flex items-center gap-1.5">
                                                     <span
-                                                        className="text-foreground truncate max-w-[140px]"
+                                                        className="text-foreground truncate max-w-35"
                                                         title={row.name}
                                                     >
                                                         {row.name}

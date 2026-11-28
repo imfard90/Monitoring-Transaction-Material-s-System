@@ -138,7 +138,7 @@ export default function KproRefClient({
                 size: 160,
                 cell: (info) => (
                     <div
-                        className="min-w-[130px] max-w-56 truncate font-mono font-medium text-foreground"
+                        className="min-w-32.5 max-w-56 truncate font-mono font-medium text-foreground"
                         title={info.getValue() || undefined}
                     >
                         {info.getValue() || '-'}
@@ -151,7 +151,7 @@ export default function KproRefClient({
                 size: 220,
                 cell: (info) => (
                     <div
-                        className="min-w-[160px] max-w-64 truncate font-mono font-medium text-foreground"
+                        className="min-w-40 max-w-64 truncate font-mono font-medium text-foreground"
                         title={info.getValue() || undefined}
                     >
                         {info.getValue() || '-'}
@@ -186,7 +186,7 @@ export default function KproRefClient({
                 size: 220,
                 cell: (info) => (
                     <div
-                        className="min-w-[160px] max-w-64 truncate text-foreground font-medium"
+                        className="min-w-40 max-w-64 truncate text-foreground font-medium"
                         title={info.getValue() || undefined}
                     >
                         {info.getValue() || '-'}
@@ -269,7 +269,7 @@ export default function KproRefClient({
                                 value={searchVal}
                                 onValueChange={handleSearchChange}
                                 placeholder="Cari WONUM, SC, STO, Layanan, Paket..."
-                                wrapperClassName="w-full sm:w-[240px]"
+                                wrapperClassName="w-full sm:w-60"
                             />
                             <div className="w-full sm:w-42.5">
                                 <Select value={selectedDatel} onValueChange={handleDatelChange}>

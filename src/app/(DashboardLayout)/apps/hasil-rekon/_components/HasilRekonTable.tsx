@@ -90,7 +90,7 @@ export default function HasilRekonTable({
             size: 170,
             cell: (info) => (
                 <div
-                    className="truncate max-w-[170px] text-sm font-medium"
+                    className="truncate max-w-42.5 text-sm font-medium"
                     title={info.getValue() || undefined}
                 >
                     {info.getValue() || '-'}
@@ -280,12 +280,12 @@ export default function HasilRekonTable({
                         <DateRangePicker
                             date={dateRange}
                             setDate={onDateRangeChange}
-                            className="w-full sm:w-[260px] shrink-0"
+                            className="w-full sm:w-65 shrink-0"
                         />
                     )}
 
                     {onWarehouseFilterChange && (
-                        <div className="w-full sm:w-[200px] shrink-0">
+                        <div className="w-full sm:w-50 shrink-0">
                             <SearchableSelect
                                 value={warehouseFilter || ''}
                                 onValueChange={onWarehouseFilterChange}
@@ -299,7 +299,7 @@ export default function HasilRekonTable({
                     )}
 
                     {onMaterialFilterChange && (
-                        <div className="w-full sm:w-[200px] shrink-0">
+                        <div className="w-full sm:w-50 shrink-0">
                             <SearchableSelect
                                 value={materialFilter || ''}
                                 onValueChange={onMaterialFilterChange}
@@ -313,7 +313,7 @@ export default function HasilRekonTable({
                     )}
 
                     {onTypeFilterChange && (
-                        <div className="w-full sm:w-[200px] shrink-0">
+                        <div className="w-full sm:w-50 shrink-0">
                             <SearchableSelect
                                 value={typeFilter || ''}
                                 onValueChange={onTypeFilterChange}

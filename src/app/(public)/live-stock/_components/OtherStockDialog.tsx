@@ -156,7 +156,7 @@ export function OtherStockDialog({ item, onClose }: OtherStockDialogProps) {
 
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border/60">
                     <div className="min-h-0 flex-1 overflow-auto overscroll-contain [&_[data-slot=table-container]]:overflow-visible">
-                        <div className="min-w-[760px] sm:min-w-0">
+                        <div className="min-w-190 sm:min-w-0">
                             <Table>
                                 <TableHeader className="sticky top-0 z-10 bg-background">
                                     <TableRow className="bg-muted/50 hover:bg-muted/50">

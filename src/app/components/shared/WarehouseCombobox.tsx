@@ -48,13 +48,13 @@ export function WarehouseCombobox({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className={cn('w-[200px] justify-between font-normal', className)}
+                    className={cn('w-50 justify-between font-normal', className)}
                 >
                     <span className="truncate">{value === 'all' || !value ? allLabel : value}</span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className={cn('w-[200px] p-0', className)} align="start">
+            <PopoverContent className={cn('w-50 p-0', className)} align="start">
                 <Command>
                     <CommandInput placeholder={placeholder} />
                     <CommandEmpty>{emptyText}</CommandEmpty>

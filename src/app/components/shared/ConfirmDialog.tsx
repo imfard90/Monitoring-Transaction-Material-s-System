@@ -41,7 +41,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] bg-background text-foreground p-0 overflow-hidden border border-border rounded-xl">
+            <DialogContent className="sm:max-w-150 bg-background text-foreground p-0 overflow-hidden border border-border rounded-xl">
                 <DialogHeader className="p-6 bg-muted/50 border-b border-border">
                     <DialogTitle className="text-xl text-foreground">{title}</DialogTitle>
                     {description && (

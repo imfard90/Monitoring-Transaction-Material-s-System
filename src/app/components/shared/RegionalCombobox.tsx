@@ -71,11 +71,11 @@ export function RegionalCombobox({
                         className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
                         aria-hidden="true"
                     />
-                    <span className="truncate max-w-[120px]">{displayLabel}</span>
+                    <span className="truncate max-w-30">{displayLabel}</span>
                     <ChevronsUpDown className="ml-auto h-3.5 w-3.5 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0" align="start">
+            <PopoverContent className="w-50 p-0" align="start">
                 <Command>
                     <CommandInput placeholder={placeholder} />
                     <CommandList>

@@ -60,7 +60,7 @@ const Profile = () => {
 
                 <DropdownMenuContent
                     align="end"
-                    className="w-screen sm:w-[250px] pb-4 pt-2 rounded-xl shadow-lg border-border"
+                    className="w-screen sm:w-62.5 pb-4 pt-2 rounded-xl shadow-lg border-border"
                 >
                     <div className="px-4 py-3 flex items-center gap-3">
                         {renderAvatar(40)}

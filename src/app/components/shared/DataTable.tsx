@@ -84,7 +84,7 @@ export function DataTable<TData extends RowData>({
                                                 : undefined
                                         }
                                     >
-                                        <Skeleton className="h-4 w-full min-w-[50px] max-w-[200px]" />
+                                        <Skeleton className="h-4 w-full min-w-12.5 max-w-50" />
                                         {rowIndex === 0 && colIndex === 0 && (
                                             <span className="sr-only" role="status">
                                                 Memuat data...

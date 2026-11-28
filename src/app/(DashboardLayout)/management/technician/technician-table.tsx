@@ -224,7 +224,7 @@ export default function TechnicianTable({
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                     {/* Search by NIK */}
                     <SearchField
-                        wrapperClassName="w-full sm:w-[250px]"
+                        wrapperClassName="w-full sm:w-62.5"
                         placeholder="Cari berdasarkan NIK atau nama..."
                         value={nikFilter}
                         onValueChange={setNikFilter}

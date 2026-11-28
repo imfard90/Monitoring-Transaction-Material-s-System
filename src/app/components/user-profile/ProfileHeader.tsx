@@ -34,7 +34,7 @@ export function ProfileHeader({ profileData }: ProfileHeaderProps) {
                             <div className="relative p-[3.5px] rounded-[2.2rem] bg-linear-to-tr from-primary via-emerald-400 to-primary/70 shadow-xl shadow-primary/25">
                                 {/* Inner Contrast Separation Ring */}
                                 <div className="p-[3px] rounded-[2rem] bg-background shadow-inner">
-                                    <Avatar className="w-[130px] h-[155px] sm:w-[145px] sm:h-[175px] rounded-[1.85rem] overflow-hidden border border-border/40 shadow-inner bg-muted/40">
+                                    <Avatar className="w-32.5 h-[155px] sm:w-[145px] sm:h-[175px] rounded-[1.85rem] overflow-hidden border border-border/40 shadow-inner bg-muted/40">
                                         {avatarSrc ? (
                                             <AvatarImage
                                                 src={avatarSrc}

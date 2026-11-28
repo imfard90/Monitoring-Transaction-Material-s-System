@@ -270,16 +270,16 @@ export function TechnicianExcludeDialog({
                                 <table className="w-full text-xs">
                                     <thead className="bg-muted/60 text-muted-foreground border-b border-border">
                                         <tr>
-                                            <th className="py-2 px-3 text-left font-medium w-[120px]">
+                                            <th className="py-2 px-3 text-left font-medium w-30">
                                                 Kode Material
                                             </th>
                                             <th className="py-2 px-3 text-left font-medium">
                                                 Nama Material
                                             </th>
-                                            <th className="py-2 px-3 text-center font-medium w-[90px]">
+                                            <th className="py-2 px-3 text-center font-medium w-22.5">
                                                 Jenis
                                             </th>
-                                            <th className="py-2 px-3 text-center font-medium w-[80px]">
+                                            <th className="py-2 px-3 text-center font-medium w-20">
                                                 Jumlah
                                             </th>
                                             <th className="py-2 px-3 text-center font-medium w-[45px]">

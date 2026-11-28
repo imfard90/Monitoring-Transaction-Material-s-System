@@ -113,7 +113,7 @@ export default function MovementTable({
             size: 170,
             cell: (info) => (
                 <div
-                    className="truncate max-w-[170px] text-sm font-medium"
+                    className="truncate max-w-42.5 text-sm font-medium"
                     title={info.getValue() || undefined}
                 >
                     {info.getValue() || '-'}
@@ -255,12 +255,12 @@ export default function MovementTable({
                         <DateRangePicker
                             date={dateRange}
                             setDate={onDateRangeChange}
-                            className="w-full sm:w-[260px] shrink-0"
+                            className="w-full sm:w-65 shrink-0"
                         />
                     )}
 
                     {onWarehouseFilterChange && (
-                        <div className="w-full sm:w-[200px] shrink-0">
+                        <div className="w-full sm:w-50 shrink-0">
                             <SearchableSelect
                                 value={warehouseFilter || ''}
                                 onValueChange={onWarehouseFilterChange}
@@ -274,7 +274,7 @@ export default function MovementTable({
                     )}
 
                     {onMaterialFilterChange && (
-                        <div className="w-full sm:w-[200px] shrink-0">
+                        <div className="w-full sm:w-50 shrink-0">
                             <SearchableSelect
                                 value={materialFilter || ''}
                                 onValueChange={onMaterialFilterChange}
@@ -288,7 +288,7 @@ export default function MovementTable({
                     )}
 
                     {onTypeFilterChange && (
-                        <div className="w-full sm:w-[200px] shrink-0">
+                        <div className="w-full sm:w-50 shrink-0">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
@@ -300,7 +300,7 @@ export default function MovementTable({
                                             : 'Semua Tipe'}
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-[200px] max-h-[300px] overflow-y-auto">
+                                <DropdownMenuContent className="w-50 max-h-75 overflow-y-auto">
                                     <DropdownMenuLabel>Filter Berdasarkan Tipe</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     {uniqueTypes.map((type) => {

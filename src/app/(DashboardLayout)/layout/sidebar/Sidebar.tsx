@@ -234,7 +234,7 @@ const SidebarLayout = ({
                 'flex flex-col select-none overflow-hidden transition-colors duration-200',
                 isMobile
                     ? 'h-full w-full bg-card dark:bg-card text-card-foreground'
-                    : 'fixed left-0 top-0 z-10 h-[100dvh] w-[270px] border-r border-border bg-card dark:bg-card text-card-foreground shadow-xs'
+                    : 'fixed left-0 top-0 z-10 h-[100dvh] w-67.5 border-r border-border bg-card dark:bg-card text-card-foreground shadow-xs'
             )}
         >
             <div className="flex flex-col h-full w-full justify-between">

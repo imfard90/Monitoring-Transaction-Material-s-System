@@ -16,7 +16,7 @@ export function SupportMenu() {
             className={cn(
                 'overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl transition-all duration-200',
                 view === 'agent-chat'
-                    ? 'w-[min(26rem,calc(100vw-2rem))] h-[540px] flex flex-col'
+                    ? 'w-[min(26rem,calc(100vw-2rem))] h-135 flex flex-col'
                     : 'w-[min(20rem,calc(100vw-2rem))]'
             )}
         >

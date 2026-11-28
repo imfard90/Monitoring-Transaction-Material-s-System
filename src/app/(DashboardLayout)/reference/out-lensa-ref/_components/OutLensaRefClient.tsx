@@ -488,7 +488,7 @@ export default function OutLensaRefClient({
                                 onValueChange={setSearchQuery}
                                 onClear={handleResetAll}
                                 placeholder="Cari reservasi, GI, NIK..."
-                                wrapperClassName="w-full sm:w-[220px]"
+                                wrapperClassName="w-full sm:w-55"
                             />
                             {!isStaff && (
                                 <WarehouseCombobox

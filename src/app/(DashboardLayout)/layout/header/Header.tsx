@@ -98,7 +98,7 @@ const Header = () => {
 
             {/* Mobile Sidebar */}
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
-                <SheetContent side="left" className="w-[270px] p-0 border-r-0">
+                <SheetContent side="left" className="w-67.5 p-0 border-r-0">
                     <VisuallyHidden>
                         <SheetTitle>Navigasi utama</SheetTitle>
                     </VisuallyHidden>
