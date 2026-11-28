@@ -10,9 +10,14 @@ import {
     type AuthorizationUser,
     canAccessManagement,
     canAccessTechnicianManagement,
+    isSuperUserFromEnv,
+    type RoleKey,
+    requirePermission,
+    type ScopeBoundary,
 } from '@/lib/policies';
 import { touchUserPresence } from '@/lib/presence';
 import { redis } from '@/lib/redis';
+import { rbacRepository } from '@/lib/repositories/rbac.repository';
 import { validateSessionIntegrity } from '@/lib/security/session-anomaly.service';
 
 /**
@@ -65,15 +70,39 @@ export async function getSessionNik(): Promise<string> {
 
 export type SessionUser = AuthorizationUser & {
     userId?: string;
+    email?: string;
+    isSuperUser: boolean;
+    roleKey: RoleKey | null;
+    hierarchyLevel: number;
+    permissions: string[];
+    scopeBoundary: ScopeBoundary;
     branchId: number | null;
     branchName: string | null;
 };
 
+const EMPTY_SCOPE_BOUNDARY: ScopeBoundary = {
+    area: null,
+    regional: null,
+    branch: null,
+    serviceArea: null,
+};
+
+export async function invalidateUserSessionMetaCache(nik: string): Promise<void> {
+    if (!nik) return;
+    const cacheKey = `cache:user:session-meta:${nik}`;
+    sessionMetaLru.delete(cacheKey);
+    try {
+        await redis.del(cacheKey);
+    } catch {
+        // Non-blocking cache invalidation
+    }
+}
+
 /**
- * Helper untuk mengambil data user lengkap dari session (nik, role, warehouseIds).
- * Role di-query live dari hr.employees → hr.levels.
- * Untuk Staff, warehouse_ids di-query dari inventory.mas_wh berdasarkan pic_1/pic_2 = nik.
- * Non-staff = akses semua data (warehouseIds kosong, isStaff false).
+ * Helper untuk mengambil data user lengkap dari session (nik, role, permissions, warehouseIds).
+ * Prioritas 1: SuperUser dari .env (validasi ganda email + nik).
+ * Prioritas 2: auth.user_scopes + auth.role_permissions (RBAC + SBAC).
+ * Fallback aman (fail-closed) jika scope belum terdaftar.
  * Akan melempar Error 'Unauthorized' jika sesi tidak valid.
  */
 export async function getSessionUser(): Promise<SessionUser> {
@@ -83,9 +112,10 @@ export async function getSessionUser(): Promise<SessionUser> {
             headers: reqHeaders,
         });
 
-        const user = session?.user as { id?: string; nik?: string } | undefined;
+        const user = session?.user as { id?: string; nik?: string; email?: string } | undefined;
         const nik: string = user?.nik ?? '';
         const userId: string | undefined = user?.id;
+        const email: string | undefined = user?.email;
 
         if (!nik) {
             throw errors.auth();
@@ -107,6 +137,7 @@ export async function getSessionUser(): Promise<SessionUser> {
         // Passively refresh presence for both Staff and Non-Staff on activity
         void touchUserPresence(redis, nik, session?.session?.id);
 
+        const isSuperUser = isSuperUserFromEnv(email, nik);
         const cacheKey = `cache:user:session-meta:${nik}`;
         type SessionMetaData = {
             role: string | null;
@@ -114,13 +145,19 @@ export async function getSessionUser(): Promise<SessionUser> {
             branchName: string | null;
             warehouseIds: number[];
             isStaff: boolean;
+            isSuperUser: boolean;
+            roleKey: RoleKey | null;
+            hierarchyLevel: number;
+            permissions: string[];
+            scopeBoundary: ScopeBoundary;
         };
 
         // 1. Check Tier-1: Local In-Memory LRU Cache (0ms)
         const l1Cached = sessionMetaLru.get(cacheKey) as SessionMetaData | undefined;
-        if (l1Cached) {
+        if (l1Cached && l1Cached.isSuperUser === isSuperUser) {
             return {
                 userId,
+                email,
                 nik,
                 ...l1Cached,
             };
@@ -131,7 +168,10 @@ export async function getSessionUser(): Promise<SessionUser> {
         try {
             const raw = await redis.get(cacheKey);
             if (raw) {
-                cachedMeta = JSON.parse(raw);
+                const parsed = JSON.parse(raw) as SessionMetaData;
+                if (typeof parsed.isSuperUser === 'boolean' && parsed.isSuperUser === isSuperUser) {
+                    cachedMeta = parsed;
+                }
             }
         } catch {
             // Redis unavailable or parse failed: proceed to query DB gracefully
@@ -141,12 +181,13 @@ export async function getSessionUser(): Promise<SessionUser> {
             sessionMetaLru.set(cacheKey, cachedMeta, { ttl: 30 * 1000 });
             return {
                 userId,
+                email,
                 nik,
                 ...cachedMeta,
             };
         }
 
-        // Query role from hr.employees → hr.levels
+        // Query employee reference from hr.employees -> hr.levels & hr.branches
         const employee = await db
             .selectFrom('hr.employees as e')
             .leftJoin('hr.levels as l', 'l.id', 'e.level_id')
@@ -155,28 +196,62 @@ export async function getSessionUser(): Promise<SessionUser> {
             .where('e.nik', '=', nik)
             .executeTakeFirst();
 
-        const role = employee?.level_name ?? null;
         const branchId = employee?.branch_id ?? null;
         const branchName = employee?.branch_name ?? null;
 
-        // For Staff: resolve warehouse_ids from mas_wh where pic_1 or pic_2 = nik
-        let warehouseIds: number[] = [];
-        if (role === 'Staff') {
-            const whs = await db
-                .selectFrom('inventory.mas_wh')
-                .select('id')
-                .where((eb) => eb.or([eb('pic_1', '=', nik), eb('pic_2', '=', nik)]))
-                .execute();
-            warehouseIds = whs.map((w) => w.id);
-        }
+        let sessionMeta: SessionMetaData;
 
-        const sessionMeta: SessionMetaData = {
-            role,
-            warehouseIds,
-            isStaff: role === 'Staff',
-            branchId,
-            branchName,
-        };
+        if (isSuperUser) {
+            sessionMeta = {
+                role: 'SuperUser',
+                warehouseIds: [],
+                isStaff: false,
+                isSuperUser: true,
+                roleKey: null,
+                hierarchyLevel: 0,
+                permissions: ['*'],
+                scopeBoundary: EMPTY_SCOPE_BOUNDARY,
+                branchId,
+                branchName,
+            };
+        } else {
+            const scopes = await rbacRepository.getActiveUserScopes(nik);
+
+            if (scopes.length > 0) {
+                const primary = scopes[0];
+                const [{ warehouseIds, scopeBoundary }, permissions] = await Promise.all([
+                    rbacRepository.resolveWarehouseIdsFromScopes(scopes),
+                    rbacRepository.getPermissionsByRoleId(primary.role_id),
+                ]);
+
+                sessionMeta = {
+                    role: employee?.level_name ?? primary.role_name,
+                    warehouseIds,
+                    isStaff: primary.role_key === 'STAFF_GUDANG',
+                    isSuperUser: false,
+                    roleKey: primary.role_key,
+                    hierarchyLevel: primary.hierarchy_level,
+                    permissions,
+                    scopeBoundary,
+                    branchId,
+                    branchName,
+                };
+            } else {
+                // Fail-closed: user belum memiliki mapping scope aktif di auth.user_scopes
+                sessionMeta = {
+                    role: employee?.level_name ?? null,
+                    warehouseIds: [],
+                    isStaff: employee?.level_name === 'Staff',
+                    isSuperUser: false,
+                    roleKey: null,
+                    hierarchyLevel: employee?.level_name === 'Teknisi' ? 6 : 99,
+                    permissions: [],
+                    scopeBoundary: EMPTY_SCOPE_BOUNDARY,
+                    branchId,
+                    branchName,
+                };
+            }
+        }
 
         // Cache for 60 seconds in L2 Redis and 30 seconds in L1 LRU Cache
         try {
@@ -188,6 +263,7 @@ export async function getSessionUser(): Promise<SessionUser> {
 
         return {
             userId,
+            email,
             nik,
             ...sessionMeta,
         };
@@ -261,15 +337,26 @@ export async function requireTechnicianManagementAccess(): Promise<SessionUser> 
     return session;
 }
 
+export async function requirePermissionAccess(
+    permissionKey: string,
+    message?: string
+): Promise<SessionUser> {
+    const session = await getSessionUser();
+    requirePermission(session, permissionKey, message);
+    return session;
+}
+
 /**
  * Helper untuk memvalidasi akses gudang tertentu bagi user yang sedang login.
- * Jika Staff: wajib terdaftar sebagai pic_1 atau pic_2 pada targetWarehouseId (fail-closed).
- * Jika Non-Staff: diizinkan akses seluruh gudang.
+ * Memeriksa cakupan wilayah (warehouseIds) untuk seluruh user non-SuperUser.
  * Melempar AuthorizationError jika tidak berhak (fail-closed).
  */
 export async function requireWarehouseAccess(targetWarehouseId: number): Promise<SessionUser> {
     const user = await getSessionUser();
-    if (user.isStaff) {
+    if (user.isSuperUser) {
+        return user;
+    }
+    if (user.isStaff || user.roleKey !== undefined) {
         if (
             !user.warehouseIds ||
             user.warehouseIds.length === 0 ||

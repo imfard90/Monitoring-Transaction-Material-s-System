@@ -12,6 +12,7 @@ export interface ChildItem {
     badge?: boolean;
     badgeType?: string;
     isPro?: boolean;
+    requiredPermission?: string | string[];
 }
 
 export interface MenuItem {
@@ -29,6 +30,7 @@ export interface MenuItem {
     badgeType?: string;
     badge?: boolean;
     isPro?: boolean;
+    requiredPermission?: string | string[];
 }
 
 const SidebarContent: MenuItem[] = [
@@ -42,6 +44,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:widget-2-bold',
                 url: '/',
                 isPro: false,
+                requiredPermission: 'dashboard:view',
             },
             {
                 id: 'home-stock-inventory',
@@ -50,6 +53,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:box-minimalistic-bold',
                 url: '/stock-inventory',
                 isPro: false,
+                requiredPermission: 'stock:view',
             },
             {
                 id: 'home-stock-intech',
@@ -58,6 +62,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:layers-minimalistic-bold',
                 url: '/stock-intech',
                 isPro: false,
+                requiredPermission: 'stock:view',
             },
         ],
     },
@@ -71,6 +76,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:document-add-bold',
                 url: '/form/out-sap',
                 isPro: false,
+                requiredPermission: 'out_sap:create',
             },
             {
                 id: 'pages-rekon-intech',
@@ -79,6 +85,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:transfer-horizontal-bold',
                 url: '/form/rekon-intech',
                 isPro: false,
+                requiredPermission: 'rekon:create',
             },
             {
                 id: 'pages-rekon-lensa',
@@ -87,6 +94,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:glasses-bold',
                 url: '/form/rekon-lensa',
                 isPro: false,
+                requiredPermission: 'rekon:create',
             },
             {
                 id: 'pages-return-material',
@@ -95,6 +103,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:restart-square-bold',
                 url: '/form/return-material',
                 isPro: false,
+                requiredPermission: ['return:create', 'return:approve'],
             },
             {
                 id: 'pages-stock-opname',
@@ -103,6 +112,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:clipboard-list-bold',
                 url: '/form/stock-opname',
                 isPro: false,
+                requiredPermission: ['stock_opname:input', 'stock_opname:approve'],
             },
         ],
     },
@@ -116,6 +126,12 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:tag-bold',
                 url: '/apps/inout-tag',
                 isPro: false,
+                requiredPermission: [
+                    'inout_tag:transfer',
+                    'inout_tag:approve_branch',
+                    'inout_tag:approve_regional',
+                    'inout_tag:approve_area',
+                ],
             },
             {
                 id: 'apps-out-material',
@@ -124,6 +140,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:delivery-bold',
                 url: '/apps/out-material',
                 isPro: false,
+                requiredPermission: 'stock:view',
             },
             {
                 id: 'apps-hasil-rekon',
@@ -132,6 +149,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:document-text-bold',
                 url: '/apps/hasil-rekon',
                 isPro: false,
+                requiredPermission: 'stock:view',
             },
             {
                 id: 'apps-stock-movement',
@@ -140,6 +158,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:history-bold',
                 url: '/apps/stock-movement',
                 isPro: false,
+                requiredPermission: 'stock:view',
             },
         ],
     },
@@ -161,6 +180,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:users-group-rounded-bold',
                 url: '/management/users',
                 isPro: false,
+                requiredPermission: ['users:view', 'users:manage'],
             },
             {
                 id: 'mgmt-technician',
@@ -169,6 +189,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:shield-user-bold',
                 url: '/management/technician',
                 isPro: false,
+                requiredPermission: ['technicians:manage', 'out_sap:create'],
             },
         ],
     },
@@ -182,6 +203,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:export-bold',
                 url: '/reference/out-lensa-ref',
                 isPro: false,
+                requiredPermission: 'reference:view',
             },
             {
                 id: 'ref-wo-lensa-ref',
@@ -190,6 +212,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:notebook-bold',
                 url: '/reference/wo-lensa-ref',
                 isPro: false,
+                requiredPermission: 'reference:view',
             },
             {
                 id: 'ref-stock-comparison',
@@ -198,6 +221,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:scale-bold',
                 url: '/reference/stock-comparison',
                 isPro: false,
+                requiredPermission: 'reference:view',
             },
             {
                 id: 'ref-kpro-ref',
@@ -206,6 +230,7 @@ const SidebarContent: MenuItem[] = [
                 iconActive: 'solar:database-bold',
                 url: '/reference/kpro-ref',
                 isPro: false,
+                requiredPermission: 'reference:view',
             },
         ],
     },

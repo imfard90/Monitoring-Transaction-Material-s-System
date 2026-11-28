@@ -3,10 +3,17 @@
 import { sql } from 'kysely';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { getSessionUser, requireManagementAccess } from '@/lib/auth-server';
+import {
+    getSessionUser,
+    invalidateUserSessionMetaCache,
+    requireManagementAccess,
+    requirePermissionAccess,
+} from '@/lib/auth-server';
 import { db, pool } from '@/lib/db/db';
+import { canAssignRole, isSuperUserFromEnv, type RoleKey } from '@/lib/policies';
 import { batchGetUsersOnlineStatus } from '@/lib/presence';
 import { redis } from '@/lib/redis';
+import { rbacRepository } from '@/lib/repositories/rbac.repository';
 import { logAuthEvent } from '@/lib/security/auth-audit.service';
 import {
     listUserDevices,
@@ -64,6 +71,54 @@ export async function isUserOnline(nik: string): Promise<boolean> {
     return statusMap.get(nik) ?? false;
 }
 
+const saveUserScopeSchema = z.object({
+    userNik: z.string().trim().min(1).max(20),
+    roleKey: z.enum([
+        'PEJABAT_AREA',
+        'PEJABAT_REGIONAL',
+        'PEJABAT_BRANCH',
+        'TL_SA',
+        'STAFF_GUDANG',
+        'TEKNISI',
+    ]),
+    area: z.string().trim().max(50).nullable().optional(),
+    regional: z.string().trim().max(50).nullable().optional(),
+    branch: z.string().trim().max(100).nullable().optional(),
+    serviceArea: z.string().trim().max(100).nullable().optional(),
+    warehouseIds: z.array(z.number().int().positive()).default([]),
+    validUntil: z.string().datetime({ offset: true }).or(z.string().min(1)).nullable().optional(),
+});
+
+function formatScopeSummary(
+    isSuperUser: boolean,
+    roleKey: RoleKey | null,
+    scopes: Array<{
+        area: string | null;
+        regional: string | null;
+        branch: string | null;
+        service_area: string | null;
+        warehouse_name: string | null;
+    }>
+): string {
+    if (isSuperUser) return 'Seluruh Wilayah (SuperUser)';
+    if (!roleKey || scopes.length === 0) return 'Belum Diatur';
+
+    const first = scopes[0];
+    if (roleKey === 'PEJABAT_AREA') return first.area ? `Area: ${first.area}` : 'Area: -';
+    if (roleKey === 'PEJABAT_REGIONAL')
+        return first.regional ? `Regional: ${first.regional}` : 'Regional: -';
+    if (roleKey === 'PEJABAT_BRANCH') return first.branch ? `Branch: ${first.branch}` : 'Branch: -';
+    if (roleKey === 'TL_SA') return first.service_area ? `SA: ${first.service_area}` : 'SA: -';
+    if (roleKey === 'STAFF_GUDANG') {
+        const names = scopes.map((s) => s.warehouse_name).filter((n): n is string => Boolean(n));
+        if (names.length === 0) return 'Gudang: -';
+        return names.length <= 2
+            ? `WH: ${names.join(', ')}`
+            : `WH: ${names.slice(0, 2).join(', ')} (+${names.length - 2})`;
+    }
+    return 'Personal (NIK)';
+}
+
 export async function getUsers() {
     await requireManagementAccess();
 
@@ -90,16 +145,142 @@ export async function getUsers() {
         .orderBy('auth.user.name', 'asc')
         .execute();
 
-    // Batch-query Redis presence for all users in a single roundtrip (O(1) network calls)
+    // Batch-query Redis presence & active RBAC/SBAC scopes
     const validNiks = users.map((u) => u.nik).filter((nik): nik is string => Boolean(nik));
-    const onlineMap = await batchGetUsersOnlineStatus(redis, validNiks);
+    const [onlineMap, allScopes] = await Promise.all([
+        batchGetUsersOnlineStatus(redis, validNiks),
+        rbacRepository.getAllActiveUserScopes(),
+    ]);
 
-    return users.map((user) => ({
-        ...user,
-        twoFactorEnabled: user.twoFactorEnabled === true,
-        active_devices_count: Number(user.active_devices_count || 0),
-        is_online: user.nik ? (onlineMap.get(user.nik) ?? false) : false,
-    }));
+    const scopesByNik = new Map<string, typeof allScopes>();
+    for (const s of allScopes) {
+        const list = scopesByNik.get(s.user_nik) ?? [];
+        list.push(s);
+        scopesByNik.set(s.user_nik, list);
+    }
+
+    return users.map((user) => {
+        const isSuperUser = isSuperUserFromEnv(user.email, user.nik);
+        const userScopes = user.nik ? (scopesByNik.get(user.nik) ?? []) : [];
+        const primaryScope = userScopes[0] ?? null;
+
+        return {
+            ...user,
+            twoFactorEnabled: user.twoFactorEnabled === true,
+            active_devices_count: Number(user.active_devices_count || 0),
+            is_online: user.nik ? (onlineMap.get(user.nik) ?? false) : false,
+            is_superuser: isSuperUser,
+            rbac_role_key: primaryScope?.role_key ?? null,
+            rbac_role_name: isSuperUser ? 'SuperUser' : (primaryScope?.role_name ?? null),
+            rbac_hierarchy_level: isSuperUser ? 0 : (primaryScope?.hierarchy_level ?? 99),
+            scope_area: primaryScope?.area ?? null,
+            scope_regional: primaryScope?.regional ?? null,
+            scope_branch: primaryScope?.branch ?? null,
+            scope_service_area: primaryScope?.service_area ?? null,
+            scope_warehouse_ids: userScopes
+                .map((s) => s.warehouse_id)
+                .filter((id): id is number => id !== null && id > 0),
+            scope_valid_until: primaryScope?.valid_until
+                ? primaryScope.valid_until.toISOString()
+                : null,
+            scope_summary: formatScopeSummary(
+                isSuperUser,
+                primaryScope?.role_key ?? null,
+                userScopes
+            ),
+        };
+    });
+}
+
+export async function getScopeHierarchyConfig() {
+    await requireManagementAccess();
+    const [roles, options] = await Promise.all([
+        rbacRepository.getRoles(),
+        rbacRepository.getScopeHierarchyOptions(),
+    ]);
+    return {
+        roles,
+        branches: options.branches,
+        warehouses: options.warehouses,
+    };
+}
+
+export async function saveUserScopeMappingAction(
+    rawPayload: z.infer<typeof saveUserScopeSchema>
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const actor = await requirePermissionAccess(
+            'users:manage',
+            'Akses ditolak: Anda tidak memiliki izin untuk mengatur Role & Scope pengguna.'
+        );
+
+        const parsed = saveUserScopeSchema.safeParse(rawPayload);
+        if (!parsed.success) {
+            return {
+                success: false,
+                error: parsed.error.issues[0]?.message || 'Data Role & Scope tidak valid.',
+            };
+        }
+
+        const data = parsed.data;
+        const roles = await rbacRepository.getRoles();
+        const targetRole = roles.find((r) => r.role_key === data.roleKey);
+        if (!targetRole) {
+            return { success: false, error: 'Role tujuan tidak ditemukan.' };
+        }
+
+        if (!canAssignRole(actor, targetRole.hierarchy_level)) {
+            return {
+                success: false,
+                error: 'Akses ditolak: Anda tidak dapat memberikan role lebih tinggi dari level Anda.',
+            };
+        }
+
+        const parsedValidUntil = data.validUntil ? new Date(data.validUntil) : null;
+        if (parsedValidUntil && Number.isNaN(parsedValidUntil.getTime())) {
+            return { success: false, error: 'Format tanggal masa berlaku PLT tidak valid.' };
+        }
+
+        await rbacRepository.saveUserScopeMapping({
+            userNik: data.userNik,
+            roleKey: data.roleKey as RoleKey,
+            area: data.area ?? null,
+            regional: data.regional ?? null,
+            branch: data.branch ?? null,
+            serviceArea: data.serviceArea ?? null,
+            warehouseIds: data.warehouseIds,
+            validUntil: parsedValidUntil,
+            actorNik: actor.nik,
+        });
+
+        await invalidateUserSessionMetaCache(data.userNik);
+
+        await logAuthEvent({
+            userId: actor.userId,
+            nik: actor.nik,
+            eventType: 'USER_SCOPE_UPDATED',
+            status: 'SUCCESS',
+            reason: `Role & Scope untuk NIK ${data.userNik} diubah menjadi ${data.roleKey} oleh ${actor.nik}`,
+            metadata: {
+                targetNik: data.userNik,
+                roleKey: data.roleKey,
+                branch: data.branch ?? null,
+                warehouseIds: data.warehouseIds,
+                actorNik: actor.nik,
+            },
+        });
+
+        revalidatePath('/management/users');
+        return { success: true };
+    } catch (error) {
+        return {
+            success: false,
+            error:
+                error instanceof Error
+                    ? error.message
+                    : 'Gagal menyimpan konfigurasi Role & Scope.',
+        };
+    }
 }
 
 export async function getUserDevices(userId: string) {
@@ -110,7 +291,7 @@ export async function getUserDevices(userId: string) {
 }
 
 export async function revokeDeviceByAdmin(userId: string, deviceId: string) {
-    const admin = await requireManagementAccess();
+    const admin = await requirePermissionAccess('users:manage');
     const parsed = revokeDeviceSchema.safeParse({ userId, deviceId });
     if (!parsed.success) return { success: false, error: 'Parameter tidak valid' };
     const success = await revokeUserDevice(parsed.data.userId, parsed.data.deviceId, admin.nik);
@@ -119,7 +300,7 @@ export async function revokeDeviceByAdmin(userId: string, deviceId: string) {
 }
 
 export async function resetUserMfa(userId: string) {
-    const admin = await requireManagementAccess();
+    const admin = await requirePermissionAccess('users:manage');
     const parsed = userIdSchema.safeParse(userId);
     if (!parsed.success) return { success: false, error: 'User ID tidak valid' };
     const validUserId = parsed.data;
@@ -172,7 +353,7 @@ export async function resetUserMfa(userId: string) {
 }
 
 export async function toggleUserStatus(userId: string, isActive: boolean) {
-    await requireManagementAccess();
+    await requirePermissionAccess('users:manage');
     const parsed = userIdSchema.safeParse(userId);
     if (!parsed.success) return;
 
@@ -186,7 +367,7 @@ export async function toggleUserStatus(userId: string, isActive: boolean) {
 }
 
 export async function deleteUser(userId: string) {
-    await requireManagementAccess();
+    await requirePermissionAccess('users:manage');
     const parsed = userIdSchema.safeParse(userId);
     if (!parsed.success) return;
 
@@ -196,7 +377,7 @@ export async function deleteUser(userId: string) {
 }
 
 export async function toggleUserApiApproval(userId: string, apprApi: boolean) {
-    await requireManagementAccess();
+    await requirePermissionAccess('users:manage');
     const parsed = userIdSchema.safeParse(userId);
     if (!parsed.success) return;
 

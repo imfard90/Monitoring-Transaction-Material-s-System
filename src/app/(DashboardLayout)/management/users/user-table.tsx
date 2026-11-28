@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ShieldAlert, ShieldCheck, Smartphone, Trash2 } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, SlidersHorizontal, Smartphone, Trash2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -9,10 +9,13 @@ import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { DataTable } from '@/app/components/shared/DataTable';
 import { DataTablePagination } from '@/app/components/shared/DataTablePagination';
 import { usePageFilterEsc } from '@/app/components/shared/usePageFilterEsc';
+import { PermissionGate } from '@/components/auth/PermissionGate';
+import { useAuthPermissions } from '@/components/auth/SessionPermissionProvider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SearchField } from '@/components/ui/search-field';
 import { Switch } from '@/components/ui/switch';
+import type { RoleKey } from '@/lib/policies/rbac';
 import {
     createColumnHelper,
     getCoreRowModel,
@@ -20,16 +23,23 @@ import {
     getPaginationRowModel,
     useReactTable,
 } from '@/lib/table';
+import type { ScopeHierarchyData } from './_components/UserScopeModal';
 import {
     deleteUser,
     getUsers,
     resetUserMfa,
+    saveUserScopeMappingAction,
     toggleUserApiApproval,
     toggleUserStatus,
 } from './actions';
 
 const UserDevicesDialog = dynamic(
     () => import('./_components/user-devices-dialog').then((mod) => mod.UserDevicesDialog),
+    { ssr: false }
+);
+
+const UserScopeModal = dynamic(
+    () => import('./_components/UserScopeModal').then((mod) => mod.UserScopeModal),
     { ssr: false }
 );
 
@@ -46,15 +56,29 @@ export interface UserItem {
     is_online: boolean;
     twoFactorEnabled?: boolean;
     active_devices_count?: number;
+    is_superuser?: boolean;
+    rbac_role_key?: RoleKey | null;
+    rbac_role_name?: string | null;
+    rbac_hierarchy_level?: number;
+    scope_area?: string | null;
+    scope_regional?: string | null;
+    scope_branch?: string | null;
+    scope_service_area?: string | null;
+    scope_warehouse_ids?: number[];
+    scope_valid_until?: string | null;
+    scope_summary?: string;
 }
 
 interface UserTableProps {
     data: UserItem[];
+    hierarchy: ScopeHierarchyData;
 }
 
 const columnHelper = createColumnHelper<UserItem>();
 
-export default function UserTable({ data }: UserTableProps) {
+export default function UserTable({ data, hierarchy }: UserTableProps) {
+    const { can, isSuperUser, hierarchyLevel } = useAuthPermissions();
+    const canManageUsers = can('users:manage');
     const [users, setUsers] = useState(data);
     const [isPending, startTransition] = useTransition();
 
@@ -92,6 +116,7 @@ export default function UserTable({ data }: UserTableProps) {
     const [userToDelete, setUserToDelete] = useState<UserItem | null>(null);
     const [userToResetMfa, setUserToResetMfa] = useState<UserItem | null>(null);
     const [selectedUserDevices, setSelectedUserDevices] = useState<UserItem | null>(null);
+    const [selectedUserScope, setSelectedUserScope] = useState<UserItem | null>(null);
 
     const handleToggleStatus = (userId: string, currentStatus: boolean) => {
         startTransition(async () => {
@@ -173,13 +198,45 @@ export default function UserTable({ data }: UserTableProps) {
             header: 'NIK',
             cell: (info) => info.getValue() || '-',
         }),
-        columnHelper.accessor('role', {
-            header: 'Peran',
-            cell: (info) => (
-                <Badge variant="outline" className="bg-muted text-foreground">
-                    {info.getValue() || 'Unknown'}
-                </Badge>
-            ),
+        columnHelper.accessor('rbac_role_name', {
+            header: 'Role & Scope',
+            cell: (info) => {
+                const user = info.row.original;
+                const roleLabel = user.is_superuser
+                    ? 'SuperUser'
+                    : user.rbac_role_name || user.role || 'Belum Diatur';
+                const badgeClass = user.is_superuser
+                    ? 'border-primary/40 bg-primary/15 text-primary font-semibold'
+                    : user.rbac_role_key === 'PEJABAT_AREA' ||
+                        user.rbac_role_key === 'PEJABAT_REGIONAL'
+                      ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                      : user.rbac_role_key === 'PEJABAT_BRANCH' || user.rbac_role_key === 'TL_SA'
+                        ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                        : user.rbac_role_key === 'STAFF_GUDANG'
+                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                          : 'bg-muted text-foreground';
+
+                return (
+                    <div className="flex flex-col gap-1 items-start">
+                        <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className={badgeClass}>
+                                {roleLabel}
+                            </Badge>
+                            {user.scope_valid_until && (
+                                <Badge
+                                    variant="outline"
+                                    className="text-[10px] py-0 px-1.5 border-warning/40 text-warning bg-warning/10"
+                                >
+                                    PLT
+                                </Badge>
+                            )}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground max-w-[200px] truncate">
+                            {user.scope_summary || '-'}
+                        </span>
+                    </div>
+                );
+            },
         }),
         columnHelper.accessor('lensa_acount', {
             header: 'Lensa',
@@ -207,7 +264,7 @@ export default function UserTable({ data }: UserTableProps) {
                         <Switch
                             checked={isActive}
                             onCheckedChange={() => handleToggleStatus(userId, isActive)}
-                            disabled={isPending}
+                            disabled={isPending || !canManageUsers}
                         />
                         <span className="text-sm text-muted-foreground">
                             {isActive ? 'Ya' : 'Tidak'}
@@ -228,7 +285,7 @@ export default function UserTable({ data }: UserTableProps) {
                             <Switch
                                 checked={isApproved}
                                 onCheckedChange={() => handleToggleApiApproval(userId, isApproved)}
-                                disabled={isPending}
+                                disabled={isPending || !canManageUsers}
                                 aria-label="Toggle status approval API"
                             />
                             <span
@@ -302,29 +359,43 @@ export default function UserTable({ data }: UserTableProps) {
                     user.twoFactorEnabled || (user.active_devices_count || 0) > 0;
                 return (
                     <div className="flex justify-center items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-warning hover:text-warning/80 gap-1 border-warning/30 hover:bg-warning/10"
-                            disabled={isPending || !hasMfaOrDevices}
-                            onClick={() => setUserToResetMfa(user)}
-                            title={
-                                hasMfaOrDevices
-                                    ? 'Reset MFA dan seluruh perangkat terdaftar'
-                                    : 'MFA belum aktif'
-                            }
-                        >
-                            <ShieldAlert size={14} /> Reset MFA
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setUserToDelete(user)}
-                            disabled={isPending}
-                            className="gap-1"
-                        >
-                            <Trash2 size={14} /> Hapus
-                        </Button>
+                        <PermissionGate permission="users:manage">
+                            {!user.is_superuser && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                                    disabled={isPending}
+                                    onClick={() => setSelectedUserScope(user)}
+                                    title="Atur Role dan Cakupan Wilayah (RBAC/SBAC)"
+                                >
+                                    <SlidersHorizontal size={14} /> Role & Scope
+                                </Button>
+                            )}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-warning hover:text-warning/80 gap-1 border-warning/30 hover:bg-warning/10"
+                                disabled={isPending || !hasMfaOrDevices}
+                                onClick={() => setUserToResetMfa(user)}
+                                title={
+                                    hasMfaOrDevices
+                                        ? 'Reset MFA dan seluruh perangkat terdaftar'
+                                        : 'MFA belum aktif'
+                                }
+                            >
+                                <ShieldAlert size={14} /> Reset MFA
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => setUserToDelete(user)}
+                                disabled={isPending || user.is_superuser}
+                                className="gap-1"
+                            >
+                                <Trash2 size={14} /> Hapus
+                            </Button>
+                        </PermissionGate>
                     </div>
                 );
             },
@@ -416,6 +487,43 @@ export default function UserTable({ data }: UserTableProps) {
                 onRefresh={async () => {
                     const latest = await getUsers();
                     setUsers(latest);
+                }}
+            />
+
+            <UserScopeModal
+                open={!!selectedUserScope}
+                onOpenChange={(open) => {
+                    if (!open) setSelectedUserScope(null);
+                }}
+                user={
+                    selectedUserScope
+                        ? {
+                              nik: selectedUserScope.nik,
+                              name: selectedUserScope.name,
+                              email: selectedUserScope.email,
+                              currentRoleKey: selectedUserScope.rbac_role_key,
+                              currentArea: selectedUserScope.scope_area,
+                              currentRegional: selectedUserScope.scope_regional,
+                              currentBranch: selectedUserScope.scope_branch,
+                              currentServiceArea: selectedUserScope.scope_service_area,
+                              currentWarehouseIds: selectedUserScope.scope_warehouse_ids,
+                              currentValidUntil: selectedUserScope.scope_valid_until,
+                          }
+                        : null
+                }
+                hierarchy={hierarchy}
+                actorHierarchyLevel={hierarchyLevel}
+                isActorSuperUser={isSuperUser}
+                onSave={async (payload) => {
+                    const res = await saveUserScopeMappingAction(payload);
+                    if (res.success) {
+                        toast.success(
+                            `Role & Scope untuk "${selectedUserScope?.name || payload.userNik}" berhasil diperbarui.`
+                        );
+                        const latest = await getUsers();
+                        setUsers(latest);
+                    }
+                    return res;
                 }}
             />
         </motion.div>

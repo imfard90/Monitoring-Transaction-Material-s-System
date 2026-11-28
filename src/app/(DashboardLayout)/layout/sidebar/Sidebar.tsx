@@ -4,10 +4,10 @@ import { Icon } from '@iconify/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import SimpleBar from 'simplebar-react';
+import { useAuthPermissions } from '@/components/auth/SessionPermissionProvider';
 import { cn } from '@/lib/utils';
-import { getSidebarUserAccess, type SidebarUserAccess } from '../../management/users/actions';
 import FullLogo from '../shared/logo/FullLogo';
 import { SidebarAnnouncement } from './SidebarAnnouncement';
 import { SidebarWarehouseChampion } from './SidebarWarehouseChampion';
@@ -24,6 +24,7 @@ interface SidebarItemType {
     children?: SidebarItemType[];
     disabled?: boolean;
     isPro?: boolean;
+    requiredPermission?: string | string[];
 }
 
 const renderSidebarItems = (
@@ -208,32 +209,22 @@ const SidebarLayout = ({
     isMobile?: boolean;
 }) => {
     const pathname = usePathname();
-    const [access, setAccess] = useState<SidebarUserAccess>({
-        isStaff: true,
-        isTeknisi: false,
-    }); // default to hide sensitive menus until checked
+    const { can, isSuperUser } = useAuthPermissions();
 
-    useEffect(() => {
-        getSidebarUserAccess().then((acc) => setAccess(acc));
-    }, []);
-
-    // Filter sidebar content based on role
-    const filteredSidebarContent = SidebarContent.map((section) => {
-        if (section.heading === 'Management') {
-            const filteredChildren = section.children?.filter((child) => {
-                // Teknisi cannot access Users and Technicians
-                if (access.isTeknisi && (child.name === 'Users' || child.name === 'Technicians')) {
-                    return false;
-                }
-                // Staff cannot access Users
-                if (access.isStaff && child.name === 'Users') {
-                    return false;
-                }
-                return true;
-            });
-            return { ...section, children: filteredChildren };
+    const hasMenuAccess = (required?: string | string[]) => {
+        if (isSuperUser || !required) return true;
+        if (Array.isArray(required)) {
+            return required.some((perm) => can(perm));
         }
-        return section;
+        return can(required);
+    };
+
+    // Filter sidebar content based on RBAC permissions
+    const filteredSidebarContent = SidebarContent.map((section) => {
+        const filteredChildren = section.children?.filter((child) =>
+            hasMenuAccess(child.requiredPermission)
+        );
+        return { ...section, children: filteredChildren };
     }).filter((section) => !section.heading || (section.children && section.children.length > 0));
 
     return (

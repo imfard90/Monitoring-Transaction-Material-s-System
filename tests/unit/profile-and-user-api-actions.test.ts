@@ -4,7 +4,7 @@ import {
     generateUserApiKey,
 } from '@/app/(DashboardLayout)/management/user-profile/_actions/profile-actions';
 import { toggleUserApiApproval } from '@/app/(DashboardLayout)/management/users/actions';
-import { getSessionNik, requireManagementAccess } from '@/lib/auth-server';
+import { getSessionNik, requirePermissionAccess } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 
 vi.mock('@/lib/redis', () => ({
@@ -16,6 +16,8 @@ vi.mock('@/lib/redis', () => ({
 vi.mock('@/lib/auth-server', () => ({
     getSessionNik: vi.fn(),
     requireManagementAccess: vi.fn(),
+    requirePermissionAccess: vi.fn(),
+    invalidateUserSessionMetaCache: vi.fn(),
 }));
 
 vi.mock('@/lib/db/db', () => ({
@@ -108,19 +110,24 @@ describe('User Management API Approval Action', () => {
         vi.clearAllMocks();
     });
 
-    it('toggleUserApiApproval enforces requireManagementAccess', async () => {
-        vi.mocked(requireManagementAccess).mockRejectedValue(new Error('Access Denied'));
+    it('toggleUserApiApproval enforces requirePermissionAccess', async () => {
+        vi.mocked(requirePermissionAccess).mockRejectedValue(new Error('Access Denied'));
 
         await expect(toggleUserApiApproval('user-1', true)).rejects.toThrow('Access Denied');
-        expect(requireManagementAccess).toHaveBeenCalled();
+        expect(requirePermissionAccess).toHaveBeenCalledWith('users:manage');
     });
 
     it('toggleUserApiApproval updates appr_api for the specified user', async () => {
-        vi.mocked(requireManagementAccess).mockResolvedValue({
+        vi.mocked(requirePermissionAccess).mockResolvedValue({
             nik: 'admin-1',
             role: 'Admin',
             warehouseIds: [],
             isStaff: false,
+            isSuperUser: false,
+            roleKey: 'PEJABAT_REGIONAL',
+            hierarchyLevel: 2,
+            permissions: ['users:manage'],
+            scopeBoundary: { area: null, regional: 'REGIONAL 5', branch: null, serviceArea: null },
             branchId: 1,
             branchName: 'Surabaya',
         });

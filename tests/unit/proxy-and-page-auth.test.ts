@@ -45,6 +45,17 @@ vi.mock('@/lib/presence', () => ({
     touchUserPresence: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/lib/repositories/rbac.repository', () => ({
+    rbacRepository: {
+        getActiveUserScopes: vi.fn().mockResolvedValue([]),
+        resolveWarehouseIdsFromScopes: vi.fn().mockResolvedValue({
+            warehouseIds: [],
+            scopeBoundary: { area: null, regional: null, branch: null, serviceArea: null },
+        }),
+        getPermissionsByRoleId: vi.fn().mockResolvedValue([]),
+    },
+}));
+
 describe('proxy authentication and reverse proxy redirect handling', () => {
     it('redirects to /auth/login with public HTTPS URL when no cookie is present', async () => {
         const req = new NextRequest('http://127.0.0.1:8000/', {

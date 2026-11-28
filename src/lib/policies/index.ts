@@ -1,3 +1,6 @@
+import { AuthorizationError } from '@/lib/errors';
+import { hasPermission, type RbacUser, type RoleKey, type ScopeBoundary } from './rbac';
+
 export type AuthorizationUser = {
     nik: string;
     role: string | null;
@@ -5,6 +8,11 @@ export type AuthorizationUser = {
     isStaff: boolean;
     branchId?: number | null;
     branchName?: string | null;
+    isSuperUser?: boolean;
+    roleKey?: RoleKey | null;
+    hierarchyLevel?: number;
+    permissions?: string[];
+    scopeBoundary?: ScopeBoundary;
 };
 
 export type InOutTagAuthorizationResource = {
@@ -67,6 +75,17 @@ export function resolveWarehouseScope(
     user: AuthorizationUser,
     options: { includeAllWhenUnassigned?: boolean } = {}
 ): ResolvedWarehouseScope {
+    if (user.isSuperUser) return { kind: 'all' };
+
+    // RBAC/SBAC mode: roleKey is resolved from auth.user_scopes (null when unassigned/Teknisi)
+    if (user.roleKey !== undefined) {
+        if (user.warehouseIds.length === 0) {
+            return options.includeAllWhenUnassigned ? { kind: 'all' } : { kind: 'none' };
+        }
+        return { kind: 'scoped', ids: user.warehouseIds };
+    }
+
+    // Legacy fallback (for unit tests or callers without RBAC metadata)
     if (!user.isStaff) return { kind: 'all' };
     if (user.warehouseIds.length === 0) {
         return options.includeAllWhenUnassigned ? { kind: 'all' } : { kind: 'none' };
@@ -175,23 +194,63 @@ export function canAccessReturnWarehouse(
 }
 
 export function canAccessManagement(user: AuthorizationUser): boolean {
+    if (user.isSuperUser) return true;
+    if (user.permissions !== undefined) {
+        return hasPermission(user, 'users:view') || hasPermission(user, 'users:manage');
+    }
     if (!user.role) return false;
     return user.role !== 'Staff' && user.role !== 'Teknisi';
 }
 
 export function canAccessTechnicianManagement(user: AuthorizationUser): boolean {
+    if (user.isSuperUser) return true;
+    if (user.permissions !== undefined) {
+        return hasPermission(user, 'technicians:manage') || user.roleKey === 'STAFF_GUDANG';
+    }
     if (!user.role) return false;
     return user.role !== 'Teknisi';
 }
 
 export function canApproveStockOpname(user: AuthorizationUser): boolean {
+    if (user.isSuperUser) return true;
+    if (user.permissions !== undefined) {
+        return hasPermission(user, 'stock_opname:approve');
+    }
     return !user.isStaff;
 }
 
 export function canCreateInOutTag(user: AuthorizationUser): boolean {
+    if (user.isSuperUser) return true;
+    if (user.permissions !== undefined) {
+        return (
+            hasPermission(user, 'inout_tag:transfer') ||
+            hasPermission(user, 'inout_tag:approve_branch') ||
+            hasPermission(user, 'inout_tag:approve_regional') ||
+            hasPermission(user, 'inout_tag:approve_area')
+        );
+    }
     return !user.isStaff;
 }
 
 export function canSyncStock(user: AuthorizationUser): boolean {
+    if (user.isSuperUser) return true;
+    if (user.permissions !== undefined) {
+        return hasPermission(user, 'reference:sync') || hasPermission(user, 'policy:manage');
+    }
     return !user.isStaff;
 }
+
+/**
+ * Fail-closed guard untuk Server Action: melempar AuthorizationError jika tidak berhak.
+ */
+export function requirePermission(
+    user: RbacUser | null | undefined,
+    permissionKey: string,
+    message = 'Akses ditolak: Anda tidak memiliki izin untuk aksi ini.'
+): void {
+    if (!hasPermission(user, permissionKey)) {
+        throw new AuthorizationError(message);
+    }
+}
+
+export * from './rbac';

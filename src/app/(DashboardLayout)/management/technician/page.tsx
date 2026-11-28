@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+import { AccessDeniedState } from '@/components/auth/AccessDeniedState';
 import { StaggerContainer } from '@/components/ui/motion/stagger-container';
 import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { getPageSessionUser } from '@/lib/auth-server';
+import { canAccessTechnicianManagement } from '@/lib/policies';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
 import {
     getBranches,
@@ -36,9 +37,10 @@ const BCrumb = [
 export default async function TechnicianManagementPage() {
     const session = await getPageSessionUser();
 
-    // Prevent Teknisi from accessing page
-    if (session.role === 'Teknisi') {
-        redirect('/');
+    if (!canAccessTechnicianManagement(session)) {
+        return (
+            <AccessDeniedState description="Anda tidak memiliki izin untuk mengakses Manajemen Teknisi." />
+        );
     }
 
     const [technicians, branches, mitras, warehouses, materials] = await Promise.all([

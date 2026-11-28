@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 import BreadcrumbComp from '@/app/(DashboardLayout)/layout/shared/breadcrumb/BreadcrumbComp';
+import { AccessDeniedState } from '@/components/auth/AccessDeniedState';
 import { getPageSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
+import { hasPermission } from '@/lib/policies';
 import { StockOpnameClient } from './_components/StockOpnameClient';
 
 export const dynamic = 'force-dynamic';
@@ -13,8 +14,13 @@ export const metadata: Metadata = {
 
 export default async function StockOpnamePage() {
     const user = await getPageSessionUser();
-    if (!user?.role) {
-        redirect('/auth/login');
+    if (
+        !hasPermission(user, 'stock_opname:input') &&
+        !hasPermission(user, 'stock_opname:approve')
+    ) {
+        return (
+            <AccessDeniedState description="Anda tidak memiliki izin untuk mengakses halaman Stock Opname." />
+        );
     }
 
     const masterWarehouses = await db

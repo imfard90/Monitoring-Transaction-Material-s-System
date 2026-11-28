@@ -18,6 +18,17 @@ vi.mock('@/lib/redis', () => ({
 vi.mock('@/lib/auth-server', () => ({
     getSessionUser: vi.fn(),
     requireManagementAccess: vi.fn(),
+    requirePermissionAccess: vi.fn(),
+    invalidateUserSessionMetaCache: vi.fn(),
+}));
+
+vi.mock('@/lib/repositories/rbac.repository', () => ({
+    rbacRepository: {
+        getAllActiveUserScopes: vi.fn().mockResolvedValue([]),
+        getRoles: vi.fn().mockResolvedValue([]),
+        getScopeHierarchyOptions: vi.fn().mockResolvedValue({ branches: [], warehouses: [] }),
+        saveUserScopeMapping: vi.fn().mockResolvedValue(undefined),
+    },
 }));
 
 vi.mock('@/lib/db/db', () => ({

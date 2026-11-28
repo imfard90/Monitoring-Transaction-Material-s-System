@@ -1205,7 +1205,49 @@ export interface InventoryOutLensaRefListArchive extends InventoryOutLensaRefLis
     archived_at: Generated<Timestamp>;
 }
 
+export interface AuthRoles {
+    id: Generated<number>;
+    role_key: string;
+    role_name: string;
+    hierarchy_level: number;
+    description: string | null;
+    created_at: Generated<Timestamp>;
+}
+
+export interface AuthPermissions {
+    id: Generated<number>;
+    permission_key: string;
+    module: string;
+    description: string | null;
+}
+
+export interface AuthRolePermissions {
+    role_id: number;
+    permission_id: number;
+}
+
+export interface AuthUserScopes {
+    id: Generated<Int8>;
+    user_nik: string;
+    role_id: number;
+    area: string | null;
+    regional: string | null;
+    branch: string | null;
+    service_area: string | null;
+    warehouse_id: number | null;
+    is_primary: Generated<boolean>;
+    valid_from: Generated<Timestamp>;
+    valid_until: Timestamp | null;
+    created_by: string | null;
+    created_at: Generated<Timestamp>;
+    updated_at: Generated<Timestamp>;
+}
+
 export interface DB {
+    'auth.roles': AuthRoles;
+    'auth.permissions': AuthPermissions;
+    'auth.role_permissions': AuthRolePermissions;
+    'auth.user_scopes': AuthUserScopes;
     'inventory.wo_lensa_header': inventory_wo_lensa_header;
     'inventory.wo_lensa_list': inventory_wo_lensa_list;
     'auth.account': AuthAccount;

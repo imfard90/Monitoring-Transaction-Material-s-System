@@ -42,6 +42,18 @@ vi.mock('@/lib/redis', () => ({
     },
 }));
 
+const mockGetActiveUserScopes = vi.fn();
+const mockResolveWarehouseIdsFromScopes = vi.fn();
+const mockGetPermissionsByRoleId = vi.fn();
+
+vi.mock('@/lib/repositories/rbac.repository', () => ({
+    rbacRepository: {
+        getActiveUserScopes: mockGetActiveUserScopes,
+        resolveWarehouseIdsFromScopes: mockResolveWarehouseIdsFromScopes,
+        getPermissionsByRoleId: mockGetPermissionsByRoleId,
+    },
+}));
+
 vi.mock('@/lib/presence', () => ({
     touchUserPresence: vi.fn().mockResolvedValue(undefined),
 }));
@@ -70,6 +82,91 @@ function mockDbReturns(role: string | null, warehouseIds: number[] = []) {
         or: vi.fn().mockReturnThis(),
     };
     mockDbQuery.mockImplementation(() => chain);
+
+    if (role === 'Staff') {
+        mockGetActiveUserScopes.mockResolvedValue([
+            {
+                id: '1',
+                user_nik: 'STAFF',
+                role_id: 5,
+                role_key: 'STAFF_GUDANG',
+                role_name: 'Staff Gudang',
+                hierarchy_level: 5,
+                area: null,
+                regional: null,
+                branch: 'GRESIK',
+                service_area: null,
+                warehouse_id: warehouseIds[0] ?? null,
+                is_primary: true,
+                valid_from: new Date(),
+                valid_until: null,
+            },
+        ]);
+        mockResolveWarehouseIdsFromScopes.mockResolvedValue({
+            warehouseIds,
+            scopeBoundary: { area: null, regional: null, branch: 'GRESIK', serviceArea: null },
+        });
+        mockGetPermissionsByRoleId.mockResolvedValue(['out_sap:create', 'stock:view']);
+    } else if (role === 'Teknisi') {
+        mockGetActiveUserScopes.mockResolvedValue([
+            {
+                id: '2',
+                user_nik: 'TEK',
+                role_id: 6,
+                role_key: 'TEKNISI',
+                role_name: 'Teknisi Lapangan',
+                hierarchy_level: 6,
+                area: null,
+                regional: null,
+                branch: null,
+                service_area: null,
+                warehouse_id: null,
+                is_primary: true,
+                valid_from: new Date(),
+                valid_until: null,
+            },
+        ]);
+        mockResolveWarehouseIdsFromScopes.mockResolvedValue({
+            warehouseIds: [],
+            scopeBoundary: { area: null, regional: null, branch: null, serviceArea: null },
+        });
+        mockGetPermissionsByRoleId.mockResolvedValue(['dashboard:view', 'stock:view']);
+    } else if (role) {
+        mockGetActiveUserScopes.mockResolvedValue([
+            {
+                id: '3',
+                user_nik: 'ADM',
+                role_id: 3,
+                role_key: 'PEJABAT_BRANCH',
+                role_name: 'Pejabat Branch / District',
+                hierarchy_level: 3,
+                area: 'AREA 3',
+                regional: 'REGIONAL 5',
+                branch: 'GRESIK',
+                service_area: null,
+                warehouse_id: null,
+                is_primary: true,
+                valid_from: new Date(),
+                valid_until: null,
+            },
+        ]);
+        mockResolveWarehouseIdsFromScopes.mockResolvedValue({
+            warehouseIds: warehouseIds.length > 0 ? warehouseIds : [99],
+            scopeBoundary: {
+                area: 'AREA 3',
+                regional: 'REGIONAL 5',
+                branch: 'GRESIK',
+                serviceArea: null,
+            },
+        });
+        mockGetPermissionsByRoleId.mockResolvedValue([
+            'users:view',
+            'users:manage',
+            'technicians:manage',
+        ]);
+    } else {
+        mockGetActiveUserScopes.mockResolvedValue([]);
+    }
 }
 
 beforeEach(() => {
@@ -102,7 +199,8 @@ describe('getSessionUser', () => {
         expect(user.nik).toBe('NIK001');
         expect(user.role).toBe('Admin');
         expect(user.isStaff).toBe(false);
-        expect(user.warehouseIds).toEqual([]);
+        expect(user.roleKey).toBe('PEJABAT_BRANCH');
+        expect(user.warehouseIds).toEqual([99]);
     });
 
     it('returns warehouseIds for Staff role', async () => {
@@ -248,6 +346,11 @@ describe('requireWarehouseAccess', () => {
                 role: 'Staff',
                 warehouseIds: [10, 20],
                 isStaff: true,
+                isSuperUser: false,
+                roleKey: 'STAFF_GUDANG',
+                hierarchyLevel: 5,
+                permissions: ['out_sap:create'],
+                scopeBoundary: { area: null, regional: null, branch: 'GRESIK', serviceArea: null },
                 branchId: 1,
                 branchName: 'Surabaya',
             })
