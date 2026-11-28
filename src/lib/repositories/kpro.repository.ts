@@ -93,7 +93,7 @@ export function createKproRepository(customPool?: Pool): KproRepository {
         /**
          * Mencatat riwayat pembaruan tabel data_kpro ke etl.upload_logs.
          */
-        async recordUploadLog(rowCount: number, updatedBy: number = 1): Promise<void> {
+        async recordUploadLog(_rowCount: number, updatedBy: number = 1): Promise<void> {
             const pool = getPool();
             const query = `
                 INSERT INTO etl.upload_logs (table_name, last_updated_at, updated_by, created_at)
@@ -110,7 +110,9 @@ export function createKproRepository(customPool?: Pool): KproRepository {
 
         /**
          * Memasukkan data mentah baris tabel K-PRO ke etl.staging_data_kpro_raw
-         * menggunakan bulk insert JSONB hemat memory dan berkecepatan tinggi.
+         * menggunakan bulk insert UNNEST berkinerja tinggi (Pilar 1 & Trik 2).
+         * Bentuk teks query 100% statis dengan 2 parameter ($1: job_id, $2: text[]),
+         * memaksimalkan PostgreSQL Plan Cache dan mengeliminasi interpolasi parameter dinamis.
          */
         async insertRawStagingBatch(
             jobId: number,
@@ -122,24 +124,19 @@ export function createKproRepository(customPool?: Pool): KproRepository {
             const client = await pool.connect();
             let totalInserted = 0;
 
+            const query = `
+                INSERT INTO etl.staging_data_kpro_raw (job_id, raw_data, imported_at)
+                SELECT $1, u.val::jsonb, NOW()
+                FROM UNNEST($2::text[]) AS u(val);
+            `;
+
             try {
                 await client.query('BEGIN');
                 for (let i = 0; i < rows.length; i += chunkSize) {
                     const chunk = rows.slice(i, i + chunkSize);
-                    const valuePlaceholders: string[] = [];
-                    const values: unknown[] = [];
-                    let paramIdx = 1;
+                    const jsonStrings = chunk.map((r) => JSON.stringify(r));
 
-                    for (const row of chunk) {
-                        valuePlaceholders.push(`($${paramIdx++}, $${paramIdx++}::jsonb, NOW())`);
-                        values.push(jobId, JSON.stringify(row));
-                    }
-
-                    const query = `
-                        INSERT INTO etl.staging_data_kpro_raw (job_id, raw_data, imported_at)
-                        VALUES ${valuePlaceholders.join(', ')};
-                    `;
-                    await client.query(query, values);
+                    await client.query(query, [jobId, jsonStrings]);
                     totalInserted += chunk.length;
                 }
                 await client.query('COMMIT');

@@ -113,9 +113,8 @@ function MetricCard({
                     </p>
                 </div>
                 {onGroupByChange && (
-                    <div
+                    <fieldset
                         className="inline-flex items-center rounded-lg bg-muted/60 p-0.5 border border-border/80 text-[11px] font-medium shrink-0"
-                        role="group"
                         aria-label={`Pilih pengelompokan untuk ${title}`}
                     >
                         <button
@@ -144,7 +143,7 @@ function MetricCard({
                         >
                             Service Area
                         </button>
-                    </div>
+                    </fieldset>
                 )}
             </div>
 

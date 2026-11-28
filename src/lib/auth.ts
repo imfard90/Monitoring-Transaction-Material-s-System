@@ -144,10 +144,11 @@ export const auth = betterAuth({
                  */
                 before: async (session) => {
                     if (session.userId) {
-                        const result = await pool.query(
-                            'SELECT is_active, nik FROM auth."user" WHERE id = $1',
-                            [session.userId]
-                        );
+                        const result = await pool.query({
+                            name: 'auth-check-user-active',
+                            text: 'SELECT is_active, nik FROM auth."user" WHERE id = $1',
+                            values: [session.userId],
+                        });
                         const row = result.rows[0];
                         // If is_active is null, false, or anything other than true, block it
                         if (row && row.is_active !== true) {
@@ -183,9 +184,11 @@ export const auth = betterAuth({
                                 }
                                 await redis.del(prevSessionsKey);
                             }
-                            const delResult = await pool.query('DELETE FROM auth.session WHERE "userId" = $1', [
-                                session.userId,
-                            ]);
+                            const delResult = await pool.query({
+                                name: 'auth-delete-user-sessions',
+                                text: 'DELETE FROM auth.session WHERE "userId" = $1',
+                                values: [session.userId],
+                            });
                             if ((delResult.rowCount ?? 0) > 0) {
                                 await logAuthEvent({
                                     userId: session.userId,
@@ -204,7 +207,11 @@ export const auth = betterAuth({
                 after: async (session) => {
                     if (session.userId) {
                         try {
-                            const res = await pool.query('SELECT nik FROM auth."user" WHERE id = $1', [session.userId]);
+                            const res = await pool.query({
+                                name: 'auth-get-user-nik-by-id',
+                                text: 'SELECT nik FROM auth."user" WHERE id = $1',
+                                values: [session.userId],
+                            });
                             const userNik = res.rows[0]?.nik;
                             await logAuthEvent({
                                 userId: session.userId,

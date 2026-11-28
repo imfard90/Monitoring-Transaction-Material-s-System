@@ -14,12 +14,17 @@ vi.mock('@/lib/auth-server', () => ({
 }));
 
 vi.mock('kysely', () => {
-    const fakeSql = (strings: TemplateStringsArray, ...values: unknown[]) => ({
-        strings,
-        values,
-        execute: mockSqlExecute,
-        as: vi.fn().mockReturnThis(),
-    });
+    const fakeSql = Object.assign(
+        (strings: TemplateStringsArray, ...values: unknown[]) => ({
+            strings,
+            values,
+            execute: mockSqlExecute,
+            as: vi.fn().mockReturnThis(),
+        }),
+        {
+            ref: (ref: string) => ref,
+        }
+    );
     return {
         sql: fakeSql,
     };

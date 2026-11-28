@@ -149,7 +149,11 @@ export async function resetUserMfa(userId: string) {
             } catch {}
             await redis.del(prevSessionsKey);
         }
-        await pool.query('DELETE FROM auth.session WHERE "userId" = $1', [validUserId]);
+        await pool.query({
+            name: 'auth-delete-user-sessions',
+            text: 'DELETE FROM auth.session WHERE "userId" = $1',
+            values: [validUserId],
+        });
     } catch {
         // non-blocking
     }

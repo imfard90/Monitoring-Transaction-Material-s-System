@@ -41,7 +41,7 @@ export async function getAvailableSapOuts() {
             if (warehouseIds.length === 0) {
                 return { success: true, data: [] };
             }
-            query = query.where('h.warehouse_id', 'in', warehouseIds);
+            query = query.where(sql<boolean>`${sql.ref('h.warehouse_id')} = ANY(${warehouseIds}::int[])`);
         }
 
         const sapOuts = await query.execute();
@@ -101,7 +101,7 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
             if (warehouseIds.length === 0) {
                 return { success: true, data: [] };
             }
-            query = query.where('h.warehouse_id', 'in', warehouseIds);
+            query = query.where(sql<boolean>`${sql.ref('h.warehouse_id')} = ANY(${warehouseIds}::int[])`);
         }
 
         const items = await query.execute();

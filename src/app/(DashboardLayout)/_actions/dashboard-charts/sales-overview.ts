@@ -72,7 +72,7 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             .groupBy(sql`TO_CHAR(COALESCE(soh.sap_time, soh.request_time), 'YYYY-MM-DD')`);
 
         if (scope.kind === 'scoped') {
-            outQuery = outQuery.where('soh.warehouse_id', 'in', scope.ids);
+            outQuery = outQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
         }
         if (wh_id && wh_id !== 'all') {
             outQuery = outQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
@@ -94,7 +94,7 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             .groupBy(sql`TO_CHAR(tu.created_at, 'YYYY-MM-DD')`);
 
         if (scope.kind === 'scoped') {
-            rekonQuery = rekonQuery.where('soh.warehouse_id', 'in', scope.ids);
+            rekonQuery = rekonQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
         }
         if (wh_id && wh_id !== 'all') {
             rekonQuery = rekonQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
@@ -115,7 +115,7 @@ export async function getSalesOverviewData(wh_id: string, daysCount: number, end
             .groupBy(sql`TO_CHAR(ruh.create_at, 'YYYY-MM-DD')`);
 
         if (scope.kind === 'scoped') {
-            lensaRekonQuery = lensaRekonQuery.where('soh.warehouse_id', 'in', scope.ids);
+            lensaRekonQuery = lensaRekonQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
         }
         if (wh_id && wh_id !== 'all') {
             lensaRekonQuery = lensaRekonQuery.where('soh.warehouse_id', '=', parseInt(wh_id, 10));
@@ -208,7 +208,7 @@ export async function getTopOutMaterials(limit: number = 7, warehouseId: string 
             .limit(validLimit);
 
         if (scope.kind === 'scoped') {
-            query = query.where('soh.warehouse_id', 'in', scope.ids);
+            query = query.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
         } else if (parsed.data.warehouseId !== 'all') {
             query = query.where('soh.warehouse_id', '=', Number(parsed.data.warehouseId));
         }

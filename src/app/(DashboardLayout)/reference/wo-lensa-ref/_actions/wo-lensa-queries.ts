@@ -81,7 +81,7 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             const allowedWhNames = await db
                 .selectFrom('inventory.mas_wh')
                 .select('name')
-                .where('id', 'in', warehouseIds as number[])
+                .where(sql<boolean>`${sql.ref('id')} = ANY(${warehouseIds as number[]}::int[])`)
                 .execute();
 
             whNames = expandWarehouseAliases(
@@ -373,7 +373,7 @@ export async function getWOLensaFilterOptions() {
             const allowedWhNames = await db
                 .selectFrom('inventory.mas_wh')
                 .select('name')
-                .where('id', 'in', warehouseIds as number[])
+                .where(sql<boolean>`${sql.ref('id')} = ANY(${warehouseIds as number[]}::int[])`)
                 .execute();
             whNames = expandWarehouseAliases(
                 allowedWhNames.map((w: Record<string, unknown>) => w.name as string).filter(Boolean)
@@ -416,7 +416,7 @@ export async function getWOLensaRefList() {
         const whs = await db
             .selectFrom('inventory.mas_wh')
             .select('name')
-            .where('id', 'in', warehouseIds)
+            .where(sql<boolean>`${sql.ref('id')} = ANY(${warehouseIds}::int[])`)
             .execute();
         whNames = expandWarehouseAliases(
             whs.map((w: Record<string, unknown>) => w.name as string).filter(Boolean)
@@ -464,7 +464,7 @@ export async function getWOLensaRefDetails(headerId: number | string) {
             const allowedWhNames = await db
                 .selectFrom('inventory.mas_wh')
                 .select('name')
-                .where('id', 'in', warehouseIds)
+                .where(sql<boolean>`${sql.ref('id')} = ANY(${warehouseIds}::int[])`)
                 .execute();
             const whNames = expandWarehouseAliases(
                 allowedWhNames.map((w) => w.name as string).filter(Boolean)
@@ -507,7 +507,7 @@ export async function getWOPemakaianIdOptions(): Promise<{
             const allowedWhNames = await db
                 .selectFrom('inventory.mas_wh')
                 .select('name')
-                .where('id', 'in', warehouseIds)
+                .where(sql<boolean>`${sql.ref('id')} = ANY(${warehouseIds}::int[])`)
                 .execute();
             whNames = expandWarehouseAliases(allowedWhNames.map((w) => w.name));
         }

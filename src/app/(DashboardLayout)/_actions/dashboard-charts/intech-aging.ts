@@ -81,7 +81,7 @@ export async function getIntechAgingData(wh_id: string = 'all') {
         if (wh_id !== 'all') {
             agingQuery = agingQuery.where('soh.warehouse_id', '=', Number(wh_id));
         } else if (scope.kind === 'scoped') {
-            agingQuery = agingQuery.where('soh.warehouse_id', 'in', scope.ids);
+            agingQuery = agingQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
         }
 
         const agingRes = await agingQuery.executeTakeFirst();
@@ -145,7 +145,7 @@ export async function getIntechAgingData(wh_id: string = 'all') {
         if (wh_id !== 'all') {
             topMatQuery = topMatQuery.where('soh.warehouse_id', '=', Number(wh_id));
         } else if (scope.kind === 'scoped') {
-            topMatQuery = topMatQuery.where('soh.warehouse_id', 'in', scope.ids);
+            topMatQuery = topMatQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
         }
 
         const topMatRows = await topMatQuery
@@ -179,7 +179,7 @@ export async function getIntechAgingData(wh_id: string = 'all') {
         if (wh_id !== 'all') {
             topTekQuery = topTekQuery.where('soh.warehouse_id', '=', Number(wh_id));
         } else if (scope.kind === 'scoped') {
-            topTekQuery = topTekQuery.where('soh.warehouse_id', 'in', scope.ids);
+            topTekQuery = topTekQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
         }
 
         const topTekRows = await topTekQuery

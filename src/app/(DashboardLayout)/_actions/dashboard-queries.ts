@@ -19,7 +19,7 @@ export async function getWarehouses(currentUser?: SessionUser) {
         const scope = resolveWarehouseScope(user);
         if (scope.kind === 'none') return { success: true, data: [] };
         if (scope.kind === 'scoped') {
-            query = query.where('id', 'in', scope.ids);
+            query = query.where(sql<boolean>`${sql.ref('id')} = ANY(${scope.ids}::int[])`);
         }
         const data = await query.execute();
 
@@ -81,7 +81,7 @@ export async function getStockWarnings(warehouseId: string = 'all') {
             .orderBy('m.code');
 
         if (scope.kind === 'scoped') {
-            query = query.where('p.warehouse_id', 'in', scope.ids);
+            query = query.where(sql<boolean>`${sql.ref('p.warehouse_id')} = ANY(${scope.ids}::int[])`);
         } else if (parsed.data.warehouseId !== 'all') {
             query = query.where('p.warehouse_id', '=', Number(parsed.data.warehouseId));
         }
@@ -156,7 +156,7 @@ export async function getDashboardKpis() {
             .select(sql<number>`COUNT(id)`.as('total'))
             .where('end_status', '=', 'intech');
         if (scope.kind === 'scoped') {
-            intechOpenQuery = intechOpenQuery.where('warehouse_id', 'in', scope.ids);
+            intechOpenQuery = intechOpenQuery.where(sql<boolean>`${sql.ref('warehouse_id')} = ANY(${scope.ids}::int[])`);
         }
         const intechOpen = await intechOpenQuery.executeTakeFirst();
         data.intechOpen = Number(intechOpen?.total || 0);
@@ -167,7 +167,7 @@ export async function getDashboardKpis() {
             .select(sql<number>`COUNT(id)`.as('total'))
             .where('end_status', '=', 'close');
         if (scope.kind === 'scoped') {
-            intechCloseQuery = intechCloseQuery.where('warehouse_id', 'in', scope.ids);
+            intechCloseQuery = intechCloseQuery.where(sql<boolean>`${sql.ref('warehouse_id')} = ANY(${scope.ids}::int[])`);
         }
         const intechClose = await intechCloseQuery.executeTakeFirst();
         data.intechClose = Number(intechClose?.total || 0);
@@ -178,8 +178,8 @@ export async function getDashboardKpis() {
             .select(sql<number>`COUNT(id)`.as('total'))
             .where('end_status', '=', 'requested');
         if (scope.kind === 'scoped') {
-            requestTagQuery = requestTagQuery.where((eb) =>
-                eb.or([eb('from_wh_id', 'in', scope.ids), eb('to_wh_id', 'in', scope.ids)])
+            requestTagQuery = requestTagQuery.where(
+                sql<boolean>`(${sql.ref('from_wh_id')} = ANY(${scope.ids}::int[]) OR ${sql.ref('to_wh_id')} = ANY(${scope.ids}::int[]))`
             );
         }
         const requestTag = await requestTagQuery.executeTakeFirst();
@@ -191,8 +191,8 @@ export async function getDashboardKpis() {
             .select(sql<number>`COUNT(id)`.as('total'))
             .where('end_status', '=', 'in_transit');
         if (scope.kind === 'scoped') {
-            transitTagQuery = transitTagQuery.where((eb) =>
-                eb.or([eb('from_wh_id', 'in', scope.ids), eb('to_wh_id', 'in', scope.ids)])
+            transitTagQuery = transitTagQuery.where(
+                sql<boolean>`(${sql.ref('from_wh_id')} = ANY(${scope.ids}::int[]) OR ${sql.ref('to_wh_id')} = ANY(${scope.ids}::int[]))`
             );
         }
         const transitTag = await transitTagQuery.executeTakeFirst();
@@ -204,8 +204,8 @@ export async function getDashboardKpis() {
             .select(sql<number>`COUNT(id)`.as('total'))
             .where('end_status', '=', 'closed');
         if (scope.kind === 'scoped') {
-            closeTagQuery = closeTagQuery.where((eb) =>
-                eb.or([eb('from_wh_id', 'in', scope.ids), eb('to_wh_id', 'in', scope.ids)])
+            closeTagQuery = closeTagQuery.where(
+                sql<boolean>`(${sql.ref('from_wh_id')} = ANY(${scope.ids}::int[]) OR ${sql.ref('to_wh_id')} = ANY(${scope.ids}::int[]))`
             );
         }
         const closeTag = await closeTagQuery.executeTakeFirst();
@@ -216,7 +216,7 @@ export async function getDashboardKpis() {
             .selectFrom('inventory.return_material_header')
             .select(sql<number>`COUNT(id)`.as('total'));
         if (scope.kind === 'scoped') {
-            returnTekQuery = returnTekQuery.where('warehouse_id', 'in', scope.ids.map(String));
+            returnTekQuery = returnTekQuery.where(sql<boolean>`${sql.ref('warehouse_id')} = ANY(${scope.ids}::int[])`);
         }
         const returnTek = await returnTekQuery.executeTakeFirst();
         data.returnTek = Number(returnTek?.total || 0);
@@ -230,7 +230,7 @@ export async function getDashboardKpis() {
             )
             .where('sb.qty_stock', '>', 0);
         if (scope.kind === 'scoped') {
-            invStockQuery = invStockQuery.where('sb.warehouse_id', 'in', scope.ids);
+            invStockQuery = invStockQuery.where(sql<boolean>`${sql.ref('sb.warehouse_id')} = ANY(${scope.ids}::int[])`);
         }
         const invStock = await invStockQuery.executeTakeFirst();
         data.stockInventoryRp = Number(invStock?.total_rp || 0);
@@ -248,7 +248,7 @@ export async function getDashboardKpis() {
             .where('soh.end_status', '=', 'intech')
             .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0);
         if (scope.kind === 'scoped') {
-            intechStockQuery = intechStockQuery.where('soh.warehouse_id', 'in', scope.ids);
+            intechStockQuery = intechStockQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
         }
         const intechStock = await intechStockQuery.executeTakeFirst();
         data.stockIntechRp = Number(intechStock?.total_rp || 0);

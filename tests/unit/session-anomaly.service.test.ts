@@ -184,9 +184,13 @@ describe('session-anomaly.service', () => {
 
             expect(mockRedisDel).toHaveBeenCalledWith('token-secret-123');
             expect(mockRedisDel).toHaveBeenCalledWith('auth:session-baseline:sess-abc');
-            expect(mockPoolQuery).toHaveBeenCalledWith(expect.stringContaining('DELETE FROM auth.session'), [
-                'sess-abc',
-            ]);
+            expect(mockPoolQuery).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    name: 'auth-delete-session-by-id',
+                    text: expect.stringContaining('DELETE FROM auth.session'),
+                    values: ['sess-abc'],
+                })
+            );
             expect(mockLogAuthEvent).toHaveBeenCalledWith(
                 expect.objectContaining({
                     eventType: 'SESSION_HIJACK_DETECTED',

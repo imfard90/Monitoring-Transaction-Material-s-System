@@ -222,17 +222,17 @@ export async function getPendingNotifications(): Promise<{
             .where('o.formatted_date', '>=', sql<Date>`'2026-10-01'::date`);
 
         if (isStaff && whNames.length > 0) {
-            outSapCountQuery = outSapCountQuery.where('o.nama_gudang', 'in', whNames);
-            outSapRecentQuery = outSapRecentQuery.where('o.nama_gudang', 'in', whNames);
+            outSapCountQuery = outSapCountQuery.where(sql<boolean>`${sql.ref('o.nama_gudang')} = ANY(${whNames}::text[])`);
+            outSapRecentQuery = outSapRecentQuery.where(sql<boolean>`${sql.ref('o.nama_gudang')} = ANY(${whNames}::text[])`);
         }
 
         // 4. Rekon Lensa Belum Rekon Queries (inventory.wo_lensa_header)
+        // Memanfaatkan partial index idx_wo_lensa_header_rekon_check (WHERE rekon_check IS NOT NULL)
         let rekonCountQuery = db
             .selectFrom('inventory.wo_lensa_header as w')
             .select(sql<number>`COUNT(w.id)`.as('total'))
-            .where((eb) =>
-                eb.or([eb('w.rekon_check', '=', false), eb('w.rekon_check', 'is', null)])
-            );
+            .where('w.rekon_check', 'is not', null)
+            .where('w.rekon_check', '=', false);
 
         let rekonRecentQuery = db
             .selectFrom('inventory.wo_lensa_header as w')
@@ -244,13 +244,12 @@ export async function getPendingNotifications(): Promise<{
                 'w.type as wo_type',
                 'w.formatted_date as request_time',
             ])
-            .where((eb) =>
-                eb.or([eb('w.rekon_check', '=', false), eb('w.rekon_check', 'is', null)])
-            );
+            .where('w.rekon_check', 'is not', null)
+            .where('w.rekon_check', '=', false);
 
         if (isStaff && whNames.length > 0) {
-            rekonCountQuery = rekonCountQuery.where('w.nama_gudang', 'in', whNames);
-            rekonRecentQuery = rekonRecentQuery.where('w.nama_gudang', 'in', whNames);
+            rekonCountQuery = rekonCountQuery.where(sql<boolean>`${sql.ref('w.nama_gudang')} = ANY(${whNames}::text[])`);
+            rekonRecentQuery = rekonRecentQuery.where(sql<boolean>`${sql.ref('w.nama_gudang')} = ANY(${whNames}::text[])`);
         }
 
         // Execute queries in parallel

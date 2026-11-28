@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
+import { Kysely, PostgresDialect } from 'kysely';
 import { applyInOutTagWarehouseScope, applyWarehouseScope } from '@/lib/db/scopes';
 import type { AuthorizationUser } from '@/lib/policies';
 
 describe('applyWarehouseScope', () => {
+    const createTestDb = () => new Kysely<any>({ dialect: new PostgresDialect({ pool: {} as any }) });
+
     it('returns original query untouched if user is not Staff', () => {
         const mockQuery = { where: vi.fn().mockReturnThis() };
         const nonStaffUser: AuthorizationUser = {
@@ -36,8 +39,8 @@ describe('applyWarehouseScope', () => {
         expect(result).toBe(mockQuery);
     });
 
-    it('filters by [-1] if Staff has empty warehouseIds in always mode', () => {
-        const mockQuery = { where: vi.fn().mockReturnThis() };
+    it('filters by [-1] using = ANY($1::int[]) if Staff has empty warehouseIds in always mode', () => {
+        const db = createTestDb();
         const staffUser: AuthorizationUser = {
             nik: 'STF01',
             role: 'Staff',
@@ -45,12 +48,16 @@ describe('applyWarehouseScope', () => {
             warehouseIds: [],
         };
 
-        applyWarehouseScope(mockQuery as any, 'warehouse_id', staffUser, 'always');
-        expect(mockQuery.where).toHaveBeenCalledWith('warehouse_id', 'in', [-1]);
+        const baseQuery = db.selectFrom('inventory.stock_balance').selectAll();
+        const scopedQuery = applyWarehouseScope(baseQuery, 'warehouse_id', staffUser, 'always');
+        const compiled = scopedQuery.compile();
+
+        expect(compiled.sql).toContain('"warehouse_id" = ANY($1::int[])');
+        expect(compiled.parameters).toEqual([[-1]]);
     });
 
-    it('filters by scoped warehouse IDs when Staff is assigned to warehouses', () => {
-        const mockQuery = { where: vi.fn().mockReturnThis() };
+    it('filters by scoped warehouse IDs using = ANY($1::int[]) when Staff is assigned to warehouses', () => {
+        const db = createTestDb();
         const staffUser: AuthorizationUser = {
             nik: 'STF01',
             role: 'Staff',
@@ -58,12 +65,31 @@ describe('applyWarehouseScope', () => {
             warehouseIds: [10, 20],
         };
 
-        applyWarehouseScope(mockQuery as any, 'soh.warehouse_id', staffUser);
-        expect(mockQuery.where).toHaveBeenCalledWith('soh.warehouse_id', 'in', [10, 20]);
+        const baseQuery = db.selectFrom('inventory.stock_balance').selectAll();
+        const scopedQuery = applyWarehouseScope(baseQuery, 'soh.warehouse_id', staffUser);
+        const compiled = scopedQuery.compile();
+
+        expect(compiled.sql).toContain('"soh"."warehouse_id" = ANY($1::int[])');
+        expect(compiled.parameters).toEqual([[10, 20]]);
+    });
+
+    it('produces identical SQL text for different warehouse counts (plan cache friendly)', () => {
+        const db = createTestDb();
+        const staff1: AuthorizationUser = { nik: 'S1', role: 'Staff', isStaff: true, warehouseIds: [1] };
+        const staff3: AuthorizationUser = { nik: 'S3', role: 'Staff', isStaff: true, warehouseIds: [1, 2, 3] };
+
+        const q1 = applyWarehouseScope(db.selectFrom('inventory.stock_balance').selectAll(), 'warehouse_id', staff1).compile();
+        const q3 = applyWarehouseScope(db.selectFrom('inventory.stock_balance').selectAll(), 'warehouse_id', staff3).compile();
+
+        expect(q1.sql).toBe(q3.sql);
+        expect(q1.parameters).toEqual([[1]]);
+        expect(q3.parameters).toEqual([[1, 2, 3]]);
     });
 });
 
 describe('applyInOutTagWarehouseScope', () => {
+    const createTestDb = () => new Kysely<any>({ dialect: new PostgresDialect({ pool: {} as any }) });
+
     it('returns original query if non-staff', () => {
         const mockQuery = { where: vi.fn().mockReturnThis() };
         const admin: AuthorizationUser = {
@@ -77,8 +103,8 @@ describe('applyInOutTagWarehouseScope', () => {
         expect(mockQuery.where).not.toHaveBeenCalled();
     });
 
-    it('builds an OR filter for from_wh_id and to_wh_id when staff has warehouses', () => {
-        const mockQuery = { where: vi.fn().mockReturnThis() };
+    it('builds an OR filter with = ANY($1::int[]) for from_wh_id and to_wh_id when staff has warehouses', () => {
+        const db = createTestDb();
         const staffUser: AuthorizationUser = {
             nik: 'STF01',
             role: 'Staff',
@@ -86,16 +112,29 @@ describe('applyInOutTagWarehouseScope', () => {
             warehouseIds: [5, 6],
         };
 
-        applyInOutTagWarehouseScope(mockQuery as any, 'from_wh_id', 'to_wh_id', staffUser);
+        const baseQuery = db.selectFrom('inventory.inout_tag_header').selectAll();
+        const scopedQuery = applyInOutTagWarehouseScope(baseQuery, 'from_wh_id', 'to_wh_id', staffUser);
+        const compiled = scopedQuery.compile();
 
-        expect(mockQuery.where).toHaveBeenCalled();
-        const callback = mockQuery.where.mock.calls[0][0];
+        expect(compiled.sql).toContain('"from_wh_id" = ANY($1::int[])');
+        expect(compiled.sql).toContain('"to_wh_id" = ANY($2::int[])');
+        expect(compiled.parameters).toEqual([[5, 6], [5, 6]]);
+    });
 
-        const mockEb = vi.fn((col, op, val) => ({ col, op, val }));
-        (mockEb as any).or = vi.fn((arr) => arr);
+    it('filters by [-1] in always mode when staff has no warehouse', () => {
+        const db = createTestDb();
+        const staffUser: AuthorizationUser = {
+            nik: 'STF01',
+            role: 'Staff',
+            isStaff: true,
+            warehouseIds: [],
+        };
 
-        callback(mockEb);
-        expect(mockEb).toHaveBeenCalledWith('from_wh_id', 'in', [5, 6]);
-        expect(mockEb).toHaveBeenCalledWith('to_wh_id', 'in', [5, 6]);
+        const baseQuery = db.selectFrom('inventory.inout_tag_header').selectAll();
+        const scopedQuery = applyInOutTagWarehouseScope(baseQuery, 'from_wh_id', 'to_wh_id', staffUser, 'always');
+        const compiled = scopedQuery.compile();
+
+        expect(compiled.sql).toContain('"from_wh_id" = ANY($1::int[])');
+        expect(compiled.parameters).toEqual([[-1]]);
     });
 });

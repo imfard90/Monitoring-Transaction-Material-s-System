@@ -1,3 +1,4 @@
+import { type Expression, sql } from 'kysely';
 import type { AuthorizationUser, WarehouseScopeMode } from '@/lib/policies';
 import { warehouseScope } from '@/lib/policies';
 
@@ -9,22 +10,18 @@ import { warehouseScope } from '@/lib/policies';
  * tables. These aliases describe only the operations this module performs.
  */
 type ScopeColumn = string;
-type ScopeOperator = 'in' | '=' | 'not in';
-type ScopeValue = number | readonly number[];
-
-/** Expression builder passed to the callback form of `where`. */
-interface ScopeExpressionBuilder {
-    or: (expressions: readonly unknown[]) => unknown;
-    (col: ScopeColumn, op: ScopeOperator, val: ScopeValue): unknown;
-}
 
 interface ScopeQueryBuilder<QB> {
-    where(col: ScopeColumn, op: ScopeOperator, val: ScopeValue): QB;
-    where(cb: (eb: ScopeExpressionBuilder) => unknown): QB;
+    where(expression: Expression<boolean>): QB;
 }
 
 /**
- * Applies warehouse scoping filter to a Kysely SelectQueryBuilder.
+ * Applies warehouse scoping filter to a Kysely SelectQueryBuilder using
+ * the high-performance PostgreSQL array binding operator `= ANY($1::int[])`.
+ *
+ * This ensures the generated SQL text remains 100% static regardless of
+ * whether the user has 1, 3, or 20 assigned warehouses, preventing plan
+ * cache bloat and maximizing PostgreSQL query plan reuse.
  *
  * @param query The Kysely query builder
  * @param column The warehouse ID column (e.g. 'warehouse_id' or 'soh.warehouse_id')
@@ -42,15 +39,16 @@ export function applyWarehouseScope<QB extends ScopeQueryBuilder<QB>>(
 
     if (scopedIds.length === 0) {
         // Staff without any assigned warehouse in 'always' mode -> match nothing
-        return query.where(column, 'in', [-1]);
+        return query.where(sql<boolean>`${sql.ref(column)} = ANY(${[-1]}::int[])`);
     }
 
-    return query.where(column, 'in', scopedIds);
+    return query.where(sql<boolean>`${sql.ref(column)} = ANY(${scopedIds}::int[])`);
 }
 
 /**
  * Applies warehouse scoping for transfer transactions (InOut Tag)
  * where the user must have access to either the origin (from) or destination (to) warehouse.
+ * Uses static `= ANY($1::int[])` array bindings for both endpoints.
  */
 export function applyInOutTagWarehouseScope<QB extends ScopeQueryBuilder<QB>>(
     query: QB,
@@ -63,10 +61,10 @@ export function applyInOutTagWarehouseScope<QB extends ScopeQueryBuilder<QB>>(
     if (!scopedIds) return query;
 
     if (scopedIds.length === 0) {
-        return query.where(fromWhCol, 'in', [-1]);
+        return query.where(sql<boolean>`${sql.ref(fromWhCol)} = ANY(${[-1]}::int[])`);
     }
 
-    return query.where((eb: ScopeExpressionBuilder) =>
-        eb.or([eb(fromWhCol, 'in', scopedIds), eb(toWhCol, 'in', scopedIds)])
+    return query.where(
+        sql<boolean>`(${sql.ref(fromWhCol)} = ANY(${scopedIds}::int[]) OR ${sql.ref(toWhCol)} = ANY(${scopedIds}::int[]))`
     );
 }

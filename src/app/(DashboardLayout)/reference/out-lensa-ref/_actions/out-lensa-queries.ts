@@ -81,7 +81,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             const whs = await db
                 .selectFrom('inventory.mas_wh')
                 .select('name')
-                .where('id', 'in', warehouseIds)
+                .where(sql<boolean>`${sql.ref('id')} = ANY(${warehouseIds}::int[])`)
                 .execute();
             whNames = expandWarehouseAliases(whs.map((w) => w.name as string).filter(Boolean));
         }
@@ -404,7 +404,7 @@ export async function getOutLensaFilterOptions() {
             const whs = await db
                 .selectFrom('inventory.mas_wh')
                 .select('name')
-                .where('id', 'in', warehouseIds as number[])
+                .where(sql<boolean>`${sql.ref('id')} = ANY(${warehouseIds as number[]}::int[])`)
                 .execute();
             whNames = expandWarehouseAliases(
                 whs.map((w: Record<string, unknown>) => w.name as string).filter(Boolean)
@@ -474,7 +474,7 @@ export async function getOutLensaRefDetails(headerId: string) {
             const whs = await db
                 .selectFrom('inventory.mas_wh')
                 .select('name')
-                .where('id', 'in', warehouseIds)
+                .where(sql<boolean>`${sql.ref('id')} = ANY(${warehouseIds}::int[])`)
                 .execute();
             const whNames = expandWarehouseAliases(
                 whs.map((w) => w.name as string).filter(Boolean)
@@ -576,7 +576,7 @@ export async function getOutLensaReservationIdOptions(): Promise<{
             const allowedWhNames = await db
                 .selectFrom('inventory.mas_wh')
                 .select('name')
-                .where('id', 'in', warehouseIds)
+                .where(sql<boolean>`${sql.ref('id')} = ANY(${warehouseIds}::int[])`)
                 .execute();
             whNames = expandWarehouseAliases(allowedWhNames.map((w) => w.name));
         }

@@ -10,12 +10,18 @@ const mockDetailsExecute = vi.fn();
 
 vi.mock('@/lib/auth-server', () => ({ getSessionUser: () => mockGetSessionUser() }));
 vi.mock('@/lib/redis', () => ({ redis: { get: vi.fn() } }));
-vi.mock('kysely', () => ({
-    sql: () => ({
-        execute: mockSqlExecute,
-        as: vi.fn().mockReturnThis(),
-    }),
-}));
+vi.mock('kysely', () => {
+    const fakeSql = Object.assign(
+        () => ({
+            execute: mockSqlExecute,
+            as: vi.fn().mockReturnThis(),
+        }),
+        {
+            ref: (ref: string) => ref,
+        }
+    );
+    return { sql: fakeSql };
+});
 vi.mock('@/lib/db/db', () => ({
     db: {
         selectFrom: vi.fn((table: string) => {

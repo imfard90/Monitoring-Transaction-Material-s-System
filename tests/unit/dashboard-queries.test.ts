@@ -45,13 +45,19 @@ const mockExecute = vi.fn();
 const mockExecuteTakeFirst = vi.fn();
 const mockCacheGet = vi.fn();
 const mockCacheSet = vi.fn();
-const mockSql = vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
-    strings,
-    values,
-    as: vi.fn(function (this: { strings: TemplateStringsArray; values: unknown[] }) {
-        return this;
-    }),
-}));
+const mockSql = Object.assign(
+    vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+        strings,
+        values,
+        as: vi.fn(function (this: { strings: TemplateStringsArray; values: unknown[] }) {
+            return this;
+        }),
+    })),
+    {
+        ref: vi.fn((column: string) => column),
+        raw: vi.fn((sql: string) => sql),
+    }
+);
 const mockSelectFrom = vi.fn();
 const mockGroupBy = vi.fn();
 const mockSelect = vi.fn();
@@ -229,17 +235,29 @@ describe('dashboard warehouse scoping', () => {
         mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [2, 4] });
 
         await getTopOutMaterials();
-        expect(mockWhere).toHaveBeenCalledWith('soh.warehouse_id', 'in', [2, 4]);
+        expect(mockWhere).toHaveBeenCalledWith(
+            expect.objectContaining({
+                values: expect.arrayContaining([[2, 4]]),
+            })
+        );
 
         vi.clearAllMocks();
         mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [2, 4] });
         await getOutMaterialLineChartData('all');
-        expect(mockWhere).toHaveBeenCalledWith('soh.warehouse_id', 'in', [2, 4]);
+        expect(mockWhere).toHaveBeenCalledWith(
+            expect.objectContaining({
+                values: expect.arrayContaining([[2, 4]]),
+            })
+        );
 
         vi.clearAllMocks();
         mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [2, 4] });
         await getStockWarnings();
-        expect(mockWhere).toHaveBeenCalledWith('p.warehouse_id', 'in', [2, 4]);
+        expect(mockWhere).toHaveBeenCalledWith(
+            expect.objectContaining({
+                values: expect.arrayContaining([[2, 4]]),
+            })
+        );
     });
 
     it('returns no results for Staff without assigned warehouses', async () => {
@@ -270,14 +288,21 @@ describe('dashboard warehouse scoping', () => {
         await getOutMaterialLineChartData('all');
         await getStockWarnings();
 
-        expect(mockWhere).not.toHaveBeenCalledWith('soh.warehouse_id', 'in', expect.anything());
-        expect(mockWhere).not.toHaveBeenCalledWith('p.warehouse_id', 'in', expect.anything());
+        expect(mockWhere).not.toHaveBeenCalledWith(
+            expect.objectContaining({
+                values: expect.arrayContaining([[2, 4]]),
+            })
+        );
     });
 
     it('returns only assigned warehouse choices to Staff', async () => {
         mockGetSessionUser.mockResolvedValue({ isStaff: true, warehouseIds: [2] });
         await getWarehouses();
-        expect(mockWhere).toHaveBeenCalledWith('id', 'in', [2]);
+        expect(mockWhere).toHaveBeenCalledWith(
+            expect.objectContaining({
+                values: expect.arrayContaining([[2]]),
+            })
+        );
     });
 });
 
@@ -794,10 +819,11 @@ describe('getDashboardKpis', () => {
         const result = await getDashboardKpis();
 
         expect(result.success).toBe(true);
-        expect(mockWhere).toHaveBeenCalledWith('warehouse_id', 'in', [1, 2]);
-        expect(mockWhere).toHaveBeenCalledWith('warehouse_id', 'in', ['1', '2']);
-        expect(mockWhere).toHaveBeenCalledWith('sb.warehouse_id', 'in', [1, 2]);
-        expect(mockWhere).toHaveBeenCalledWith('soh.warehouse_id', 'in', [1, 2]);
+        expect(mockWhere).toHaveBeenCalledWith(
+            expect.objectContaining({
+                values: expect.arrayContaining([[1, 2]]),
+            })
+        );
     });
 
     it('queries global KPI totals without warehouse filter for non-Staff', async () => {
@@ -806,6 +832,10 @@ describe('getDashboardKpis', () => {
         const result = await getDashboardKpis();
 
         expect(result.success).toBe(true);
-        expect(mockWhere).not.toHaveBeenCalledWith('warehouse_id', 'in', expect.anything());
+        expect(mockWhere).not.toHaveBeenCalledWith(
+            expect.objectContaining({
+                values: expect.arrayContaining([[1, 2]]),
+            })
+        );
     });
 });

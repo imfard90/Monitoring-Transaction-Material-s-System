@@ -164,8 +164,12 @@ export async function killSessionAndAudit(
         await redis.del(`${BASELINE_KEY_PREFIX}${sessionId}`);
         await redis.del(`active-sessions-${userId}`);
 
-        // 2. Delete session row in PostgreSQL
-        await pool.query('DELETE FROM auth.session WHERE id = $1', [sessionId]);
+        // 2. Delete session row in PostgreSQL using named prepared statement
+        await pool.query({
+            name: 'auth-delete-session-by-id',
+            text: 'DELETE FROM auth.session WHERE id = $1',
+            values: [sessionId],
+        });
 
         // 3. Record audit log
         await logAuthEvent({
