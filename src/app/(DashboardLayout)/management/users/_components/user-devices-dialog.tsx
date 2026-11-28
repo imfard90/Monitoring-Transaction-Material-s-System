@@ -165,7 +165,7 @@ export function UserDevicesDialog({ user, isOpen, onClose, onRefresh }: UserDevi
                                                     ) : (
                                                         <Badge
                                                             variant="outline"
-                                                            className="text-[10px] py-0 px-1 border-emerald-500/30 text-emerald-600 bg-emerald-500/10"
+                                                            className="text-[10px] py-0 px-1 border-emerald-500/30 text-emerald-800 dark:text-emerald-400 bg-emerald-500/10"
                                                         >
                                                             Aktif
                                                         </Badge>

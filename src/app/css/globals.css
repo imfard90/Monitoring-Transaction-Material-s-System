@@ -181,10 +181,10 @@ main {
     --sidebar-ring: var(--primary);
 
     /* CUSTOM COLORS */
-    --info: #0ea5e9; /* Sky 500 */
-    --success: #10b981; /* Emerald 500 */
-    --warning: #d97706; /* Amber 600 */
-    --error: #ef4444; /* Red 500 */
+    --info: #0369a1; /* Sky 700 — WCAG AA on light surfaces */
+    --success: #047857; /* Emerald 700 — WCAG AA on light & tinted surfaces */
+    --warning: #b45309; /* Amber 700 — WCAG AA on light surfaces */
+    --error: #dc2626; /* Red 600 — WCAG AA on light surfaces */
     --white: #ffffff;
     --dark: #0f172a; /* Slate 900 */
     --bodytext: #475569; /* Slate 600 */
