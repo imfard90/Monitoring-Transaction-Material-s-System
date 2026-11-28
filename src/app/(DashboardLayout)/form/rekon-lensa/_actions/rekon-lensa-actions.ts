@@ -33,7 +33,9 @@ export async function getTechniciansWithIntechSaps() {
             if (warehouseIds.length === 0) {
                 return { success: true, data: [] };
             }
-            query = query.where('t.wh_id', 'in', warehouseIds);
+            query = query.where(
+                sql<boolean>`${sql.ref('t.wh_id')} = ANY(${warehouseIds}::int[])`
+            );
         }
 
         const saps = await query.execute();
@@ -150,7 +152,7 @@ export async function getWOLensa(nik: string) {
         const items = await db
             .selectFrom('inventory.wo_lensa_list as l')
             .select(['l.header_id', 'l.material_id', 'l.material_desc', 'l.qty_pemakaian', 'l.uom'])
-            .where('l.header_id', 'in', headerIds)
+            .where(sql<boolean>`${sql.ref('l.header_id')} = ANY(${headerIds}::bigint[])`)
             .execute();
 
         const data = wos.map((wo) => ({
@@ -228,7 +230,7 @@ export async function submitRekonLensa(
             const validHeaders = await db
                 .selectFrom('inventory.sap_out_header')
                 .select('id')
-                .where('id', 'in', sapOutIds)
+                .where(sql<boolean>`${sql.ref('id')} = ANY(${sapOutIds}::bigint[])`)
                 .where('nik_teknisi', '=', parsed.data.nik)
                 .execute();
             if (validHeaders.length !== sapOutIds.length) {
@@ -249,7 +251,7 @@ export async function submitRekonLensa(
                     const existingWos = await db
                         .selectFrom('inventory.transaction_used_header')
                         .select('wo_number')
-                        .where('wo_number', 'in', woNumbers)
+                        .where(sql<boolean>`${sql.ref('wo_number')} = ANY(${woNumbers}::text[])`)
                         .execute();
 
                     if (existingWos.length > 0) {
@@ -298,7 +300,7 @@ export async function submitRekonLensa(
                         const materials = await trx
                             .selectFrom('inventory.materials')
                             .select(['id', 'code'])
-                            .where('id', 'in', designatorIds)
+                            .where(sql<boolean>`${sql.ref('id')} = ANY(${designatorIds}::int[])`)
                             .execute();
 
                         const codeMap = new Map(materials.map((m) => [m.id, m.code]));

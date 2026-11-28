@@ -1,3 +1,4 @@
+import { sql } from 'kysely';
 import { db } from '@/lib/db/db';
 
 export interface StockBalanceItem {
@@ -60,7 +61,9 @@ export async function getStockBalancesForApiUser(user: {
         ]);
 
     if (allowedWarehouseIds !== null) {
-        query = query.where('sb.warehouse_id', 'in', allowedWarehouseIds);
+        query = query.where(
+            sql<boolean>`${sql.ref('sb.warehouse_id')} = ANY(${allowedWarehouseIds}::int[])`
+        );
     }
 
     const rows = await query

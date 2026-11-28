@@ -126,7 +126,9 @@ export async function getPendingNotifications(): Promise<{
         let inoutCountQuery = db
             .selectFrom('inventory.inout_tag_header as h')
             .select(sql<number>`COUNT(h.id)`.as('total'))
-            .where('h.end_status', 'in', ['requested', 'in_transit']);
+            .where(
+                sql<boolean>`${sql.ref('h.end_status')}::text = ANY(${['requested', 'in_transit']}::text[])`
+            );
 
         let inoutRecentQuery = db
             .selectFrom('inventory.inout_tag_header as h')
@@ -140,40 +142,26 @@ export async function getPendingNotifications(): Promise<{
                 'wh_from.name as from_wh_name',
                 'wh_to.name as to_wh_name',
             ])
-            .where('h.end_status', 'in', ['requested', 'in_transit']);
+            .where(
+                sql<boolean>`${sql.ref('h.end_status')}::text = ANY(${['requested', 'in_transit']}::text[])`
+            );
 
         if (scope.kind === 'scoped') {
-            inoutCountQuery = inoutCountQuery.where((eb) =>
-                eb.or([
-                    eb.and([
-                        eb('h.end_status', '=', 'requested'),
-                        eb('h.from_wh_id', 'in', scope.ids),
-                    ]),
-                    eb.and([
-                        eb('h.end_status', '=', 'in_transit'),
-                        eb('h.to_wh_id', 'in', scope.ids),
-                    ]),
-                ])
-            );
-            inoutRecentQuery = inoutRecentQuery.where((eb) =>
-                eb.or([
-                    eb.and([
-                        eb('h.end_status', '=', 'requested'),
-                        eb('h.from_wh_id', 'in', scope.ids),
-                    ]),
-                    eb.and([
-                        eb('h.end_status', '=', 'in_transit'),
-                        eb('h.to_wh_id', 'in', scope.ids),
-                    ]),
-                ])
-            );
+            const inoutScopeFilter = sql<boolean>`(
+                (${sql.ref('h.end_status')} = 'requested' AND ${sql.ref('h.from_wh_id')} = ANY(${scope.ids}::int[]))
+                OR (${sql.ref('h.end_status')} = 'in_transit' AND ${sql.ref('h.to_wh_id')} = ANY(${scope.ids}::int[]))
+            )`;
+            inoutCountQuery = inoutCountQuery.where(inoutScopeFilter);
+            inoutRecentQuery = inoutRecentQuery.where(inoutScopeFilter);
         }
 
         // 2. Return Material Queries
         let returnCountQuery = db
             .selectFrom('inventory.return_material_header as r')
             .select(sql<number>`COUNT(r.id)`.as('total'))
-            .where('r.end_status', 'in', ['pending', 'wait_approve', 'requested']);
+            .where(
+                sql<boolean>`${sql.ref('r.end_status')} = ANY(${['pending', 'wait_approve', 'requested']}::text[])`
+            );
 
         let returnRecentQuery = db
             .selectFrom('inventory.return_material_header as r')
@@ -188,22 +176,22 @@ export async function getPendingNotifications(): Promise<{
                 'r.created_at as request_time',
                 'r.end_status',
             ])
-            .where('r.end_status', 'in', ['pending', 'wait_approve', 'requested']);
+            .where(
+                sql<boolean>`${sql.ref('r.end_status')} = ANY(${['pending', 'wait_approve', 'requested']}::text[])`
+            );
 
         if (scope.kind === 'scoped') {
-            const whIdsAsStrings = scope.ids.map(String);
-            returnCountQuery = returnCountQuery.where('r.warehouse_id', 'in', whIdsAsStrings);
-            returnRecentQuery = returnRecentQuery.where('r.warehouse_id', 'in', whIdsAsStrings);
+            const returnScopeFilter = sql<boolean>`${sql.ref('r.warehouse_id')} = ANY(${scope.ids}::bigint[])`;
+            returnCountQuery = returnCountQuery.where(returnScopeFilter);
+            returnRecentQuery = returnRecentQuery.where(returnScopeFilter);
         }
 
         // 3. Out SAP Check False Queries (inventory.out_lensa_ref_header)
-        // Batasi hanya data >= October 2026 cutoff ('2026-10-01') dan gudang master
+        // Memanfaatkan partial index idx_out_lensa_pending_sap (WHERE sap_out_check = false)
         let outSapCountQuery = db
             .selectFrom('inventory.out_lensa_ref_header as o')
             .select(sql<number>`COUNT(o.id)`.as('total'))
-            .where((eb) =>
-                eb.or([eb('o.sap_out_check', '=', false), eb('o.sap_out_check', 'is', null)])
-            )
+            .where('o.sap_out_check', '=', false)
             .where('o.formatted_date', '>=', sql<Date>`'2026-10-01'::date`);
 
         let outSapRecentQuery = db
@@ -216,9 +204,7 @@ export async function getPendingNotifications(): Promise<{
                 'o.nik_pemakai',
                 'o.formatted_date as request_time',
             ])
-            .where((eb) =>
-                eb.or([eb('o.sap_out_check', '=', false), eb('o.sap_out_check', 'is', null)])
-            )
+            .where('o.sap_out_check', '=', false)
             .where('o.formatted_date', '>=', sql<Date>`'2026-10-01'::date`);
 
         if (isStaff && whNames.length > 0) {
@@ -227,11 +213,10 @@ export async function getPendingNotifications(): Promise<{
         }
 
         // 4. Rekon Lensa Belum Rekon Queries (inventory.wo_lensa_header)
-        // Memanfaatkan partial index idx_wo_lensa_header_rekon_check (WHERE rekon_check IS NOT NULL)
+        // Memanfaatkan partial index idx_wo_lensa_pending_rekon (WHERE rekon_check = false)
         let rekonCountQuery = db
             .selectFrom('inventory.wo_lensa_header as w')
             .select(sql<number>`COUNT(w.id)`.as('total'))
-            .where('w.rekon_check', 'is not', null)
             .where('w.rekon_check', '=', false);
 
         let rekonRecentQuery = db
@@ -244,7 +229,6 @@ export async function getPendingNotifications(): Promise<{
                 'w.type as wo_type',
                 'w.formatted_date as request_time',
             ])
-            .where('w.rekon_check', 'is not', null)
             .where('w.rekon_check', '=', false);
 
         if (isStaff && whNames.length > 0) {

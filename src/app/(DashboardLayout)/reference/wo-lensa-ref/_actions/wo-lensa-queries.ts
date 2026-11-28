@@ -5,7 +5,6 @@ import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { scraperLogRepository } from '@/lib/repositories/scraper-log.repository';
 import { expandWarehouseAliases, isMasterWarehouse } from '@/lib/warehouse-helper';
-import { isOctober2026Cutoff } from '@/lib/services/lensa-wo/types';
 
 export interface ScraperLastUpdateInfo {
     timestamp: string;
@@ -117,7 +116,9 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             .select((eb) => eb.fn.count('wlh.id').as('total'));
 
         if (filterWarehouse && filterWarehouse.length > 0) {
-            countQuery = countQuery.where('wlh.nama_gudang', 'in', filterWarehouse);
+            countQuery = countQuery.where(
+                sql<boolean>`${sql.ref('wlh.nama_gudang')} = ANY(${filterWarehouse}::text[])`
+            );
         }
 
         if (search?.trim()) {
@@ -148,7 +149,9 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             .distinct()
             .orderBy('nama_gudang', 'asc');
         if (isStaff && whNames.length > 0) {
-            warehouseOptionsQuery = warehouseOptionsQuery.where('nama_gudang', 'in', whNames);
+            warehouseOptionsQuery = warehouseOptionsQuery.where(
+                sql<boolean>`${sql.ref('nama_gudang')} = ANY(${whNames}::text[])`
+            );
         }
         const warehouseRows = await warehouseOptionsQuery.execute();
         const warehouses = Array.from(
@@ -186,7 +189,9 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             .offset(offset);
 
         if (filterWarehouse && filterWarehouse.length > 0) {
-            headerQuery = headerQuery.where('wlh.nama_gudang', 'in', filterWarehouse);
+            headerQuery = headerQuery.where(
+                sql<boolean>`${sql.ref('wlh.nama_gudang')} = ANY(${filterWarehouse}::text[])`
+            );
         }
 
         if (search?.trim()) {
@@ -221,108 +226,12 @@ export async function getWOLensaList(options: GetWOLensaListOptions = {}) {
             };
         }
 
-        // Sync rekon_check for any unflagged headers on the current page via strict matching (pemakaian_id + wo_number)
-        const unflaggedHeaders = headers.filter((h) => !h.rekon_check);
-        if (unflaggedHeaders.length > 0) {
-            const pIds = unflaggedHeaders
-                .map((h) => (h.pemakaian_id ? String(h.pemakaian_id).trim() : ''))
-                .filter(Boolean);
-
-            if (pIds.length > 0) {
-                const matchedRekons = await db
-                    .selectFrom('inventory.rekon_used_header')
-                    .select(['id_pemakaian', 'wo_number'])
-                    .where('id_pemakaian', 'in', pIds)
-                    .execute();
-
-                if (matchedRekons.length > 0) {
-                    const matchedPairs = new Set(
-                        matchedRekons.map(
-                            (r) => `${r.id_pemakaian?.trim() || ''}:::${r.wo_number?.trim() || ''}`
-                        )
-                    );
-
-                    const idsToUpdate = unflaggedHeaders
-                        .filter((h) => {
-                            const pId = h.pemakaian_id ? String(h.pemakaian_id).trim() : '';
-                            const wo = h.wo_number ? String(h.wo_number).trim() : '';
-                            return pId
-                                ? matchedPairs.has(`${pId}:::${wo}`) || matchedPairs.has(`${pId}:::`)
-                                : false;
-                        })
-                        .map((h) => h.id);
-
-                    if (idsToUpdate.length > 0) {
-                        await db
-                            .updateTable('inventory.wo_lensa_header')
-                            .set({ rekon_check: true })
-                            .where('id', 'in', idsToUpdate)
-                            .execute();
-
-                        for (const h of headers) {
-                            if (idsToUpdate.includes(h.id)) {
-                                h.rekon_check = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Self-heal any false-positive rekon_check on the current page (e.g. from previous looser matching).
-        // Pengecualian khusus: Periode Oktober 2026 telah dinormalisasi via migrasi 065 (cutoff uji coba).
-        const flaggedHeaders = headers.filter((h) => {
-            if (!h.rekon_check) return false;
-            if (isOctober2026Cutoff(h.formatted_date)) return false;
-            return true;
-        });
-        if (flaggedHeaders.length > 0) {
-            const flaggedPIds = flaggedHeaders
-                .map((h) => (h.pemakaian_id ? String(h.pemakaian_id).trim() : ''))
-                .filter(Boolean);
-
-            if (flaggedPIds.length > 0) {
-                const activeRekons = await db
-                    .selectFrom('inventory.rekon_used_header')
-                    .select(['id_pemakaian'])
-                    .where('id_pemakaian', 'in', flaggedPIds)
-                    .execute();
-
-                const validPIds = new Set(
-                    activeRekons
-                        .map((r) => r.id_pemakaian?.trim())
-                        .filter((n): n is string => Boolean(n))
-                );
-
-                const idsToUncheck = flaggedHeaders
-                    .filter((h) => {
-                        const pId = h.pemakaian_id ? String(h.pemakaian_id).trim() : '';
-                        return pId && !validPIds.has(pId);
-                    })
-                    .map((h) => h.id);
-
-                if (idsToUncheck.length > 0) {
-                    await db
-                        .updateTable('inventory.wo_lensa_header')
-                        .set({ rekon_check: false })
-                        .where('id', 'in', idsToUncheck)
-                        .execute();
-
-                    for (const h of headers) {
-                        if (idsToUncheck.includes(h.id)) {
-                            h.rekon_check = false;
-                        }
-                    }
-                }
-            }
-        }
-
         const headerIds = headers.map((h) => h.id);
 
         const details = await db
             .selectFrom('inventory.wo_lensa_list')
             .selectAll()
-            .where('header_id', 'in', headerIds)
+            .where(sql<boolean>`${sql.ref('header_id')} = ANY(${headerIds}::bigint[])`)
             .execute();
 
         const result: WOLensaHeader[] = headers.map((h) => ({
@@ -387,7 +296,9 @@ export async function getWOLensaFilterOptions() {
             .orderBy('nama_gudang', 'asc');
 
         if (isStaff && whNames.length > 0) {
-            whQuery = whQuery.where('nama_gudang', 'in', whNames);
+            whQuery = whQuery.where(
+                sql<boolean>`${sql.ref('nama_gudang')} = ANY(${whNames}::text[])`
+            );
         }
         const whs = await whQuery.execute();
 
@@ -434,7 +345,9 @@ export async function getWOLensaRefList() {
         .orderBy(sql<number>`CAST(wlh.pemakaian_id AS BIGINT)`, 'desc');
 
     if (isStaff && whNames.length > 0) {
-        query = query.where('wlh.nama_gudang', 'in', whNames);
+        query = query.where(
+            sql<boolean>`${sql.ref('wlh.nama_gudang')} = ANY(${whNames}::text[])`
+        );
     }
 
     const list = await query.execute();
@@ -472,7 +385,9 @@ export async function getWOLensaRefDetails(headerId: number | string) {
             if (whNames.length === 0) {
                 return { success: false, error: 'Akses gudang ditolak' };
             }
-            query = query.where('h.nama_gudang', 'in', whNames);
+            query = query.where(
+                sql<boolean>`${sql.ref('h.nama_gudang')} = ANY(${whNames}::text[])`
+            );
         }
 
         const details = await query.execute();
@@ -527,7 +442,9 @@ export async function getWOPemakaianIdOptions(): Promise<{
             .having(sql`count(l.id)`, '=', 0);
 
         if (isStaff && whNames.length > 0) {
-            query = query.where('h.nama_gudang', 'in', whNames);
+            query = query.where(
+                sql<boolean>`${sql.ref('h.nama_gudang')} = ANY(${whNames}::text[])`
+            );
         }
 
         // Hanya data yang belum memiliki detail material

@@ -41,8 +41,12 @@ export const createOutSapRepository = (dbClient: Kysely<DB> | Transaction<DB>) =
                     counts: { wait_approve: 0, request: 0, intech: 0, close: 0 },
                 };
             }
-            sapQuery = sapQuery.where('soh.warehouse_id', 'in', params.warehouseIds as number[]);
-            countQuery = countQuery.where('warehouse_id', 'in', params.warehouseIds as number[]);
+            sapQuery = sapQuery.where(
+                sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${params.warehouseIds as number[]}::int[])`
+            );
+            countQuery = countQuery.where(
+                sql<boolean>`${sql.ref('warehouse_id')} = ANY(${params.warehouseIds as number[]}::int[])`
+            );
         }
 
         const data = await sapQuery.limit(params?.limit ?? 200).execute();
@@ -93,7 +97,9 @@ export const createOutSapRepository = (dbClient: Kysely<DB> | Transaction<DB>) =
 
         if (warehouseIds !== undefined) {
             if (warehouseIds.length === 0) return [];
-            query = query.where('h.warehouse_id', 'in', warehouseIds as readonly number[]);
+            query = query.where(
+                sql<boolean>`${sql.ref('h.warehouse_id')} = ANY(${warehouseIds as number[]}::int[])`
+            );
         }
 
         return query.execute();

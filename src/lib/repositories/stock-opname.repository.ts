@@ -1,4 +1,4 @@
-import type { ColumnType, Generated, Kysely } from 'kysely';
+import { type ColumnType, type Generated, type Kysely, sql } from 'kysely';
 import type { DB } from '@/lib/db/database.types';
 
 export interface InventoryStockOpnameLogRow {
@@ -105,7 +105,9 @@ export function createStockOpnameRepository(db: Kysely<DB>) {
                 .orderBy('created_at', 'desc');
 
             if (filters.warehouseIds?.length) {
-                query = query.where('warehouse_id', 'in', filters.warehouseIds);
+                query = query.where(
+                    sql<boolean>`${sql.ref('warehouse_id')} = ANY(${filters.warehouseIds}::int[])`
+                );
             }
 
             if (filters.status) {
@@ -189,7 +191,9 @@ export function createStockOpnameRepository(db: Kysely<DB>) {
                 .select((eb) => eb.fn.count<number>('id').as('count'));
 
             if (filters.warehouseIds?.length) {
-                query = query.where('warehouse_id', 'in', filters.warehouseIds);
+                query = query.where(
+                    sql<boolean>`${sql.ref('warehouse_id')} = ANY(${filters.warehouseIds}::int[])`
+                );
             }
 
             if (filters.status) {

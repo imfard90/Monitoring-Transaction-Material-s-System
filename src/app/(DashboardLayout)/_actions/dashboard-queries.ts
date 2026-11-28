@@ -150,76 +150,42 @@ export async function getDashboardKpis() {
             );
         }
 
-        // 0.1 Intech Open (end_status = 'intech')
-        let intechOpenQuery = db
+        // 0. Intech Open & Close (consolidated single query)
+        let sapOutKpiQuery = db
             .selectFrom('inventory.sap_out_header')
-            .select(sql<number>`COUNT(id)`.as('total'))
-            .where('end_status', '=', 'intech');
+            .select([
+                sql<number>`COUNT(*) FILTER (WHERE end_status = 'intech')`.as('intech_open'),
+                sql<number>`COUNT(*) FILTER (WHERE end_status = 'close')`.as('intech_close'),
+            ]);
         if (scope.kind === 'scoped') {
-            intechOpenQuery = intechOpenQuery.where(sql<boolean>`${sql.ref('warehouse_id')} = ANY(${scope.ids}::int[])`);
+            sapOutKpiQuery = sapOutKpiQuery.where(
+                sql<boolean>`${sql.ref('warehouse_id')} = ANY(${scope.ids}::int[])`
+            );
         }
-        const intechOpen = await intechOpenQuery.executeTakeFirst();
-        data.intechOpen = Number(intechOpen?.total || 0);
 
-        // 0.2 Intech Close (end_status = 'close')
-        let intechCloseQuery = db
-            .selectFrom('inventory.sap_out_header')
-            .select(sql<number>`COUNT(id)`.as('total'))
-            .where('end_status', '=', 'close');
-        if (scope.kind === 'scoped') {
-            intechCloseQuery = intechCloseQuery.where(sql<boolean>`${sql.ref('warehouse_id')} = ANY(${scope.ids}::int[])`);
-        }
-        const intechClose = await intechCloseQuery.executeTakeFirst();
-        data.intechClose = Number(intechClose?.total || 0);
-
-        // 1. Request Tag
-        let requestTagQuery = db
+        // 1-3. InOut Tag Counts (consolidated single query)
+        let tagKpiQuery = db
             .selectFrom('inventory.inout_tag_header')
-            .select(sql<number>`COUNT(id)`.as('total'))
-            .where('end_status', '=', 'requested');
+            .select([
+                sql<number>`COUNT(*) FILTER (WHERE end_status = 'requested')`.as('request_tag'),
+                sql<number>`COUNT(*) FILTER (WHERE end_status = 'in_transit')`.as('transit_tag'),
+                sql<number>`COUNT(*) FILTER (WHERE end_status = 'closed')`.as('close_tag'),
+            ]);
         if (scope.kind === 'scoped') {
-            requestTagQuery = requestTagQuery.where(
+            tagKpiQuery = tagKpiQuery.where(
                 sql<boolean>`(${sql.ref('from_wh_id')} = ANY(${scope.ids}::int[]) OR ${sql.ref('to_wh_id')} = ANY(${scope.ids}::int[]))`
             );
         }
-        const requestTag = await requestTagQuery.executeTakeFirst();
-        data.requestTag = Number(requestTag?.total || 0);
-
-        // 2. Transit Tag
-        let transitTagQuery = db
-            .selectFrom('inventory.inout_tag_header')
-            .select(sql<number>`COUNT(id)`.as('total'))
-            .where('end_status', '=', 'in_transit');
-        if (scope.kind === 'scoped') {
-            transitTagQuery = transitTagQuery.where(
-                sql<boolean>`(${sql.ref('from_wh_id')} = ANY(${scope.ids}::int[]) OR ${sql.ref('to_wh_id')} = ANY(${scope.ids}::int[]))`
-            );
-        }
-        const transitTag = await transitTagQuery.executeTakeFirst();
-        data.transitTag = Number(transitTag?.total || 0);
-
-        // 3. Close Tag
-        let closeTagQuery = db
-            .selectFrom('inventory.inout_tag_header')
-            .select(sql<number>`COUNT(id)`.as('total'))
-            .where('end_status', '=', 'closed');
-        if (scope.kind === 'scoped') {
-            closeTagQuery = closeTagQuery.where(
-                sql<boolean>`(${sql.ref('from_wh_id')} = ANY(${scope.ids}::int[]) OR ${sql.ref('to_wh_id')} = ANY(${scope.ids}::int[]))`
-            );
-        }
-        const closeTag = await closeTagQuery.executeTakeFirst();
-        data.closeTag = Number(closeTag?.total || 0);
 
         // 4. Return Tek
         let returnTekQuery = db
             .selectFrom('inventory.return_material_header')
             .select(sql<number>`COUNT(id)`.as('total'));
         if (scope.kind === 'scoped') {
-            returnTekQuery = returnTekQuery.where(sql<boolean>`${sql.ref('warehouse_id')} = ANY(${scope.ids}::int[])`);
+            returnTekQuery = returnTekQuery.where(
+                sql<boolean>`${sql.ref('warehouse_id')} = ANY(${scope.ids}::int[])`
+            );
         }
-        const returnTek = await returnTekQuery.executeTakeFirst();
-        data.returnTek = Number(returnTek?.total || 0);
 
         // 5. Stock Inventory Rupiah
         let invStockQuery = db
@@ -230,10 +196,10 @@ export async function getDashboardKpis() {
             )
             .where('sb.qty_stock', '>', 0);
         if (scope.kind === 'scoped') {
-            invStockQuery = invStockQuery.where(sql<boolean>`${sql.ref('sb.warehouse_id')} = ANY(${scope.ids}::int[])`);
+            invStockQuery = invStockQuery.where(
+                sql<boolean>`${sql.ref('sb.warehouse_id')} = ANY(${scope.ids}::int[])`
+            );
         }
-        const invStock = await invStockQuery.executeTakeFirst();
-        data.stockInventoryRp = Number(invStock?.total_rp || 0);
 
         // 6. Stock Intech Rupiah
         let intechStockQuery = db
@@ -248,9 +214,26 @@ export async function getDashboardKpis() {
             .where('soh.end_status', '=', 'intech')
             .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0);
         if (scope.kind === 'scoped') {
-            intechStockQuery = intechStockQuery.where(sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`);
+            intechStockQuery = intechStockQuery.where(
+                sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${scope.ids}::int[])`
+            );
         }
-        const intechStock = await intechStockQuery.executeTakeFirst();
+
+        const [sapOutKpi, tagKpi, returnTek, invStock, intechStock] = await Promise.all([
+            sapOutKpiQuery.executeTakeFirst(),
+            tagKpiQuery.executeTakeFirst(),
+            returnTekQuery.executeTakeFirst(),
+            invStockQuery.executeTakeFirst(),
+            intechStockQuery.executeTakeFirst(),
+        ]);
+
+        data.intechOpen = Number(sapOutKpi?.intech_open || 0);
+        data.intechClose = Number(sapOutKpi?.intech_close || 0);
+        data.requestTag = Number(tagKpi?.request_tag || 0);
+        data.transitTag = Number(tagKpi?.transit_tag || 0);
+        data.closeTag = Number(tagKpi?.close_tag || 0);
+        data.returnTek = Number(returnTek?.total || 0);
+        data.stockInventoryRp = Number(invStock?.total_rp || 0);
         data.stockIntechRp = Number(intechStock?.total_rp || 0);
 
         await encryptedCache.setGeneral('dashboard', data, cacheKey, 60);

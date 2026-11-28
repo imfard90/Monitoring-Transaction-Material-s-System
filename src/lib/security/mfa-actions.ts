@@ -87,7 +87,11 @@ export async function checkDeviceAction(params: {
                     await redis.del(session.session.token);
                     await redis.del(`active-sessions-${userId}`);
                 }
-                await pool.query('DELETE FROM auth.session WHERE "userId" = $1', [userId]);
+                await pool.query({
+                    name: 'auth-mfa-delete-user-sessions',
+                    text: 'DELETE FROM auth.session WHERE "userId" = $1',
+                    values: [userId],
+                });
             } catch (err) {
                 actionLogger.error(
                     'Failed to kill session on device limit block',

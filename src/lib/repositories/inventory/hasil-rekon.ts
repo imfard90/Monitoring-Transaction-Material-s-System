@@ -48,7 +48,9 @@ export const createHasilRekonRepository = (dbClient: Kysely<DB> | Transaction<DB
             if (params.warehouseIds.length === 0) return [];
             query = query
                 .innerJoin('inventory.sap_out_header as soh', 'soh.sap_number', 'rul.out_sap')
-                .where('soh.warehouse_id', 'in', params.warehouseIds as readonly number[]);
+                .where(
+                    sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${params.warehouseIds as number[]}::int[])`
+                );
         }
 
         const data = await query.limit(params.limit ?? 500).execute();
@@ -105,7 +107,9 @@ export const createHasilRekonRepository = (dbClient: Kysely<DB> | Transaction<DB
 
         if (params.warehouseIds !== undefined) {
             if (params.warehouseIds.length === 0) return [];
-            query = query.where('soh.warehouse_id', 'in', params.warehouseIds as readonly number[]);
+            query = query.where(
+                sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${params.warehouseIds as number[]}::int[])`
+            );
         }
 
         const data = await query.limit(params.limit ?? 500).execute();
@@ -323,7 +327,9 @@ export const createHasilRekonRepository = (dbClient: Kysely<DB> | Transaction<DB
             whQuery = whQuery
                 .innerJoin('inventory.rekon_used_list as rul', 'rul.rekon_used_id', 'ruh.id')
                 .innerJoin('inventory.sap_out_header as soh', 'soh.sap_number', 'rul.out_sap')
-                .where('soh.warehouse_id', 'in', warehouseIds as number[]);
+                .where(
+                    sql<boolean>`${sql.ref('soh.warehouse_id')} = ANY(${warehouseIds as number[]}::int[])`
+                );
         }
         const whs = await whQuery.execute();
         const warehouses = Array.from(new Set(whs.map((w) => w.name).filter(Boolean))) as string[];

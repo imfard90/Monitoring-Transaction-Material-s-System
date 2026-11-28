@@ -71,7 +71,9 @@ export async function getStockMovements(offsetMonths = 0, limitMonths = 5) {
             if (warehouseIds.length === 0) {
                 return [];
             }
-            query = query.where('sm.warehouse_id', 'in', warehouseIds as number[]);
+            query = query.where(
+                sql<boolean>`${sql.ref('sm.warehouse_id')} = ANY(${warehouseIds as number[]}::int[])`
+            );
         }
 
         const movements = await query.limit(1000).execute();
@@ -107,7 +109,9 @@ export async function getStockMovementsPaginated(options: GetStockMovementsOptio
                     totalPages: 0,
                 };
             }
-            baseQuery = baseQuery.where('sm.warehouse_id', 'in', warehouseIds as number[]);
+            baseQuery = baseQuery.where(
+                sql<boolean>`${sql.ref('sm.warehouse_id')} = ANY(${warehouseIds as number[]}::int[])`
+            );
         }
 
         if (options.warehouse && options.warehouse !== 'all') {
@@ -213,7 +217,9 @@ export async function getStockMovementFilterOptions() {
             .distinct()
             .orderBy('w.name', 'asc');
         if (isStaff) {
-            whQuery = whQuery.where('sm.warehouse_id', 'in', warehouseIds as number[]);
+            whQuery = whQuery.where(
+                sql<boolean>`${sql.ref('sm.warehouse_id')} = ANY(${warehouseIds as number[]}::int[])`
+            );
         }
         const whs = await whQuery.execute();
         const warehouses = Array.from(new Set(whs.map((w) => w.name).filter(Boolean))) as string[];

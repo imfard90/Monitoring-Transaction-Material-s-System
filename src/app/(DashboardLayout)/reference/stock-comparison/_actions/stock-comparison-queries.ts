@@ -1,5 +1,6 @@
 'use server';
 
+import { sql } from 'kysely';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
@@ -52,7 +53,9 @@ export async function getTeknisiStockList(options?: { includeInactive?: boolean 
         }
 
         if (scope.kind === 'scoped') {
-            query = query.where('t.wh_id', 'in', scope.ids);
+            query = query.where(
+                sql<boolean>`${sql.ref('t.wh_id')} = ANY(${scope.ids}::int[])`
+            );
         }
 
         const rows = (await query.execute()) as TeknisiRow[];
@@ -347,7 +350,9 @@ export async function getTeknisiList(): Promise<{
 
         // Staff: hanya teknisi yang berada di gudang yang di-assign ke user
         if (scope.kind === 'scoped') {
-            query = query.where('wh_id', 'in', scope.ids);
+            query = query.where(
+                sql<boolean>`${sql.ref('wh_id')} = ANY(${scope.ids}::int[])`
+            );
         }
 
         const rows = await query.orderBy('name', 'asc').execute();

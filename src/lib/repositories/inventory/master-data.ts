@@ -177,11 +177,9 @@ export const createMasterDataRepository = (dbClient: Kysely<DB> | Transaction<DB
                 qb
                     .selectFrom('inventory.stock_movement')
                     .select(['warehouse_id', 'designator_id'])
-                    .where('movement_type', 'in', [
-                        'material_used',
-                        'sap_out',
-                        'transfer_out',
-                    ])
+                    .where(
+                        sql<boolean>`${sql.ref('movement_type')}::text = ANY(${['material_used', 'sap_out', 'transfer_out']}::text[])`
+                    )
                     .distinct()
             )
             .selectFrom('inventory.stock_balance as sb')
@@ -285,7 +283,7 @@ export const createMasterDataRepository = (dbClient: Kysely<DB> | Transaction<DB
                 'm.code as material_code',
                 sql<number>`SUM(soi.qty_req - COALESCE(soi.qty_used, 0))`.as('qty_intech'),
             ])
-            .where('soh.nik_teknisi', 'in', niks)
+            .where(sql<boolean>`${sql.ref('soh.nik_teknisi')} = ANY(${niks}::text[])`)
             .where('soh.end_status', '=', 'intech')
             .where(sql`soi.qty_req - COALESCE(soi.qty_used, 0)`, '>', 0)
             .groupBy(['soh.nik_teknisi', 'm.code'])

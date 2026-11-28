@@ -80,7 +80,9 @@ export async function getSapOutItemsForReturn(headerId: number | string) {
                             'rmi.sap_out_item_id',
                             sql<number>`SUM(rmi.qty)`.as('pending_qty'),
                         ])
-                        .where('rmh.end_status', 'in', ['wait_approve', 'pending'])
+                        .where(
+                            sql<boolean>`${sql.ref('rmh.end_status')} = ANY(${['wait_approve', 'pending']}::text[])`
+                        )
                         .groupBy('rmi.sap_out_item_id')
                         .as('pending_rm'),
                 (join) => join.onRef('pending_rm.sap_out_item_id', '=', 'i.id')

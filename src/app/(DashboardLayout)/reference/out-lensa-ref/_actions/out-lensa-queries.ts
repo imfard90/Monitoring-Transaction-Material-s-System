@@ -107,7 +107,9 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             .select((eb) => eb.fn.count('olh.id').as('total'));
 
         if (filterWarehouse) {
-            countQuery = countQuery.where('olh.nama_gudang', 'in', filterWarehouse);
+            countQuery = countQuery.where(
+                sql<boolean>`${sql.ref('olh.nama_gudang')} = ANY(${filterWarehouse}::text[])`
+            );
         }
 
         if (search?.trim()) {
@@ -137,7 +139,9 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             .distinct()
             .orderBy('nama_gudang', 'asc');
         if (isStaff && whNames.length > 0) {
-            warehouseOptionsQuery = warehouseOptionsQuery.where('nama_gudang', 'in', whNames);
+            warehouseOptionsQuery = warehouseOptionsQuery.where(
+                sql<boolean>`${sql.ref('nama_gudang')} = ANY(${whNames}::text[])`
+            );
         }
         const warehouseRows = await warehouseOptionsQuery.execute();
         const warehouses = Array.from(
@@ -177,7 +181,9 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
             .offset((page - 1) * pageSize);
 
         if (filterWarehouse) {
-            headerQuery = headerQuery.where('olh.nama_gudang', 'in', filterWarehouse);
+            headerQuery = headerQuery.where(
+                sql<boolean>`${sql.ref('olh.nama_gudang')} = ANY(${filterWarehouse}::text[])`
+            );
         }
 
         if (search?.trim()) {
@@ -217,7 +223,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
         const details = await db
             .selectFrom('inventory.out_lensa_ref_list')
             .selectAll()
-            .where('header_id', 'in', headerIds)
+            .where(sql<boolean>`${sql.ref('header_id')} = ANY(${headerIds}::uuid[])`)
             .execute();
 
         // Get SAP out items for matching in one query
@@ -235,16 +241,17 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                 .select(['id', 'sap_number', 'request_id']);
 
             if (giNumbers.length > 0 && reservationIds.length > 0) {
-                sapQuery = sapQuery.where((eb) =>
-                    eb.or([
-                        eb('sap_number', 'in', giNumbers),
-                        eb('request_id', 'in', reservationIds),
-                    ])
+                sapQuery = sapQuery.where(
+                    sql<boolean>`(${sql.ref('sap_number')} = ANY(${giNumbers}::text[]) OR ${sql.ref('request_id')} = ANY(${reservationIds}::text[]))`
                 );
             } else if (giNumbers.length > 0) {
-                sapQuery = sapQuery.where('sap_number', 'in', giNumbers);
+                sapQuery = sapQuery.where(
+                    sql<boolean>`${sql.ref('sap_number')} = ANY(${giNumbers}::text[])`
+                );
             } else {
-                sapQuery = sapQuery.where('request_id', 'in', reservationIds);
+                sapQuery = sapQuery.where(
+                    sql<boolean>`${sql.ref('request_id')} = ANY(${reservationIds}::text[])`
+                );
             }
 
             const sapHeaders = await sapQuery.execute();
@@ -255,7 +262,7 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                     .selectFrom('inventory.sap_out_items as si')
                     .innerJoin('inventory.materials as m', 'm.id', 'si.designator_id')
                     .select(['si.header_id', 'm.code as material_id', 'si.qty_req'])
-                    .where('si.header_id', 'in', sapHeaderIds)
+                    .where(sql<boolean>`${sql.ref('si.header_id')} = ANY(${sapHeaderIds}::bigint[])`)
                     .execute();
 
                 const itemsByHeaderId = new Map<
@@ -284,33 +291,6 @@ export async function getOutLensaRefList(options: GetOutLensaRefListOptions = {}
                         sapOutMap.set(sh.request_id.trim(), items);
                     }
                 }
-            }
-
-            // Sync sap_out_check for any unflagged headers on the current page
-            const matchedSapNumbers = new Set(
-                sapHeaders.map((sh) => sh.sap_number?.trim()).filter((n): n is string => Boolean(n))
-            );
-            const matchedRequestIds = new Set(
-                sapHeaders.map((sh) => sh.request_id?.trim()).filter((n): n is string => Boolean(n))
-            );
-
-            const unflaggedMatchedIds = headers
-                .filter((h) => {
-                    if (h.sap_out_check) return false;
-                    const gi = h.gi_number?.trim();
-                    const res = h.reservation_id?.trim();
-                    const isGiMatch = gi ? matchedSapNumbers.has(gi) : false;
-                    const isResMatch = res ? matchedRequestIds.has(res) : false;
-                    return isGiMatch || isResMatch;
-                })
-                .map((h) => h.id);
-
-            if (unflaggedMatchedIds.length > 0) {
-                await db
-                    .updateTable('inventory.out_lensa_ref_header')
-                    .set({ sap_out_check: true })
-                    .where('id', 'in', unflaggedMatchedIds)
-                    .execute();
             }
         }
 
@@ -418,7 +398,9 @@ export async function getOutLensaFilterOptions() {
             .orderBy('nama_gudang', 'asc');
 
         if (isStaff && whNames.length > 0) {
-            whQuery = whQuery.where('nama_gudang', 'in', whNames);
+            whQuery = whQuery.where(
+                sql<boolean>`${sql.ref('nama_gudang')} = ANY(${whNames}::text[])`
+            );
         }
         const whs = await whQuery.execute();
 
@@ -482,7 +464,9 @@ export async function getOutLensaRefDetails(headerId: string) {
             if (whNames.length === 0) {
                 return { success: false, error: 'Akses gudang ditolak' };
             }
-            detailQuery = detailQuery.where('h.nama_gudang', 'in', whNames);
+            detailQuery = detailQuery.where(
+                sql<boolean>`${sql.ref('h.nama_gudang')} = ANY(${whNames}::text[])`
+            );
         }
 
         const details = await detailQuery.execute();
@@ -596,7 +580,9 @@ export async function getOutLensaReservationIdOptions(): Promise<{
             .having(sql`count(l.id)`, '=', 0);
 
         if (isStaff && whNames.length > 0) {
-            query = query.where('h.nama_gudang', 'in', whNames);
+            query = query.where(
+                sql<boolean>`${sql.ref('h.nama_gudang')} = ANY(${whNames}::text[])`
+            );
         }
 
         // Hanya data yang belum memiliki detail material

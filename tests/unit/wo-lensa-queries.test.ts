@@ -202,9 +202,9 @@ describe('wo-lensa-queries Unit Tests', () => {
 
         expect(result.success).toBe(true);
         expect(mockWarehouseOptionsWhere).toHaveBeenCalledWith(
-            'nama_gudang',
-            'in',
-            expect.arrayContaining(['SO Gresik'])
+            expect.objectContaining({
+                values: expect.arrayContaining([expect.arrayContaining(['SO Gresik'])]),
+            })
         );
     });
 

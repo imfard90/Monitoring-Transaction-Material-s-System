@@ -44,7 +44,9 @@ export async function getActiveWarehousesWithLensaCandidates(options?: {
         .orderBy('id', 'asc');
 
     if (options?.warehouseIds && options.warehouseIds.length > 0) {
-        whQuery = whQuery.where('id', 'in', options.warehouseIds);
+        whQuery = whQuery.where(
+            sql<boolean>`${sql.ref('id')} = ANY(${options.warehouseIds}::int[])`
+        );
     } else {
         whQuery = whQuery.where((eb) =>
             eb.or([eb('pic_1', 'is not', null), eb('pic_2', 'is not', null)])

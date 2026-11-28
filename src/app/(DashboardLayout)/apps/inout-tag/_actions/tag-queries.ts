@@ -40,8 +40,8 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
             .where('h.request_time', '>', startDate);
 
         if (scope.kind === 'scoped') {
-            inoutQuery = inoutQuery.where((eb) =>
-                eb.or([eb('h.from_wh_id', 'in', scope.ids), eb('h.to_wh_id', 'in', scope.ids)])
+            inoutQuery = inoutQuery.where(
+                sql<boolean>`(${sql.ref('h.from_wh_id')} = ANY(${scope.ids}::int[]) OR ${sql.ref('h.to_wh_id')} = ANY(${scope.ids}::int[]))`
             );
         }
 
@@ -75,7 +75,9 @@ export async function getInOutTags(offsetMonths = 0, limitMonths = 5) {
             .where('r.created_at', '>', startDate);
 
         if (scope.kind === 'scoped') {
-            returnQuery = returnQuery.where('r.warehouse_id', 'in', scope.ids.map(String));
+            returnQuery = returnQuery.where(
+                sql<boolean>`${sql.ref('r.warehouse_id')} = ANY(${scope.ids}::bigint[])`
+            );
         }
 
         const returnHeaders = await returnQuery

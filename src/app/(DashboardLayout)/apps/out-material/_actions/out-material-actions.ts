@@ -53,10 +53,12 @@ export async function getOutMaterials(offsetMonths = 0, limitMonths = 5) {
                     counts: { wait_approve: 0, request: 0, intech: 0, close: 0 },
                 };
             }
-            query = query.where('h.warehouse_id', 'in', warehouseIds as number[]);
+            query = query.where(
+                sql<boolean>`${sql.ref('h.warehouse_id')} = ANY(${warehouseIds as number[]}::int[])`
+            );
         }
 
-        const headers = await query.execute();
+        const headers = await query.limit(1000).execute();
 
         const counts = {
             wait_approve: 0,
@@ -125,8 +127,12 @@ export async function getOutMaterialsPaginated(options: GetOutMaterialsPaginated
                     },
                 };
             }
-            baseCountQuery = baseCountQuery.where('h.warehouse_id', 'in', warehouseIds as number[]);
-            listQuery = listQuery.where('h.warehouse_id', 'in', warehouseIds as number[]);
+            baseCountQuery = baseCountQuery.where(
+                sql<boolean>`${sql.ref('h.warehouse_id')} = ANY(${warehouseIds as number[]}::int[])`
+            );
+            listQuery = listQuery.where(
+                sql<boolean>`${sql.ref('h.warehouse_id')} = ANY(${warehouseIds as number[]}::int[])`
+            );
         }
 
         const countsRes = await baseCountQuery
@@ -235,7 +241,9 @@ export async function getOutMaterialFilterOptions() {
             .distinct()
             .orderBy('wh.name', 'asc');
         if (isStaff) {
-            whQuery = whQuery.where('h.warehouse_id', 'in', warehouseIds as number[]);
+            whQuery = whQuery.where(
+                sql<boolean>`${sql.ref('h.warehouse_id')} = ANY(${warehouseIds as number[]}::int[])`
+            );
         }
         const whs = await whQuery.execute();
         const warehouses = Array.from(new Set(whs.map((w) => w.name).filter(Boolean))) as string[];

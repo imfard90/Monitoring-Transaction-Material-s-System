@@ -52,11 +52,17 @@ vi.mock('@/lib/db/db', () => ({
 }));
 
 vi.mock('kysely', () => {
-    const fakeSql = (strings: TemplateStringsArray, ...values: any[]) => ({
-        strings,
-        values,
-        execute: mockSqlExecute,
-    });
+    const fakeSql = Object.assign(
+        (strings: TemplateStringsArray, ...values: any[]) => ({
+            strings,
+            values,
+            execute: mockSqlExecute,
+        }),
+        {
+            ref: vi.fn((col: string) => col),
+            raw: vi.fn((s: string) => s),
+        }
+    );
     return {
         sql: fakeSql,
     };

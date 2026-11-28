@@ -54,11 +54,9 @@ export async function getStockBalances() {
                         .select('sm.id')
                         .whereRef('sm.warehouse_id', '=', 'sb.warehouse_id')
                         .whereRef('sm.designator_id', '=', 'sb.designator_id')
-                        .where('sm.movement_type', 'in', [
-                            'material_used',
-                            'sap_out',
-                            'transfer_out',
-                        ])
+                        .where(
+                            sql<boolean>`${sql.ref('sm.movement_type')}::text = ANY(${['material_used', 'sap_out', 'transfer_out']}::text[])`
+                        )
                 )} THEN TRUE ELSE FALSE END`.as('has_out_material_history')
             )
             .orderBy('w.name', 'asc')

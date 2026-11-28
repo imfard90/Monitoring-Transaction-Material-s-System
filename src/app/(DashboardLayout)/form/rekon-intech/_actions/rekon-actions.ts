@@ -53,7 +53,9 @@ export async function getTechniciansWithIntechSaps() {
             if (warehouseIds.length === 0) {
                 return { success: true, data: [] };
             }
-            query = query.where('t.wh_id', 'in', warehouseIds);
+            query = query.where(
+                sql<boolean>`${sql.ref('t.wh_id')} = ANY(${warehouseIds}::int[])`
+            );
         }
 
         const saps = await query.execute();
@@ -170,7 +172,7 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
             const validHeaders = await db
                 .selectFrom('inventory.sap_out_header')
                 .select('id')
-                .where('id', 'in', sapOutIds)
+                .where(sql<boolean>`${sql.ref('id')} = ANY(${sapOutIds}::bigint[])`)
                 .where('nik_teknisi', '=', parsed.data.nik)
                 .execute();
             if (validHeaders.length !== sapOutIds.length) {
@@ -194,7 +196,7 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
                     const lensaWos = await db
                         .selectFrom('inventory.wo_lensa_header')
                         .select(['wo_number', 'rekon_check'])
-                        .where('wo_number', 'in', woNumbers)
+                        .where(sql<boolean>`${sql.ref('wo_number')} = ANY(${woNumbers}::text[])`)
                         .execute();
 
                     if (lensaWos.length > 0) {
@@ -215,7 +217,7 @@ export async function submitRekonIntech(nik: string, items: RekonItemPayload[], 
                     const existingWos = await db
                         .selectFrom('inventory.transaction_used_header')
                         .select('wo_number')
-                        .where('wo_number', 'in', woNumbers)
+                        .where(sql<boolean>`${sql.ref('wo_number')} = ANY(${woNumbers}::text[])`)
                         .execute();
 
                     if (existingWos.length > 0) {

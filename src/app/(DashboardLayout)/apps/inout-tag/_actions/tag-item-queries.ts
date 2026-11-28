@@ -1,5 +1,6 @@
 'use server';
 
+import { sql } from 'kysely';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db/db';
 import { actionLogger } from '@/lib/logger';
@@ -196,7 +197,9 @@ export async function getInOutTagFilterOptions() {
             .distinct()
             .orderBy('wh.name', 'asc');
         if (scope.kind === 'scoped') {
-            whQuery = whQuery.where('h.to_wh_id', 'in', scope.ids);
+            whQuery = whQuery.where(
+                sql<boolean>`${sql.ref('h.to_wh_id')} = ANY(${scope.ids}::int[])`
+            );
         }
         const whs = await whQuery.execute();
         const toWhOptions = Array.from(new Set(whs.map((w) => w.name).filter(Boolean))) as string[];

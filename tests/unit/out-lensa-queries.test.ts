@@ -12,7 +12,9 @@ vi.mock('@/lib/auth-server', () => ({ getSessionUser: () => mockGetSessionUser()
 vi.mock('@/lib/redis', () => ({ redis: { get: vi.fn() } }));
 vi.mock('kysely', () => {
     const fakeSql = Object.assign(
-        () => ({
+        (strings: TemplateStringsArray, ...values: unknown[]) => ({
+            strings,
+            values,
             execute: mockSqlExecute,
             as: vi.fn().mockReturnThis(),
         }),
@@ -129,9 +131,9 @@ describe('out-lensa-queries warehouse options', () => {
 
         expect(result.success).toBe(true);
         expect(mockWarehouseOptionsWhere).toHaveBeenCalledWith(
-            'nama_gudang',
-            'in',
-            expect.arrayContaining(['SO Gresik'])
+            expect.objectContaining({
+                values: expect.arrayContaining([expect.arrayContaining(['SO Gresik'])]),
+            })
         );
     });
 
