@@ -25,7 +25,7 @@ export interface NteInventoryMasItemNte {
     merek: string;
     type_sn: string;
     item_description: string;
-    is_active: boolean | null;
+    is_active: boolean;
     created_at: NteTimestamp | null;
     updated_at: NteTimestamp | null;
 }
@@ -35,7 +35,7 @@ export interface NteInventoryMasAddressNte {
     owner: NteInventoryEnumOwner;
     location_type: NteInventoryEnumLocationType;
     ui_label: string;
-    is_active: boolean | null;
+    is_active: boolean;
     created_at: NteTimestamp | null;
     mapping_mas_wh: number | null;
 }

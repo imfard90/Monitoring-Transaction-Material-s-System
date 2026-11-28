@@ -87,7 +87,7 @@ export interface AuthUser {
     lensa_acount?: LensaAccount | null;
     api_key?: string | null;
     appr_api?: Generated<boolean>;
-    twoFactorEnabled?: boolean | null;
+    twoFactorEnabled?: Generated<boolean>;
     updatedAt: Generated<Timestamp>;
 }
 
@@ -96,7 +96,7 @@ export interface AuthTwoFactor {
     secret: string;
     backupCodes: string;
     userId: string;
-    verified: Generated<boolean | null>;
+    verified: Generated<boolean>;
     failedVerificationCount: Generated<number | null>;
     lockedUntil: Timestamp | null;
     createdAt: Generated<Timestamp>;
@@ -627,7 +627,7 @@ export interface InventoryInoutTagItems {
     action: InventoryEnumTransaction;
     action_id: string;
     created_at: Generated<Timestamp>;
-    designator_id: Int8;
+    designator_id: number;
     header_id: Int8;
     id: Generated<Int8>;
     qty: number;
@@ -636,7 +636,7 @@ export interface InventoryInoutTagItems {
 
 export interface InventoryMasWh {
     branch: string;
-    check_stock: boolean | null;
+    check_stock: Generated<boolean>;
     created_at: Generated<Timestamp>;
     id: Generated<number>;
     intls: string;
@@ -719,7 +719,7 @@ export interface InventoryReturnMaterialHeader {
     accept_time: Timestamp | null;
     created_at: Generated<Timestamp | null>;
     created_by: string | null;
-    end_status: Generated<string>;
+    end_status: Generated<'pending' | 'wait_approve' | 'requested' | 'accepted' | 'cancel' | 'rejected'>;
     id: Generated<Int8>;
     id_trx: string;
     nik_accept: string | null;
@@ -739,7 +739,7 @@ export interface InventoryReturnMaterialItems {
 
 export interface InventorySapOutHeader {
     created_by: string | null;
-    end_status: string | null;
+    end_status: Generated<'intech' | 'close'>;
     id: Generated<Int8>;
     id_reservasi: string | null;
     id_trx: string;
@@ -757,7 +757,7 @@ export interface InventorySapOutHeader {
 
 export interface InventorySapOutItems {
     created_at: Generated<Timestamp>;
-    designator_id: Int8;
+    designator_id: number;
     header_id: Int8;
     id: Generated<Int8>;
     qty_req: number;
@@ -813,7 +813,7 @@ export interface InventoryTransactionUsedHeader {
 
 export interface InventoryTransactionUsedItem {
     created_at: Generated<Timestamp>;
-    designator_id: Int8;
+    designator_id: number;
     id: Generated<Int8>;
     qty: number;
     unit_price: Numeric | null;
@@ -1123,7 +1123,7 @@ export interface InventoryOutLensaRefHeader {
     scraped_by_username: string | null;
     gi_number: string | null;
     status_proses: string | null;
-    sap_out_check: boolean | null;
+    sap_out_check: Generated<boolean>;
 
     created_at: Generated<Timestamp>;
     updated_at: Generated<Timestamp>;
@@ -1134,7 +1134,7 @@ export interface InventoryOutLensaRefList {
     header_id: string | null;
     material_id: string | null;
     material_desc: string | null;
-    qty_approve: string | null;
+    qty_approve: Numeric | null;
     created_at: Generated<Timestamp>;
 }
 
@@ -1150,7 +1150,7 @@ export interface inventory_wo_lensa_header {
     wo_number: string | null;
     created_at: Generated<Timestamp | null>;
     formatted_date: ColumnType<Date | string, string | undefined, string | undefined> | null;
-    rekon_check: boolean | null;
+    rekon_check: Generated<boolean>;
 }
 
 export interface inventory_wo_lensa_list {
