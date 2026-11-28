@@ -158,7 +158,7 @@ main {
     --secondary: #3b82f6; /* Blue 500 */
     --secondary-foreground: #ffffff;
     --muted: #f1f5f9; /* Slate 100 */
-    --muted-foreground: #64748b; /* Slate 500 */
+    --muted-foreground: #475569; /* Slate 600 — WCAG AA >= 4.5:1 on light & tinted surfaces */
     --accent: var(--lightprimary);
     --accent-foreground: var(--primary);
     --destructive: #ef4444; /* Red 500 */
