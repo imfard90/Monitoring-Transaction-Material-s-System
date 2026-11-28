@@ -588,3 +588,53 @@ Sisa `any` yang dipertahankan (dengan alasan terdokumentasi di kode):
 - File sumber terbesar kini 665 baris (`SidebarWarehouseChampion.tsx`),
   di bawah plafon 800 baris. `src/lib/db/database.types.ts` (1230 baris) adalah
   definisi tipe hasil generate dan dikecualikan.
+
+---
+
+## Lampiran B — Audit Migrasi Out & WO Lensa Ref ke Database-Centric ELT (28 Nov 2026)
+
+Berdasarkan kesepakatan arsitektur ADR-007 dan penyelarasan standar `AGENTS.md` (§1.9), seluruh pipeline ingestion untuk **Out Lensa Ref** dan **WO Lensa Ref** telah berhasil dimigrasikan dari *in-memory runtime processing* ke arsitektur **Database-Centric ELT**.
+
+### B.1 Ringkasan Eksekusi Migrasi & DDL (Migration 072)
+
+- **Tabel Staging Terpusat**:
+  - `etl.stg_out_lensa_raw` & `etl.stg_wo_lensa_raw`: menyimpan raw payload JSONB, metadata batch (`batch_id UUID`), hirarki wilayah (`regional, branch_id, service_area, sto_code`), status pemrosesan (`PENDING, PROCESSED, FAILED`), audit trail waktu (`scraped_at, processed_at, created_at`). RLS aktif dengan policy ketat.
+- **Normalisasi Tabel Produksi & Strict Data Types**:
+  - `inventory.out_lensa_ref_header`: penambahan foreign key `warehouse_id INT REFERENCES inventory.mas_wh(id)` (100% dari 6.685 baris data historis berhasil terpetakan ke master warehouse via alias).
+  - `inventory.out_lensa_ref_list`: konversi tipe data `qty_approve` dari `VARCHAR(50)` menjadi `NUMERIC(10,2)` (24.269 baris berhasil dikonversi tanpa data loss) dan penambahan `qty_req NUMERIC(10,2)`.
+  - `inventory.wo_lensa_header`: penambahan foreign key `warehouse_id INT REFERENCES inventory.mas_wh(id)` (100% dari 4.978 baris data historis berhasil terpetakan).
+  - `inventory.wo_lensa_list`: mempertahankan tipe `qty_pemakaian INTEGER` (17.295 baris data historis terbukti bulat 100%, efisien 4-byte).
+- **Stored Procedures Database Engine**:
+  - `inventory.sp_process_stg_out_lensa(p_batch_id UUID, ...)`: sanitasi payload, deduplikasi, lookup alias gudang $\to$ `warehouse_id`, upsert relasional.
+  - `inventory.sp_process_stg_wo_lensa(p_batch_id UUID, ...)`: sanitasi payload, deduplikasi, lookup alias gudang $\to$ `warehouse_id`, atomic verification `rekon_check` terhadap `inventory.rekon_used_header`.
+  - `analytics.sp_refresh_lensa_mviews_safe()`: refresh aman `mv_out_sap_lensa_summary` dan `mv_wo_lensa_rekon_summary` dengan proteksi `pg_try_advisory_xact_lock` untuk mencegah tabrakan konkurensi dengan scheduler `pg_cron`.
+
+### B.2 Pembersihan Codebase Aplikasi & Dead Code Removal
+
+- **Pola ELT Murni**: `src/lib/services/lensa-out/` dan `src/lib/services/lensa-wo/` kini murni menjalankan *Extract & Load*, mentransfer beban transformasi komputasi ke PostgreSQL.
+- **Pembersihan Nightly Deep-Sweep**: Loop manual `UPDATE` nomor GI via raw CTE SQL dan loop `INSERT ON CONFLICT` manual di `nightly-service.ts` telah dibersihkan dan dialihkan ke `lensaEltRepository`.
+- **Eliminasi Hardcoded Mapping**: File `src/lib/material-alias-helper.ts` telah **dihapus** permanen; resolusi nama material dan gudang upstream 100% menggunakan tabel master lookup database `inventory.material_alias` dan `inventory.warehouse_alias` (AGENTS.md §1.9).
+- **Presisi Desimal Form Out SAP**: Perbaikan parsing kuantitas reservasi dari `parseInt` menjadi `parseFloat` pada `src/app/(DashboardLayout)/form/out-sap/_actions/out-sap-actions.ts` sehingga presisi `NUMERIC(10,2)` terjaga penuh.
+
+### B.3 Pengetatan Otorisasi Server Action (AGENTS.md §1.1)
+
+- Penambahan guard otorisasi `getSessionUser()` dan pembatasan peran Staff eksplisit pada:
+  - `triggerScraping()` (`out-lensa-commands.ts`)
+  - `triggerWOScraping()` (`wo-lensa-scraper.ts`)
+  - `checkScrapingStatus()` (`out-lensa-queries.ts`)
+  - `checkWOScrapingStatus()` (`wo-lensa-scraper.ts`)
+
+### B.4 Verifikasi Kualitas & DoD
+
+| Parameter Uji | Standar Acuan | Hasil Audit |
+|---|---|---|
+| Status Migrasi 072 | `inventory._migration_log` | ✅ Terdaftar & dieksekusi |
+| Integritas FK Warehouse | `warehouse_id IS NULL` = 0 | ✅ 100% terpetakan (0 NULL) |
+| Integritas Kuantitas | `qty_approve`, `qty_pemakaian` < 0 | ✅ 0 anomali |
+| Unmapped Alias Anomaly | `inventory.unmapped_alias_log` | ✅ 0 unmapped (100% matched) |
+| RLS Staging & Master Alias | `rowsecurity = true` | ✅ 100% aktif |
+| TypeScript Typecheck | `npx tsc --noEmit` | ✅ 0 error |
+| Biome Linter | `npx biome check .` | ✅ 0 warning / 0 error |
+| Test Suite | `pnpm test` | ✅ 101 files, 871 tests passed (100%) |
+| Production Build | `pnpm build` (Turbopack) | ✅ Compiled successfully |
+
