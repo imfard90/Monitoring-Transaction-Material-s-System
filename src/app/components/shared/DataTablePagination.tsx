@@ -61,10 +61,7 @@ export function DataTablePagination<TData extends RowData>({
                                 table.setPageSize(size);
                             }}
                         >
-                            <SelectTrigger
-                                className="h-8 w-17.5 text-xs"
-                                aria-label="Pilih jumlah baris per halaman"
-                            >
+                            <SelectTrigger className="h-8 w-17.5 text-xs">
                                 <SelectValue placeholder={pageSize} />
                             </SelectTrigger>
                             <SelectContent side="top">

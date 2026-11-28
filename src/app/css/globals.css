@@ -182,7 +182,7 @@ main {
 
     /* CUSTOM COLORS */
     --info: #0369a1; /* Sky 700 — WCAG AA on light surfaces */
-    --success: #047857; /* Emerald 700 — WCAG AA on light & tinted surfaces */
+    --success: #065f46; /* Emerald 800 — WCAG AA >= 4.5:1 on light & tinted surfaces */
     --warning: #b45309; /* Amber 700 — WCAG AA on light surfaces */
     --error: #dc2626; /* Red 600 — WCAG AA on light surfaces */
     --white: #ffffff;

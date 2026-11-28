@@ -5,8 +5,8 @@ import { StaggerItem } from '@/components/ui/motion/stagger-item';
 import { getPageSessionUser } from '@/lib/auth-server';
 import { canAccessManagement } from '@/lib/policies';
 import BreadcrumbComp from '../../layout/shared/breadcrumb/BreadcrumbComp';
-import { getScopeHierarchyConfig, getUsers } from './actions';
-import UserTable from './user-table';
+import { UsersManagementTabs } from './_components/UsersManagementTabs';
+import { getRolePermissionMatrixAction, getScopeHierarchyConfig, getUsers } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +37,11 @@ export default async function UserManagementPage() {
         );
     }
 
-    const [users, hierarchy] = await Promise.all([getUsers(), getScopeHierarchyConfig()]);
+    const [users, hierarchy, roleMatrix] = await Promise.all([
+        getUsers(),
+        getScopeHierarchyConfig(),
+        getRolePermissionMatrixAction(),
+    ]);
 
     return (
         <StaggerContainer className="flex flex-col flex-1 w-full min-w-0 max-w-full">
@@ -46,7 +50,7 @@ export default async function UserManagementPage() {
             </StaggerItem>
 
             <StaggerItem className="bg-card rounded-lg border shadow-sm mt-4 flex-1 flex flex-col w-full min-w-0 max-w-full overflow-hidden">
-                <UserTable data={users} hierarchy={hierarchy} />
+                <UsersManagementTabs users={users} hierarchy={hierarchy} roleMatrix={roleMatrix} />
             </StaggerItem>
         </StaggerContainer>
     );

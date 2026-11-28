@@ -283,6 +283,77 @@ export async function saveUserScopeMappingAction(
     }
 }
 
+const saveRolePermissionsSchema = z.object({
+    roleId: z.number().int().positive(),
+    permissionKeys: z.array(z.string().trim().min(1).max(100)),
+});
+
+export async function getRolePermissionMatrixAction() {
+    await requireManagementAccess();
+    return rbacRepository.getRolePermissionMatrix();
+}
+
+export async function saveRolePermissionsAction(
+    rawPayload: z.infer<typeof saveRolePermissionsSchema>
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const actor = await requirePermissionAccess(
+            'users:manage',
+            'Akses ditolak: Anda tidak memiliki izin untuk mengubah matriks wewenang.'
+        );
+
+        const parsed = saveRolePermissionsSchema.safeParse(rawPayload);
+        if (!parsed.success) {
+            return {
+                success: false,
+                error: parsed.error.issues[0]?.message || 'Payload wewenang tidak valid.',
+            };
+        }
+
+        const { roleId, permissionKeys } = parsed.data;
+        const roles = await rbacRepository.getRoles();
+        const targetRole = roles.find((r) => r.id === roleId);
+        if (!targetRole) {
+            return { success: false, error: 'Role tujuan tidak ditemukan.' };
+        }
+
+        if (!canAssignRole(actor, targetRole.hierarchy_level)) {
+            return {
+                success: false,
+                error: 'Akses ditolak: Anda tidak dapat mengubah wewenang role yang lebih tinggi dari level Anda.',
+            };
+        }
+
+        const { affectedNiks } = await rbacRepository.saveRolePermissions(roleId, permissionKeys);
+
+        await Promise.all(affectedNiks.map((nik) => invalidateUserSessionMetaCache(nik)));
+
+        await logAuthEvent({
+            userId: actor.userId,
+            nik: actor.nik,
+            eventType: 'ROLE_PERMISSIONS_UPDATED',
+            status: 'SUCCESS',
+            reason: `Wewenang role ${targetRole.role_key} diperbarui (${permissionKeys.length} izin) oleh ${actor.nik}`,
+            metadata: {
+                roleId,
+                roleKey: targetRole.role_key,
+                permissionCount: permissionKeys.length,
+                affectedUsers: affectedNiks.length,
+                actorNik: actor.nik,
+            },
+        });
+
+        revalidatePath('/management/users');
+        return { success: true };
+    } catch (error) {
+        return {
+            success: false,
+            error:
+                error instanceof Error ? error.message : 'Gagal menyimpan matriks wewenang role.',
+        };
+    }
+}
+
 export async function getUserDevices(userId: string) {
     await requireManagementAccess();
     const parsed = userIdSchema.safeParse(userId);

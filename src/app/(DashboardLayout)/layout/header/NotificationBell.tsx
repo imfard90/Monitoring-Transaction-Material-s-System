@@ -73,12 +73,18 @@ export default function NotificationBell() {
                                 className="text-primary transition-transform duration-200 hover:scale-110"
                             />
                             {/* Ping animation indicator */}
-                            <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                            <span
+                                aria-hidden="true"
+                                className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5"
+                            >
                                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
+                                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-600" />
                             </span>
                             {/* Numerical badge */}
-                            <span className="absolute -top-1 -right-1 flex min-w-5 h-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-xs">
+                            <span
+                                aria-hidden="true"
+                                className="absolute -top-1 -right-1 flex min-w-5 h-5 items-center justify-center rounded-full bg-rose-700 px-1 text-[10px] font-bold text-white shadow-xs"
+                            >
                                 {total > 99 ? '99+' : total}
                             </span>
                         </>

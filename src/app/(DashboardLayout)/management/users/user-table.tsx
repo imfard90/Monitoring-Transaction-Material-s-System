@@ -549,10 +549,7 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
                         value={roleFilter}
                         onValueChange={(val) => setRoleFilter(val as RoleFilterValue)}
                     >
-                        <SelectTrigger
-                            className="h-9 w-45 text-xs"
-                            aria-label="Filter berdasarkan role"
-                        >
+                        <SelectTrigger className="h-9 w-45 text-xs">
                             <SelectValue placeholder="Semua Role" />
                         </SelectTrigger>
                         <SelectContent>
@@ -571,10 +568,7 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
                         value={statusFilter}
                         onValueChange={(val) => setStatusFilter(val as StatusFilterValue)}
                     >
-                        <SelectTrigger
-                            className="h-9 w-42 text-xs"
-                            aria-label="Filter berdasarkan status"
-                        >
+                        <SelectTrigger className="h-9 w-42 text-xs">
                             <SelectValue placeholder="Semua Status" />
                         </SelectTrigger>
                         <SelectContent>

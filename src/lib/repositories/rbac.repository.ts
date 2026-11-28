@@ -77,6 +77,95 @@ export function createRbacRepository(dbClient: Kysely<DB> | Transaction<DB>) {
             return rows.map((r) => r.permission_key);
         },
 
+        async getRolePermissionMatrix(): Promise<{
+            roles: RoleRecord[];
+            permissions: PermissionRecord[];
+            rolePermissions: Record<number, string[]>;
+        }> {
+            const [roles, permissions, mappings] = await Promise.all([
+                this.getRoles(),
+                this.getPermissions(),
+                dbClient
+                    .selectFrom('auth.role_permissions as rp')
+                    .innerJoin('auth.permissions as p', 'p.id', 'rp.permission_id')
+                    .select(['rp.role_id', 'p.permission_key'])
+                    .execute(),
+            ]);
+
+            const rolePermissions: Record<number, string[]> = {};
+            for (const r of roles) {
+                rolePermissions[r.id] = [];
+            }
+            for (const m of mappings) {
+                if (!rolePermissions[m.role_id]) {
+                    rolePermissions[m.role_id] = [];
+                }
+                rolePermissions[m.role_id].push(m.permission_key);
+            }
+
+            return { roles, permissions, rolePermissions };
+        },
+
+        async saveRolePermissions(
+            roleId: number,
+            permissionKeys: string[]
+        ): Promise<{ affectedNiks: string[] }> {
+            return dbClient.transaction().execute(async (trx) => {
+                const role = await trx
+                    .selectFrom('auth.roles')
+                    .select(['id', 'role_key', 'hierarchy_level'])
+                    .where('id', '=', roleId)
+                    .executeTakeFirst();
+
+                if (!role) {
+                    throw new Error('Role tidak ditemukan.');
+                }
+
+                const uniqueKeys = Array.from(new Set(permissionKeys));
+                let permIds: number[] = [];
+
+                if (uniqueKeys.length > 0) {
+                    const perms = await trx
+                        .selectFrom('auth.permissions')
+                        .select(['id', 'permission_key'])
+                        .where(
+                            sql<boolean>`${sql.ref('permission_key')} = ANY(${uniqueKeys}::text[])`
+                        )
+                        .execute();
+                    permIds = perms.map((p) => p.id);
+                }
+
+                await trx
+                    .deleteFrom('auth.role_permissions')
+                    .where('role_id', '=', roleId)
+                    .execute();
+
+                if (permIds.length > 0) {
+                    await trx
+                        .insertInto('auth.role_permissions')
+                        .values(
+                            permIds.map((permissionId) => ({
+                                role_id: roleId,
+                                permission_id: permissionId,
+                            }))
+                        )
+                        .onConflict((oc) => oc.doNothing())
+                        .execute();
+                }
+
+                const affectedRows = await trx
+                    .selectFrom('auth.user_scopes')
+                    .select('user_nik')
+                    .where('role_id', '=', roleId)
+                    .distinct()
+                    .execute();
+
+                return {
+                    affectedNiks: affectedRows.map((r) => r.user_nik),
+                };
+            });
+        },
+
         async getAllActiveUserScopes(): Promise<
             Array<UserScopeRow & { warehouse_name: string | null }>
         > {
