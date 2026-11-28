@@ -17,7 +17,7 @@ export function FloatingSupportWidget() {
             <Popover.Trigger asChild>
                 <button
                     type="button"
-                    aria-label="Buka kanal dukungan MTMS"
+                    aria-label="Buka kanal bantuan"
                     className="fixed bottom-5 right-5 z-40 flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xl shadow-primary/25 transition-all duration-200 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none sm:bottom-7 sm:right-7"
                 >
                     <Headset aria-hidden="true" className="size-6" />

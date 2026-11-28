@@ -325,126 +325,6 @@ export interface DataKpro {
     wonum: string;
 }
 
-export interface EtlDataKproClean {
-    actstart: Timestamp | null;
-    amcrew: string | null;
-    catatan_teknisi: string | null;
-    chief_code: string | null;
-    chief_name: string | null;
-    crmordertype: string | null;
-    customer_address: string | null;
-    customer_name: string | null;
-    datecreated: Timestamp | null;
-    datel_baru: string | null;
-    datel_lama: string | null;
-    desc_task: string | null;
-    district_baru: string | null;
-    district_lama: string | null;
-    district_tif: string | null;
-    engineermemo: string | null;
-    engineermemo_akhir: string | null;
-    errorcode: string | null;
-    errorcode_akhir: string | null;
-    flag_order: string | null;
-    flag_pda: string | null;
-    flag_wsa: string | null;
-    homepassid: string | null;
-    id: Generated<Int8>;
-    jenis_product: string | null;
-    job_id: Int8;
-    keterangan_pi: string | null;
-    laborcode: string | null;
-    laborname: string | null;
-    lat_inst_ut: Numeric | null;
-    lat_retag_ut: Numeric | null;
-    latitude_ins: Numeric | null;
-    long_inst_ut: Numeric | null;
-    long_retag_ut: Numeric | null;
-    longitude_ins: Numeric | null;
-    measurement: string | null;
-    ncli: string | null;
-    new_reservationid: string | null;
-    no_hp: string | null;
-    odp_name: string | null;
-    odp_name_ut: string | null;
-    ownergroup: string | null;
-    package_name: string | null;
-    product: string | null;
-    regional_baru: number | null;
-    regional_lama: string | null;
-    schedule_labor: Timestamp | null;
-    scorderno: string | null;
-    servicenum: string | null;
-    status: string | null;
-    status_approval: string | null;
-    status_odp: string | null;
-    status_survey: string | null;
-    status_task: string | null;
-    statusdate: Timestamp | null;
-    sto: string | null;
-    suberrorcode: string | null;
-    suberrorcode_akhir: string | null;
-    tanggal_approval: Timestamp | null;
-    territory_tif: string | null;
-    tgl_fallout_akhir: Timestamp | null;
-    tgl_fallout_awal: Timestamp | null;
-    tgl_manja: Timestamp | null;
-    tgl_pi_akhir: Timestamp | null;
-    tgl_pi_awal: Timestamp | null;
-    tiket_id: string | null;
-    transformed_at: Generated<Timestamp | null>;
-    wonum: string | null;
-}
-
-export interface EtlDataRfcMaterialClean {
-    description: string | null;
-    id: Generated<Int8>;
-    job_id: Int8 | null;
-    location_of_project: string | null;
-    material: string;
-    mitra: string | null;
-    nama_pemakai: string | null;
-    nama_requester: string | null;
-    nik_pemakai: string | null;
-    no_reservasi: string | null;
-    no_rfc: string | null;
-    plant: string | null;
-    po_number: string | null;
-    posting_date: Timestamp | null;
-    program: string | null;
-    project_id: string | null;
-    quantity: Numeric | null;
-    regional: string | null;
-    requester: string | null;
-    satuan: string | null;
-    transformed_at: Generated<Timestamp | null>;
-    type: string | null;
-    wbs_element: string | null;
-    witel: string | null;
-}
-
-export interface EtlDataSapFinanceTreeClean {
-    actual_cost: Numeric | null;
-    actual_revenue: Numeric | null;
-    basic_fin_date: Timestamp | null;
-    budget: Numeric | null;
-    cost_commitment: Numeric | null;
-    description: string | null;
-    id: Generated<Int8>;
-    job_id: Int8 | null;
-    level: number;
-    parent_id: Int8 | null;
-    parent_title: string | null;
-    path: string | null;
-    proj_cost_plan: Numeric | null;
-    release: Numeric | null;
-    start_date: Timestamp | null;
-    status: string | null;
-    title: string;
-    transformed_at: Generated<Timestamp | null>;
-    user_field: string | null;
-}
-
 export interface EtlImportJobs {
     created_at: Generated<Timestamp | null>;
     error_rows: Generated<number | null>;
@@ -1267,9 +1147,6 @@ export interface DB {
     'commerce.pid': CommercePid;
     'commerce.portofolio': CommercePortofolio;
     data_kpro: DataKpro;
-    'etl.data_kpro_clean': EtlDataKproClean;
-    'etl.data_rfc_material_clean': EtlDataRfcMaterialClean;
-    'etl.data_sap_finance_tree_clean': EtlDataSapFinanceTreeClean;
     'etl.import_jobs': EtlImportJobs;
     'etl.staging_data_kpro_raw': EtlStagingDataKproRaw;
     'etl.staging_data_rfc_material_raw': EtlStagingDataRfcMaterialRaw;

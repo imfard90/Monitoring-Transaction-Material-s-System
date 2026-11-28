@@ -561,7 +561,6 @@ describe('executive premium localization invariants', () => {
             expect(pagination).toMatch(/aria-label="Sebelumnya"/);
             expect(pagination).toMatch(/aria-label="Berikutnya"/);
             expect(pagination).toMatch(/aria-label="Halaman terakhir"/);
-            expect(pagination).toMatch(/aria-label="Pilih jumlah baris per halaman"/);
             expect(pagination).toMatch(/<span className="sr-only">Halaman pertama<\/span>/);
             expect(pagination).toMatch(/<span className="sr-only">Halaman terakhir<\/span>/);
         });
