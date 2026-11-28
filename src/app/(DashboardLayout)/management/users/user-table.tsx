@@ -1,9 +1,18 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ShieldAlert, ShieldCheck, SlidersHorizontal, Smartphone, Trash2 } from 'lucide-react';
+import {
+    KeyRound,
+    MoreHorizontal,
+    RotateCcw,
+    ShieldAlert,
+    ShieldCheck,
+    SlidersHorizontal,
+    Smartphone,
+    Trash2,
+} from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { DataTable } from '@/app/components/shared/DataTable';
@@ -13,7 +22,21 @@ import { PermissionGate } from '@/components/auth/PermissionGate';
 import { useAuthPermissions } from '@/components/auth/SessionPermissionProvider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { SearchField } from '@/components/ui/search-field';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import type { RoleKey } from '@/lib/policies/rbac';
 import {
@@ -74,13 +97,33 @@ interface UserTableProps {
     hierarchy: ScopeHierarchyData;
 }
 
+type RoleFilterValue = 'ALL' | 'SUPERUSER' | 'UNASSIGNED' | RoleKey;
+type StatusFilterValue = 'ALL' | 'ONLINE' | 'ACTIVE' | 'INACTIVE' | 'API_APPROVED' | 'NO_MFA';
+
 const columnHelper = createColumnHelper<UserItem>();
+
+function getInitials(name?: string | null): string {
+    const clean = (name ?? '').trim();
+    if (!clean) return '?';
+    const parts = clean.split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
 
 export default function UserTable({ data, hierarchy }: UserTableProps) {
     const { can, isSuperUser, hierarchyLevel } = useAuthPermissions();
     const canManageUsers = can('users:manage');
     const [users, setUsers] = useState(data);
     const [isPending, startTransition] = useTransition();
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [roleFilter, setRoleFilter] = useState<RoleFilterValue>('ALL');
+    const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('ALL');
+
+    const [userToDelete, setUserToDelete] = useState<UserItem | null>(null);
+    const [userToResetMfa, setUserToResetMfa] = useState<UserItem | null>(null);
+    const [selectedUserDevices, setSelectedUserDevices] = useState<UserItem | null>(null);
+    const [selectedUserScope, setSelectedUserScope] = useState<UserItem | null>(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -112,16 +155,39 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
             window.clearInterval(interval);
         };
     }, []);
-    const [nikFilter, setNikFilter] = useState('');
-    const [userToDelete, setUserToDelete] = useState<UserItem | null>(null);
-    const [userToResetMfa, setUserToResetMfa] = useState<UserItem | null>(null);
-    const [selectedUserDevices, setSelectedUserDevices] = useState<UserItem | null>(null);
-    const [selectedUserScope, setSelectedUserScope] = useState<UserItem | null>(null);
+
+    const filteredUsers = useMemo(() => {
+        return users.filter((u) => {
+            if (roleFilter === 'SUPERUSER' && !u.is_superuser) return false;
+            if (roleFilter === 'UNASSIGNED' && (u.is_superuser || Boolean(u.rbac_role_key))) {
+                return false;
+            }
+            if (
+                roleFilter !== 'ALL' &&
+                roleFilter !== 'SUPERUSER' &&
+                roleFilter !== 'UNASSIGNED' &&
+                u.rbac_role_key !== roleFilter
+            ) {
+                return false;
+            }
+
+            if (statusFilter === 'ONLINE' && !u.is_online) return false;
+            if (statusFilter === 'ACTIVE' && u.is_active !== true) return false;
+            if (statusFilter === 'INACTIVE' && u.is_active === true) return false;
+            if (statusFilter === 'API_APPROVED' && u.appr_api !== true) return false;
+            if (statusFilter === 'NO_MFA' && u.twoFactorEnabled === true) return false;
+
+            return true;
+        });
+    }, [users, roleFilter, statusFilter]);
 
     const handleToggleStatus = (userId: string, currentStatus: boolean) => {
         startTransition(async () => {
             try {
                 await toggleUserStatus(userId, !currentStatus);
+                setUsers((prev) =>
+                    prev.map((u) => (u.id === userId ? { ...u, is_active: !currentStatus } : u))
+                );
                 toast.success(`Status pengguna ${currentStatus ? 'dinonaktifkan' : 'diaktifkan'}`);
             } catch (error: unknown) {
                 toast.error(
@@ -135,6 +201,9 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
         startTransition(async () => {
             try {
                 await toggleUserApiApproval(userId, !currentStatus);
+                setUsers((prev) =>
+                    prev.map((u) => (u.id === userId ? { ...u, appr_api: !currentStatus } : u))
+                );
                 toast.success(`Akses API ${currentStatus ? 'dicabut' : 'disetujui'}`);
             } catch (error: unknown) {
                 toast.error(
@@ -149,6 +218,7 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
         startTransition(async () => {
             try {
                 await deleteUser(userToDelete.id);
+                setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
                 toast.success('Pengguna berhasil dihapus');
                 setUserToDelete(null);
             } catch (error: unknown) {
@@ -176,27 +246,31 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
 
     const columns = [
         columnHelper.accessor('name', {
-            header: 'Nama',
+            header: 'Pengguna',
             cell: (info) => {
-                const isOnline = info.row.original.is_online;
+                const user = info.row.original;
                 return (
-                    <div className="flex items-center gap-2">
-                        <div
-                            className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-success shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-muted-foreground/30'}`}
-                            title={isOnline ? 'Online' : 'Offline'}
-                        />
-                        <span className="font-medium">{info.getValue() || '-'}</span>
+                    <div className="flex items-center gap-2.5 min-w-[200px]">
+                        <div className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary border border-primary/20">
+                            {getInitials(user.name)}
+                            <span
+                                className={`absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-card ${
+                                    user.is_online ? 'bg-emerald-500' : 'bg-muted-foreground/35'
+                                }`}
+                                title={user.is_online ? 'Online' : 'Offline'}
+                            />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                            <span className="font-medium text-sm leading-tight text-foreground truncate">
+                                {user.name || '-'}
+                            </span>
+                            <span className="text-[11px] font-mono tabular-nums text-muted-foreground truncate">
+                                {user.nik || '-'} · {user.email || '-'}
+                            </span>
+                        </div>
                     </div>
                 );
             },
-        }),
-        columnHelper.accessor('email', {
-            header: 'Email',
-            cell: (info) => info.getValue() || '-',
-        }),
-        columnHelper.accessor('nik', {
-            header: 'NIK',
-            cell: (info) => info.getValue() || '-',
         }),
         columnHelper.accessor('rbac_role_name', {
             header: 'Role & Scope',
@@ -217,7 +291,7 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
                           : 'bg-muted text-foreground';
 
                 return (
-                    <div className="flex flex-col gap-1 items-start">
+                    <div className="flex flex-col gap-1 items-start min-w-[160px]">
                         <div className="flex items-center gap-1.5">
                             <Badge variant="outline" className={badgeClass}>
                                 {roleLabel}
@@ -231,44 +305,86 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
                                 </Badge>
                             )}
                         </div>
-                        <span className="text-[11px] text-muted-foreground max-w-[200px] truncate">
+                        <span className="text-[11px] text-muted-foreground max-w-[220px] truncate">
                             {user.scope_summary || '-'}
                         </span>
                     </div>
                 );
             },
         }),
-        columnHelper.accessor('lensa_acount', {
-            header: 'Lensa',
+        columnHelper.accessor('twoFactorEnabled', {
+            header: 'Keamanan & Integrasi',
             cell: (info) => {
-                const isLinked = !!info.getValue();
-                return isLinked ? (
-                    <Badge
-                        variant="outline"
-                        className="border-success/30 text-success bg-success/10"
-                    >
-                        Terhubung
-                    </Badge>
-                ) : (
-                    <span className="text-muted-foreground">-</span>
+                const isMfaActive = info.getValue() === true;
+                const user = info.row.original;
+                const deviceCount = user.active_devices_count || 0;
+                const isLensaLinked = Boolean(user.lensa_acount);
+                const hasApiKey = user.has_api_key === true;
+
+                return (
+                    <div className="flex flex-col gap-1 items-start">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            {isMfaActive ? (
+                                <Badge
+                                    variant="outline"
+                                    className="flex items-center gap-1 text-[10.5px] py-0 px-1.5 border-emerald-500/30 text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 tabular-nums"
+                                >
+                                    <ShieldCheck className="size-3" />
+                                    <span>MFA {deviceCount}/3</span>
+                                </Badge>
+                            ) : (
+                                <Badge
+                                    variant="outline"
+                                    className="text-[10.5px] py-0 px-1.5 border-border text-muted-foreground"
+                                >
+                                    MFA Off
+                                </Badge>
+                            )}
+                            {isLensaLinked && (
+                                <Badge
+                                    variant="outline"
+                                    className="text-[10.5px] py-0 px-1.5 border-success/30 text-success bg-success/10"
+                                >
+                                    Lensa
+                                </Badge>
+                            )}
+                            {hasApiKey && (
+                                <Badge
+                                    variant="outline"
+                                    className="flex items-center gap-0.5 text-[10.5px] py-0 px-1.5 border-primary/30 text-primary bg-primary/5"
+                                >
+                                    <KeyRound className="size-2.5" />
+                                    <span>API Key</span>
+                                </Badge>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedUserDevices(user)}
+                            className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer font-medium tabular-nums"
+                        >
+                            <Smartphone className="size-3" />
+                            <span>Kelola Perangkat ({deviceCount})</span>
+                        </button>
+                    </div>
                 );
             },
         }),
         columnHelper.accessor('is_active', {
-            header: 'Aktif',
+            header: 'Akun',
             cell: (info) => {
                 const isActive = info.getValue() === true;
-                const userId = info.row.original.id;
+                const user = info.row.original;
                 return (
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
                         <Switch
                             checked={isActive}
-                            onCheckedChange={() => handleToggleStatus(userId, isActive)}
+                            onCheckedChange={() => handleToggleStatus(user.id, isActive)}
                             disabled={isPending || !canManageUsers}
-                            aria-label={`Toggle status aktif ${info.row.original.name || info.row.original.nik}`}
+                            aria-label={`Toggle status aktif ${user.name || user.nik}`}
                         />
-                        <span className="text-sm text-muted-foreground">
-                            {isActive ? 'Ya' : 'Tidak'}
+                        <span className="text-xs font-medium text-muted-foreground">
+                            {isActive ? 'Aktif' : 'Nonaktif'}
                         </span>
                     </div>
                 );
@@ -278,124 +394,91 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
             header: 'Akses API',
             cell: (info) => {
                 const isApproved = info.getValue() === true;
-                const hasApiKey = info.row.original.has_api_key === true;
-                const userId = info.row.original.id;
-                return (
-                    <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center space-x-2">
-                            <Switch
-                                checked={isApproved}
-                                onCheckedChange={() => handleToggleApiApproval(userId, isApproved)}
-                                disabled={isPending || !canManageUsers}
-                                aria-label="Toggle status approval API"
-                            />
-                            <span
-                                className={`text-xs font-medium ${isApproved ? 'text-success' : 'text-muted-foreground'}`}
-                            >
-                                {isApproved ? 'Disetujui' : 'Nonaktif'}
-                            </span>
-                        </div>
-                        <div>
-                            {hasApiKey ? (
-                                <Badge
-                                    variant="outline"
-                                    className="text-[10px] py-0 px-1.5 border-primary/30 text-primary bg-primary/5"
-                                >
-                                    Kunci Dibuat
-                                </Badge>
-                            ) : (
-                                <span className="text-[10px] text-muted-foreground italic">
-                                    Tanpa Kunci
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                );
-            },
-        }),
-        columnHelper.accessor('twoFactorEnabled', {
-            header: 'MFA & Perangkat',
-            cell: (info) => {
-                const isMfaActive = info.getValue() === true;
                 const user = info.row.original;
-                const deviceCount = user.active_devices_count || 0;
-
                 return (
-                    <div className="flex flex-col gap-1 items-start">
-                        {isMfaActive ? (
-                            <Badge
-                                variant="outline"
-                                className="flex items-center gap-1 text-[11px] border-emerald-500/30 text-emerald-800 dark:text-emerald-400 bg-emerald-500/10"
-                            >
-                                <ShieldCheck className="w-3 h-3" />
-                                <span>Aktif ({deviceCount}/3)</span>
-                            </Badge>
-                        ) : (
-                            <Badge
-                                variant="outline"
-                                className="text-[11px] border-muted text-muted-foreground"
-                            >
-                                Belum Aktif
-                            </Badge>
-                        )}
-
-                        <button
-                            type="button"
-                            onClick={() => setSelectedUserDevices(user)}
-                            className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                    <div className="flex items-center gap-2">
+                        <Switch
+                            checked={isApproved}
+                            onCheckedChange={() => handleToggleApiApproval(user.id, isApproved)}
+                            disabled={isPending || !canManageUsers}
+                            aria-label={`Toggle status approval API ${user.name || user.nik}`}
+                        />
+                        <span
+                            className={`text-xs font-medium ${isApproved ? 'text-success' : 'text-muted-foreground'}`}
                         >
-                            <Smartphone className="w-3 h-3" />
-                            <span>Kelola ({deviceCount})</span>
-                        </button>
+                            {isApproved ? 'Disetujui' : 'Nonaktif'}
+                        </span>
                     </div>
                 );
             },
         }),
         columnHelper.display({
             id: 'actions',
-            header: () => <div className="text-center">Aksi</div>,
+            header: () => <div className="text-right">Aksi</div>,
             cell: (info) => {
                 const user = info.row.original;
                 const hasMfaOrDevices =
                     user.twoFactorEnabled || (user.active_devices_count || 0) > 0;
                 return (
-                    <div className="flex justify-center items-center gap-2">
+                    <div className="flex justify-end items-center gap-1.5">
                         <PermissionGate permission="users:manage">
                             {!user.is_superuser && (
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                                    className="h-8 gap-1.5 border-primary/30 text-primary hover:bg-primary/10 text-xs"
                                     disabled={isPending}
                                     onClick={() => setSelectedUserScope(user)}
                                     title="Atur Role dan Cakupan Wilayah (RBAC/SBAC)"
                                 >
-                                    <SlidersHorizontal size={14} /> Role & Scope
+                                    <SlidersHorizontal className="size-3.5" />
+                                    <span>Role & Scope</span>
                                 </Button>
                             )}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-warning hover:text-warning/80 gap-1 border-warning/30 hover:bg-warning/10"
-                                disabled={isPending || !hasMfaOrDevices}
-                                onClick={() => setUserToResetMfa(user)}
-                                title={
-                                    hasMfaOrDevices
-                                        ? 'Reset MFA dan seluruh perangkat terdaftar'
-                                        : 'MFA belum aktif'
-                                }
-                            >
-                                <ShieldAlert size={14} /> Reset MFA
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => setUserToDelete(user)}
-                                disabled={isPending || user.is_superuser}
-                                className="gap-1"
-                            >
-                                <Trash2 size={14} /> Hapus
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-8 text-muted-foreground hover:text-foreground"
+                                        aria-label={`Aksi lainnya untuk ${user.name || user.nik}`}
+                                        disabled={isPending}
+                                    >
+                                        <MoreHorizontal className="size-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem
+                                        onClick={() => setSelectedUserDevices(user)}
+                                        className="gap-2 cursor-pointer"
+                                    >
+                                        <Smartphone className="size-3.5" />
+                                        <span>
+                                            Kelola Perangkat ({user.active_devices_count || 0})
+                                        </span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={() => setUserToResetMfa(user)}
+                                        disabled={!hasMfaOrDevices}
+                                        className="gap-2 cursor-pointer text-warning focus:text-warning"
+                                    >
+                                        <ShieldAlert className="size-3.5" />
+                                        <span>Reset MFA & Perangkat</span>
+                                    </DropdownMenuItem>
+                                    {!user.is_superuser && (
+                                        <>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                onClick={() => setUserToDelete(user)}
+                                                className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                                            >
+                                                <Trash2 className="size-3.5" />
+                                                <span>Hapus Pengguna</span>
+                                            </DropdownMenuItem>
+                                        </>
+                                    )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </PermissionGate>
                     </div>
                 );
@@ -404,27 +487,37 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
     ];
 
     const table = useReactTable({
-        data: users,
+        data: filteredUsers,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         initialState: { pagination: { pageSize: 20 } },
         state: {
-            globalFilter: nikFilter,
+            globalFilter: searchQuery,
         },
         globalFilterFn: (row, _columnId, filterValue) => {
-            const nik = row.getValue('nik') as string;
-            if (!nik) return false;
-            return nik.toLowerCase().includes(filterValue.toLowerCase());
+            const q = String(filterValue ?? '')
+                .trim()
+                .toLowerCase();
+            if (!q) return true;
+            const user = row.original;
+            return (
+                (user.name ?? '').toLowerCase().includes(q) ||
+                (user.nik ?? '').toLowerCase().includes(q) ||
+                (user.email ?? '').toLowerCase().includes(q)
+            );
         },
-        onGlobalFilterChange: setNikFilter,
+        onGlobalFilterChange: setSearchQuery,
     });
 
-    const hasActiveFilters = Boolean(nikFilter.trim());
+    const hasActiveFilters =
+        Boolean(searchQuery.trim()) || roleFilter !== 'ALL' || statusFilter !== 'ALL';
 
     const handleResetFilters = useCallback(() => {
-        setNikFilter('');
+        setSearchQuery('');
+        setRoleFilter('ALL');
+        setStatusFilter('ALL');
     }, []);
 
     usePageFilterEsc({
@@ -432,22 +525,87 @@ export default function UserTable({ data, hierarchy }: UserTableProps) {
         onReset: handleResetFilters,
     });
 
+    const displayedCount = table.getFilteredRowModel().rows.length;
+
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="space-y-4 flex flex-col p-4"
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="space-y-3.5 flex flex-col p-4"
         >
-            <div className="flex items-center gap-2">
-                <SearchField
-                    wrapperClassName="w-full max-w-sm"
-                    placeholder="Cari berdasarkan NIK..."
-                    value={nikFilter}
-                    onValueChange={setNikFilter}
-                    onClear={handleResetFilters}
-                    clearLabel="Hapus filter NIK pengguna"
-                />
+            <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap items-center gap-2 flex-1">
+                    <SearchField
+                        wrapperClassName="w-full sm:w-72"
+                        placeholder="Cari nama, NIK, atau email..."
+                        value={searchQuery}
+                        onValueChange={setSearchQuery}
+                        onClear={() => setSearchQuery('')}
+                        clearLabel="Hapus pencarian pengguna"
+                    />
+
+                    <Select
+                        value={roleFilter}
+                        onValueChange={(val) => setRoleFilter(val as RoleFilterValue)}
+                    >
+                        <SelectTrigger
+                            className="h-9 w-[180px] text-xs"
+                            aria-label="Filter berdasarkan role"
+                        >
+                            <SelectValue placeholder="Semua Role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">Semua Role</SelectItem>
+                            <SelectItem value="SUPERUSER">SuperUser</SelectItem>
+                            {hierarchy.roles.map((r) => (
+                                <SelectItem key={r.role_key} value={r.role_key}>
+                                    {r.role_name}
+                                </SelectItem>
+                            ))}
+                            <SelectItem value="UNASSIGNED">Belum Diatur Scope</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select
+                        value={statusFilter}
+                        onValueChange={(val) => setStatusFilter(val as StatusFilterValue)}
+                    >
+                        <SelectTrigger
+                            className="h-9 w-[165px] text-xs"
+                            aria-label="Filter berdasarkan status"
+                        >
+                            <SelectValue placeholder="Semua Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">Semua Status</SelectItem>
+                            <SelectItem value="ONLINE">Online Sekarang</SelectItem>
+                            <SelectItem value="ACTIVE">Akun Aktif</SelectItem>
+                            <SelectItem value="INACTIVE">Akun Nonaktif</SelectItem>
+                            <SelectItem value="API_APPROVED">API Disetujui</SelectItem>
+                            <SelectItem value="NO_MFA">MFA Belum Aktif</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    {hasActiveFilters && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleResetFilters}
+                            className="h-9 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                            <RotateCcw className="size-3.5" />
+                            <span>Reset</span>
+                        </Button>
+                    )}
+                </div>
+
+                <div className="text-xs text-muted-foreground tabular-nums shrink-0">
+                    Menampilkan{' '}
+                    <span className="font-semibold text-foreground">{displayedCount}</span> dari{' '}
+                    <span className="font-semibold text-foreground">{users.length}</span> pengguna
+                </div>
             </div>
 
             <DataTable table={table} maxHeight="min(65vh, 720px)" />
